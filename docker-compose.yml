@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18
+    container_name: consent-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: consent_admin
+      POSTGRES_PASSWORD: sathwik11
+      POSTGRES_DB: consent_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - consent_postgres_data:/var/lib/postgresql
+
+volumes:
+  consent_postgres_data:

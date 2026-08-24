@@ -1,0 +1,22 @@
+CREATE TABLE "plans" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"key" varchar(100) NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"description" text,
+	"price_monthly" numeric(12, 2) DEFAULT '0' NOT NULL,
+	"price_yearly" numeric(12, 2) DEFAULT '0' NOT NULL,
+	"currency" varchar(10) DEFAULT 'USD' NOT NULL,
+	"max_websites" integer,
+	"max_monthly_visitors" integer,
+	"max_consent_events" integer,
+	"max_api_requests" integer,
+	"max_scans_per_month" integer,
+	"data_retention_days" integer,
+	"features" jsonb DEFAULT '{}'::jsonb NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"is_public" boolean DEFAULT true NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "plans_key_unique" UNIQUE("key")
+);

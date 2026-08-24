@@ -1,0 +1,77 @@
+import {
+  boolean,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+
+export const organizations = pgTable("organizations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  // Clerk organization ID
+  clerkOrganizationId: varchar("clerk_organization_id", {
+    length: 255,
+  }).notNull().unique(),
+
+  name: varchar("name", {
+    length: 255,
+  }).notNull(),
+
+  slug: varchar("slug", {
+    length: 255,
+  }).notNull().unique(),
+
+  description: text("description"),
+
+  logoUrl: text("logo_url"),
+
+  status: varchar("status", {
+    length: 50,
+  })
+    .notNull()
+    .default("active"),
+
+  timezone: varchar("timezone", {
+    length: 100,
+  })
+    .notNull()
+    .default("UTC"),
+
+  defaultLanguage: varchar("default_language", {
+    length: 10,
+  })
+    .notNull()
+    .default("en"),
+
+  defaultRegion: varchar("default_region", {
+    length: 10,
+  }),
+
+  settings: jsonb("settings")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
+
+  onboardingCompleted: boolean("onboarding_completed")
+    .notNull()
+    .default(false),
+
+  createdAt: timestamp("created_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  updatedAt: timestamp("updated_at", {
+    withTimezone: true,
+  })
+    .defaultNow()
+    .notNull(),
+
+  deletedAt: timestamp("deleted_at", {
+    withTimezone: true,
+  }),
+});
