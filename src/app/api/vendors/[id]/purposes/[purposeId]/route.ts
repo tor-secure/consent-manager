@@ -1,0 +1,70 @@
+import { auth } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { eq, and } from "drizzle-orm";
+
+import { db } from "@/db";
+import { organizations } from "@/db/schema/organizations";
+import { vendors } from "@/db/schema/vendors";
+import { vendorPurposes } from "@/db/schema/vendor-purposes";
+
+// ---------------------------------------------------------------------------
+// DELETE /api/vendors/[id]/purposes/[purposeId]
+// Detaches a purpose from a vendor.
+// ---------------------------------------------------------------------------
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string; purposeId: string }> },
+) {
+  try {
+    const { id: vendorId, purposeId } = await params;
+    const { isAuthenticated, userId, orgId } = await auth();
+
+    if (!isAuthenticated || !userId || !orgId) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const [organization] = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.clerkOrganizationId, orgId))
+      .limit(1);
+
+    if (!organization) {
+      return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
+    }
+
+    // Verify vendor belongs to this org.
+    const [vendor] = await db
+      .select({ id: vendors.id })
+      .from(vendors)
+      .where(and(eq(vendors.id, vendorId), eq(vendors.organizationId, organization.id)))
+      .limit(1);
+
+    if (!vendor) {
+      return NextResponse.json({ success: false, message: "Vendor not found" }, { status: 404 });
+    }
+
+    const deleted = await db
+      .delete(vendorPurposes)
+      .where(
+        and(
+          eq(vendorPurposes.vendorId, vendor.id),
+          eq(vendorPurposes.purposeId, purposeId),
+        ),
+      )
+      .returning();
+
+    if (deleted.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Purpose is not linked to this vendor" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Detach vendor purpose failed:", error);
+    return NextResponse.json({ success: false, message: "Failed to detach purpose" }, { status: 500 });
+  }
+}

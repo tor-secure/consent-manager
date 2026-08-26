@@ -1,19 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-
 import { CreateWebsiteForm } from "@/components/websites/create-website-form";
 
-export default async function NewWebsitePage() {
-  const { isAuthenticated, orgId } = await auth();
-
-  if (!isAuthenticated) {
-    redirect("/sign-in");
-  }
-
-  if (!orgId) {
-    redirect("/create-organization");
-  }
-
+// Auth + bootstrap is handled by the parent dashboard layout.
+export default function NewWebsitePage() {
   return (
     <main className="p-8">
       <div className="mx-auto max-w-2xl">

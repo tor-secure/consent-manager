@@ -1,0 +1,249 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+export type WebsiteSettingsData = {
+  id: string;
+  name: string;
+  description: string | null;
+  environment: string;
+  defaultLanguage: string;
+  defaultRegion: string | null;
+  // Read-only fields shown for reference
+  domain: string;
+  siteKey: string;
+};
+
+// ---------------------------------------------------------------------------
+// Small form field wrappers
+// ---------------------------------------------------------------------------
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-xs text-neutral-400">{hint}</p>}
+    </div>
+  );
+}
+
+function ReadOnlyField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="mb-1.5 text-sm font-medium text-neutral-700">{label}</p>
+      <div className="rounded-md border bg-neutral-50 px-3 py-2">
+        <code className="text-sm text-neutral-500">{value}</code>
+      </div>
+      <p className="mt-1 text-xs text-neutral-400">
+        This value cannot be changed after creation.
+      </p>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// WebsiteSettingsForm
+// ---------------------------------------------------------------------------
+
+export function WebsiteSettingsForm({
+  website,
+}: {
+  website: WebsiteSettingsData;
+}) {
+  const router = useRouter();
+
+  const [name, setName] = useState(website.name);
+  const [description, setDescription] = useState(website.description ?? "");
+  const [environment, setEnvironment] = useState(website.environment);
+  const [defaultLanguage, setDefaultLanguage] = useState(
+    website.defaultLanguage,
+  );
+  const [defaultRegion, setDefaultRegion] = useState(
+    website.defaultRegion ?? "",
+  );
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    setSuccess(false);
+
+    try {
+      const response = await fetch(`/api/websites/${website.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          description: description.trim() || null,
+          environment,
+          defaultLanguage,
+          defaultRegion: defaultRegion || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message ?? "Failed to save settings");
+      }
+
+      setSuccess(true);
+      // Refresh server component data without a full navigation.
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Editable fields */}
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-5 text-base font-semibold text-neutral-900">
+          General
+        </h2>
+
+        <div className="space-y-5">
+          <Field label="Website name">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              maxLength={255}
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            />
+          </Field>
+
+          <Field label="Description" hint="Optional — visible only to your team.">
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              maxLength={1000}
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            />
+          </Field>
+
+          <Field label="Environment">
+            <select
+              value={environment}
+              onChange={(e) => setEnvironment(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            >
+              <option value="production">Production</option>
+              <option value="staging">Staging</option>
+              <option value="development">Development</option>
+            </select>
+          </Field>
+        </div>
+      </div>
+
+      {/* Locale */}
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-5 text-base font-semibold text-neutral-900">
+          Locale defaults
+        </h2>
+
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Default language">
+            <select
+              value={defaultLanguage}
+              onChange={(e) => setDefaultLanguage(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            >
+              <option value="en">English</option>
+              <option value="hi">Hindi</option>
+              <option value="kn">Kannada</option>
+              <option value="fr">French</option>
+              <option value="de">German</option>
+              <option value="es">Spanish</option>
+              <option value="pt">Portuguese</option>
+            </select>
+          </Field>
+
+          <Field label="Default region">
+            <select
+              value={defaultRegion}
+              onChange={(e) => setDefaultRegion(e.target.value)}
+              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            >
+              <option value="">— None —</option>
+              <option value="IN">India</option>
+              <option value="EU">European Union</option>
+              <option value="US">United States</option>
+              <option value="UK">United Kingdom</option>
+              <option value="AU">Australia</option>
+              <option value="CA">Canada</option>
+            </select>
+          </Field>
+        </div>
+      </div>
+
+      {/* Read-only identity */}
+      <div className="rounded-lg border bg-white p-6">
+        <h2 className="mb-5 text-base font-semibold text-neutral-900">
+          Identity
+        </h2>
+
+        <div className="space-y-5">
+          <ReadOnlyField label="Domain" value={website.domain} />
+          <ReadOnlyField label="Site key" value={website.siteKey} />
+        </div>
+      </div>
+
+      {/* Feedback */}
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          Settings saved successfully.
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="rounded-md border px-5 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
