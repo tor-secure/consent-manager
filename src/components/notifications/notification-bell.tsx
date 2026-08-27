@@ -22,7 +22,6 @@ export function NotificationBell() {
           setLoaded(true);
         }
       } catch {
-        // Non-critical — just don't show badge on error.
         if (!cancelled) setLoaded(true);
       }
     }
@@ -42,34 +41,27 @@ export function NotificationBell() {
           ? `Notifications — ${count} unread`
           : "Notifications"
       }
-      className="relative flex h-8 w-8 items-center justify-center rounded-md text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+      className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-500 soft-shadow hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
     >
-      {/* Bell icon */}
       <svg
         width="18"
         height="18"
-        viewBox="0 0 18 18"
+        viewBox="0 0 24 24"
         fill="none"
         aria-hidden="true"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <path
-          d="M9 2A5.25 5.25 0 0 0 3.75 7.25v3.5L2.5 12.5h13l-1.25-1.75v-3.5A5.25 5.25 0 0 0 9 2Z"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M7.25 12.5v.5a1.75 1.75 0 0 0 3.5 0v-.5"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        />
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+        <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
       </svg>
 
-      {/* Unread badge */}
       {loaded && count > 0 && (
         <span
           aria-hidden="true"
-          className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white"
+          className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white shadow-md shadow-rose-500/30 ring-2 ring-white"
         >
           {count > 99 ? "99+" : count}
         </span>

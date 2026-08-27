@@ -71,13 +71,39 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate URL format.
+    // Validate URL format and block SSRF targets.
     try {
       const parsed = new URL(url);
       if (!["http:", "https:"].includes(parsed.protocol)) {
         throw new Error("Protocol must be http or https");
       }
-    } catch {
+
+      // Block requests to localhost and private/internal IP ranges.
+      const host = parsed.hostname.toLowerCase();
+      const ssrfBlocked =
+        host === "localhost" ||
+        host === "127.0.0.1" ||
+        host === "::1" ||
+        host === "0.0.0.0" ||
+        // Private IPv4 ranges: 10.x, 172.16–31.x, 192.168.x, 169.254.x (link-local)
+        /^10\./.test(host) ||
+        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+        /^192\.168\./.test(host) ||
+        /^169\.254\./.test(host) ||
+        // IPv6 private
+        /^(fc|fd|fe80)/i.test(host) ||
+        // Metadata endpoints
+        host === "metadata.google.internal" ||
+        host === "169.254.169.254";
+
+      if (ssrfBlocked) {
+        return NextResponse.json(
+          { success: false, message: "Webhook URL must point to a publicly reachable host" },
+          { status: 400 },
+        );
+      }
+    } catch (urlError) {
+      if (urlError instanceof NextResponse) return urlError;
       return NextResponse.json(
         { success: false, message: "Endpoint URL must be a valid HTTP/HTTPS URL" },
         { status: 400 },

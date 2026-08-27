@@ -3,289 +3,256 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// ---------------------------------------------------------------------------
-// Nav structure
-// ---------------------------------------------------------------------------
-
 type NavItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
+  ariaLabel?: string;
 };
 
 type NavGroup = {
-  heading: string;
+  label: string;
   items: NavItem[];
 };
 
-// Inline SVG icons — no external icon library required.
-// Each icon is 16×16, stroke-based, currentColor.
-
 function IconOverview() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="9" rx="1.5" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" />
+      <rect x="3" y="16" width="7" height="5" rx="1.5" />
     </svg>
   );
 }
 
 function IconWebsites() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M1.75 8h12.5M8 1.75c-2 2-3 4-3 6.25s1 4.25 3 6.25M8 1.75c2 2 3 4 3 6.25S10 12.25 8 14.25" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="4" x2="9" y2="20" />
     </svg>
   );
 }
 
 function IconConsent() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
     </svg>
   );
 }
 
 function IconPolicies() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="2.75" y="1.75" width="10.5" height="12.5" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5 5.5h6M5 8h6M5 10.5h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="9" y1="13" x2="15" y2="13" />
+      <line x1="9" y1="17" x2="13" y2="17" />
     </svg>
   );
 }
 
 function IconPurposes() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="4" />
     </svg>
   );
 }
 
 function IconVendors() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 13V6l6-4 6 4v7" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <rect x="5.75" y="8.75" width="4.5" height="4.25" rx="0.5" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  );
+}
+
+function IconTrackers() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20" />
+      <path d="M2 12h20" />
     </svg>
   );
 }
 
 function IconScanner() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M1.75 5V3a1.25 1.25 0 0 1 1.25-1.25H5M11 1.75h1.75A1.25 1.25 0 0 1 14 3v2M14 11v1.75A1.25 1.25 0 0 1 12.75 14H11M5 14.25H3.25A1.25 1.25 0 0 1 2 13v-2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M1.75 8h12.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7V5a2 2 0 012-2h2" />
+      <path d="M17 3h2a2 2 0 012 2v2" />
+      <path d="M21 17v2a2 2 0 01-2 2h-2" />
+      <path d="M7 21H5a2 2 0 01-2-2v-2" />
+      <line x1="7" y1="12" x2="17" y2="12" />
     </svg>
   );
 }
 
 function IconAnalytics() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M2 12.5l3.5-4 3 2.5 3-5 2.5 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M2 14.25h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
     </svg>
   );
 }
 
-function IconAudit() {
+function IconAuditLogs() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="6.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 4.75V8l2.25 2.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconIntegrations() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="3.5" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12.5" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <circle cx="12.5" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M5.5 8h2.5m0 0 2-4m-2 4 2 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconDeveloper() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M5.5 5.5 3 8l2.5 2.5M10.5 5.5 13 8l-2.5 2.5M7.5 11l1-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function IconSettings() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <circle cx="8" cy="8" r="2.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 1.75V3M8 13v1.25M1.75 8H3M13 8h1.25M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M12.6 3.4l-1.06 1.06M4.46 11.54l-1.06 1.06" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function IconBilling() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <rect x="1.75" y="3.75" width="12.5" height="8.5" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M1.75 6.75h12.5" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
     </svg>
   );
 }
 
 function IconNotifications() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 1.75A4.25 4.25 0 0 0 3.75 6v3.5L2.5 11h11l-1.25-1.5V6A4.25 4.25 0 0 0 8 1.75Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      <path d="M6.5 11v.5a1.5 1.5 0 0 0 3 0V11" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 01-3.46 0" />
+    </svg>
+  );
+}
+
+function IconApiKeys() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </svg>
+  );
+}
+
+function IconIntegrations() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
     </svg>
   );
 }
 
 function IconWebhooks() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M6 3a2 2 0 1 0 4 0 2 2 0 0 0-4 0Z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 5v2.5L5 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M5 12a2 2 0 1 0 0 2 2 2 0 0 0 0-2Z" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M8 7.5h3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M11.5 7.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" />
     </svg>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Nav groups definition
-// ---------------------------------------------------------------------------
+function IconSDK() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function IconOrganization() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18" />
+      <path d="M5 21V7l8-4v18" />
+      <path d="M19 21V11l-6-4" />
+    </svg>
+  );
+}
+
+function IconTeam() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 00-3-3.87" />
+      <path d="M16 3.13a4 4 0 010 7.75" />
+    </svg>
+  );
+}
+
+function IconBilling() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <line x1="2" y1="10" x2="22" y2="10" />
+    </svg>
+  );
+}
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    heading: "Overview",
+    label: "Overview",
     items: [
-      {
-        label: "Overview",
-        href: "/dashboard",
-        icon: <IconOverview />,
-      },
+      { label: "Dashboard", href: "/dashboard", icon: <IconOverview />, ariaLabel: "Go to Dashboard overview" },
     ],
   },
   {
-    heading: "Websites",
+    label: "Websites",
     items: [
-      {
-        label: "Websites",
-        href: "/dashboard/websites",
-        icon: <IconWebsites />,
-      },
+      { label: "Websites", href: "/dashboard/websites", icon: <IconWebsites />, ariaLabel: "Manage your websites" },
     ],
   },
   {
-    heading: "Consent",
+    label: "Consent Management",
     items: [
-      {
-        label: "Policies",
-        href: "/dashboard/policies",
-        icon: <IconPolicies />,
-      },
-      {
-        label: "Purposes",
-        href: "/dashboard/purposes",
-        icon: <IconPurposes />,
-      },
-      {
-        label: "Vendors",
-        href: "/dashboard/vendors",
-        icon: <IconVendors />,
-      },
-      {
-        label: "Consent Records",
-        href: "/dashboard/consent",
-        icon: <IconConsent />,
-      },
+      { label: "Consent", href: "/dashboard/consent", icon: <IconConsent />, ariaLabel: "View consent records" },
+      { label: "Policies", href: "/dashboard/policies", icon: <IconPolicies />, ariaLabel: "Manage consent policies" },
+      { label: "Purposes", href: "/dashboard/purposes", icon: <IconPurposes />, ariaLabel: "Manage consent purposes" },
+      { label: "Vendors", href: "/dashboard/vendors", icon: <IconVendors />, ariaLabel: "Manage third-party vendors" },
+      { label: "Trackers", href: "/dashboard/trackers", icon: <IconTrackers />, ariaLabel: "Manage detected trackers" },
     ],
   },
   {
-    heading: "Scanner",
+    label: "Discovery & Monitoring",
     items: [
-      {
-        label: "Scanner",
-        href: "/dashboard/scanner",
-        icon: <IconScanner />,
-      },
+      { label: "Scanner", href: "/dashboard/scanner", icon: <IconScanner />, ariaLabel: "Run website scans" },
+      { label: "Analytics", href: "/dashboard/analytics", icon: <IconAnalytics />, ariaLabel: "View consent analytics" },
     ],
   },
   {
-    heading: "Analytics",
+    label: "Security & Governance",
     items: [
-      {
-        label: "Analytics",
-        href: "/dashboard/analytics",
-        icon: <IconAnalytics />,
-      },
-      {
-        label: "Audit Logs",
-        href: "/dashboard/audit-logs",
-        icon: <IconAudit />,
-      },
+      { label: "Audit Logs", href: "/dashboard/audit-logs", icon: <IconAuditLogs />, ariaLabel: "Review audit logs" },
+      { label: "Notifications", href: "/dashboard/notifications", icon: <IconNotifications />, ariaLabel: "View notifications" },
     ],
   },
   {
-    heading: "Developer",
+    label: "Developer",
     items: [
-      {
-        label: "Integrations",
-        href: "/dashboard/integrations",
-        icon: <IconIntegrations />,
-      },
-      {
-        label: "API Keys",
-        href: "/dashboard/developers",
-        icon: <IconDeveloper />,
-      },
-      {
-        label: "Webhooks",
-        href: "/dashboard/developers/webhooks",
-        icon: <IconWebhooks />,
-      },
-      {
-        label: "Notifications",
-        href: "/dashboard/notifications",
-        icon: <IconNotifications />,
-      },
+      { label: "API Keys", href: "/dashboard/developers", icon: <IconApiKeys />, ariaLabel: "Manage API keys" },
+      { label: "Integrations", href: "/dashboard/integrations", icon: <IconIntegrations />, ariaLabel: "Manage integrations" },
+      { label: "Webhooks", href: "/dashboard/developers/webhooks", icon: <IconWebhooks />, ariaLabel: "Configure webhooks" },
+      { label: "SDK / Installation", href: "/dashboard/developers", icon: <IconSDK />, ariaLabel: "SDK installation guide" },
     ],
   },
   {
-    heading: "Account",
+    label: "Administration",
     items: [
-      {
-        label: "Settings",
-        href: "/dashboard/settings",
-        icon: <IconSettings />,
-      },
-      {
-        label: "Billing",
-        href: "/dashboard/billing",
-        icon: <IconBilling />,
-      },
+      { label: "Organization Settings", href: "/dashboard/settings/organization", icon: <IconOrganization />, ariaLabel: "Organization settings" },
+      { label: "Team / Roles", href: "/dashboard/settings/organization", icon: <IconTeam />, ariaLabel: "Manage team members and roles" },
+      { label: "Billing", href: "/dashboard/settings/organization", icon: <IconBilling />, ariaLabel: "Billing and subscription" },
     ],
   },
 ];
 
-// ---------------------------------------------------------------------------
-// NavItem component
-// ---------------------------------------------------------------------------
-
-function SidebarItem({ item }: { item: NavItem }) {
+function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
   const pathname = usePathname();
 
-  // Exact match for /dashboard; prefix match for all sub-routes.
   const isActive =
     item.href === "/dashboard"
       ? pathname === "/dashboard"
@@ -294,44 +261,128 @@ function SidebarItem({ item }: { item: NavItem }) {
   return (
     <Link
       href={item.href}
+      aria-label={item.ariaLabel}
+      title={collapsed ? item.label : undefined}
       className={[
-        "flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+        "group relative flex items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200",
+        collapsed ? "justify-center px-2" : "",
         isActive
-          ? "bg-neutral-100 font-medium text-neutral-900"
-          : "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+          ? "sidebar-item-active"
+          : "text-slate-600 hover:bg-slate-100/60 hover:text-slate-900",
       ].join(" ")}
       aria-current={isActive ? "page" : undefined}
     >
-      <span className={isActive ? "text-neutral-900" : "text-neutral-400"}>
+      <span
+        className={[
+          "flex shrink-0 items-center justify-center transition-colors duration-200",
+          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600",
+        ].join(" ")}
+      >
         {item.icon}
       </span>
-      {item.label}
+      {!collapsed && <span className="truncate">{item.label}</span>}
+      {collapsed && (
+        <span className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-xl bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg shadow-slate-900/20 transition-opacity duration-150 group-hover:opacity-100">
+          {item.label}
+        </span>
+      )}
     </Link>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Sidebar component — exported, used by DashboardLayout
-// ---------------------------------------------------------------------------
-
-export function SidebarNav() {
+function SidebarGroupLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
+  if (collapsed) return null;
   return (
-    <nav aria-label="Dashboard navigation" className="flex flex-col gap-5 px-3 py-5">
-      {NAV_GROUPS.map((group) => (
-        <div key={group.heading}>
-          <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
-            {group.heading}
-          </p>
+    <div className="mt-6 first:mt-0 mb-2.5 px-2">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+        {label}
+      </p>
+    </div>
+  );
+}
 
-          <ul role="list" className="space-y-0.5">
-            {group.items.map((item) => (
-              <li key={item.href}>
-                <SidebarItem item={item} />
-              </li>
-            ))}
-          </ul>
+function BrandLogo({ collapsed }: { collapsed: boolean }) {
+  return (
+    <div
+      suppressHydrationWarning
+      className={`flex items-center gap-3 px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
+    >
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
+          <path d="M9 12l2 2 4-4" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      {!collapsed && (
+        <div className="min-w-0">
+          <p className="text-[17px] font-bold tracking-tight text-slate-900">Consent</p>
+          <p className="text-[15px] font-semibold text-slate-500 leading-none">Manager</p>
         </div>
-      ))}
-    </nav>
+      )}
+    </div>
+  );
+}
+
+function CompliancePromo({ collapsed }: { collapsed: boolean }) {
+  if (collapsed) {
+    return (
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 11l3 3L22 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-3xl bg-gradient-to-br from-slate-50 to-indigo-50/50 p-5 card-shadow">
+      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 11l3 3L22 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
+      <h4 className="text-center text-sm font-semibold text-slate-900">
+        Stay compliant
+      </h4>
+      <p className="mt-1.5 text-center text-xs leading-relaxed text-slate-500">
+        Manage consents and build trust transparently.
+      </p>
+    </div>
+  );
+}
+
+export function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+  return (
+    <div
+      suppressHydrationWarning
+      className={`flex h-full flex-col ${collapsed ? "px-3 py-5" : "px-4 py-6"} transition-[padding] duration-200`}
+    >
+      <div className="mb-6 shrink-0">
+        <BrandLogo collapsed={collapsed} />
+      </div>
+
+      <nav
+        aria-label="Dashboard navigation"
+        className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pr-1"
+      >
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} role="group" aria-label={group.label}>
+            <SidebarGroupLabel label={group.label} collapsed={collapsed} />
+            <ul role="list" className="space-y-1">
+              {group.items.map((item) => (
+                <li key={`${group.label}:${item.label}`}>
+                  <SidebarItem item={item} collapsed={collapsed} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className={`shrink-0 ${collapsed ? "mt-6" : "mt-6"}`}>
+        <CompliancePromo collapsed={collapsed} />
+      </div>
+    </div>
   );
 }

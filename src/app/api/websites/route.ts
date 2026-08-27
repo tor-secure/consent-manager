@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import crypto from "node:crypto";
 
 import { db } from "@/db";
@@ -45,28 +45,43 @@ export async function POST(request: Request) {
     const body = await request.json();
 
     const name = String(body.name ?? "").trim();
-    const domain = normalizeDomain(
-      String(body.domain ?? ""),
-    );
+    const rawDomain = String(body.domain ?? "");
+    const domain = normalizeDomain(rawDomain);
     const language = String(body.language ?? "en");
     const region = String(body.region ?? "IN");
 
     if (!name) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Website name is required",
-        },
+        { success: false, message: "Website name is required" },
+        { status: 400 },
+      );
+    }
+
+    if (name.length > 255) {
+      return NextResponse.json(
+        { success: false, message: "Website name must be 255 characters or fewer" },
         { status: 400 },
       );
     }
 
     if (!domain) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Website domain is required",
-        },
+        { success: false, message: "Website domain is required" },
+        { status: 400 },
+      );
+    }
+
+    if (domain.length > 253) {
+      return NextResponse.json(
+        { success: false, message: "Domain must be 253 characters or fewer" },
+        { status: 400 },
+      );
+    }
+
+    // Basic hostname format check: must contain at least one dot and no spaces.
+    if (!/^[a-z0-9]([a-z0-9\-\.]*[a-z0-9])?$/.test(domain)) {
+      return NextResponse.json(
+        { success: false, message: "Domain must be a valid hostname" },
         { status: 400 },
       );
     }
@@ -111,12 +126,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify the user belongs to this organization.
+    // Verify the user has an active membership in this specific organization.
     const [membership] = await db
-      .select()
+      .select({ id: memberships.id })
       .from(memberships)
       .where(
-        eq(memberships.organizationId, organization.id),
+        and(
+          eq(memberships.organizationId, organization.id),
+          eq(memberships.userId, user.id),
+          eq(memberships.status, "active"),
+        ),
       )
       .limit(1);
 

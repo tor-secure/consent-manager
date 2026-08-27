@@ -72,7 +72,7 @@ export function CreateWebsiteForm() {
           onChange={(event) =>
             setName(event.target.value)
           }
-          placeholder="VRN Infotech Website"
+          placeholder="Acme Corp Website"
           required
           className="w-full rounded-md border px-3 py-2"
         />

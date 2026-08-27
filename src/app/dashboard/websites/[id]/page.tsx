@@ -230,12 +230,20 @@ export default async function WebsiteDetailPage({
           <p className="mt-1 text-sm text-neutral-500">{website.domain}</p>
         </div>
 
-        <Link
-          href={`/dashboard/websites/${website.id}/settings`}
-          className="shrink-0 rounded-md border bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-        >
-          Settings
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/dashboard/websites/${website.id}/enforcement`}
+            className="rounded-md border bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Enforcement
+          </Link>
+          <Link
+            href={`/dashboard/websites/${website.id}/settings`}
+            className="rounded-md border bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          >
+            Settings
+          </Link>
+        </div>
       </div>
 
       {/* Summary stat cards */}
@@ -319,12 +327,28 @@ export default async function WebsiteDetailPage({
           </dl>
         </SectionCard>
 
-        {/* SDK installation placeholder */}
-        <PlaceholderSection
+        {/* SDK installation — link to installation guide */}
+        <SectionCard
           title="SDK Installation"
           description="Embed the CMP banner on your website using the JavaScript SDK."
-          comingSoon="SDK snippet will appear here once your first consent policy is published."
-        />
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-md border bg-neutral-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-neutral-700">Site key</p>
+                <code className="font-mono text-xs text-neutral-500">
+                  {website.siteKey}
+                </code>
+              </div>
+            </div>
+            <Link
+              href={`/dashboard/websites/${website.id}/installation`}
+              className="inline-flex items-center gap-2 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+            >
+              View installation guide →
+            </Link>
+          </div>
+        </SectionCard>
 
         {/* Consent policies — real list */}
         <SectionCard

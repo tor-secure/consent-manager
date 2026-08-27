@@ -17,9 +17,11 @@ import {
   type PurposeSummary,
 } from "@/components/policies/policy-purposes-panel";
 import {
-  PolicyVendorsPanel,
-  type PolicyVendor,
-} from "@/components/policies/policy-vendors-panel";
+  PolicyVendorManagerPanel,
+  type ManagedVendor,
+  type AvailableVendor,
+} from "@/components/policies/policy-vendor-manager-panel";
+import { PublishPolicyButton } from "@/components/policies/publish-policy-button";
 import { BannerConfigForm } from "@/components/policies/banner-config-form";
 import { parseBannerConfig } from "@/lib/banner-config";
 
@@ -170,82 +172,77 @@ export default async function PolicyDetailPage({
   );
 
   // ---------------------------------------------------------------------------
-  // Vendors: find vendors linked to the policy's attached purposes
-  // vendor_purposes joins vendorId ↔ purposeId — vendors relevant to this
-  // policy are those whose purposes intersect with the policy version's purposes.
+  // Vendors: split into attached (linked to any policy purpose via vendor_purposes)
+  // and available (org vendors not yet linked to any attached purpose).
+  //
+  // "Attached" = vendor has ≥1 vendor_purposes row whose purposeId is in
+  //              the policy version's attached purposes.
+  // "Available" = all other org vendors (not yet linked).
   // ---------------------------------------------------------------------------
 
   const attachedPurposeIds = [...attachedIds];
 
-  const policyVendors: PolicyVendor[] = [];
+  // All org vendors — used for both the manager panel and the available list.
+  const allOrgVendors = await db
+    .select({
+      id: vendors.id,
+      name: vendors.name,
+      key: vendors.key,
+      domain: vendors.domain,
+      country: vendors.country,
+      privacyPolicyUrl: vendors.privacyPolicyUrl,
+      source: vendors.source,
+      status: vendors.status,
+    })
+    .from(vendors)
+    .where(eq(vendors.organizationId, localOrg.id))
+    .orderBy(vendors.name);
 
-  if (attachedPurposeIds.length > 0) {
-    // Fetch vendor_purposes links for the attached purposes.
-    const vpLinks = await db
-      .select({
-        vendorId: vendorPurposes.vendorId,
-        purposeId: vendorPurposes.purposeId,
-      })
-      .from(vendorPurposes)
-      .where(inArray(vendorPurposes.purposeId, attachedPurposeIds));
+  // vendor_purposes links for the policy's attached purposes.
+  const vpLinks =
+    attachedPurposeIds.length > 0
+      ? await db
+          .select({
+            vendorId: vendorPurposes.vendorId,
+            purposeId: vendorPurposes.purposeId,
+          })
+          .from(vendorPurposes)
+          .where(inArray(vendorPurposes.purposeId, attachedPurposeIds))
+      : [];
 
-    if (vpLinks.length > 0) {
-      const vendorIds = [...new Set(vpLinks.map((l) => l.vendorId))];
+  // Build purposeId → purposeName map for the attached purposes.
+  const purposeNameMap = new Map(
+    orgPurposes
+      .filter((p) => attachedIds.has(p.id))
+      .map((p) => [p.id, p.name]),
+  );
 
-      // Fetch vendor details — filter to this org's vendors only.
-      const vendorRows = await db
-        .select({
-          id: vendors.id,
-          name: vendors.name,
-          key: vendors.key,
-          domain: vendors.domain,
-          country: vendors.country,
-          privacyPolicyUrl: vendors.privacyPolicyUrl,
-          source: vendors.source,
-          status: vendors.status,
-          organizationId: vendors.organizationId,
-        })
-        .from(vendors)
-        .where(
-          and(
-            inArray(vendors.id, vendorIds),
-            eq(vendors.organizationId, localOrg.id),
-          ),
-        )
-        .orderBy(vendors.name);
-
-      // Build purposeId → purposeName map for the attached purposes.
-      const purposeNameMap = new Map(
-        orgPurposes
-          .filter((p) => attachedIds.has(p.id))
-          .map((p) => [p.id, p.name]),
-      );
-
-      // Build vendorId → [purposeName] map from vpLinks.
-      const vendorPurposeNames = new Map<string, string[]>();
-      for (const link of vpLinks) {
-        const pName = purposeNameMap.get(link.purposeId);
-        if (!pName) continue;
-        const existing = vendorPurposeNames.get(link.vendorId) ?? [];
-        existing.push(pName);
-        vendorPurposeNames.set(link.vendorId, existing);
-      }
-
-      for (const v of vendorRows) {
-        policyVendors.push({
-          id: v.id,
-          name: v.name,
-          key: v.key,
-          domain: v.domain,
-          country: v.country,
-          privacyPolicyUrl: v.privacyPolicyUrl,
-          source: v.source,
-          status: v.status,
-          purposeNames: vendorPurposeNames.get(v.id) ?? [],
-        });
-      }
-    }
+  // Build vendorId → [purposeName] map from vpLinks (org-filtered below).
+  const vendorPurposeNamesMap = new Map<string, string[]>();
+  // Track which vendorIds appear in vpLinks — but only for this org's vendors.
+  const orgVendorIdSet = new Set(allOrgVendors.map((v) => v.id));
+  for (const link of vpLinks) {
+    if (!orgVendorIdSet.has(link.vendorId)) continue;
+    const pName = purposeNameMap.get(link.purposeId);
+    if (!pName) continue;
+    const existing = vendorPurposeNamesMap.get(link.vendorId) ?? [];
+    existing.push(pName);
+    vendorPurposeNamesMap.set(link.vendorId, existing);
   }
+
+  // Vendors that have at least one link to a policy purpose = attached.
+  const attachedVendorIds = new Set(vendorPurposeNamesMap.keys());
+
+  const attachedVendors: ManagedVendor[] = allOrgVendors
+    .filter((v) => attachedVendorIds.has(v.id))
+    .map((v) => ({
+      ...v,
+      purposeNames: vendorPurposeNamesMap.get(v.id) ?? [],
+    }));
+
+  const availableVendors: AvailableVendor[] = allOrgVendors.filter(
+    (v) => !attachedVendorIds.has(v.id),
+  );
 
   // ---------------------------------------------------------------------------
   // Render
@@ -286,6 +283,13 @@ export default async function PolicyDetailPage({
             </p>
           )}
         </div>
+
+        <Link
+          href={`/dashboard/policies/${policy.id}/preference-center`}
+          className="shrink-0 rounded-md border bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          Preview preference center
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -350,9 +354,9 @@ export default async function PolicyDetailPage({
 
         {/* Versions table */}
         <div className="rounded-lg border bg-white p-6">
-          <h2 className="mb-4 text-base font-semibold text-neutral-900">
-            Versions
-          </h2>
+          <div className="mb-4 flex items-start justify-between gap-4">
+            <h2 className="text-base font-semibold text-neutral-900">Versions</h2>
+          </div>
 
           {versions.length === 0 ? (
             <div className="rounded-md border border-dashed px-5 py-8 text-center">
@@ -365,6 +369,7 @@ export default async function PolicyDetailPage({
                   <tr>
                     <th className="px-4 py-2.5 text-left">Version</th>
                     <th className="px-4 py-2.5 text-left">Status</th>
+                    <th className="px-4 py-2.5 text-left">Published</th>
                     <th className="px-4 py-2.5 text-left">Created</th>
                   </tr>
                 </thead>
@@ -381,6 +386,15 @@ export default async function PolicyDetailPage({
                         />
                       </td>
                       <td className="px-4 py-2.5 text-neutral-500">
+                        {v.publishedAt
+                          ? v.publishedAt.toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : <span className="text-neutral-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-neutral-500">
                         {v.createdAt.toLocaleDateString("en-GB", {
                           day: "numeric",
                           month: "short",
@@ -394,11 +408,16 @@ export default async function PolicyDetailPage({
             </div>
           )}
 
-          {/* Future: publishing */}
-          <div className="mt-4 rounded-md border border-dashed px-4 py-5 text-center">
-            <p className="text-xs text-neutral-400">
-              Publishing coming soon.
-            </p>
+          {/* Publish action */}
+          <div className="mt-4">
+            <PublishPolicyButton
+              policyId={policy.id}
+              latestVersionId={latestVersion?.id ?? null}
+              latestVersionNumber={latestVersion?.version ?? null}
+              isPublished={latestVersion?.isPublished ?? false}
+              publishedAt={latestVersion?.publishedAt ?? null}
+              hasPurposes={attachedIds.size > 0}
+            />
           </div>
         </div>
 
@@ -410,11 +429,13 @@ export default async function PolicyDetailPage({
           latestVersionId={latestVersion?.id ?? null}
         />
 
-        {/* Vendors — derived from attached purposes */}
-        <PolicyVendorsPanel
-          vendors={policyVendors}
+        {/* Vendors — real attach/detach manager */}
+        <PolicyVendorManagerPanel
           policyId={policy.id}
           latestVersionId={latestVersion?.id ?? null}
+          attached={attachedVendors}
+          available={availableVendors}
+          hasPurposes={attachedIds.size > 0}
         />
 
         {/* Banner configuration — full-width, spans both columns */}
