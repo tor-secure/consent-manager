@@ -244,7 +244,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Administration",
     items: [
       { label: "Organization Settings", href: "/dashboard/settings/organization", icon: <IconOrganization />, ariaLabel: "Organization settings" },
-      { label: "Team / Roles", href: "/dashboard/settings/organization", icon: <IconTeam />, ariaLabel: "Manage team members and roles" },
+      { label: "Team / Roles", href: "/dashboard/settings/team", icon: <IconTeam />, ariaLabel: "Manage team members and roles" },
       { label: "Billing", href: "/dashboard/settings/organization", icon: <IconBilling />, ariaLabel: "Billing and subscription" },
     ],
   },

@@ -7,35 +7,70 @@ import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
-// Shared badge helpers
+// Icons
 // ---------------------------------------------------------------------------
 
-function PolicyStatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    draft: "bg-neutral-100 text-neutral-600 ring-1 ring-neutral-500/20",
-    active: "bg-green-50 text-green-700 ring-1 ring-green-600/20",
-    archived: "bg-yellow-50 text-yellow-700 ring-1 ring-yellow-600/20",
-  };
-
-  const labels: Record<string, string> = {
-    draft: "Draft",
-    active: "Active",
-    archived: "Archived",
-  };
-
+function IconPolicy() {
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[status] ?? styles.draft}`}
-    >
-      {labels[status] ?? status}
-    </span>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  );
+}
+
+function IconPlus() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M7.5 2v11M2 7.5h11" />
+    </svg>
+  );
+}
+
+function IconEmpty() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
+      className="text-slate-300">
+      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Page — server component, org-scoped
+// Status badge using the shared Badge primitive
+// ---------------------------------------------------------------------------
+
+function PolicyStatusBadge({ status }: { status: string }) {
+  const variantMap: Record<string, "success" | "warning" | "neutral"> = {
+    active:   "success",
+    draft:    "neutral",
+    archived: "warning",
+  };
+  const label: Record<string, string> = {
+    active: "Active", draft: "Draft", archived: "Archived",
+  };
+  return (
+    <Badge variant={variantMap[status] ?? "neutral"} size="sm">
+      {label[status] ?? status}
+    </Badge>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
 // ---------------------------------------------------------------------------
 
 export default async function PoliciesPage() {
@@ -47,10 +82,8 @@ export default async function PoliciesPage() {
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
-
   if (!localOrg) return null;
 
-  // Get all websites for this org — policies are scoped through websiteId.
   const orgWebsites = await db
     .select({ id: websites.id, name: websites.name, domain: websites.domain })
     .from(websites)
@@ -60,7 +93,6 @@ export default async function PoliciesPage() {
   const websiteIds = orgWebsites.map((w) => w.id);
   const websiteMap = new Map(orgWebsites.map((w) => [w.id, w]));
 
-  // Fetch all policies for this org's websites.
   const policies =
     websiteIds.length > 0
       ? await db
@@ -70,7 +102,6 @@ export default async function PoliciesPage() {
           .orderBy(consentPolicies.createdAt)
       : [];
 
-  // Fetch latest version number for each policy.
   const policyIds = policies.map((p) => p.id);
   const versions =
     policyIds.length > 0
@@ -84,11 +115,7 @@ export default async function PoliciesPage() {
           .where(inArray(consentPolicyVersions.policyId, policyIds))
       : [];
 
-  // Build a map: policyId → { latestVersion, hasPublished }
-  const versionMap = new Map<
-    string,
-    { latestVersion: number; hasPublished: boolean }
-  >();
+  const versionMap = new Map<string, { latestVersion: number; hasPublished: boolean }>();
   for (const v of versions) {
     const existing = versionMap.get(v.policyId);
     versionMap.set(v.policyId, {
@@ -97,148 +124,182 @@ export default async function PoliciesPage() {
     });
   }
 
+  const total      = policies.length;
+  const active     = policies.filter((p) => p.status === "active").length;
+  const draft      = policies.filter((p) => p.status === "draft").length;
+  const published  = policies.filter((p) => versionMap.get(p.id)?.hasPublished).length;
+
   return (
-    <div className="p-8">
-      {/* Page header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
             Consent Policies
           </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-slate-500">
             All consent policies across your websites.
           </p>
         </div>
-
         {orgWebsites.length > 0 && (
           <Link
             href="/dashboard/policies/new"
-            className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
           >
+            <IconPlus />
             Create policy
           </Link>
         )}
       </div>
 
-      {/* No websites at all */}
+      {/* ── Summary pills ───────────────────────────────────────────────── */}
+      {total > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {[
+            { label: "Total",     value: total,     dot: "bg-slate-400"   },
+            { label: "Active",    value: active,    dot: "bg-emerald-500" },
+            { label: "Draft",     value: draft,     dot: "bg-amber-400"   },
+            { label: "Published", value: published, dot: "bg-indigo-500"  },
+          ].map((s) => (
+            <div key={s.label}
+              className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
+              <span className={`h-2 w-2 rounded-full ${s.dot}`} />
+              <span className="font-semibold text-slate-800">{s.value}</span>
+              <span className="text-slate-500">{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── No websites ─────────────────────────────────────────────────── */}
       {orgWebsites.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">
-            No websites yet
-          </p>
-          <p className="mt-1 text-sm text-neutral-400">
-            Add a website before creating consent policies.
-          </p>
-          <Link
-            href="/dashboard/websites/new"
-            className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
-          >
-            Add a website
-          </Link>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
+              <IconEmpty />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">No websites yet</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Add a website before creating consent policies.
+              </p>
+            </div>
+            <Link href="/dashboard/websites/new"
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
+              Add a website
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Websites exist but no policies */}
+      {/* ── No policies ─────────────────────────────────────────────────── */}
       {orgWebsites.length > 0 && policies.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">
-            No policies yet
-          </p>
-          <p className="mt-1 text-sm text-neutral-400">
-            Create your first consent policy to start collecting visitor
-            consent.
-          </p>
-          <Link
-            href="/dashboard/policies/new"
-            className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
-          >
-            Create policy
-          </Link>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
+              <IconEmpty />
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">No policies yet</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Create your first consent policy to start collecting visitor consent.
+              </p>
+            </div>
+            <Link href="/dashboard/policies/new"
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
+              <IconPlus />
+              Create policy
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Policy list */}
+      {/* ── Policy table ────────────────────────────────────────────────── */}
       {policies.length > 0 && (
-        <div className="overflow-hidden rounded-lg border bg-white">
-          <table className="min-w-full divide-y text-sm">
-            <thead>
-              <tr className="bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-                <th className="px-5 py-3">Policy</th>
-                <th className="px-5 py-3">Website</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Version</th>
-                <th className="px-5 py-3">Default</th>
-                <th className="px-5 py-3">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {policies.map((policy) => {
-                const site = websiteMap.get(policy.websiteId);
-                const ver = versionMap.get(policy.id);
-
-                return (
-                  <tr
-                    key={policy.id}
-                    className="transition hover:bg-neutral-50"
-                  >
-                    <td className="px-5 py-3">
-                      <Link
-                        href={`/dashboard/policies/${policy.id}`}
-                        className="font-medium text-neutral-900 hover:underline"
-                      >
-                        {policy.name}
-                      </Link>
-                      {policy.description && (
-                        <p className="mt-0.5 truncate max-w-xs text-xs text-neutral-400">
-                          {policy.description}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-neutral-600">
-                      {site ? (
-                        <Link
-                          href={`/dashboard/websites/${site.id}`}
-                          className="hover:underline"
-                        >
-                          {site.name}
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      <PolicyStatusBadge status={policy.status} />
-                    </td>
-                    <td className="px-5 py-3 text-neutral-600">
-                      v{ver?.latestVersion ?? 1}
-                      {ver?.hasPublished && (
-                        <span className="ml-1.5 text-xs text-green-600">
-                          published
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3">
-                      {policy.isDefault ? (
-                        <span className="text-xs font-medium text-neutral-700">
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="text-xs text-neutral-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-neutral-500">
-                      {policy.createdAt.toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  {["Policy", "Website", "Status", "Version", "Default", "Created"].map((h) => (
+                    <th key={h}
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {policies.map((policy) => {
+                  const site = websiteMap.get(policy.websiteId);
+                  const ver  = versionMap.get(policy.id);
+                  return (
+                    <tr key={policy.id} className="group transition-colors hover:bg-slate-50/80">
+                      {/* Policy name */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                            <IconPolicy />
+                          </div>
+                          <div>
+                            <Link
+                              href={`/dashboard/policies/${policy.id}`}
+                              className="font-medium text-slate-900 transition-colors group-hover:text-indigo-600">
+                              {policy.name}
+                            </Link>
+                            {policy.description && (
+                              <p className="mt-0.5 max-w-xs truncate text-xs text-slate-400">
+                                {policy.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      {/* Website */}
+                      <td className="px-5 py-4">
+                        {site ? (
+                          <Link href={`/dashboard/websites/${site.id}`}
+                            className="text-slate-700 transition-colors hover:text-indigo-600">
+                            <p className="font-medium">{site.name}</p>
+                            <p className="text-xs text-slate-400">{site.domain}</p>
+                          </Link>
+                        ) : <span className="text-slate-400">—</span>}
+                      </td>
+                      {/* Status */}
+                      <td className="px-5 py-4">
+                        <PolicyStatusBadge status={policy.status} />
+                      </td>
+                      {/* Version */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="neutral" size="sm">
+                            v{ver?.latestVersion ?? 1}
+                          </Badge>
+                          {ver?.hasPublished && (
+                            <Badge variant="success" size="sm">Published</Badge>
+                          )}
+                        </div>
+                      </td>
+                      {/* Default */}
+                      <td className="px-5 py-4">
+                        {policy.isDefault
+                          ? <Badge variant="primary" size="sm">Default</Badge>
+                          : <span className="text-slate-400">—</span>}
+                      </td>
+                      {/* Created */}
+                      <td className="px-5 py-4 text-slate-500">
+                        {policy.createdAt.toLocaleDateString("en-GB", {
+                          day: "numeric", month: "short", year: "numeric",
+                        })}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       )}
     </div>
   );

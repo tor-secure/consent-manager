@@ -1485,6 +1485,8 @@ Integrations: COMPLETE
 
 Organization settings: COMPLETE
 
+Team & Roles management: COMPLETE
+
 API Keys: COMPLETE
 
 Notifications: COMPLETE
@@ -1502,6 +1504,8 @@ Consent policy management: COMPLETE
 Policy publish workflow: COMPLETE
 
 Policy vendor management: COMPLETE
+
+Consent Banner Studio: COMPLETE
 
 Website settings: COMPLETE
 
@@ -1783,6 +1787,259 @@ Implemented the full consent policy publishing workflow and replaced the read-on
 - Already-published versions are protected from accidental overwrite.
 - Vendors section is now a full management panel — attach from a searchable dropdown, detach with a per-row Remove button, linked through the existing `vendor_purposes` table with no schema changes.
 - Tenant isolation is preserved end-to-end: all three new API routes enforce the Clerk `orgId` → org → websites → policy chain, and the vendor ownership check is applied to every mutation.
+
+---
+
+# 33. COMPLETED: Policy Vendor Selection — Combobox + Inline Quick-Create
+
+### Completed Work
+
+Replaced the flat button-list vendor dropdown in `PolicyVendorManagerPanel` with a proper combobox UI that shows vendor name, domain, and status on each option row, and added an inline quick-create form so users can create a custom vendor without leaving the policy detail page.
+
+**VendorCombobox (new sub-component inside the panel file):**
+
+- Renders as a styled combobox trigger that expands into a floating dropdown on click.
+- Live filtering by name, domain, or key as the user types — results update on every keystroke.
+- Each result row shows: vendor name (bold), source badge (CUSTOM / IAB / GOOGLE), status badge (only shown when inactive), domain (secondary line). A `+ Add` affordance sits at the right of each row.
+- Footer row always present: `Create new vendor` (pre-filled with the current search query when there are no results, or generic when results exist). This removes the dead-end "No vendors match" state.
+- Dropdown closes on outside click via a `useEffect` + `mousedown` listener on `document`.
+- Keyboard-accessible: `role="combobox"` / `role="listbox"` / `role="option"` ARIA attributes; Enter/Space opens the trigger when focused.
+
+**Inline quick-create form (inside the dropdown):**
+
+- Fields: Name (required, autofocus), Key (auto-derived from name, editable, sanitised to `[a-z0-9_]`), Domain (optional).
+- `Create & add` calls `POST /api/vendors` to create the vendor (status: active, source: custom), then immediately calls `POST /api/policies/[id]/vendors` to attach it — both existing APIs, unchanged.
+- `Back` button returns to the results list without discarding open state.
+- `Full form ↗` link opens `/dashboard/vendors/new` in a new tab for advanced fields (website URL, privacy policy URL, country, classification).
+- If vendor creation succeeds but attach fails, a specific error message is shown.
+
+**Attached vendor rows:**
+
+- `StatusBadge` added alongside `SourceBadge` (inactive state shown, active omitted to reduce clutter).
+- Remove button passes `vendorName` to the detach handler so the success flash message reads `"<Name>" removed.`
+
+**Feedback:**
+
+- Green success flash messages (3-second auto-dismiss) for add, create-and-add, and remove.
+- Error banner has an explicit `Dismiss` button (previously had none).
+
+### Files Changed
+
+`src/components/policies/policy-vendor-manager-panel.tsx` — complete rewrite. No other files changed. Existing APIs (`POST /api/vendors`, `POST /api/policies/[id]/vendors`, `DELETE /api/policies/[id]/vendors/[vendorId]`) are called as-is without modification. Database schema, auth, and tenant isolation unchanged.
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Current Status
+
+The vendor selection on the policy detail page (`/dashboard/policies/[id]`) is now a searchable combobox. Users can find existing vendors by name, domain, or key, see their status at a glance, and attach them with one click. When no matching vendor exists, the `Create new vendor` footer option expands an inline minimal form (name + key + domain) that creates and attaches the vendor in one action. Duplicate attachment is still prevented server-side (409). All tenant isolation guarantees from the prior session are preserved.
+
+---
+
+# 34. COMPLETED: Vendor Creation Form — Catalog Combobox + Auto-Population
+
+### Completed Work
+
+Added a searchable vendor catalog to the vendor creation form so users can select a common third-party vendor and have all fields pre-populated automatically, instead of entering every detail manually.
+
+**`src/lib/vendor-catalog.ts` (new file)**
+
+- 38 curated vendor entries across 8 categories: Analytics, Advertising, Social, Marketing, Payments, Support, Performance, A/B Testing.
+- Vendors include: Google Analytics 4, Google Universal Analytics, Microsoft Clarity, Mixpanel, Amplitude, Hotjar, Heap, Segment, Plausible, Matomo, Google Ads, Google Ad Manager, Meta Pixel, LinkedIn Insight Tag, Twitter/X Pixel, TikTok Pixel, Criteo, YouTube, Google Maps, Facebook Social Plugins, HubSpot, Mailchimp, Intercom, Klaviyo, Brevo, Stripe, Razorpay, PayPal, Paddle, Zendesk, Drift, Crisp, Cloudflare, Sentry, Datadog, Optimizely, VWO, LaunchDarkly.
+- Each entry has: `name`, `key`, `domain`, `websiteUrl`, `privacyPolicyUrl`, `country`, `description`, `source` (`custom | iab | google`), `category`.
+- Exports `VENDOR_CATALOG`, `CATALOG_CATEGORIES` (unique ordered category list), and `searchCatalog(query)` (filters by name / domain / key / category).
+- Pure client-safe module — no server-only imports.
+
+**`src/components/vendors/create-vendor-form.tsx` (rewritten)**
+
+New `CatalogCombobox` sub-component:
+- Trigger button shows current selection name or "Select a vendor from the catalog…" placeholder.
+- Dropdown: search input at top (filters all 38 entries by name/domain/key/category); category filter pills (All + 8 categories) shown when search is empty; results list with letter-tile, name, source badge, category pill, domain per row; "Custom vendor" sentinel always first with a `manual entry` badge.
+- Selected item shows a checkmark. Footer shows result count.
+- Closes on outside click via `useEffect` + `mousedown` listener.
+- Category filter and search query are independent — selecting a category clears search and vice versa.
+
+`handleCatalogSelect(entry | null)` in the parent form:
+- Entry selected → sets all 7 fields (`name`, `key`, `domain`, `websiteUrl`, `privacyPolicyUrl`, `country`, `description`, `source`) + sets `keyTouched=true` so further name edits don't re-derive the key.
+- `null` (Custom) → clears all fields for manual entry.
+- A green confirmation banner ("Fields pre-filled from catalog. You can edit any field below before saving.") appears after catalog selection.
+- Editing the name field after a catalog selection marks `catalogSelection` as `null` (stale), removing the banner.
+
+All existing form fields, validation, `POST /api/vendors` call, duplicate-key guard, server-side tenant isolation, and navigation (`router.push` / `router.back`) are 100% preserved and unchanged.
+
+### Files Changed
+
+- `src/lib/vendor-catalog.ts` — new file, 38-entry catalog + search helper
+- `src/components/vendors/create-vendor-form.tsx` — rewritten with `CatalogCombobox`
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Current Status
+
+The vendor creation page (`/dashboard/vendors/new`) now has a two-step UX: pick from catalog → review/edit pre-filled fields → save. Custom vendor option preserves the original blank-form flow. Server-side API, duplicate prevention, tenant isolation, and database schema are unchanged.
+
+---
+
+# 35. COMPLETED: Team & Roles Management
+
+### Completed Work
+
+Built a complete Team & Roles management module at `/dashboard/settings/team`. Owners and Admins can view all organisation members, change roles, remove members, send Clerk invitations, and revoke pending invitations. Members get a read-only view with an amber notice. A roles & permissions reference card is shown to all members. The sidebar "Team / Roles" link now correctly points to the new page.
+
+**API routes (all enforce Clerk orgId → local org → local user → membership+role RBAC guard):**
+
+`src/app/api/settings/team/role/route.ts` (new)
+- `POST` — changes a member's role.
+- Guards: caller must be Owner or Admin; target membership must belong to the org; cannot demote the last Owner (counts remaining Owner memberships before allowing); no-op if role unchanged.
+- Audit log: `team.member.role_changed` with `fromRole`/`toRole`/`targetUserId`.
+
+`src/app/api/settings/team/[memberId]/route.ts` (new)
+- `DELETE` — sets membership `status="inactive"`.
+- Guards: caller Owner/Admin; cannot remove yourself; cannot remove the last active Owner.
+- Audit log: `team.member.removed`.
+
+`src/app/api/settings/team/invite/route.ts` (new)
+- `POST` — sends a Clerk Organisation invitation via `clerkClient().organizations.createOrganizationInvitation`.
+- Validates: email format, role ∈ `["org:admin", "org:member"]`.
+- Deduplicates: fetches existing pending invitations and returns 409 if the address already has one.
+- Audit log: `team.member.invited`.
+
+`src/app/api/settings/team/invite/[invitationId]/route.ts` (new)
+- `DELETE` — revokes a Clerk invitation via `revokeOrganizationInvitation`.
+- Fetches invitation first via `getOrganizationInvitation` to confirm it belongs to the caller's org before revoking.
+- Audit log: `team.invitation.revoked`.
+
+**Client components:**
+
+`src/components/settings/team-members-panel.tsx` (new)
+- `"use client"` — exports `TeamMember`, `AvailableRole`, `PendingInvitation` types.
+- Members table: avatar (image or initial tile), name + "(you)" badge, email, inline role `<select>` (disabled for self + non-managers), status badge, joined date, Remove button.
+- Remove → confirmation modal with member name + email, Cancel / Remove member buttons.
+- Pending invitations section: dashed-border avatar, email, role label, date, Revoke button.
+- Success flash (4 s auto-dismiss), dismissible error banner.
+- All mutations use `useTransition` + `router.refresh()`.
+
+`src/components/settings/invite-member-form.tsx` (new)
+- `"use client"` — collapses to "Invite member" button when closed; hidden entirely when `canInvite=false`.
+- Expanded: email input + role select (`Member` / `Admin`), Send / Cancel.
+- Success flash + auto-close after 2.5 s; inline error on failure.
+
+**Page:**
+
+`src/app/dashboard/settings/team/page.tsx` (new)
+- Async server component; auth via `auth()`; resolves local org, local user, caller membership+role.
+- Fetches: all org memberships joined to users + roles; all roles; all permissions; all role_permissions; Clerk pending invitations (wrapped in try/catch — non-critical).
+- Computes: `canManage` (Owner|Admin), `activeCount`, `rolePermMap` (roleId → permissionName[]), `sortedRoles` (Owner → Admin → Member → rest).
+- Renders: `InviteMemberForm`, amber read-only banner (non-managers), `TeamMembersPanel`, Roles & permissions card grid (per-role permission checklist), all-permissions pill row.
+
+**Sidebar:**
+
+`src/components/dashboard/sidebar-nav.tsx` (updated)
+- "Team / Roles" `href` changed from `/dashboard/settings/organization` to `/dashboard/settings/team`.
+
+### Files Changed
+
+- `src/app/api/settings/team/role/route.ts` — new
+- `src/app/api/settings/team/[memberId]/route.ts` — new
+- `src/app/api/settings/team/invite/route.ts` — new
+- `src/app/api/settings/team/invite/[invitationId]/route.ts` — new
+- `src/components/settings/team-members-panel.tsx` — new
+- `src/components/settings/invite-member-form.tsx` — new
+- `src/app/dashboard/settings/team/page.tsx` — new
+- `src/components/dashboard/sidebar-nav.tsx` — updated (Team/Roles href)
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Current Status
+
+`/dashboard/settings/team` is live. Owners and Admins see a full management interface; Members see read-only. All mutations are protected server-side with the same RBAC pattern used throughout the codebase. Database schema, Clerk authentication, and all unrelated modules are unchanged.
+
+---
+
+# 36. COMPLETED: Consent Banner Studio (Visual Consent Designer)
+
+### Completed Work
+
+Built a full visual consent banner designer at `/dashboard/policies/[id]/studio`. The studio is a full-viewport split-panel interface: a tabbed control panel on the left and a live preview panel on the right. Every control change updates the preview instantly with no page reload. The final configuration is saved through the existing `PUT /api/policies/[id]/banner-config` API into the `consent_policy_versions.configuration` JSONB field — no new database tables or schema changes.
+
+**Architecture:**
+
+`src/components/policies/banner-studio/banner-renderer.tsx` (new)
+
+- `"use client"` component that renders a full-fidelity, interactive-looking consent banner from a `BannerConfiguration`.
+- Handles all three layout variants (bar / box / dialog) with appropriate typography, padding, and button rendering.
+- Accepts optional `onAccept`, `onReject`, `onCustomize` callbacks for preview interactivity.
+- Renders an inline overlay div when `config.overlayEnabled` is true.
+- Uses inline styles driven entirely by the config values (colors, border radius, background, text) so every change is instantly reflected.
+- Position styles (`bottom`, `top`, `bottom-left`, `bottom-right`, `center`) implemented with `position: absolute` + coordinate CSS so the banner appears in the correct location over the preview.
+
+`src/components/policies/banner-studio/studio-preview.tsx` (new)
+
+- `"use client"` component. Two sub-components inside:
+  - `IframePreview` — embeds the website in a `sandbox="allow-scripts allow-same-origin allow-forms"` iframe, then overlays the `BannerRenderer` in the host DOM (not inside the iframe) so the banner always renders correctly regardless of the embedded site. An 8-second timeout fires `onBlock()` if no `load` event is received (catches silent X-Frame-Options blocks). Reads `contentWindow.location.href` post-load to detect `about:blank` (iframe blocked to same-origin).
+  - `FallbackMockPage` — a styled mock website (header, hero, content grid) used when: no URL has been entered, the site blocks embedding, or a load error occurs. Shows an amber notice banner explaining the fallback. `BannerRenderer` is overlaid on the mock page too.
+- Top toolbar: URL input bar with `Load` button (prepends `https://` if missing), desktop/mobile viewport toggle (icon buttons with `aria-pressed`).
+- `viewport` state drives a CSS `width` transition between `100%` (desktop) and `375px` (mobile) on the preview container so the banner position can be tested at both sizes.
+
+`src/components/policies/banner-studio/studio-controls.tsx` (new)
+
+- `"use client"` component. Tabbed control panel with 5 tabs: **Presets**, **Layout**, **Style**, **Text**, **Behavior**.
+- **Presets tab** — 5 named style presets, each rendered as a clickable card with icon, name, and description. Active preset highlighted with a ring + checkmark. Applying a preset fires `onApplyPreset(overrides)` which merges a `Partial<BannerConfiguration>` onto the current state:
+  - *Bottom Bar* — `layout: bar, position: bottom, borderRadius: 0, overlayEnabled: false` + white/dark palette
+  - *Top Bar* — `layout: bar, position: top, borderRadius: 0` + dark/indigo palette
+  - *Center Modal* — `layout: dialog, position: center, borderRadius: 12, overlayEnabled: true, blockPageUntilConsent: true` + indigo palette
+  - *Bottom Sheet* — `layout: box, position: bottom, borderRadius: 16, overlayEnabled: true` + sky palette
+  - *Floating Panel* — `layout: box, position: bottom-right, borderRadius: 12, overlayEnabled: false` + emerald palette
+- **Layout tab** — position picker (5 visual icon buttons), layout style picker (Bar/Box/Dialog as button grid), overlay toggle.
+- **Style tab** — three inline color pickers (primary, background, text) each with `<input type="color">` + hex text input; border-radius range slider with live value display; button visibility toggles; preference center visibility toggles.
+- **Text tab** — title, description textarea, all 4 button labels, privacy policy link text + URL.
+- **Behavior tab** — default consent select, expiry days input, 4 behavior toggles, language + region selects.
+- Footer save bar: "Save configuration" button (disabled when no version), reset button (↺), inline error/success messages.
+- All controls use `Toggle` (custom pill switch with `role="switch"` + `aria-checked`), `Field`, `ColorField`, and `SectionHeader` sub-components.
+
+`src/components/policies/banner-studio/index.tsx` (new)
+
+- Root `"use client"` `BannerStudio` component.
+- Props: `policyId`, `policyName`, `latestVersionId`, `initialConfig`, `websiteDomain`.
+- Owns all state: `config`, `activePreset`, `viewport`, `saving`, `saveError`, `saveSuccess`.
+- `handleChange<K>(key, value)` — updates one field; clears `activePreset` if the changed field is part of that preset's overrides (the config has diverged).
+- `handleApplyPreset(overrides)` — merges partial overrides; matches against `PRESETS` by `JSON.stringify` to set `activePreset`.
+- `handleSave()` — `PUT /api/policies/[policyId]/banner-config` with full config; shows success for 3 s; calls `router.refresh()`.
+- Layout: full-viewport `h-screen overflow-hidden` column. Top header bar (back link, policy name breadcrumb, version badge). Split row: `w-72/xl:w-80` left aside for `StudioControls`, flex-1 right `main` for `StudioPreview`.
+- Derives `previewUrl` by prepending `https://` to `websiteDomain` if it doesn't already have a protocol.
+
+`src/app/dashboard/policies/[id]/studio/page.tsx` (new)
+
+- Async server component. Auth via `auth()` → resolves local org → scopes policy through org websites (`inArray`) → `notFound()` if missing or cross-org.
+- Resolves website domain for the preview URL suggestion.
+- Fetches latest version + `configuration` JSONB; calls `parseBannerConfig` to merge with defaults.
+- Renders `<BannerStudio>` — no wrapper padding since the component manages its own full-viewport layout.
+
+`src/app/dashboard/policies/[id]/page.tsx` (updated)
+
+- Page header action area replaced: now renders two buttons — a dark "Banner Studio" button (links to `/studio`, includes a sparkline SVG icon) and the existing "Preview preference center" button — wrapped in a `flex gap-2` container.
+
+### Files Changed
+
+- `src/components/policies/banner-studio/banner-renderer.tsx` — new
+- `src/components/policies/banner-studio/studio-preview.tsx` — new
+- `src/components/policies/banner-studio/studio-controls.tsx` — new
+- `src/components/policies/banner-studio/index.tsx` — new
+- `src/app/dashboard/policies/[id]/studio/page.tsx` — new
+- `src/app/dashboard/policies/[id]/page.tsx` — updated (Studio button in header)
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Current Status
+
+The Banner Studio is accessible from any policy detail page via the "Banner Studio" button in the header. It opens at `/dashboard/policies/[id]/studio`. The studio provides a full visual design experience: pick a preset, tweak every aspect of the banner, and see it rendered in real time over either the real website (if embedding is allowed) or a realistic mock page. Saving pushes the config to the existing `banner-config` API with no database schema changes. Tenant isolation is preserved — the server page verifies policy ownership through the org → websites chain before rendering.
 
 ### Next Task
 

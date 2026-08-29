@@ -15,7 +15,6 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
     e.preventDefault();
     setRunning(true);
     setError("");
-
     try {
       const res = await fetch("/api/scanner/run", {
         method: "POST",
@@ -33,25 +32,34 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
   }
 
   return (
-    <div className="rounded-lg border bg-white p-6">
-      <h2 className="mb-4 text-base font-semibold text-neutral-900">
-        Run a new scan
-      </h2>
-      <p className="mb-5 text-sm text-neutral-500">
-        The scanner fetches your website&apos;s homepage and analyses it for cookies,
-        third-party scripts, pixels, and other tracking technologies.
-      </p>
+    <div className="rounded-2xl bg-white card-shadow p-6">
+      {/* Header row */}
+      <div className="mb-5 flex items-start gap-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl stat-icon-blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+            stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-base font-semibold text-slate-900">Run a new scan</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Fetches your website&apos;s homepage and analyses it for cookies, scripts, pixels, and tracking technologies.
+          </p>
+        </div>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
-        <div className="flex-1 min-w-[200px]">
-          <label className="mb-1.5 block text-sm font-medium text-neutral-700">
+        <div className="min-w-[220px] flex-1">
+          <label className="mb-1.5 block text-sm font-medium text-slate-700">
             Website
           </label>
           <select
             value={websiteId}
             onChange={(e) => setWebsiteId(e.target.value)}
             required
-            className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
           >
             {websites.map((w) => (
               <option key={w.id} value={w.id}>
@@ -64,22 +72,30 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
         <button
           type="submit"
           disabled={running}
-          className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
         >
           {running ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <>
+              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
               Scanning…
-            </span>
-          ) : "Start scan"}
+            </>
+          ) : (
+            <>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              Start scan
+            </>
+          )}
         </button>
       </form>
 
       {error && (
-        <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       )}
