@@ -274,11 +274,12 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
       aria-label={item.ariaLabel}
       title={collapsed ? item.label : undefined}
       className={[
-        "group relative flex items-center gap-3.5 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200",
+        "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
+        "transition-[background-color,color,box-shadow] duration-200 ease-out min-h-11",
         collapsed ? "justify-center px-2" : "",
         isActive
           ? "sidebar-item-active"
-          : "text-slate-600 hover:bg-slate-100/60 hover:text-slate-900",
+          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
       ].join(" ")}
       aria-current={isActive ? "page" : undefined}
     >
@@ -317,7 +318,7 @@ function BrandLogo({ collapsed }: { collapsed: boolean }) {
       suppressHydrationWarning
       className={`flex items-center gap-3 px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-500/20">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
           <path d="M9 12l2 2 4-4" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -345,8 +346,8 @@ function CompliancePromo({ collapsed }: { collapsed: boolean }) {
     );
   }
   return (
-    <div className="rounded-3xl bg-gradient-to-br from-slate-50 to-indigo-50/50 p-5 card-shadow">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-500/20">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 11l3 3L22 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -366,7 +367,7 @@ export function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onTogg
   return (
     <div
       suppressHydrationWarning
-      className={`flex h-full flex-col ${collapsed ? "px-3 py-5" : "px-4 py-6"} transition-[padding] duration-200`}
+      className={`flex h-full flex-col ${collapsed ? "px-3 py-5" : "px-3 py-5 sm:px-4 sm:py-6"}`}
     >
       <div className="mb-6 shrink-0">
         <BrandLogo collapsed={collapsed} />

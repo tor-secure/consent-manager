@@ -40,7 +40,7 @@ export default async function DevelopersPage() {
   const activeCount = rows.filter((k) => k.status === "active").length;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">API Keys</h1>

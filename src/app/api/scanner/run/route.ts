@@ -5,6 +5,11 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { runScan } from "@/lib/scanner/scan-engine";
+import {
+  assertSafeScanUrl,
+  ScannerUrlError,
+  toAbsoluteScanUrl,
+} from "@/lib/scanner/ssrf-guard";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // POST /api/scanner/run
@@ -82,6 +87,18 @@ export async function POST(request: Request) {
         { success: false, message: "Website is not active" },
         { status: 400 },
       );
+    }
+
+    try {
+      await assertSafeScanUrl(toAbsoluteScanUrl(website.domain));
+    } catch (error) {
+      if (error instanceof ScannerUrlError) {
+        return NextResponse.json(
+          { success: false, message: error.message },
+          { status: 400 },
+        );
+      }
+      throw error;
     }
 
     // Run the scan — synchronous for now (no background queue yet).

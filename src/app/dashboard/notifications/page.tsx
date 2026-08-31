@@ -84,7 +84,7 @@ export default async function NotificationsPage() {
   const unreadCount = rows.filter((r) => !r.isRead).length;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

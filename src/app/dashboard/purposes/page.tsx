@@ -48,7 +48,7 @@ export default async function PurposesPage() {
   const required = purposeList.filter((p) => p.isRequired).length;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -60,7 +60,7 @@ export default async function PurposesPage() {
         </div>
         <Link
           href="/dashboard/purposes/new"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+          className="btn btn-primary"
         >
           <IconPlus />
           Create purpose

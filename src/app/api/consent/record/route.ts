@@ -20,12 +20,16 @@ import {
   isConsentExpired,
   type ConsentSubmission,
 } from "@/lib/consent-engine";
+import {
+  isValidConsentId,
+  isValidWebsiteId,
+  MAX_DECISION_ITEMS,
+  publicCorsHeaders,
+  publicOptionsResponse,
+  readPublicJsonObject,
+} from "@/lib/sdk/public-http";
 
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Max-Age": "86400",
-};
+const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
 // ---------------------------------------------------------------------------
 // GET /api/consent/record?consentId=<cid>&websiteId=<id>
@@ -36,8 +40,8 @@ const CORS_HEADERS = {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const consentId = searchParams.get("consentId")?.trim();
-    const websiteId = searchParams.get("websiteId")?.trim();
+    const consentId = searchParams.get("consentId")?.trim() ?? "";
+    const websiteId = searchParams.get("websiteId")?.trim() ?? "";
 
     if (!consentId || !websiteId) {
       return NextResponse.json(
@@ -46,8 +50,23 @@ export async function GET(request: Request) {
       );
     }
 
+    if (!isValidConsentId(consentId) || !isValidWebsiteId(websiteId)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid parameter format" },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+
     const [record] = await db
-      .select()
+      .select({
+        id: consentRecords.id,
+        consentId: consentRecords.consentId,
+        status: consentRecords.status,
+        consentedAt: consentRecords.consentedAt,
+        expiresAt: consentRecords.expiresAt,
+        withdrawnAt: consentRecords.withdrawnAt,
+        policyVersionId: consentRecords.policyVersionId,
+      })
       .from(consentRecords)
       .where(
         and(
@@ -65,46 +84,44 @@ export async function GET(request: Request) {
     }
 
     // ── Expiry check ────────────────────────────────────────────────────
-    // If the consent has expired we return it with expired=true and
-    // requiresReconsent=true so the SDK can surface the banner again.
-    // We do NOT mutate the DB here — the record is updated only when the
-    // visitor makes a new explicit choice (POST).
+    // If the consent has expired, return expired=true / requiresReconsent=true
+    // so the SDK re-shows the banner. We do NOT mutate the DB on GET.
     const expired = isConsentExpired(record);
 
-    const decisions = await db
-      .select()
-      .from(consentDecisions)
-      .where(eq(consentDecisions.consentRecordId, record.id));
+    const decisions = expired
+      ? []
+      : await db
+          .select({
+            purposeId: consentDecisions.purposeId,
+            vendorId: consentDecisions.vendorId,
+            granted: consentDecisions.granted,
+            decision: consentDecisions.decision,
+            decidedAt: consentDecisions.decidedAt,
+          })
+          .from(consentDecisions)
+          .where(eq(consentDecisions.consentRecordId, record.id));
 
     return NextResponse.json(
       {
         success: true,
-        // expired=true means the stored consent should not be honoured.
-        // The SDK treats this identically to "no stored consent" and will
-        // re-show the banner / Preference Center.
         expired,
         requiresReconsent: expired,
         record: {
           id: record.id,
           consentId: record.consentId,
-          // If expired, override the logical status so callers don't treat
-          // it as accepted/rejected.
           status: expired ? "expired" : record.status,
           consentedAt: record.consentedAt,
           expiresAt: record.expiresAt,
           withdrawnAt: record.withdrawnAt,
           policyVersionId: record.policyVersionId,
         },
-        // When expired, return empty decisions so the SDK has a clean slate.
-        decisions: expired
-          ? []
-          : decisions.map((d) => ({
-              purposeId: d.purposeId,
-              vendorId: d.vendorId,
-              granted: d.granted,
-              decision: d.decision,
-              decidedAt: d.decidedAt,
-            })),
+        decisions: decisions.map((d) => ({
+          purposeId: d.purposeId,
+          vendorId: d.vendorId,
+          granted: d.granted,
+          decision: d.decision,
+          decidedAt: d.decidedAt,
+        })),
       },
       { headers: CORS_HEADERS },
     );
@@ -120,18 +137,19 @@ export async function GET(request: Request) {
 // ---------------------------------------------------------------------------
 // POST /api/consent/record
 // Create or update a consent record.
-// Body: {
-//   websiteId: string,
-//   consentId?: string,        // if omitted, a new record is created
-//   visitorId?: string,
-//   jurisdiction?: string,
-//   submission: ConsentSubmission,
-// }
+// Public — called from external websites via the browser SDK.
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    const parsed = await readPublicJsonObject(request);
+    if (!parsed.ok) {
+      return NextResponse.json(
+        { success: false, message: parsed.message },
+        { status: parsed.status, headers: CORS_HEADERS },
+      );
+    }
+    const body = parsed.body;
 
     const websiteId = String(body.websiteId ?? "").trim();
     if (!websiteId) {
@@ -140,18 +158,77 @@ export async function POST(request: Request) {
         { status: 400, headers: CORS_HEADERS },
       );
     }
-
-    const submission = body.submission as ConsentSubmission;
-    if (!submission?.choice || !["accept-all", "reject-all", "granular"].includes(submission.choice)) {
+    if (!isValidWebsiteId(websiteId)) {
       return NextResponse.json(
-        { success: false, message: "submission.choice must be accept-all, reject-all, or granular" },
+        { success: false, message: "Invalid websiteId" },
         { status: 400, headers: CORS_HEADERS },
       );
     }
 
+    const rawConsentId = body.consentId;
+    const isNew =
+      rawConsentId === undefined ||
+      rawConsentId === null ||
+      String(rawConsentId).trim() === "";
+    if (!isNew && !isValidConsentId(String(rawConsentId).trim())) {
+      return NextResponse.json(
+        { success: false, message: "Invalid consentId" },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+
+    const submissionRaw = body.submission;
+    if (
+      !submissionRaw ||
+      typeof submissionRaw !== "object" ||
+      Array.isArray(submissionRaw)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "submission.choice must be accept-all, reject-all, or granular",
+        },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+
+    const submissionObj = submissionRaw as Record<string, unknown>;
+    if (
+      !submissionObj.choice ||
+      !["accept-all", "reject-all", "granular"].includes(String(submissionObj.choice))
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "submission.choice must be accept-all, reject-all, or granular",
+        },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+
+    const submission: ConsentSubmission = {
+      choice: submissionObj.choice as ConsentSubmission["choice"],
+      purposeDecisions: Array.isArray(submissionObj.purposeDecisions)
+        ? (submissionObj.purposeDecisions as ConsentSubmission["purposeDecisions"])?.slice(
+            0,
+            MAX_DECISION_ITEMS,
+          )
+        : undefined,
+      vendorDecisions: Array.isArray(submissionObj.vendorDecisions)
+        ? (submissionObj.vendorDecisions as ConsentSubmission["vendorDecisions"])?.slice(
+            0,
+            MAX_DECISION_ITEMS,
+          )
+        : undefined,
+    };
+
     // Verify website exists and is active.
     const [website] = await db
-      .select({ id: websites.id, organizationId: websites.organizationId, status: websites.status })
+      .select({
+        id: websites.id,
+        organizationId: websites.organizationId,
+        status: websites.status,
+      })
       .from(websites)
       .where(eq(websites.id, websiteId))
       .limit(1);
@@ -163,7 +240,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find the active default policy for this website.
+    // Find the active default policy.
     const [policy] = await db
       .select({ id: consentPolicies.id })
       .from(consentPolicies)
@@ -185,7 +262,12 @@ export async function POST(request: Request) {
 
     // Get the latest published version (or latest draft).
     const allVersions = await db
-      .select()
+      .select({
+        id: consentPolicyVersions.id,
+        version: consentPolicyVersions.version,
+        isPublished: consentPolicyVersions.isPublished,
+        configuration: consentPolicyVersions.configuration,
+      })
       .from(consentPolicyVersions)
       .where(eq(consentPolicyVersions.policyId, policy.id))
       .orderBy(consentPolicyVersions.version);
@@ -206,9 +288,14 @@ export async function POST(request: Request) {
       latestVersion.configuration as Record<string, unknown>,
     );
 
-    // Load all purposes and vendors attached to this version.
+    // Load purposes and vendors attached to this version.
     const versionPurposes = await db
-      .select({ id: purposes.id, key: purposes.key, name: purposes.name, isRequired: purposes.isRequired })
+      .select({
+        id: purposes.id,
+        key: purposes.key,
+        name: purposes.name,
+        isRequired: purposes.isRequired,
+      })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
       .where(eq(policyPurposes.policyVersionId, latestVersion.id));
@@ -228,7 +315,6 @@ export async function POST(request: Request) {
 
     const vendorIds = [...new Set(vpLinks.map((v) => v.vendorId))];
 
-    // Build decision rows.
     const decisionRows = buildDecisionRows(
       submission,
       purposeIds,
@@ -241,63 +327,51 @@ export async function POST(request: Request) {
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
 
     // ── Consent evidence snapshot ────────────────────────────────────────
-    // Stored in consent_records.metadata (existing JSONB field, always {}).
-    // Captures the notice/policy state at the exact moment consent was given
-    // so that the evidence bundle can be reconstructed later even if the
-    // policy is subsequently edited or purposes are renamed.
-    const purposeKeys = versionPurposes.map((p) => p.key).sort();
+    const purposeKeys  = versionPurposes.map((p) => p.key).sort();
     const purposeNames = versionPurposes.map((p) => p.name).sort();
 
     const evidenceMetadata: Record<string, unknown> = {
-      // Policy / notice version presented
       policyVersionId:     latestVersion.id,
       policyVersionNumber: latestVersion.version,
-
-      // Notice text snapshot (what the visitor actually saw)
-      noticeTitle:       bannerConfig.title,
-      noticeDescription: bannerConfig.description,
-      noticeLanguage:    bannerConfig.language || "en",
-
-      // Banner appearance context
-      bannerLayout:   bannerConfig.layout,
-      bannerPosition: bannerConfig.position,
-
-      // Purposes and vendors in scope at consent time
-      purposeCount:  versionPurposes.length,
-      vendorCount:   vendorIds.length,
-      purposeKeys,           // human-readable keys preserved against future renaming
-      purposeNames,          // display names at consent time
-
-      // Consent mechanics
-      consentExpireDays: bannerConfig.consentExpireDays,
-      defaultConsent:    bannerConfig.defaultConsent,
-
-      // Technical context
-      capturedAt: now.toISOString(),
+      noticeTitle:         bannerConfig.title,
+      noticeDescription:   bannerConfig.description,
+      noticeLanguage:      bannerConfig.language || "en",
+      bannerLayout:        bannerConfig.layout,
+      bannerPosition:      bannerConfig.position,
+      purposeCount:        versionPurposes.length,
+      vendorCount:         vendorIds.length,
+      purposeKeys,
+      purposeNames,
+      consentExpireDays:   bannerConfig.consentExpireDays,
+      defaultConsent:      bannerConfig.defaultConsent,
+      capturedAt:          now.toISOString(),
     };
 
-    // User-agent is NOT captured here because it is not available server-side
-    // in the App Router API route without reading an incoming header. The SDK
-    // can pass it as body.context.userAgent in a future extension.
+    // ── Transaction: save record + decisions ─────────────────────────────
+    let wasExpiredRecord = false;
 
-    let consentRecord: typeof consentRecords.$inferSelect;
-    const isNew = !body.consentId;
-    let wasExpiredRecord = false; // set inside the else branch, used for event type
+    // Initialise with a placeholder — guaranteed to be replaced inside the
+    // transaction; the type-assertion below is safe because the transaction
+    // throws on any DB error and we never reach the code after it.
+    let savedRecord: typeof consentRecords.$inferSelect =
+      null as unknown as typeof consentRecords.$inferSelect;
 
     await db.transaction(async (tx) => {
       if (isNew) {
-        // Create a new consent record.
         const consentId = generateConsentId();
-
-        [consentRecord] = await tx
+        const [inserted] = await tx
           .insert(consentRecords)
           .values({
             organizationId: website.organizationId,
             websiteId: website.id,
             policyVersionId: latestVersion.id,
             consentId,
-            visitorId: body.visitorId ? String(body.visitorId).trim() : null,
-            jurisdiction: body.jurisdiction ? String(body.jurisdiction).trim() : bannerConfig.region || null,
+            visitorId: body.visitorId
+              ? String(body.visitorId).trim().slice(0, 255)
+              : null,
+            jurisdiction: body.jurisdiction
+              ? String(body.jurisdiction).trim().slice(0, 100)
+              : bannerConfig.region || null,
             status: overallStatus,
             source: "web",
             consentedAt: now,
@@ -305,29 +379,30 @@ export async function POST(request: Request) {
             metadata: evidenceMetadata,
           })
           .returning();
+        savedRecord = inserted;
       } else {
-        // Update existing record — verify it belongs to this website.
-        const existing = await tx
+        // Update — verify the record belongs to this website.
+        const [existing] = await tx
           .select()
           .from(consentRecords)
           .where(
             and(
-              eq(consentRecords.consentId, String(body.consentId)),
+              eq(consentRecords.consentId, String(rawConsentId).trim()),
               eq(consentRecords.websiteId, website.id),
             ),
           )
           .limit(1);
 
-        if (!existing[0] || existing[0].status === "withdrawn") {
-          throw new Error("Consent record not found or already withdrawn");
+        if (!existing) {
+          throw new Error("Consent record not found");
+        }
+        if (existing.status === "withdrawn") {
+          throw new Error("Consent record already withdrawn");
         }
 
-        // ── Expiry handling on re-consent ──────────────────────────────
-        // When a visitor submits new consent for an expired record we accept
-        // it as a valid re-consent (same consentId, fresh timestamps).
-        wasExpiredRecord = isConsentExpired(existing[0]);
+        wasExpiredRecord = isConsentExpired(existing);
 
-        [consentRecord] = await tx
+        const [updated] = await tx
           .update(consentRecords)
           .set({
             status: overallStatus,
@@ -339,26 +414,22 @@ export async function POST(request: Request) {
           })
           .where(
             and(
-              eq(consentRecords.consentId, String(body.consentId)),
+              eq(consentRecords.consentId, String(rawConsentId).trim()),
               eq(consentRecords.websiteId, website.id),
             ),
           )
-          .returning()
-          .then((r) => r);
+          .returning();
+        savedRecord = updated;
 
-        consentRecord = consentRecord!;
-
-        // Delete all previous decisions before re-inserting.
         await tx
           .delete(consentDecisions)
-          .where(eq(consentDecisions.consentRecordId, consentRecord.id));
+          .where(eq(consentDecisions.consentRecordId, savedRecord.id));
       }
 
-      // Insert decisions.
       if (decisionRows.length > 0) {
         await tx.insert(consentDecisions).values(
           decisionRows.map((d) => ({
-            consentRecordId: consentRecord.id,
+            consentRecordId: savedRecord.id,
             purposeId: d.purposeId,
             vendorId: d.vendorId,
             decision: d.decision,
@@ -369,63 +440,73 @@ export async function POST(request: Request) {
       }
     });
 
-    // Append consent event outside transaction (best-effort, non-blocking).
-    // Use a distinct event type when re-consenting after expiry so the audit
-    // trail clearly shows the visitor renewed an expired consent.
-    let eventType: string;
-    if (isNew) {
-      eventType = "consent.created";
-    } else if (wasExpiredRecord) {
-      eventType = "consent.expired_and_renewed";
-    } else {
-      eventType = "consent.updated";
-    }
+    // ── Append consent event (best-effort — must not fail the response) ──
+    // The consent record is already committed at this point. An event-append
+    // failure is logged but never surfaces as a 500 to the visitor.
+    const eventType = isNew
+      ? "consent.created"
+      : wasExpiredRecord
+        ? "consent.expired_and_renewed"
+        : "consent.updated";
 
-    await appendConsentEvent({
-      consentRecordId: consentRecord!.id,
-      policyVersionId: latestVersion.id,
-      eventType,
-      eventData: {
-        choice: submission.choice,
-        status: overallStatus,
-        decisionCount: decisionRows.length,
-        // Evidence: human-readable purpose keys and version number at consent
-        // time, preserved even if purposes are renamed or policy is edited.
-        policyVersionNumber: latestVersion.version,
-        purposeKeys,
-        ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
-      },
-    });
+    try {
+      await appendConsentEvent({
+        consentRecordId: savedRecord.id,
+        policyVersionId: latestVersion.id,
+        eventType,
+        eventData: {
+          choice: submission.choice,
+          status: overallStatus,
+          decisionCount: decisionRows.length,
+          policyVersionNumber: latestVersion.version,
+          purposeKeys,
+          ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
+        },
+      });
+    } catch (eventError) {
+      // Non-fatal — the consent is saved; only the event log entry is missing.
+      console.error("appendConsentEvent failed (non-fatal):", eventError);
+    }
 
     return NextResponse.json(
       {
         success: true,
-        consentId: consentRecord!.consentId,
+        consentId: savedRecord.consentId,
         status: overallStatus,
         policyVersionId: latestVersion.id,
-        expiresAt: consentRecord!.expiresAt,
+        expiresAt: savedRecord.expiresAt,
       },
       { status: isNew ? 201 : 200, headers: CORS_HEADERS },
     );
   } catch (error) {
-    console.error("Consent record submission failed:", error);
-    // Never return raw error messages to callers — they may contain DB details.
+    // Distinguish user-facing validation errors from internal failures.
+    const msg =
+      error instanceof Error &&
+      (error.message === "Consent record not found" ||
+        error.message === "Consent record already withdrawn")
+        ? error.message
+        : "Failed to submit consent";
+
+    const status =
+      error instanceof Error && error.message === "Consent record not found"
+        ? 404
+        : error instanceof Error &&
+            error.message === "Consent record already withdrawn"
+          ? 409
+          : 500;
+
+    if (status === 500) {
+      console.error("Consent record submission failed:", error);
+    }
+
     return NextResponse.json(
-      { success: false, message: "Failed to submit consent" },
-      { status: 500, headers: CORS_HEADERS },
+      { success: false, message: msg },
+      { status, headers: CORS_HEADERS },
     );
   }
 }
 
-// CORS preflight — consent submission is cross-origin from external websites.
+// CORS preflight.
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-    },
-  });
+  return publicOptionsResponse("GET, POST, OPTIONS");
 }

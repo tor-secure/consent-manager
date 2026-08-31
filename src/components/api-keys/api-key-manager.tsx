@@ -98,7 +98,7 @@ export function ApiKeyManager({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
       {/* Keys table */}
       {initialKeys.length > 0 && (
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">

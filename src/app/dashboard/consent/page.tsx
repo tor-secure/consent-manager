@@ -190,7 +190,7 @@ export default async function ConsentRecordsPage() {
   const pending = records.filter((r) => r.status === "pending").length;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
@@ -368,7 +368,7 @@ export default async function ConsentRecordsPage() {
                 </span>
               </div>
             </CardHeader>
-            <div className="overflow-x-auto">
+            <div className="table-scroll scrollbar-thin">
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/60">

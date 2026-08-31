@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
@@ -9,6 +8,7 @@ import {
   WebsiteList,
   type WebsiteRow,
 } from "@/components/websites/website-list";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
 
 export default async function WebsitesPage() {
   const { orgId } = await auth();
@@ -40,29 +40,16 @@ export default async function WebsitesPage() {
   const websiteList: WebsiteRow[] = rows;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10">
-      <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-            Websites
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Manage the websites connected to your Consent Management Platform.
-          </p>
-        </div>
-
-        <Link
-          href="/dashboard/websites/new"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M7 1v12M1 7h12" />
-          </svg>
-          Add website
-        </Link>
-      </div>
-
+    <div className="page-wrap">
+      <PageHeader
+        title="Websites"
+        description="Manage the websites connected to your Consent Management Platform."
+        action={
+          <PageHeaderLink href="/dashboard/websites/new">
+            Add website
+          </PageHeaderLink>
+        }
+      />
       <WebsiteList websites={websiteList} />
     </div>
   );

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq, and, lt, inArray, not } from "drizzle-orm";
+import { eq, and, lt, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -20,13 +20,6 @@ import {
 } from "@/lib/api-auth-helpers";
 
 const OWNER_ADMIN = ["Owner", "Admin"] as const;
-
-// Statuses that indicate a record should never be purged by a scheduled run
-// because they may be needed for an active legal matter.
-// Withdrawn records ARE purgeable — the visitor already exercised their right
-// and the consent is no longer active.
-const NON_PURGEABLE_STATUSES: string[] = [];
-// (empty — all expired records are purgeable regardless of status)
 
 // ---------------------------------------------------------------------------
 // POST /api/settings/retention/purge
@@ -145,28 +138,32 @@ export async function POST(request: Request) {
       });
     }
 
-    // ── Execute deletion ──────────────────────────────────────────────────
+    // ── Execute deletion inside a transaction ─────────────────────────────
     // consent_decisions are cascade-deleted by the DB FK.
     // consent_events are NOT deleted (immutable audit trail).
     const eligibleIds = eligible.map((r) => r.id);
 
-    await db
-      .delete(consentRecords)
-      .where(inArray(consentRecords.id, eligibleIds));
+    await db.transaction(async (tx) => {
+      // Delete consent_records — consent_decisions cascade via FK.
+      await tx
+        .delete(consentRecords)
+        .where(inArray(consentRecords.id, eligibleIds));
 
-    // ── Audit log ─────────────────────────────────────────────────────────
-    await db.insert(auditLogs).values({
-      organizationId: organization.id,
-      userId: localUser.id,
-      action: "retention.purge.executed",
-      resourceType: "consent_records",
-      description: `Retention purge: deleted ${eligibleCount} consent record(s) past ${consentRecordRetentionDays}-day retention period (cutoff: ${cutoff.toISOString()})`,
-      metadata: {
-        deletedCount: eligibleCount,
-        cutoffDate: cutoff.toISOString(),
-        retentionDays: consentRecordRetentionDays,
-        // Do not log the individual consentIds — they are PII-adjacent.
-      },
+      // Audit log written inside the same transaction so it is guaranteed
+      // to be present if and only if the deletion actually committed.
+      await tx.insert(auditLogs).values({
+        organizationId: organization.id,
+        userId: localUser.id,
+        action: "retention.purge.executed",
+        resourceType: "consent_records",
+        description: `Retention purge: deleted ${eligibleCount} consent record(s) past ${consentRecordRetentionDays}-day retention period (cutoff: ${cutoff.toISOString()})`,
+        metadata: {
+          deletedCount: eligibleCount,
+          cutoffDate: cutoff.toISOString(),
+          retentionDays: consentRecordRetentionDays,
+          // Individual consentIds deliberately omitted — they are PII-adjacent.
+        },
+      });
     });
 
     return NextResponse.json({

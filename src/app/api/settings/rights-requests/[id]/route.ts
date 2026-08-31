@@ -189,31 +189,35 @@ export async function PATCH(
         if (recordsToErase.length > 0) {
           const recordIds = recordsToErase.map((r) => r.id);
 
-          // Step 1: Anonymise consent_events (retain row, redact eventData).
-          // Must happen BEFORE deleting the consent_records so the FK is valid.
-          const eventRows = await db
-            .select({ id: consentEvents.id })
-            .from(consentEvents)
-            .where(inArray(consentEvents.consentRecordId, recordIds));
+          // Both steps run inside a single transaction so the DB is never
+          // left in a half-erased state (events anonymised but records
+          // still present, or vice-versa).
+          await db.transaction(async (tx) => {
+            // Step 1: Anonymise consent_events BEFORE deleting consent_records
+            // so the FK constraint remains valid during the transaction.
+            const eventRows = await tx
+              .select({ id: consentEvents.id })
+              .from(consentEvents)
+              .where(inArray(consentEvents.consentRecordId, recordIds));
 
-          if (eventRows.length > 0) {
-            const eventIds = eventRows.map((e) => e.id);
-            await db
-              .update(consentEvents)
-              .set({
-                eventData: ERASED_EVENT_DATA as unknown as Record<string, unknown>,
-              })
-              .where(inArray(consentEvents.id, eventIds));
-            erasureResult.anonymisedEventCount = eventIds.length;
-          }
+            if (eventRows.length > 0) {
+              const eventIds = eventRows.map((e) => e.id);
+              await tx
+                .update(consentEvents)
+                .set({
+                  eventData: ERASED_EVENT_DATA as unknown as Record<string, unknown>,
+                })
+                .where(inArray(consentEvents.id, eventIds));
+              erasureResult.anonymisedEventCount = eventIds.length;
+            }
 
-          // Step 2: Delete consent_records.
-          // consent_decisions cascade-delete via FK.
-          await db
-            .delete(consentRecords)
-            .where(inArray(consentRecords.id, recordIds));
+            // Step 2: Delete consent_records — consent_decisions cascade via FK.
+            await tx
+              .delete(consentRecords)
+              .where(inArray(consentRecords.id, recordIds));
 
-          erasureResult.deletedRecordCount = recordIds.length;
+            erasureResult.deletedRecordCount = recordIds.length;
+          });
         }
       }
     }

@@ -3,7 +3,7 @@ import { CreateWebsiteForm } from "@/components/websites/create-website-form";
 // Auth + bootstrap is handled by the parent dashboard layout.
 export default function NewWebsitePage() {
   return (
-    <div className="space-y-8">
+    <div className="page-wrap space-y-8">
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
           <a

@@ -26,7 +26,7 @@ function SearchBar() {
       <input
         type="search"
         placeholder="Search..."
-        className="w-full h-11 rounded-2xl bg-white soft-shadow pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 border-0 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+        className="w-full h-11 rounded-xl bg-white soft-shadow pl-11 pr-4 text-sm text-slate-700 placeholder:text-slate-400 border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-[box-shadow,border-color] duration-200"
       />
     </div>
   );

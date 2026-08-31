@@ -59,6 +59,20 @@ export const organizations = pgTable("organizations", {
     .notNull()
     .default(false),
 
+  // ── DPDP Rules 2025 Rule 3(1)(d) — Contact mechanism fields ─────────────
+  // These are included in the public SDK config response so the consent
+  // banner / Preference Center can display the required contact details.
+
+  dpoName: varchar("dpo_name", { length: 255 }),
+
+  dpoEmail: varchar("dpo_email", { length: 320 }),
+
+  grievanceOfficerName: varchar("grievance_officer_name", { length: 255 }),
+
+  grievanceOfficerEmail: varchar("grievance_officer_email", { length: 320 }),
+
+  grievancePortalUrl: text("grievance_portal_url"),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

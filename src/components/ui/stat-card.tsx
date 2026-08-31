@@ -66,14 +66,14 @@ export function StatCard({
   return (
     <div
       className={[
-        "rounded-2xl bg-white card-shadow p-6 card-shadow-hover",
+        "rounded-2xl bg-white card-shadow p-5 sm:p-6 card-lift",
         className,
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
           {(trend || description) && (
@@ -92,7 +92,7 @@ export function StatCard({
         </div>
         <div
           className={[
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-white",
+            "flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl text-white",
             iconColorClasses[iconColor],
           ].join(" ")}
           aria-hidden="true"

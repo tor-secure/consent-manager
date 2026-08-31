@@ -230,7 +230,7 @@ function EndpointCard({
             {endpoint.deliveries.length === 0 ? (
               <p className="text-xs text-slate-400">No deliveries yet.</p>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <div className="table-scroll scrollbar-thin rounded-xl border border-slate-200">
                 <table className="min-w-full divide-y divide-slate-100 text-xs">
                   <thead className="bg-slate-50/60">
                     <tr>

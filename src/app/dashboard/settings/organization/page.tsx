@@ -59,10 +59,15 @@ export default async function OrganizationSettingsPage() {
     defaultLanguage: organization.defaultLanguage,
     defaultRegion: organization.defaultRegion,
     onboardingCompleted: organization.onboardingCompleted,
+    dpoName: organization.dpoName ?? null,
+    dpoEmail: organization.dpoEmail ?? null,
+    grievanceOfficerName: organization.grievanceOfficerName ?? null,
+    grievanceOfficerEmail: organization.grievanceOfficerEmail ?? null,
+    grievancePortalUrl: organization.grievancePortalUrl ?? null,
   };
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">

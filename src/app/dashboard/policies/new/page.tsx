@@ -35,7 +35,7 @@ export default async function NewPolicyPage({
     .orderBy(websites.name);
 
   return (
-    <div className="p-8">
+    <div className="page-wrap">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"

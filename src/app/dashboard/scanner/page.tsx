@@ -141,7 +141,7 @@ export default async function ScannerPage() {
   const totalItems     = scanHistory.reduce((sum, s) => sum + s.itemsDetected, 0);
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div>
@@ -234,7 +234,7 @@ export default async function ScannerPage() {
                 </span>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="table-scroll scrollbar-thin">
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/60">

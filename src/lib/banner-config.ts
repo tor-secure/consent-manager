@@ -208,6 +208,68 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   return merged;
 }
 
+function publicNoticeTranslation(value: unknown): NoticeTranslation | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const t = value as Record<string, unknown>;
+  const out: NoticeTranslation = {};
+  if (typeof t.title === "string") out.title = t.title;
+  if (typeof t.description === "string") out.description = t.description;
+  if (typeof t.acceptAllLabel === "string") out.acceptAllLabel = t.acceptAllLabel;
+  if (typeof t.rejectAllLabel === "string") out.rejectAllLabel = t.rejectAllLabel;
+  if (typeof t.customizeLabel === "string") out.customizeLabel = t.customizeLabel;
+  if (typeof t.savePreferencesLabel === "string") {
+    out.savePreferencesLabel = t.savePreferencesLabel;
+  }
+  if (typeof t.privacyPolicyText === "string") out.privacyPolicyText = t.privacyPolicyText;
+  return out;
+}
+
+/** Strip unknown JSONB keys before returning banner config to public clients. */
+export function toPublicBannerConfig(config: BannerConfiguration): BannerConfiguration {
+  const translations: Record<string, NoticeTranslation> = {};
+  for (const [code, value] of Object.entries(config.translations ?? {})) {
+    if (code.length > 16) continue;
+    const notice = publicNoticeTranslation(value);
+    if (notice) translations[code] = notice;
+  }
+
+  return {
+    title: config.title,
+    description: config.description,
+    acceptAllLabel: config.acceptAllLabel,
+    rejectAllLabel: config.rejectAllLabel,
+    customizeLabel: config.customizeLabel,
+    savePreferencesLabel: config.savePreferencesLabel,
+    privacyPolicyText: config.privacyPolicyText,
+    privacyPolicyUrl: config.privacyPolicyUrl,
+    poweredByText: config.poweredByText,
+    translations,
+    showAcceptAll: config.showAcceptAll,
+    showRejectAll: config.showRejectAll,
+    showCustomize: config.showCustomize,
+    showPoweredBy: config.showPoweredBy,
+    showCloseButton: config.showCloseButton,
+    showPurposeDescriptions: config.showPurposeDescriptions,
+    showVendorList: config.showVendorList,
+    showLegalBasis: config.showLegalBasis,
+    defaultConsent: config.defaultConsent,
+    closeOnOverlayClick: config.closeOnOverlayClick,
+    blockPageUntilConsent: config.blockPageUntilConsent,
+    respectDoNotTrack: config.respectDoNotTrack,
+    consentExpireDays: config.consentExpireDays,
+    showOnEveryVisit: config.showOnEveryVisit,
+    language: config.language,
+    region: config.region,
+    position: config.position,
+    layout: config.layout,
+    primaryColor: config.primaryColor,
+    backgroundColor: config.backgroundColor,
+    textColor: config.textColor,
+    borderRadius: config.borderRadius,
+    overlayEnabled: config.overlayEnabled,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // resolveTranslation
 //

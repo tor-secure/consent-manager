@@ -9,39 +9,26 @@ import { memberships } from "@/db/schema/memberships";
 import { roles } from "@/db/schema/roles";
 import { auditLogs } from "@/db/schema/audit-logs";
 
-// Roles that may update organization settings.
 const AUTHORIZED_ROLES = ["Owner", "Admin"] as const;
 
-const VALID_LANGUAGES = ["en", "hi", "kn", "fr", "de", "es", "pt", "nl", "it", "pl"] as const;
-const VALID_REGIONS = ["IN", "EU", "US", "UK", "AU", "CA", "SG", "AE"] as const;
-const VALID_TIMEZONES = [
-  "UTC",
-  "Asia/Kolkata",
-  "Europe/London",
-  "Europe/Paris",
-  "Europe/Berlin",
-  "America/New_York",
-  "America/Chicago",
-  "America/Denver",
-  "America/Los_Angeles",
-  "Australia/Sydney",
-  "Asia/Singapore",
-  "Asia/Dubai",
-  "Asia/Tokyo",
+const VALID_LANGUAGES  = ["en","hi","kn","fr","de","es","pt","nl","it","pl"] as const;
+const VALID_REGIONS    = ["IN","EU","US","UK","AU","CA","SG","AE"] as const;
+const VALID_TIMEZONES  = [
+  "UTC","Asia/Kolkata","Europe/London","Europe/Paris","Europe/Berlin",
+  "America/New_York","America/Chicago","America/Denver","America/Los_Angeles",
+  "Australia/Sydney","Asia/Singapore","Asia/Dubai","Asia/Tokyo",
 ] as const;
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function PUT(request: Request) {
   try {
     const { isAuthenticated, userId, orgId } = await auth();
 
     if (!isAuthenticated || !userId || !orgId) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    // Resolve local org.
     const [organization] = await db
       .select()
       .from(organizations)
@@ -49,13 +36,9 @@ export async function PUT(request: Request) {
       .limit(1);
 
     if (!organization) {
-      return NextResponse.json(
-        { success: false, message: "Organization not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
     }
 
-    // Resolve local user.
     const [localUser] = await db
       .select({ id: users.id })
       .from(users)
@@ -63,13 +46,9 @@ export async function PUT(request: Request) {
       .limit(1);
 
     if (!localUser) {
-      return NextResponse.json(
-        { success: false, message: "User not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
     }
 
-    // Authorization: check membership + role name.
     const [membership] = await db
       .select({ roleName: roles.name })
       .from(memberships)
@@ -83,10 +62,7 @@ export async function PUT(request: Request) {
       )
       .limit(1);
 
-    const roleName = membership?.roleName ?? "";
-    const isAuthorized = (AUTHORIZED_ROLES as readonly string[]).includes(roleName);
-
-    if (!isAuthorized) {
+    if (!(AUTHORIZED_ROLES as readonly string[]).includes(membership?.roleName ?? "")) {
       return NextResponse.json(
         { success: false, message: "You do not have permission to update organization settings" },
         { status: 403 },
@@ -95,96 +71,120 @@ export async function PUT(request: Request) {
 
     const body = await request.json();
 
-    // Validate each field individually.
+    // ── Core fields ──────────────────────────────────────────────────────
+
     const name = String(body.name ?? "").trim();
     if (!name) {
-      return NextResponse.json(
-        { success: false, message: "Organization name is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: "Organization name is required" }, { status: 400 });
     }
     if (name.length > 255) {
-      return NextResponse.json(
-        { success: false, message: "Organization name is too long" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: "Organization name is too long" }, { status: 400 });
     }
 
-    const description = body.description
-      ? String(body.description).trim() || null
-      : null;
+    const description = body.description ? String(body.description).trim() || null : null;
 
-    const logoUrl = body.logoUrl
-      ? String(body.logoUrl).trim() || null
-      : null;
-
-    // Basic URL validation for logoUrl.
+    const logoUrl = body.logoUrl ? String(body.logoUrl).trim() || null : null;
     if (logoUrl) {
-      try {
-        new URL(logoUrl);
-      } catch {
-        return NextResponse.json(
-          { success: false, message: "Logo URL must be a valid URL" },
-          { status: 400 },
-        );
-      }
+      try { new URL(logoUrl); }
+      catch { return NextResponse.json({ success: false, message: "Logo URL must be a valid URL" }, { status: 400 }); }
     }
 
     const timezone = (VALID_TIMEZONES as readonly string[]).includes(body.timezone)
-      ? (body.timezone as string)
-      : null;
-
+      ? (body.timezone as string) : null;
     if (!timezone) {
-      return NextResponse.json(
-        { success: false, message: `Timezone must be one of the supported values` },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: "Timezone must be one of the supported values" }, { status: 400 });
     }
 
-    const defaultLanguage = (VALID_LANGUAGES as readonly string[]).includes(
-      body.defaultLanguage,
-    )
-      ? (body.defaultLanguage as string)
-      : null;
-
+    const defaultLanguage = (VALID_LANGUAGES as readonly string[]).includes(body.defaultLanguage)
+      ? (body.defaultLanguage as string) : null;
     if (!defaultLanguage) {
-      return NextResponse.json(
-        { success: false, message: `Default language is not supported` },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, message: "Default language is not supported" }, { status: 400 });
     }
 
     const defaultRegion =
-      body.defaultRegion &&
-      (VALID_REGIONS as readonly string[]).includes(body.defaultRegion)
-        ? (body.defaultRegion as string)
-        : null;
+      body.defaultRegion && (VALID_REGIONS as readonly string[]).includes(body.defaultRegion)
+        ? (body.defaultRegion as string) : null;
 
     const onboardingCompleted =
       typeof body.onboardingCompleted === "boolean"
         ? body.onboardingCompleted
         : organization.onboardingCompleted;
 
-    // Build a diff of what actually changed for the audit log.
-    const changes: Record<string, { from: unknown; to: unknown }> = {};
-    if (organization.name !== name) changes.name = { from: organization.name, to: name };
-    if ((organization.description ?? null) !== description)
-      changes.description = { from: organization.description, to: description };
-    if ((organization.logoUrl ?? null) !== logoUrl)
-      changes.logoUrl = { from: organization.logoUrl, to: logoUrl };
-    if (organization.timezone !== timezone)
-      changes.timezone = { from: organization.timezone, to: timezone };
-    if (organization.defaultLanguage !== defaultLanguage)
-      changes.defaultLanguage = { from: organization.defaultLanguage, to: defaultLanguage };
-    if ((organization.defaultRegion ?? null) !== defaultRegion)
-      changes.defaultRegion = { from: organization.defaultRegion, to: defaultRegion };
-    if (organization.onboardingCompleted !== onboardingCompleted)
-      changes.onboardingCompleted = {
-        from: organization.onboardingCompleted,
-        to: onboardingCompleted,
-      };
+    // ── DPDP Rule 3(1)(d) — DPO / Grievance Officer fields ──────────────
+    //
+    // All five are optional (nullable). When supplied:
+    //   • name fields    — trimmed, max 255 chars
+    //   • email fields   — trimmed, validated format, max 320 chars
+    //   • portal URL     — validated as a URL, max 2048 chars
+    //
+    // An empty string in the body clears the field (sets to null).
 
-    // Only write to DB if something actually changed.
+    const dpoName = body.dpoName
+      ? String(body.dpoName).trim().slice(0, 255) || null
+      : body.dpoName === "" ? null : (organization.dpoName ?? null);
+
+    const dpoEmail = (() => {
+      if (body.dpoEmail === "") return null;
+      if (!body.dpoEmail) return organization.dpoEmail ?? null;
+      const v = String(body.dpoEmail).trim().toLowerCase().slice(0, 320);
+      if (v && !EMAIL_RE.test(v)) return "INVALID";
+      return v || null;
+    })();
+
+    if (dpoEmail === "INVALID") {
+      return NextResponse.json({ success: false, message: "dpoEmail must be a valid email address" }, { status: 400 });
+    }
+
+    const grievanceOfficerName = body.grievanceOfficerName
+      ? String(body.grievanceOfficerName).trim().slice(0, 255) || null
+      : body.grievanceOfficerName === "" ? null : (organization.grievanceOfficerName ?? null);
+
+    const grievanceOfficerEmail = (() => {
+      if (body.grievanceOfficerEmail === "") return null;
+      if (!body.grievanceOfficerEmail) return organization.grievanceOfficerEmail ?? null;
+      const v = String(body.grievanceOfficerEmail).trim().toLowerCase().slice(0, 320);
+      if (v && !EMAIL_RE.test(v)) return "INVALID";
+      return v || null;
+    })();
+
+    if (grievanceOfficerEmail === "INVALID") {
+      return NextResponse.json({ success: false, message: "grievanceOfficerEmail must be a valid email address" }, { status: 400 });
+    }
+
+    const grievancePortalUrl = (() => {
+      if (body.grievancePortalUrl === "") return null;
+      if (!body.grievancePortalUrl) return organization.grievancePortalUrl ?? null;
+      const v = String(body.grievancePortalUrl).trim().slice(0, 2048);
+      if (!v) return null;
+      try { new URL(v); return v; }
+      catch { return "INVALID"; }
+    })();
+
+    if (grievancePortalUrl === "INVALID") {
+      return NextResponse.json({ success: false, message: "grievancePortalUrl must be a valid URL" }, { status: 400 });
+    }
+
+    // ── Diff — only write if something changed ───────────────────────────
+
+    const changes: Record<string, { from: unknown; to: unknown }> = {};
+
+    function diff(key: string, from: unknown, to: unknown) {
+      if ((from ?? null) !== (to ?? null)) changes[key] = { from, to };
+    }
+
+    diff("name",                  organization.name,                  name);
+    diff("description",           organization.description,            description);
+    diff("logoUrl",               organization.logoUrl,                logoUrl);
+    diff("timezone",              organization.timezone,               timezone);
+    diff("defaultLanguage",       organization.defaultLanguage,        defaultLanguage);
+    diff("defaultRegion",         organization.defaultRegion,          defaultRegion);
+    diff("onboardingCompleted",   organization.onboardingCompleted,    onboardingCompleted);
+    diff("dpoName",               organization.dpoName,                dpoName);
+    diff("dpoEmail",              organization.dpoEmail,               dpoEmail);
+    diff("grievanceOfficerName",  organization.grievanceOfficerName,   grievanceOfficerName);
+    diff("grievanceOfficerEmail", organization.grievanceOfficerEmail,  grievanceOfficerEmail);
+    diff("grievancePortalUrl",    organization.grievancePortalUrl,     grievancePortalUrl);
+
     if (Object.keys(changes).length === 0) {
       return NextResponse.json({ success: true, message: "No changes to save" });
     }
@@ -199,12 +199,24 @@ export async function PUT(request: Request) {
         defaultLanguage,
         defaultRegion,
         onboardingCompleted,
+        dpoName,
+        dpoEmail,
+        grievanceOfficerName,
+        grievanceOfficerEmail,
+        grievancePortalUrl,
         updatedAt: new Date(),
       })
       .where(eq(organizations.id, organization.id))
       .returning();
 
-    // Audit log.
+    // Audit log — omit email values from the diff to avoid PII in logs.
+    const auditChanges = { ...changes };
+    for (const emailKey of ["dpoEmail", "grievanceOfficerEmail"]) {
+      if (auditChanges[emailKey]) {
+        auditChanges[emailKey] = { from: !!auditChanges[emailKey].from, to: !!auditChanges[emailKey].to };
+      }
+    }
+
     await db.insert(auditLogs).values({
       organizationId: organization.id,
       userId: localUser.id,
@@ -212,15 +224,12 @@ export async function PUT(request: Request) {
       resourceType: "organization",
       resourceId: organization.id,
       description: `Organization settings updated (${Object.keys(changes).join(", ")})`,
-      metadata: { changes },
+      metadata: { changes: auditChanges },
     });
 
     return NextResponse.json({ success: true, organization: updated });
   } catch (error) {
     console.error("Organization settings update failed:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to update organization settings" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, message: "Failed to update organization settings" }, { status: 500 });
   }
 }

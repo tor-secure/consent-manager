@@ -3,7 +3,7 @@ import { CreateVendorForm } from "@/components/vendors/create-vendor-form";
 
 export default function NewVendorPage() {
   return (
-    <div className="p-8">
+    <div className="page-wrap">
       <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-neutral-500">
         <Link href="/dashboard/vendors" className="hover:text-neutral-900">
           Vendors

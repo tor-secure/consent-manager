@@ -205,7 +205,7 @@ export default async function TeamPage() {
   const activeCount = members.filter((m) => m.status === "active").length;
 
   return (
-    <div className="p-8">
+    <div className="page-wrap">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"

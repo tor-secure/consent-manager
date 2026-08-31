@@ -1,5 +1,9 @@
 import "server-only";
 import { matchDomain, type TrackerSignature } from "./tracker-signatures";
+import {
+  assertSafeScanUrl,
+  ScannerUrlError,
+} from "./ssrf-guard";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,6 +37,9 @@ const SCANNER_UA =
   "Mozilla/5.0 (compatible; CMPScanner/1.0; +https://cmp.example.com/scanner)";
 
 const FETCH_TIMEOUT_MS = 12_000;
+const MAX_HTML_BYTES = 2_000_000;
+const MAX_REDIRECTS = 5;
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
 
 function extractHostname(url: string): string | null {
   try {
@@ -63,9 +70,48 @@ function extractAttributeValues(
   return results;
 }
 
+async function readLimitedText(response: Response): Promise<string | null> {
+  const declared = response.headers.get("content-length");
+  if (declared) {
+    const n = Number(declared);
+    if (Number.isFinite(n) && n > MAX_HTML_BYTES) return null;
+  }
+
+  if (!response.body) {
+    const html = await response.text();
+    return html.length > MAX_HTML_BYTES ? null : html;
+  }
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (!value) continue;
+    total += value.byteLength;
+    if (total > MAX_HTML_BYTES) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString("utf8");
+}
+
+async function discardBody(response: Response): Promise<void> {
+  try {
+    await response.body?.cancel();
+  } catch {
+    // ignore
+  }
+}
+
 // ---------------------------------------------------------------------------
-// fetchHtml — safe HTTP fetch with timeout, follows one redirect.
-// Returns null on error.
+// fetchHtml — timeout, size cap, and SSRF-safe redirect handling.
+// Validates the target (and every redirect hop) before connecting.
 // ---------------------------------------------------------------------------
 
 async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string } | null> {
@@ -73,25 +119,54 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": SCANNER_UA,
-        Accept: "text/html,application/xhtml+xml",
-      },
-      redirect: "follow",
-    });
+    let current = (await assertSafeScanUrl(url)).href;
 
-    if (!response.ok) return null;
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+      const response = await fetch(current, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": SCANNER_UA,
+          Accept: "text/html,application/xhtml+xml",
+        },
+        redirect: "manual",
+      });
 
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!contentType.includes("text/html") && !contentType.includes("application/xhtml")) {
-      return null;
+      if (REDIRECT_STATUSES.has(response.status)) {
+        const location = response.headers.get("location");
+        await discardBody(response);
+        if (!location) return null;
+        let next: URL;
+        try {
+          next = new URL(location, current);
+        } catch {
+          return null;
+        }
+        current = (await assertSafeScanUrl(next.href)).href;
+        continue;
+      }
+
+      if (!response.ok) {
+        await discardBody(response);
+        return null;
+      }
+
+      const contentType = response.headers.get("content-type") ?? "";
+      if (
+        !contentType.includes("text/html") &&
+        !contentType.includes("application/xhtml")
+      ) {
+        await discardBody(response);
+        return null;
+      }
+
+      const html = await readLimitedText(response);
+      if (html === null) return null;
+      return { html, finalUrl: current };
     }
 
-    const html = await response.text();
-    return { html, finalUrl: response.url };
-  } catch {
+    return null;
+  } catch (error) {
+    if (error instanceof ScannerUrlError) throw error;
     return null;
   } finally {
     clearTimeout(timer);
@@ -279,7 +354,23 @@ function extractTitle(html: string): string | null {
 // ---------------------------------------------------------------------------
 
 export async function analyseUrl(url: string): Promise<AnalysisResult> {
-  const fetched = await fetchHtml(url);
+  let fetched: { html: string; finalUrl: string } | null;
+
+  try {
+    fetched = await fetchHtml(url);
+  } catch (error) {
+    const message =
+      error instanceof ScannerUrlError
+        ? error.message
+        : "Failed to fetch URL (network error, timeout, or non-HTML response)";
+    return {
+      url,
+      fetchedAt: new Date(),
+      items: [],
+      fetchError: message,
+      rawTitle: null,
+    };
+  }
 
   if (!fetched) {
     return {

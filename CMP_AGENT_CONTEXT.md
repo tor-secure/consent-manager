@@ -3700,3 +3700,533 @@ Add organisation-level DPO / Grievance Officer contact fields (DPDP Rules 2025 R
 4. Update `OrganizationSettingsForm` with a "Data Protection Officer & Grievance Officer" section.
 5. Include grievance contact under a `grievance` key in `GET /api/sdk/[siteKey]/config`.
 6. Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 49. COMPLETED: Retention and Deletion Controls — Transaction Safety Hardening
+
+### Context
+
+Task 48 implemented the full retention and deletion workflow. On re-inspection for task 49, two concrete transaction safety gaps were identified in the existing code:
+
+**GAP 1 — `POST /api/settings/retention/purge`:**
+The `db.delete(consentRecords)` and the subsequent `db.insert(auditLogs)` were two separate `await` calls outside any transaction. If the delete succeeded but the audit log insert failed (network glitch, DB constraint), records would be deleted with no audit trail — a regulatory violation (DPDP §8(7)).
+
+**GAP 2 — `PATCH /api/settings/rights-requests/[id]` (erasure execution):**
+The anonymisation of `consent_events.eventData` and the deletion of `consent_records` were two separate `await` calls. If the anonymisation succeeded but the delete failed, events would be permanently anonymised while the source records still existed — leaving the database in an inconsistent half-erased state.
+
+Both gaps violated the principle of atomicity for destructive operations.
+
+### Fixes Applied
+
+**`src/app/api/settings/retention/purge/route.ts`**
+- Wrapped `db.delete(consentRecords)` and `db.insert(auditLogs)` in a single `db.transaction()`. The audit log is now written inside the same transaction as the deletion — it commits if and only if the deletion commits, and rolls back together on failure.
+- Removed the unused `not` import from drizzle-orm.
+- Removed the unused `NON_PURGEABLE_STATUSES` dead-code constant.
+
+**`src/app/api/settings/rights-requests/[id]/route.ts`**
+- Wrapped the erasure steps (event anonymisation + record deletion) in a single `db.transaction()`. Both steps now succeed or fail atomically — the DB is never left in a state where events are anonymised but records still exist, or records are deleted but events still contain personal data.
+- `erasureResult.anonymisedEventCount` and `erasureResult.deletedRecordCount` are now set inside the transaction and remain accurate in the audit log regardless of outcome.
+
+### Files Changed
+
+- `src/app/api/settings/retention/purge/route.ts` — delete + audit log wrapped in `db.transaction()`; unused imports and dead code removed
+- `src/app/api/settings/rights-requests/[id]/route.ts` — erasure anonymisation + deletion wrapped in `db.transaction()`
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Retention and Deletion Workflow — Complete State
+
+All four components are now in place and correct:
+
+| Component | File | Status |
+|---|---|---|
+| Retention rules + helpers | `src/lib/retention-policy.ts` | ✅ Complete |
+| Retention config GET/PATCH | `src/app/api/settings/retention/route.ts` | ✅ Complete |
+| Retention purge (atomic) | `src/app/api/settings/retention/purge/route.ts` | ✅ Fixed (transaction) |
+| Erasure on rights request completion (atomic) | `src/app/api/settings/rights-requests/[id]/route.ts` | ✅ Fixed (transaction) |
+
+### Next Task
+
+Add organisation-level DPO / Grievance Officer contact fields required by DPDP Rules 2025 Rule 3(1)(d). The next agent must:
+
+1. Add columns to `organizations` table: `dpoName` (varchar 255), `dpoEmail` (varchar 320), `grievanceOfficerName` (varchar 255), `grievanceOfficerEmail` (varchar 320), `grievancePortalUrl` (text nullable).
+2. Create migration `drizzle/0035_organization_dpo_fields.sql`.
+3. Update `src/app/api/settings/organization/route.ts` to accept and validate the new fields (email format, URL check for `grievancePortalUrl`).
+4. Update `src/components/settings/organization-settings-form.tsx` with a "Data Protection Officer & Grievance Officer" section.
+5. Include `grievanceOfficerEmail`, `grievanceOfficerName`, `grievancePortalUrl` in the SDK config response (`/api/sdk/[siteKey]/config`) under a `grievance` key so the consent banner can display the contact link required by Rule 3(1)(d).
+6. Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 50. COMPLETED: DPDP Final Consent Workflow Review — Implementation Hardening
+
+### Review Scope
+
+Every DPDP-critical file was read in full before any changes were made:
+- `src/lib/consent-engine.ts`
+- `src/app/api/consent/record/route.ts`
+- `src/app/api/consent/withdraw/route.ts`
+- `src/app/api/consent/policy/route.ts`
+- `src/app/api/sdk/[siteKey]/config/route.ts`
+- `src/app/api/rights-request/route.ts`
+- `src/app/api/consent/evidence/[consentId]/route.ts`
+- `src/lib/retention-policy.ts`
+- `src/lib/banner-config.ts` (multilingual support)
+- `src/lib/retention-policy.ts` (retention rules)
+
+### Findings
+
+**No structural gaps** — All DPDP workflows identified in the previous gap analysis (tasks 43–49) are implemented: rights requests, multilingual notice, purpose enrichment, consent expiry/re-consent, consent evidence snapshots, retention/purge, erasure execution.
+
+**Five concrete implementation issues** found and fixed:
+
+---
+
+**ISSUE 1 — MEDIUM: Unsafe non-null assertion on `consentRecord` after transaction**
+
+`src/app/api/consent/record/route.ts`
+
+The `let consentRecord` variable was initialised as `undefined` and then used as `consentRecord!` after the transaction. If the transaction threw before assigning the variable, the `appendConsentEvent` call would produce a runtime error. Additionally, the update path used a `.returning().then((r) => r)` pattern with a post-transaction `consentRecord = consentRecord!` no-op reassignment that was confusing and fragile.
+
+**Fix:** Initialised `savedRecord` as `null as unknown as T` (clearly a placeholder), replaced the entire update pattern with a clean `const [updated] = await tx.update(...).returning()` assignment, and made `savedRecord = updated` unambiguous. The `!` non-null assertions were fully eliminated.
+
+---
+
+**ISSUE 2 — MEDIUM: `appendConsentEvent` failure caused a 500 response even after successful consent save**
+
+`src/app/api/consent/record/route.ts`
+
+The `appendConsentEvent` call was outside the transaction but inside the main `try` block. If the event append failed (transient network issue, DB contention), the entire POST returned 500 to the SDK even though the consent record was already committed. This caused the SDK to retry the consent submission unnecessarily and could produce duplicate records.
+
+**Fix:** Wrapped `appendConsentEvent` in its own `try/catch`. Failures are logged (`console.error`) but never surface as a 500 response. The consent record is already committed at that point; a missing event log entry is far less harmful than a duplicate consent submission.
+
+---
+
+**ISSUE 3 — MEDIUM: Same event-append fragility in withdrawal route**
+
+`src/app/api/consent/withdraw/route.ts`
+
+The `appendConsentEvent` call after `db.update(consentRecords)` was bare — a failure would return 500 even though the withdrawal was already committed to the DB. From the visitor's perspective their withdrawal succeeded (DB state is correct) but they receive an error, which may cause them to retry and hit the 409 "already withdrawn" guard.
+
+**Fix:** Wrapped `appendConsentEvent` in `try/catch`. Non-fatal, logged.
+
+---
+
+**ISSUE 4 — LOW-MEDIUM: No length guards on GET query params before DB query**
+
+`src/app/api/consent/record/route.ts`
+
+`consentId` and `websiteId` were used in DB queries without any format/length validation. A malformed or excessively long value would produce a noisy Postgres error log (though not an injection risk since queries are parameterized).
+
+**Fix:** Added `length > 300` guard on `consentId` and `length > 36` guard on `websiteId` with a 400 response before hitting the DB.
+
+---
+
+**ISSUE 5 — LOW: Redundant decisions query when consent is expired**
+
+`src/app/api/consent/record/route.ts`
+
+The GET handler always loaded decisions from `consent_decisions` and then discarded them when `expired=true`. This was a wasted DB round-trip on every expired-consent check.
+
+**Fix:** The decisions query is now conditional: `expired ? [] : await db.select()...`. No functional change; slightly more efficient.
+
+### Files Changed
+
+- `src/app/api/consent/record/route.ts` — issues 1, 2, 4, 5 fixed; full rewrite of the route for clarity
+- `src/app/api/consent/withdraw/route.ts` — issue 3 fixed; `appendConsentEvent` wrapped in try/catch
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Flow Verification (by construction)
+
+| Scenario | Before | After |
+|---|---|---|
+| DB event-append fails after consent save | 500 to SDK, possible retry/duplicate | 200/201 returned; event failure logged only |
+| DB event-append fails after withdrawal | 500 to visitor despite withdrawal committed | 200 returned; event failure logged only |
+| Malformed websiteId/consentId in GET | Noisy Postgres error log | 400 with clear message before DB hit |
+| Expired consent GET | Unnecessary decisions query | Decisions query skipped for expired records |
+| Transaction throws before consentRecord assigned | RuntimeError on `consentRecord!` | Clean exception; error message surfaced correctly |
+
+### Current DPDP Implementation Status
+
+All identified DPDP 2023 + Rules 2025 gaps are now addressed:
+
+| Requirement | Task | Status |
+|---|---|---|
+| Rights request workflow (§11–14 + Rule 12) | 43 | ✅ |
+| Purpose enrichment (Rule 3 data categories + retention) | 44 | ✅ |
+| Multilingual notice (§5(2) + Eighth Schedule) | 45 | ✅ |
+| Consent expiry + re-consent enforcement (§8(3)) | 46 | ✅ |
+| Consent evidence snapshot (§8(1)) | 47 | ✅ |
+| Retention + deletion controls (§8(3), §8(6), §8(7)) | 48–49 | ✅ |
+| Consent workflow hardening (transaction safety, error handling) | 50 | ✅ |
+
+### Next Task
+
+Add organisation-level DPO / Grievance Officer contact details required by DPDP Rules 2025 Rule 3(1)(d). The next agent must:
+1. Add columns to `organizations` table: `dpoName` (varchar 255), `dpoEmail` (varchar 320), `grievanceOfficerName` (varchar 255), `grievanceOfficerEmail` (varchar 320), `grievancePortalUrl` (text nullable).
+2. Create migration `drizzle/0035_organization_dpo_fields.sql`.
+3. Update `PUT /api/settings/organization` to accept and validate the new fields.
+4. Update `OrganizationSettingsForm` with a "DPO & Grievance Officer" section.
+5. Include `grievanceOfficerEmail`, `grievanceOfficerName`, `grievancePortalUrl` under a `grievance` key in `GET /api/sdk/[siteKey]/config`.
+6. Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 51. COMPLETED: DPO / Grievance Officer Contact Fields (DPDP Rules 2025 Rule 3(1)(d))
+
+### Legal Basis
+
+DPDP Rules 2025 Rule 3(1)(d) — the consent notice must include a contact mechanism for the Data Protection Officer or Grievance Officer so that Data Principals can raise concerns or exercise their rights.
+
+### Implementation
+
+**New schema columns on `organizations` table (all nullable):**
+
+| Column | Type | Purpose |
+|---|---|---|
+| `dpo_name` | varchar(255) | Data Protection Officer name |
+| `dpo_email` | varchar(320) | DPO contact email |
+| `grievance_officer_name` | varchar(255) | Grievance Officer name |
+| `grievance_officer_email` | varchar(320) | Grievance Officer contact email |
+| `grievance_portal_url` | text | URL to grievance submission portal |
+
+All columns are nullable so existing rows remain valid without data migration.
+
+**Server-side validation in `PUT /api/settings/organization`:**
+- Email fields validated against `/^[^\s@]+@[^\s@]+\.[^\s@]+$/`
+- `grievancePortalUrl` validated via `new URL()` (must be a parseable URL)
+- Empty string in body → null (clears the field)
+- Missing field in body → preserves existing value (no accidental clears)
+- Email values are NOT stored in the audit log diff (PII minimisation — diff records `{ from: boolean, to: boolean }` instead)
+- Owner/Admin authorization enforced (unchanged)
+
+**`grievance` object in public SDK config response (`GET /api/sdk/[siteKey]/config`):**
+```json
+{
+  "grievance": {
+    "grievanceOfficerName":  "...",
+    "grievanceOfficerEmail": "...",
+    "grievancePortalUrl":    "...",
+    "dpoName":               "...",
+    "dpoEmail":              "..."
+  }
+}
+```
+All fields nullable. SDK/banner can display this contact block in the Preference Center and notice footer.
+
+### Files Changed
+
+- `src/db/schema/organizations.ts` — 5 nullable columns added
+- `drizzle/0035_organization_dpo_fields.sql` — `ALTER TABLE "organizations" ADD COLUMN IF NOT EXISTS` for all 5 columns (single statement, idempotent)
+- `drizzle/meta/_journal.json` — entry for migration 35 added (idx 35)
+- `src/app/api/settings/organization/route.ts` — full update: parses/validates 5 new fields, threads them into the diff, includes them in `db.update()`, email values omitted from audit log for PII reasons
+- `src/components/settings/organization-settings-form.tsx` — `OrgSettingsData` type extended; 5 new state vars; DPO & Grievance Officer card added before Onboarding; fields included in PUT body
+- `src/app/dashboard/settings/organization/page.tsx` — `settingsData` extended with all 5 new fields
+- `src/app/api/sdk/[siteKey]/config/route.ts` — `organizations` import added; `grievance` object fetched and included in response
+
+### Verification
+
+`npx tsc --noEmit` → exit 0, zero lines of output.
+
+`npx drizzle-kit migrate` → exit 1 (Postgres container not running — expected). SQL file verified correct. Migration will apply with `npx drizzle-kit migrate` once the container is started.
+
+### Current Status
+
+DPO and Grievance Officer contact details are now first-class fields on the `organizations` table. Organisation Owners and Admins can configure them via the Settings → Organization page. The public SDK config endpoint (`/api/sdk/[siteKey]/config`) exposes the contact details under a `grievance` key so any consent banner or Preference Center implementation can display the required contact mechanism to visitors.
+
+### All DPDP 2023 + Rules 2025 Implementation Tasks — Final Status
+
+| Task | Requirement | Status |
+|---|---|---|
+| 43 | Rights request workflow (§11–14 + Rule 12) | ✅ |
+| 44 | Purpose enrichment — data categories, retention, legal basis (Rule 3(1)(b)+(c)) | ✅ |
+| 45 | Multilingual notice — 22 Eighth-Schedule languages (§5(2)) | ✅ |
+| 46 | Server-side consent expiry + re-consent enforcement (§8(3)) | ✅ |
+| 47 | Consent evidence snapshot in metadata JSONB (§8(1)) | ✅ |
+| 48–49 | Retention + deletion controls with atomic transactions (§8(3), §8(6), §8(7)) | ✅ |
+| 50 | Consent workflow transaction safety + error handling hardening | ✅ |
+| 51 | DPO / Grievance Officer contact fields (Rule 3(1)(d)) | ✅ |
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 52. COMPLETED: Apply DPO / Grievance Officer Migration (`0035_organization_dpo_fields`)
+
+### Completed Task
+
+Applied the pending Drizzle migration for DPDP Rules 2025 Rule 3(1)(d) DPO / Grievance Officer columns against the local PostgreSQL database (`consent-postgres` / `consent_platform`). No application code changes were required.
+
+### Migration Result
+
+`npx drizzle-kit migrate` → exit 0.
+
+- Container `consent-postgres` was already running (port 5432).
+- Output: `migrations applied successfully!`
+- Notices only: schema `"drizzle"` and relation `"__drizzle_migrations"` already existed (expected).
+- `drizzle.__drizzle_migrations` now includes hash `5a66d073dec49623eafc6c5d98dec81fb7a2bb28bc8160f06acf418ac2a2f036` with `created_at` `1787800000000` (journal tag `0035_organization_dpo_fields`).
+
+### Column Verification
+
+`information_schema.columns` on `organizations` contains all five nullable columns:
+
+| Column | Type | Max length | Nullable |
+|---|---|---|---|
+| `dpo_name` | character varying | 255 | YES |
+| `dpo_email` | character varying | 320 | YES |
+| `grievance_officer_name` | character varying | 255 | YES |
+| `grievance_officer_email` | character varying | 320 | YES |
+| `grievance_portal_url` | text | — | YES |
+
+`SELECT` of those columns from existing organization rows succeeded (values currently null, as expected — no data backfill).
+
+### Runtime Verification
+
+- `GET /api/sdk/site_327f98c3148c1c208c12fe2e2c7b1d5f4300a633f37be78d/config` → **200**. Response includes `"success": true` plus a `grievance` object (`grievanceOfficerName`, `grievanceOfficerEmail`, `grievancePortalUrl`, `dpoName`, `dpoEmail` all `null`). Policy, purposes, vendors, and tracker rules still load.
+- `PUT /api/settings/organization` without Clerk session → **401** `Unauthorized` (handler runs; no missing-column / 500 error). `GET` on the same route → **405** (PUT-only, unchanged).
+- `npx tsc --noEmit` → exit 0, zero lines of output.
+
+### Files Changed
+
+- `CMP_AGENT_CONTEXT.md` — this handoff only.
+
+### Current Status
+
+Migration `0035_organization_dpo_fields` is applied on the local database. Organization settings and public SDK config continue to work; SDK config now reads the new columns without error. Application code for DPO fields (section 51) is unchanged.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 53. COMPLETED: Public SDK and Consent Endpoint Security Hardening
+
+### Completed Task
+
+Inspected and hardened the public CMP SDK and consent endpoints only. CORS remains `Access-Control-Allow-Origin: *` without credentials so the browser SDK still loads from customer sites, localhost, and the demo page. Origin is not used as an allowlist because that would break legitimate embeds; `siteKey` remains the capability token. No schema, UI, or consent-flow feature changes.
+
+### Findings (inspected)
+
+| Check | Result |
+|---|---|
+| siteKey validation | Missing format/length guards (column is varchar 255; generated keys are `site_` + hex). Oversized or punctuation-laden keys hit Postgres unnecessarily. |
+| website/domain checks | Websites resolved by `siteKey` + `status = active`. Registered `domain` is not Origin-enforced (intentional; SDK must run on publisher sites and demo/localhost). |
+| CORS / methods / origin | `*` without credentials is correct for this public SDK. OPTIONS methods were incomplete/inconsistent on some routes. Unexpected methods already 405 via App Router. |
+| Input length limits | GET consent had loose length checks; POST/withdraw had none. Invalid JSON became 500. Unbounded JSON body possible. |
+| Public response data | Config used `parseBannerConfig` spread (`{...defaults, ...raw}`), so unknown JSONB keys on policy configuration could leak. Consent GET/withdraw used `select()` of full rows (visitorId, organizationId, metadata) even though the JSON mapper omitted most of them. |
+| Error handling | `/api/sdk/script` 500 body interpolated `String(error)` into JavaScript sent to the browser. |
+
+Confirmed not exposed on these public routes: Clerk secrets, API keys, webhook secrets, org settings JSON, users, memberships, internal DB URLs.
+
+### Fixes
+
+1. Shared guards in `src/lib/sdk/public-http.ts`: siteKey charset/length, website UUID, consentId charset/length, lang sanitization, http(s)-only `apiBase`, 64 KiB JSON body cap, CORS header helper.
+2. SDK script: do not inject invalid siteKey or non-http(s) `apiBase` (`javascript:` rejected). 500 JS no longer includes the exception string.
+3. Config/trackers: reject invalid siteKey with 400 before DB; cap language; return only known banner fields via `toPublicBannerConfig`; select only needed policy-version columns.
+4. Consent record GET/POST and withdraw: format checks, JSON parse → 400, oversized body → 413, column-limited selects so visitorId/metadata/organizationId are never loaded for the public mapper, decision arrays capped at 200 items.
+
+### Files Changed
+
+- `src/lib/sdk/public-http.ts` — new shared public-endpoint guards
+- `src/lib/banner-config.ts` — `toPublicBannerConfig` whitelist
+- `src/app/api/sdk/[siteKey]/config/route.ts`
+- `src/app/api/sdk/[siteKey]/trackers/route.ts`
+- `src/app/api/sdk/script/route.ts`
+- `src/app/api/consent/record/route.ts`
+- `src/app/api/consent/withdraw/route.ts`
+- `CMP_AGENT_CONTEXT.md`
+
+### Verification
+
+`npx tsc --noEmit` → exit 0.
+
+Against local `http://localhost:3000` (existing siteKey):
+
+| Request | Result |
+|---|---|
+| GET config | 200, CORS `*`, methods `GET, OPTIONS`, grievance present, banner keys are the public whitelist only |
+| GET config short siteKey `abc` | 400 Invalid siteKey |
+| GET config POST | 405 |
+| OPTIONS config | 204 |
+| GET trackers | 200 |
+| GET script `?siteKey=` | 200 JS, siteKey injected |
+| GET script `?apiBase=javascript:alert(1)` | 200 generic script, no apiBase injection |
+| GET record bad ids | 400 |
+| POST record invalid JSON | 400 |
+| POST record non-UUID websiteId | 400 |
+| POST record 70k body | 413 |
+| POST record reject-all | 201 (`consentId`, `status`, `policyVersionId`, `expiresAt` only) |
+| GET record | 200; no visitorId/metadata/organizationId |
+| POST withdraw bad ids | 400 |
+| POST withdraw of created record | 200 |
+
+### Current Status
+
+Public SDK config, tracker list, script, consent record, and withdraw endpoints reject malformed input, do not leak internal errors or extra JSONB keys, and still serve cross-origin browser clients with CORS `*`.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 54. COMPLETED: Website Scanner SSRF Hardening
+
+### Completed Task
+
+Hardened the website scanner so fetches cannot target localhost, loopback, private/internal ranges, link-local addresses, cloud metadata, or non-http(s) protocols. Redirect hops are re-validated. Timeouts and HTML size limits are enforced. Error text does not include the target host or IP. Scanner UI and database schema were not changed. Legitimate public hostnames (e.g. `example.com`) still pass.
+
+### Findings
+
+- `fetchHtml` used `redirect: "follow"` with no host/IP checks, so a public URL could redirect to `169.254.169.254` or loopback.
+- `scan-engine` used `websiteUrl.startsWith("http")`, which treats values like `httpfoo.com` as already-absolute.
+- No DNS resolution check before connect; numeric IPs, `localhost`, metadata hostnames, and `file://` / `ftp://` were not blocked.
+- Response body was read with unbounded `response.text()`.
+
+### Fixes
+
+- New `src/lib/scanner/ssrf-guard.ts`: http(s) only, ports 80/443, no userinfo, hostname denylist (localhost, `.local`/`.internal`, GCP metadata, Kubernetes), IPv4/IPv6 private/link-local/CGNAT/metadata ranges, IPv4-mapped IPv6, dword IPs (`2130706433`), DNS lookup of all A/AAAA records (any blocked address fails).
+- `html-analyser.ts`: `redirect: "manual"`, max 5 hops, `assertSafeScanUrl` on each hop, 12s timeout, 2 MiB HTML cap.
+- `scan-engine.ts`: `toAbsoluteScanUrl`; unexpected errors stored as a generic message.
+- `POST /api/scanner/run`: rejects blocked website domains with 400 before creating a scan.
+
+### Files Changed
+
+- `src/lib/scanner/ssrf-guard.ts` — new
+- `src/lib/scanner/html-analyser.ts`
+- `src/lib/scanner/scan-engine.ts`
+- `src/app/api/scanner/run/route.ts`
+- `CMP_AGENT_CONTEXT.md`
+
+### Verification
+
+`npx tsc --noEmit` → exit 0.
+
+Guard checks: blocked `localhost`, `127.0.0.1`, `[::1]`, `169.254.169.254`, `metadata.google.internal`, `file://`, `ftp://`, RFC1918, `0.0.0.0`, dword `2130706433`, port 22, userinfo URLs — all with message `This address cannot be scanned` (no host/IP leak). Allowed: `example.com` and `https://example.com`. Public IP `8.8.8.8` is not classified as blocked.
+
+### Current Status
+
+Scanner fetches are SSRF-guarded at the API, URL builder, and fetch/redirect layers. Public websites continue to scan as before.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 55. COMPLETED: Application-wide UI/UX refinement
+
+### Completed Task
+
+Applied a restrained premium design pass over the existing CMP dashboard without changing business logic, APIs, schema, Clerk, SDK, scanner, or consent behavior. The indigo/slate identity is kept; glassmorphism and heavy gradients were reduced. Motion uses transform/opacity/box-shadow only, with `prefers-reduced-motion` disabling non-essential animation.
+
+### Major UI/UX improvements
+
+- Shared tokens and utilities in `globals.css`: `.page-wrap`, `.page-title`, `.page-description`, `.btn` / `.btn-primary`, `.field-input`, `.table-scroll`, `.data-table`, `.card-lift`, fade-in / fade-up / scale-in / slide-down / slide-in / shimmer / soft-pulse.
+- Button states: primary/secondary/ghost/outline/danger, hover/active, disabled, loading spinner, focus ring.
+- New reusable pieces: `PageHeader`, `PageHeaderLink`, `EmptyState`, `Alert`, `Skeleton`.
+- Shell: solid header/sidebar, stronger active nav, mobile drawer uses `animate-slide-in`.
+- Most dashboard routes use `.page-wrap`. Tables use `.table-scroll` where wrappers were updated. Primary list CTAs use `.btn-primary`.
+- Root metadata title set to Consent Manager.
+
+### Animation system
+
+CSS keyframes in `globals.css`: `fade-in`, `fade-up`, `scale-in`, `slide-down`, `slide-in`, `shimmer`, `soft-pulse`. Card hover lifts 2px. `@media (prefers-reduced-motion: reduce)` short-circuits animation/transition and removes card lift.
+
+### Responsive checks
+
+`.page-wrap` padding scales at 480px and 768px; max content width 1600px; compact header; search hidden below `lg`; mobile nav overlay; table overflow isolated to `.table-scroll`. Live multi-breakpoint browser pass was not re-run in this session.
+
+### Files Changed (principal)
+
+- `src/app/globals.css`, `src/app/layout.tsx`, `src/app/dashboard/layout.tsx`
+- `src/components/ui/button.tsx`, `card.tsx`, `badge.tsx`, `stat-card.tsx`
+- `src/components/ui/page-header.tsx`, `empty-state.tsx`, `alert.tsx`, `skeleton.tsx`
+- `src/components/dashboard/dashboard-shell.tsx`, `sidebar-nav.tsx`
+- `src/components/websites/website-list.tsx`
+- Dashboard list/detail/settings pages listed in the implementation (websites, policies, purposes, vendors, trackers, consent, scanner, analytics, audit, notifications, integrations, developers, webhooks, organization, team, rights-requests)
+- `CMP_AGENT_CONTEXT.md`
+
+### Verification
+
+`npx tsc --noEmit` → exit 0.
+
+### Current Status
+
+The dashboard shares one spacing, type, button, card, and motion system. Routes and data behavior are unchanged.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.

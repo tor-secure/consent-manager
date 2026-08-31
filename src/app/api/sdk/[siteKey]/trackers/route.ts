@@ -6,6 +6,11 @@ import { websites } from "@/db/schema/websites";
 import { trackers } from "@/db/schema/trackers";
 import { purposes } from "@/db/schema/purposes";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
+import {
+  isValidSiteKey,
+  publicCorsHeaders,
+  publicOptionsResponse,
+} from "@/lib/sdk/public-http";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/trackers
@@ -24,14 +29,20 @@ export async function GET(
     const { siteKey } = await params;
 
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET",
+      ...publicCorsHeaders("GET, OPTIONS"),
       "Cache-Control": "public, max-age=300",
     };
 
-    if (!siteKey?.trim()) {
+    const trimmedKey = siteKey?.trim() ?? "";
+    if (!trimmedKey) {
       return NextResponse.json(
         { success: false, message: "siteKey is required" },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+    if (!isValidSiteKey(trimmedKey)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid siteKey" },
         { status: 400, headers: corsHeaders },
       );
     }
@@ -40,7 +51,7 @@ export async function GET(
       .select({ id: websites.id, status: websites.status })
       .from(websites)
       .where(
-        and(eq(websites.siteKey, siteKey), eq(websites.status, "active")),
+        and(eq(websites.siteKey, trimmedKey), eq(websites.status, "active")),
       )
       .limit(1);
 
@@ -106,18 +117,11 @@ export async function GET(
     console.error("Tracker rules load failed:", error);
     return NextResponse.json(
       { success: false, message: "Failed to load tracker rules" },
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
+      { status: 500, headers: publicCorsHeaders("GET, OPTIONS") },
     );
   }
 }
 
 export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+  return publicOptionsResponse("GET, OPTIONS");
 }

@@ -4,7 +4,7 @@ import { CreatePurposeForm } from "@/components/purposes/create-purpose-form";
 // Auth + bootstrap guaranteed by the dashboard layout.
 export default function NewPurposePage() {
   return (
-    <div className="p-8">
+    <div className="page-wrap">
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"

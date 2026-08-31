@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export type WebsiteRow = {
   id: string;
@@ -82,33 +82,18 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search websites…"
-            className="w-full h-12 rounded-2xl bg-white soft-shadow pl-12 pr-4 text-sm text-slate-700 placeholder:text-slate-400 outline-none transition-all focus:ring-2 focus:ring-indigo-500/30"
+            className="field-input pl-12 h-11"
           />
         </div>
       )}
 
       {websites.length === 0 && (
-        <div className="rounded-3xl card-shadow bg-white p-10 md:p-14 text-center border-2 border-dashed border-slate-200 relative overflow-hidden">
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 opacity-60 blur-2xl" />
-          <div className="relative flex flex-col items-center">
-            <div className="h-14 w-14 rounded-2xl stat-icon-blue flex items-center justify-center mb-5 shadow-md shadow-indigo-500/20">
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <path d="M12 3a14 14 0 010 18M12 3a14 14 0 000 18" />
-              </svg>
-            </div>
-            <p className="text-lg font-semibold text-slate-800">No websites yet</p>
-            <p className="mt-2 text-sm text-slate-500 max-w-sm">
-              Add your first website to start configuring consent management and unlock analytics.
-            </p>
-            <Link href="/dashboard/websites/new" className="mt-7">
-              <Button variant="primary" size="lg">
-                Add your first website
-              </Button>
-            </Link>
-          </div>
-        </div>
+        <EmptyState
+          title="No websites yet"
+          description="Add your first website to start configuring consent management and unlock analytics."
+          actionLabel="Add your first website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
       {websites.length > 0 && filtered.length === 0 && (
@@ -132,7 +117,7 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
             <li key={website.id}>
               <Link
                 href={`/dashboard/websites/${website.id}`}
-                className="group flex h-full flex-col rounded-2xl bg-white card-shadow p-6 transition-all duration-200 card-shadow-hover"
+                className="group flex h-full flex-col rounded-2xl bg-white card-shadow p-5 sm:p-6 card-lift"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">

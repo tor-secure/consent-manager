@@ -6,6 +6,7 @@ import { scans } from "@/db/schema/scans";
 import { scanResults } from "@/db/schema/scan-results";
 import { trackers } from "@/db/schema/trackers";
 import { analyseUrl } from "./html-analyser";
+import { toAbsoluteScanUrl, ScannerUrlError } from "./ssrf-guard";
 
 const SCANNER_VERSION = "1.0.0";
 
@@ -31,11 +32,7 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
     .returning();
 
   try {
-    // Ensure the URL has a protocol.
-    const targetUrl = websiteUrl.startsWith("http")
-      ? websiteUrl
-      : `https://${websiteUrl}`;
-
+    const targetUrl = toAbsoluteScanUrl(websiteUrl);
     const result = await analyseUrl(targetUrl);
 
     if (result.fetchError) {
@@ -141,7 +138,10 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
     return scan.id;
   } catch (error) {
     // Unexpected error — mark scan as failed.
-    const msg = error instanceof Error ? error.message : "Unexpected scanner error";
+    const msg =
+      error instanceof ScannerUrlError
+        ? error.message
+        : "Unexpected scanner error";
 
     await db
       .update(scans)

@@ -138,7 +138,7 @@ function ChartPlaceholder({
   const yTicks = [0, 2000, 4000, 6000, 8000, 10000];
 
   return (
-    <div className="w-full overflow-x-auto scrollbar-thin">
+    <div className="w-full table-scroll scrollbar-thin">
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[480px]" role="img" aria-label="Consent overview chart">
         <defs>
           <linearGradient id="activeFill" x1="0" y1="0" x2="0" y2="1">
@@ -524,7 +524,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 space-y-6 md:space-y-8 animate-fade-in">
+    <div className="page-wrap space-y-6 sm:space-y-8 animate-fade-in">
       {/* Page header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

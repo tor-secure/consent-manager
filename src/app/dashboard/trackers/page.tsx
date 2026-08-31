@@ -170,7 +170,7 @@ export default async function TrackersPage() {
   }, {});
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -182,7 +182,7 @@ export default async function TrackersPage() {
         </div>
         <Link
           href="/dashboard/scanner"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+          className="btn btn-primary"
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
             stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

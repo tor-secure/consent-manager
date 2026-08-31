@@ -150,7 +150,7 @@ export default async function AuditLogsPage({
   const userMap = new Map(userRows.map((u) => [u.id, u]));
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div>
@@ -202,7 +202,7 @@ export default async function AuditLogsPage({
       {/* ── Log table ────────────────────────────────────────────────────── */}
       {rows.length > 0 && (
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">

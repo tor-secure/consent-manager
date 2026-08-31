@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { buildGenericCmpSdkScript } from "@/lib/sdk/cmp-sdk-script";
+import {
+  isSafeApiBase,
+  isValidSiteKey,
+  publicCorsHeaders,
+  publicOptionsResponse,
+} from "@/lib/sdk/public-http";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/script
@@ -22,49 +28,50 @@ export async function GET(request: Request) {
     const js = buildGenericCmpSdkScript();
 
     const { searchParams } = new URL(request.url);
-    const siteKeyParam = searchParams.get("siteKey");
-    const apiBaseParam = searchParams.get("apiBase");
+    const siteKeyParam = searchParams.get("siteKey")?.trim() ?? "";
+    const apiBaseParam = searchParams.get("apiBase")?.trim() ?? "";
 
     let body = js;
 
-    if (siteKeyParam?.trim() || apiBaseParam?.trim()) {
+    if (siteKeyParam || apiBaseParam) {
       const injections: string[] = [];
-      if (siteKeyParam?.trim()) {
+      if (siteKeyParam && isValidSiteKey(siteKeyParam)) {
         injections.push(
           `  window.__CMP_SITE_KEY = window.__CMP_SITE_KEY || ${JSON.stringify(
-            siteKeyParam.trim(),
+            siteKeyParam,
           )};`,
         );
       }
-      if (apiBaseParam?.trim()) {
+      if (apiBaseParam && isSafeApiBase(apiBaseParam)) {
         injections.push(
           `  window.__CMP_API_BASE = window.__CMP_API_BASE || ${JSON.stringify(
-            apiBaseParam.trim(),
+            apiBaseParam,
           )};`,
         );
       }
-      const block = `(function(){${injections.join("")}})();\n`;
-      body = block + js;
+      if (injections.length > 0) {
+        const block = `(function(){${injections.join("")}})();\n`;
+        body = block + js;
+      }
     }
 
     return new NextResponse(body, {
       headers: {
         "Content-Type": "application/javascript; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
+        ...publicCorsHeaders("GET, OPTIONS"),
         "Cache-Control": `public, max-age=${CACHE_SECONDS}, stale-while-revalidate=86400`,
-        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {
     console.error("SDK script generation failed:", error);
     return new NextResponse(
       "// CMP SDK failed to generate. Please try again later.\n" +
-        `console.error('[CMP] Failed to load SDK: ${String(error)}');\n`,
+        "console.error('[CMP] Failed to load SDK');\n",
       {
         status: 500,
         headers: {
           "Content-Type": "application/javascript; charset=utf-8",
-          "Access-Control-Allow-Origin": "*",
+          ...publicCorsHeaders("GET, OPTIONS"),
         },
       },
     );
@@ -73,13 +80,5 @@ export async function GET(request: Request) {
 
 // CORS preflight — this script is loaded cross-origin from external websites.
 export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-      "Access-Control-Max-Age": "86400",
-    },
-  });
+  return publicOptionsResponse("GET, OPTIONS");
 }

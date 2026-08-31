@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
+import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
@@ -10,8 +11,14 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
-import { parseBannerConfig, resolveTranslation } from "@/lib/banner-config";
+import { parseBannerConfig, resolveTranslation, toPublicBannerConfig } from "@/lib/banner-config";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
+import {
+  isValidSiteKey,
+  publicCorsHeaders,
+  publicOptionsResponse,
+  sanitizeRequestedLang,
+} from "@/lib/sdk/public-http";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/config
@@ -28,9 +35,9 @@ import type { TrackerRule } from "@/lib/sdk/enforcement";
 function parseBestLang(acceptLang: string | null): string {
   if (!acceptLang) return "en";
   // e.g. "hi-IN,hi;q=0.9,en;q=0.8" → "hi"
-  const first = acceptLang.split(",")[0]?.trim();
+  const first = acceptLang.slice(0, 128).split(",")[0]?.trim();
   if (!first) return "en";
-  return first.split(";")[0]?.trim().toLowerCase() ?? "en";
+  return sanitizeRequestedLang(first.split(";")[0]);
 }
 
 // ---------------------------------------------------------------------------
@@ -48,23 +55,31 @@ export async function GET(
     const { siteKey } = await params;
 
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET",
+      ...publicCorsHeaders("GET, OPTIONS"),
       "Cache-Control": "public, max-age=300",
     };
 
-    if (!siteKey?.trim()) {
+    const trimmedKey = siteKey?.trim() ?? "";
+    if (!trimmedKey) {
       return NextResponse.json(
         { success: false, message: "siteKey is required" },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+    if (!isValidSiteKey(trimmedKey)) {
+      return NextResponse.json(
+        { success: false, message: "Invalid siteKey" },
         { status: 400, headers: corsHeaders },
       );
     }
 
     // Resolve requested language: ?lang= takes precedence, then Accept-Language.
     const url = new URL(request.url);
-    const langParam = url.searchParams.get("lang")?.trim().toLowerCase();
+    const langRaw = url.searchParams.get("lang")?.trim();
     const acceptLang = request.headers.get("accept-language");
-    const requestedLang = langParam || parseBestLang(acceptLang);
+    const requestedLang = langRaw
+      ? sanitizeRequestedLang(langRaw)
+      : parseBestLang(acceptLang);
 
     // Resolve website by siteKey — siteKey is globally unique.
     const [website] = await db
@@ -78,7 +93,7 @@ export async function GET(
       })
       .from(websites)
       .where(
-        and(eq(websites.siteKey, siteKey), eq(websites.status, "active")),
+        and(eq(websites.siteKey, trimmedKey), eq(websites.status, "active")),
       )
       .limit(1);
 
@@ -111,7 +126,12 @@ export async function GET(
 
     // Get latest published version (fallback: latest draft).
     const allVersions = await db
-      .select()
+      .select({
+        id: consentPolicyVersions.id,
+        version: consentPolicyVersions.version,
+        isPublished: consentPolicyVersions.isPublished,
+        configuration: consentPolicyVersions.configuration,
+      })
       .from(consentPolicyVersions)
       .where(eq(consentPolicyVersions.policyId, policy.id))
       .orderBy(consentPolicyVersions.version);
@@ -128,11 +148,31 @@ export async function GET(
       );
     }
 
-    const bannerConfig = parseBannerConfig(
-      latestVersion.configuration as Record<string, unknown>,
-    );
+    // Resolve the organization's grievance contact for inclusion in the
+    // public notice (DPDP Rules 2025 Rule 3(1)(d)).
+    const [orgRow] = await db
+      .select({
+        grievanceOfficerName:  organizations.grievanceOfficerName,
+        grievanceOfficerEmail: organizations.grievanceOfficerEmail,
+        grievancePortalUrl:    organizations.grievancePortalUrl,
+        dpoName:               organizations.dpoName,
+        dpoEmail:              organizations.dpoEmail,
+      })
+      .from(organizations)
+      .where(eq(organizations.id, website.organizationId))
+      .limit(1);
 
-    // Resolve translated notice text for the requested language.
+    const grievance = {
+      grievanceOfficerName:  orgRow?.grievanceOfficerName  ?? null,
+      grievanceOfficerEmail: orgRow?.grievanceOfficerEmail ?? null,
+      grievancePortalUrl:    orgRow?.grievancePortalUrl    ?? null,
+      dpoName:               orgRow?.dpoName               ?? null,
+      dpoEmail:              orgRow?.dpoEmail              ?? null,
+    };
+
+    const bannerConfig = toPublicBannerConfig(
+      parseBannerConfig(latestVersion.configuration as Record<string, unknown>),
+    );
     // The resolved fields are merged into bannerConfig so the SDK receives
     // ready-to-display text without needing to implement its own fallback.
     const resolvedText = resolveTranslation(bannerConfig, requestedLang);
@@ -264,6 +304,8 @@ export async function GET(
           language: website.defaultLanguage,
           region: website.defaultRegion ?? "",
         },
+        // DPDP Rule 3(1)(d) — grievance contact for the consent notice
+        grievance,
       },
       { headers: corsHeaders },
     );
@@ -271,19 +313,12 @@ export async function GET(
     console.error("SDK config load failed:", error);
     return NextResponse.json(
       { success: false, message: "Failed to load SDK configuration" },
-      { status: 500, headers: { "Access-Control-Allow-Origin": "*" } },
+      { status: 500, headers: publicCorsHeaders("GET, OPTIONS") },
     );
   }
 }
 
 // Handle CORS preflight from browser SDK.
 export async function OPTIONS() {
-  return new Response(null, {
-    status: 204,
-    headers: {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    },
-  });
+  return publicOptionsResponse("GET, OPTIONS");
 }

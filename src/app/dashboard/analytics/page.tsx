@@ -331,12 +331,12 @@ export default async function AnalyticsPage({
   const hasData = total > 0;
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="page-wrap space-y-8 animate-fade-in">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">Analytics</h1>
-          <p className="mt-2 text-base text-slate-500 text-balance">
+          <h1 className="page-title">Analytics</h1>
+          <p className="page-description">
             Consent metrics for{" "}
             <span className="font-medium text-slate-700">{localOrg.name}</span>.
           </p>
@@ -351,8 +351,8 @@ export default async function AnalyticsPage({
       {orgWebsites.length === 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center bg-gradient-to-br from-slate-50 to-indigo-50/30">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl gradient-primary shadow-lg shadow-indigo-500/25">
+            <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center bg-white">
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="2" y1="12" x2="22" y2="12" />
@@ -363,10 +363,7 @@ export default async function AnalyticsPage({
               <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
                 Add a website and collect consent to see analytics.
               </p>
-              <Link
-                href="/dashboard/websites/new"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl gradient-primary text-white px-6 h-11 text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/30 hover:brightness-105 transition-all duration-200"
-              >
+              <Link href="/dashboard/websites/new" className="mt-6 btn btn-primary">
                 Add website
               </Link>
             </div>
@@ -440,7 +437,7 @@ export default async function AnalyticsPage({
               />
               <Card>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-slate-100 text-sm">
                       <thead>
                         <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -491,7 +488,7 @@ export default async function AnalyticsPage({
               />
               <Card>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-slate-100 text-sm">
                       <thead>
                         <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -690,7 +687,7 @@ export default async function AnalyticsPage({
               />
               <Card>
                 <CardContent className="p-0">
-                  <div className="overflow-x-auto">
+                  <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-slate-100 text-sm">
                       <thead>
                         <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
@@ -734,8 +731,8 @@ export default async function AnalyticsPage({
           {orgWebsites.length > 0 && !hasData && recentEvents.length === 0 && (
             <Card>
               <CardContent className="pt-6">
-                <div className="rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center bg-gradient-to-br from-slate-50 to-indigo-50/30">
-                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl gradient-primary shadow-lg shadow-indigo-500/25">
+                <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center bg-white">
+                  <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
                     <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
                       <polyline points="14 2 14 8 20 8" />
@@ -747,7 +744,7 @@ export default async function AnalyticsPage({
                   </p>
                   <Link
                     href={`/dashboard/websites/${orgWebsites[0]?.id ?? ""}/installation`}
-                    className="mt-6 inline-flex items-center gap-2 rounded-2xl gradient-primary text-white px-6 h-11 text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/30 hover:brightness-105 transition-all duration-200"
+                    className="mt-6 btn btn-primary"
                   >
                     View installation guide
                   </Link>

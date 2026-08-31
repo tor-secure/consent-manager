@@ -130,7 +130,7 @@ export default async function PoliciesPage() {
   const published  = policies.filter((p) => versionMap.get(p.id)?.hasPublished).length;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -145,7 +145,7 @@ export default async function PoliciesPage() {
         {orgWebsites.length > 0 && (
           <Link
             href="/dashboard/policies/new"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="btn btn-primary"
           >
             <IconPlus />
             Create policy
@@ -186,7 +186,7 @@ export default async function PoliciesPage() {
               </p>
             </div>
             <Link href="/dashboard/websites/new"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
+              className="btn btn-primary">
               Add a website
             </Link>
           </CardContent>
@@ -218,7 +218,7 @@ export default async function PoliciesPage() {
       {/* ── Policy table ────────────────────────────────────────────────── */}
       {policies.length > 0 && (
         <Card>
-          <div className="overflow-x-auto">
+          <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">

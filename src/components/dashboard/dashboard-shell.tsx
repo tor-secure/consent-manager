@@ -87,8 +87,8 @@ export function DashboardShell({
           data-collapsed={collapsed}
           suppressHydrationWarning
           className={[
-            "hidden lg:flex shrink-0 flex-col border-r border-slate-100/80 bg-white/60 backdrop-blur-sm transition-[width] duration-200 ease-out",
-            collapsed ? "lg:w-24" : "lg:w-72 xl:w-76",
+            "hidden lg:flex shrink-0 flex-col border-r border-slate-200 bg-white",
+            collapsed ? "lg:w-24" : "lg:w-72 xl:w-[19rem]",
           ].join(" ")}
         >
           <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin">
@@ -105,10 +105,10 @@ export function DashboardShell({
             aria-label="Sidebar navigation"
           >
             <div
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity"
+              className="absolute inset-0 bg-slate-900/40 animate-fade-in"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 h-full w-76 max-w-[85vw] bg-white/95 backdrop-blur-xl shadow-2xl border-r border-slate-100/80 animate-[slideInLeft_0.25s_ease-out]">
+            <aside className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-white shadow-xl border-r border-slate-200 animate-slide-in">
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100/60">
                   <div className="flex items-center gap-3 px-1">
@@ -146,8 +146,8 @@ export function DashboardShell({
         {/* Main content area */}
         <div className="flex min-h-screen flex-1 flex-col min-w-0">
           {/* Top header */}
-          <header className="sticky top-0 z-40 h-20 shrink-0 border-b border-slate-100/60 bg-white/70 backdrop-blur-xl">
-            <div className="flex h-full items-center justify-between px-5 md:px-8 gap-4">
+          <header className="sticky top-0 z-40 h-16 sm:h-[4.5rem] shrink-0 border-b border-slate-200 bg-white">
+            <div className="flex h-full items-center justify-between px-3 sm:px-5 md:px-8 gap-2 sm:gap-4">
               <div className="flex items-center gap-2 min-w-0">
                 {/* Mobile sidebar toggle */}
                 <button
@@ -180,7 +180,7 @@ export function DashboardShell({
           </header>
 
           {/* Page content — no wrapper padding; each page owns its own spacing */}
-          <main className="flex-1 min-w-0 overflow-x-hidden">
+          <main className="flex-1 min-w-0 overflow-x-hidden animate-fade-in">
             {children}
           </main>
         </div>

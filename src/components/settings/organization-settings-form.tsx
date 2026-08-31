@@ -12,6 +12,12 @@ export type OrgSettingsData = {
   defaultLanguage: string;
   defaultRegion: string | null;
   onboardingCompleted: boolean;
+  // DPDP Rule 3(1)(d)
+  dpoName: string | null;
+  dpoEmail: string | null;
+  grievanceOfficerName: string | null;
+  grievanceOfficerEmail: string | null;
+  grievancePortalUrl: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -56,6 +62,12 @@ export function OrganizationSettingsForm({
   const [defaultLanguage, setDefaultLanguage]   = useState(initial.defaultLanguage);
   const [defaultRegion, setDefaultRegion]       = useState(initial.defaultRegion ?? "");
   const [onboardingCompleted, setOnboarding]    = useState(initial.onboardingCompleted);
+  // DPDP Rule 3(1)(d)
+  const [dpoName, setDpoName]                           = useState(initial.dpoName ?? "");
+  const [dpoEmail, setDpoEmail]                         = useState(initial.dpoEmail ?? "");
+  const [grievanceOfficerName, setGrievanceName]        = useState(initial.grievanceOfficerName ?? "");
+  const [grievanceOfficerEmail, setGrievanceEmail]      = useState(initial.grievanceOfficerEmail ?? "");
+  const [grievancePortalUrl, setGrievancePortalUrl]     = useState(initial.grievancePortalUrl ?? "");
   const [saving, setSaving]                     = useState(false);
   const [error, setError]                       = useState("");
   const [success, setSuccess]                   = useState("");
@@ -85,6 +97,12 @@ export function OrganizationSettingsForm({
           defaultLanguage,
           defaultRegion: defaultRegion || null,
           onboardingCompleted,
+          // DPDP Rule 3(1)(d)
+          dpoName:               dpoName.trim()               || "",
+          dpoEmail:              dpoEmail.trim()              || "",
+          grievanceOfficerName:  grievanceOfficerName.trim()  || "",
+          grievanceOfficerEmail: grievanceOfficerEmail.trim() || "",
+          grievancePortalUrl:    grievancePortalUrl.trim()    || "",
         }),
       });
       const data = await res.json();
@@ -211,6 +229,85 @@ export function OrganizationSettingsForm({
               <option value="SG">Singapore</option>
               <option value="AE">UAE</option>
             </select>
+          </Field>
+        </div>
+      </Card>
+
+      {/* ── DPO & Grievance Officer (DPDP Rule 3(1)(d)) ────────────────── */}
+      <Card>
+        <div className="border-b border-slate-100 px-6 py-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-base font-semibold text-slate-900">
+              Data Protection &amp; Grievance Officer
+            </h2>
+            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
+              DPDP Rules 2025 Rule 3(1)(d)
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">
+            Contact details shown in the consent notice. Required for DPDP compliance.
+          </p>
+        </div>
+        <div className="space-y-5 p-6">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="DPO name" hint="Data Protection Officer full name.">
+              <input
+                value={dpoName}
+                onChange={(e) => setDpoName(e.target.value)}
+                maxLength={255}
+                placeholder="Jane Smith"
+                disabled={readOnly}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="DPO email" hint="Official DPO contact email.">
+              <input
+                type="email"
+                value={dpoEmail}
+                onChange={(e) => setDpoEmail(e.target.value)}
+                maxLength={320}
+                placeholder="dpo@example.com"
+                disabled={readOnly}
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Grievance Officer name">
+              <input
+                value={grievanceOfficerName}
+                onChange={(e) => setGrievanceName(e.target.value)}
+                maxLength={255}
+                placeholder="Rahul Sharma"
+                disabled={readOnly}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Grievance Officer email">
+              <input
+                type="email"
+                value={grievanceOfficerEmail}
+                onChange={(e) => setGrievanceEmail(e.target.value)}
+                maxLength={320}
+                placeholder="grievance@example.com"
+                disabled={readOnly}
+                className={inputCls}
+              />
+            </Field>
+          </div>
+          <Field
+            label="Grievance portal URL"
+            hint="Link to your public grievance submission form or portal (optional)."
+          >
+            <input
+              type="url"
+              value={grievancePortalUrl}
+              onChange={(e) => setGrievancePortalUrl(e.target.value)}
+              maxLength={2048}
+              placeholder="https://example.com/grievance"
+              disabled={readOnly}
+              className={inputCls}
+            />
           </Field>
         </div>
       </Card>

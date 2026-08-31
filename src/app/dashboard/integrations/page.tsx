@@ -111,7 +111,7 @@ export default async function IntegrationsPage() {
   ).size;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
       {/* Page header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>

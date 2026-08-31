@@ -161,7 +161,7 @@ export default async function PolicyDetailPage({
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">

@@ -11,7 +11,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={ref}
         className={[
           "rounded-2xl bg-white card-shadow",
-          hover ? "card-shadow-hover cursor-pointer" : "",
+          hover ? "card-lift" : "",
           className,
         ].join(" ")}
         {...props}

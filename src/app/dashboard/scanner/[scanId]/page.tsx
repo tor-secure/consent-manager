@@ -186,7 +186,7 @@ export default async function ScanDetailPage({
       : null;
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
@@ -310,7 +310,7 @@ export default async function ScanDetailPage({
             </span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">

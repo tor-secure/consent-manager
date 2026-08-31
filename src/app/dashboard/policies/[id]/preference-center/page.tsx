@@ -119,7 +119,7 @@ export default async function PreferenceCenterPreviewPage({
   const website = orgWebsites.find((w) => w.id === policy.websiteId);
 
   return (
-    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+    <div className="page-wrap space-y-6">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
         <Link href="/dashboard/policies" className="transition hover:text-slate-900">Policies</Link>
