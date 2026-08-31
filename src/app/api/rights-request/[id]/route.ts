@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // GET /api/rights-request/[id]
@@ -43,7 +44,10 @@ export async function GET(
 
     return NextResponse.json({ success: true, request: row });
   } catch (error) {
-    console.error("Rights request status fetch failed:", error);
+    logger.error("Rights request status fetch failed", {
+      operation: "rights_request.status",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to fetch request status" },
       { status: 500 },

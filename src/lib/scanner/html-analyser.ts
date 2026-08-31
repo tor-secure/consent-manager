@@ -1,7 +1,7 @@
 import "server-only";
 import { matchDomain, type TrackerSignature } from "./tracker-signatures";
 import {
-  assertSafeScanUrl,
+  getSafeScanUrl,
   ScannerUrlError,
 } from "./ssrf-guard";
 
@@ -119,7 +119,7 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    let current = (await assertSafeScanUrl(url)).href;
+    let current = await getSafeScanUrl(url);
 
     for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
       const response = await fetch(current, {
@@ -141,7 +141,7 @@ async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string 
         } catch {
           return null;
         }
-        current = (await assertSafeScanUrl(next.href)).href;
+        current = await getSafeScanUrl(next.href);
         continue;
       }
 

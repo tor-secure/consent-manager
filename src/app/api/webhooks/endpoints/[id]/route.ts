@@ -5,6 +5,8 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
 import { WEBHOOK_EVENT_TYPES } from "../route";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // PATCH /api/webhooks/endpoints/[id] — update name, description, events, or status.
@@ -19,6 +21,13 @@ export async function PATCH(
     if (!isAuthenticated || !userId || !orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    const limit = rateLimit({
+      key: `webhook-update:${orgId}:${userId}:${getClientIp(request)}`,
+      limit: 60,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 
@@ -86,7 +95,10 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, endpoint: updated });
   } catch (error) {
-    console.error("Webhook endpoint update failed:", error);
+    logger.error("Webhook endpoint update failed", {
+      operation: "webhook_endpoint.update",
+      error,
+    });
     return NextResponse.json({ success: false, message: "Failed to update endpoint" }, { status: 500 });
   }
 }
@@ -103,6 +115,13 @@ export async function DELETE(
     if (!isAuthenticated || !userId || !orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    const limit = rateLimit({
+      key: `webhook-delete:${orgId}:${userId}:${getClientIp(_request)}`,
+      limit: 60,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 
@@ -132,7 +151,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Webhook endpoint delete failed:", error);
+    logger.error("Webhook endpoint delete failed", {
+      operation: "webhook_endpoint.delete",
+      error,
+    });
     return NextResponse.json({ success: false, message: "Failed to delete endpoint" }, { status: 500 });
   }
 }

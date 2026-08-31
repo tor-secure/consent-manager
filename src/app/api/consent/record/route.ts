@@ -11,6 +11,7 @@ import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { parseBannerConfig } from "@/lib/banner-config";
+import { logger } from "@/lib/logger";
 import {
   generateConsentId,
   computeExpiry,
@@ -28,6 +29,7 @@ import {
   publicOptionsResponse,
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -126,7 +128,10 @@ export async function GET(request: Request) {
       { headers: CORS_HEADERS },
     );
   } catch (error) {
-    console.error("Consent record fetch failed:", error);
+    logger.error("Consent record fetch failed", {
+      operation: "consent.record.get",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to fetch consent record" },
       { status: 500, headers: CORS_HEADERS },
@@ -164,6 +169,13 @@ export async function POST(request: Request) {
         { status: 400, headers: CORS_HEADERS },
       );
     }
+
+    const limit = rateLimit({
+      key: `consent-record:${websiteId}:${getClientIp(request)}`,
+      limit: 120,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit, CORS_HEADERS);
 
     const rawConsentId = body.consentId;
     const isNew =
@@ -465,7 +477,13 @@ export async function POST(request: Request) {
       });
     } catch (eventError) {
       // Non-fatal — the consent is saved; only the event log entry is missing.
-      console.error("appendConsentEvent failed (non-fatal):", eventError);
+      logger.error("Append consent event failed", {
+        operation: "consent.event.append",
+        consentRecordId: savedRecord.id,
+        policyVersionId: latestVersion.id,
+        eventType,
+        error: eventError,
+      });
     }
 
     return NextResponse.json(
@@ -496,7 +514,10 @@ export async function POST(request: Request) {
           : 500;
 
     if (status === 500) {
-      console.error("Consent record submission failed:", error);
+      logger.error("Consent record submission failed", {
+        operation: "consent.record.post",
+        error,
+      });
     }
 
     return NextResponse.json(

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { apiKeys } from "@/db/schema/api-keys";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { generateApiKey } from "@/lib/api-key-utils";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 const VALID_ENVIRONMENTS = ["live", "test"] as const;
@@ -16,6 +17,13 @@ export async function POST(request: Request) {
     if (!isAuthenticated || !userId || !orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    const limit = rateLimit({
+      key: `api-key-create:${orgId}:${userId}:${getClientIp(request)}`,
+      limit: 20,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 

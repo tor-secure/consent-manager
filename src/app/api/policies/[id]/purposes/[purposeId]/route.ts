@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
+import { purposes } from "@/db/schema/purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // ---------------------------------------------------------------------------
@@ -77,6 +78,22 @@ export async function DELETE(
     const latestVersion = allVersions[allVersions.length - 1] ?? null;
     if (!latestVersion) {
       return NextResponse.json({ success: false, message: "Policy version not found" }, { status: 404 });
+    }
+
+    // Verify the purpose belongs to this org before detaching.
+    const [purpose] = await db
+      .select({ id: purposes.id })
+      .from(purposes)
+      .where(
+        and(
+          eq(purposes.id, purposeId),
+          eq(purposes.organizationId, organization.id),
+        ),
+      )
+      .limit(1);
+
+    if (!purpose) {
+      return NextResponse.json({ success: false, message: "Purpose not found" }, { status: 404 });
     }
 
     // Delete the link — scoped to the latest version only.

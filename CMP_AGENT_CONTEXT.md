@@ -4230,3 +4230,621 @@ Build the Billing page. The next agent must:
 - Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
 - Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
 - Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 56. COMPLETED: Public Homepage Navbar
+
+### Completed Task
+
+Built a professional SaaS navbar for the public homepage only. Dashboard, APIs, database, authentication, consent engine, and business logic were not touched.
+
+### Files Changed
+
+- `src/components/public/home-navbar.tsx` - new sticky responsive public navbar with CMP logo, Product, Features, Solutions, Resources, Pricing, Sign In, and Get Started.
+- `src/app/page.tsx` - replaced the stock starter homepage shell with a simple premium public homepage using the navbar.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Navbar Details
+
+- Sticky top navigation with subtle border and backdrop blur.
+- Desktop navigation links plus Sign In and Get Started actions.
+- Mobile menu controlled by a keyboard-accessible button with `aria-expanded`, `aria-controls`, and clear accessible labels.
+- Smooth mobile menu open/close using CSS grid-row and opacity transitions.
+- Mobile menu closes after selecting a link.
+- Design uses the existing restrained slate/indigo premium styling and shared `.btn` utilities.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage now presents CMP with a responsive SaaS navbar and minimal premium hero copy. No protected product areas or backend logic changed.
+---
+
+# 57. COMPLETED: Public Homepage Hero Section
+
+### Completed Task
+
+Built a premium SaaS hero section for the public homepage only. Dashboard, APIs, database, authentication, consent engine, and business logic were not touched.
+
+### Files Changed
+
+- `src/app/page.tsx` - expanded the public homepage hero with strong headline, supporting copy, Get Started and See How It Works buttons, responsive layout, and a clean product visual.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Hero Details
+
+- Responsive two-column layout on desktop and single-column layout on smaller screens.
+- Primary CTA links to `/sign-up`; secondary CTA links to the product visual anchor.
+- Product visual is code-native UI showing workspace status, consent metrics, consent performance bars, and tracker scan activity.
+- Uses existing subtle `animate-fade-up` and `animate-scale-in` CSS animation utilities.
+- Matches the existing simple premium slate/indigo visual direction.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage now has a polished SaaS hero beneath the existing navbar. No protected app areas or backend logic changed.
+---
+
+# 58. COMPLETED: Public Homepage Features Section
+
+### Completed Task
+
+Built a clean Features section for the public homepage only. Dashboard, APIs, database, authentication, consent engine, and business logic were not touched.
+
+### Files Changed
+
+- `src/app/page.tsx` - added responsive feature cards for Consent Management, Purpose & Vendor Management, Tracker Scanner, Consent Analytics, SDK, and Privacy Controls.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Feature Section Details
+
+- Added `#features` section below the public hero.
+- Uses six responsive cards with simple inline SVG icons.
+- Cards use existing `animate-fade-up` and `card-lift` utilities for subtle entrance and hover animation.
+- Layout adapts from one column on mobile to two columns on small screens and three columns on desktop.
+- Visual style follows the existing simple premium slate/indigo direction.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage now includes navbar, hero, and a polished Features section. No protected app areas or backend logic changed.
+---
+
+# 59. COMPLETED: Public Homepage How It Works Section
+
+### Completed Task
+
+Built a simple visual How It Works section for the public homepage only. Dashboard, APIs, database, authentication, consent engine, and business logic were not touched.
+
+### Files Changed
+
+- `src/app/page.tsx` - added the public `#how-it-works` section with a five-step Website -> Configure Policy -> Install SDK -> Visitor Consent -> Manage Results flow.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Section Details
+
+- Added responsive step cards below the Features section.
+- Each step uses a simple inline SVG icon and concise supporting text.
+- Desktop layout presents five cards in a horizontal flow with subtle connector lines.
+- Mobile layout stacks cards cleanly and preserves the visual sequence.
+- Uses existing `animate-fade-up` and `animate-scale-in` utilities plus subtle hover transitions.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage now includes navbar, hero, Features, and How It Works sections. No protected app areas or backend logic changed.
+---
+
+# 60. COMPLETED: Public Homepage Final CTA and Footer
+
+### Completed Task
+
+Built the final CTA and professional footer for the public homepage only. Dashboard, APIs, database, authentication, consent engine, and business logic were not touched.
+
+### Files Changed
+
+- `src/app/page.tsx` - added a strong final Get Started CTA section and responsive footer with Product, Resources, Company, Legal, Sign In, and Sign Up links.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Section Details
+
+- Added final CTA section with dark premium panel, Get Started and Sign In actions, and responsive spacing.
+- Added footer brand block with concise product positioning.
+- Added responsive footer link columns for Product, Resources, Company, and Legal.
+- Included Sign In and Sign Up links in the footer.
+- Links use subtle hover/focus transitions and preserve the existing slate/indigo visual direction.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage now includes navbar, hero, Features, How It Works, final CTA, and footer. No protected app areas or backend logic changed.
+---
+
+# 61. COMPLETED: Public Homepage Premium Visual Refinement
+
+### Completed Task
+
+Improved the existing public homepage visual experience only. The navbar, hero, Features, How It Works, final CTA, and footer content/structure were preserved while adding more premium depth and motion. Dashboard, APIs, database, Clerk authentication, consent engine, SDK logic, and business logic were not touched.
+
+### Files Changed
+
+- `src/app/page.tsx` - added layered visual depth to existing homepage sections, enhanced the hero product showcase, added lightweight floating cards for Consent Banner, Purposes, Vendors, and Analytics, improved section transitions, card elevation, CTA depth, and footer visual treatment.
+- `src/app/globals.css` - added public-page-only animation and visual utilities for layered backgrounds, scroll-linked reveal, subtle parallax, floating elements, animated gradient accents, and premium hover elevation.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Visual Details
+
+- Added `public-page`, `public-section`, and `public-section-flow` utilities for continuous section depth and subtle divider gradients.
+- Added CSS-only scroll-linked reveal/parallax behavior with `animation-timeline: view()` where supported.
+- Added GPU-friendly `transform`/`opacity` keyframes: soft floating, gradient drift, parallax, scroll fade-up, and scroll scale-in.
+- Disabled/reduced parallax and animation effects for small screens and `prefers-reduced-motion`.
+- Enhanced hero product visual with floating UI cards while avoiding horizontal overflow on mobile.
+- Improved feature cards, workflow cards, CTA panel, and footer with stronger depth and smooth hover elevation.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage keeps the same content and sections but now feels more polished, layered, and product-led. No protected app areas or backend logic changed.
+---
+
+# 62. COMPLETED: Public Homepage Interactions and Animations
+
+### Completed Task
+
+Improved existing public homepage interactions and animations only. Homepage content and visible section structure were preserved. Dashboard, APIs, database, Clerk authentication, consent engine, SDK logic, and business logic were not touched.
+
+### Files Changed
+
+- `src/components/public/home-interactions.tsx` - new lightweight client helper for smooth anchor scrolling with sticky-navbar offset and Intersection Observer reveal handling.
+- `src/components/public/home-navbar.tsx` - class-only hover transition refinements for public navbar links and mobile menu links.
+- `src/app/page.tsx` - wired the public interactions helper into the homepage and added a footer anchor target for existing footer/resource links.
+- `src/app/globals.css` - added smooth-scroll defaults, Intersection Observer reveal states, stagger-aware keyframes, icon/card hover transitions, and reduced-motion safeguards.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Animation and Navigation Details
+
+- Anchor links now smooth-scroll with a sticky header offset and preserve keyboard focus on the target.
+- Existing anchors are handled directly; existing `#solutions`, `#resources`, `#company`, and `#legal` links are routed to the nearest existing public homepage section/region without adding visible content.
+- Added Intersection Observer section/card reveals using subtle fade-up and scale-in animations.
+- Feature/workflow/card elements receive gentle stagger timing so groups do not enter all at once.
+- Navbar links, buttons, cards, and icons now use lightweight transform/opacity/box-shadow transitions.
+- Reduced-motion users get instant scrolling and visible content without reveal/parallax animation.
+- Small-screen behavior keeps parallax disabled and uses lightweight transforms to avoid horizontal overflow or mobile performance issues.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public homepage keeps the same content and sections while anchor navigation and scroll reveal behavior now feel smoother and more polished.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet - display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+---
+
+# 63. COMPLETED: Public Navbar Clerk Auth Actions
+
+### Completed Task
+
+Connected the public homepage navbar authentication actions to Clerk-aware UI. Signed-out users see Sign In and Get Started. Signed-in users see a Dashboard button. Dashboard, APIs, database, consent engine, SDK logic, and business logic were not changed.
+
+### Files Changed
+
+- `src/components/public/home-navbar.tsx` - added Clerk `SignedIn` / `SignedOut` wrappers around desktop and mobile navbar actions; signed-in state now shows Dashboard linking to `/dashboard`.
+- `src/app/sign-in/[[...sign-in]]/page.tsx` - configured Clerk `SignIn` with `fallbackRedirectUrl="/dashboard"` and `signUpUrl="/sign-up"`.
+- `src/app/sign-up/[[...sign-up]]/page.tsx` - configured Clerk `SignUp` with `fallbackRedirectUrl="/dashboard"` and `signInUrl="/sign-in"`.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+Public navbar auth actions are Clerk-aware and signed-in visitors can navigate directly to the dashboard.
+---
+
+# 64. COMPLETED: Public Navbar Clerk Core 3 Runtime Fix
+
+### Completed Task
+
+Fixed the public homepage navbar runtime error caused by unsupported Clerk Core 3 auth wrapper components. Dashboard, APIs, database, consent engine, SDK logic, and business logic were not changed.
+
+### Files Changed
+
+- `src/components/public/home-navbar.tsx` - replaced unsupported `SignedIn` / `SignedOut` usage with Clerk `useUser()` state checks; signed-out visitors see Sign In and Get Started, signed-in visitors see Dashboard, and loading state uses a lightweight placeholder.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Verification
+
+`npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+The public navbar no longer uses Clerk components that are unavailable in `@clerk/nextjs` Core 3. Auth-aware navbar actions remain connected to Clerk through the supported client hook.
+---
+
+# 65. COMPLETED: Scanner SSRF Hardening
+
+### Completed Task
+
+Hardened the existing website scanner request path against SSRF and unsafe outbound requests. The scanner now keeps validation centralized in `ssrf-guard.ts`, validates every scanned URL and redirect hop before fetch, and returns safe scanner errors without exposing internal host/IP details. Database schema, dashboard UI, authentication, consent engine, SDK, and non-scanner business logic were not changed.
+
+### Files Changed
+
+- `src/lib/scanner/ssrf-guard.ts` - tightened URL safety validation for scanner targets, including additional non-public IPv4/IPv6 ranges, metadata/internal hostname patterns, invalid DNS labels, single-label hostnames, and a shared `getSafeScanUrl()` helper.
+- `src/lib/scanner/html-analyser.ts` - reused `getSafeScanUrl()` for the initial scanner request and every manual redirect hop.
+- `src/lib/scanner/scanner-security.test.cjs` - added a targeted scanner security harness for SSRF guard and analyser failure-path checks.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Security Cases Tested
+
+- Valid public URL: `https://example.com` accepted.
+- Localhost and loopback blocked: `localhost`, `127.0.0.1`, `[::1]`.
+- Private/internal ranges blocked: `10.0.0.1`, `172.16.0.1`, `192.168.1.1`.
+- Link-local/cloud metadata blocked: `169.254.169.254`, `metadata.google.internal`.
+- Invalid/unsupported protocols blocked: `file://`, `gopher://`.
+- Suspicious internal hostname blocked: `service.internal`.
+- Redirect-to-private blocked before following the redirect.
+- Timeout returns the safe generic scanner fetch error.
+- Oversized response returns the safe generic scanner fetch error.
+- Legitimate mocked public HTML still scans and detects Google Analytics.
+
+### Verification
+
+- `npx tsc --outDir .tmp/scanner-security --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck src/lib/scanner/ssrf-guard.ts src/lib/scanner/tracker-signatures.ts src/lib/scanner/html-analyser.ts` -> exit 0.
+- `node src/lib/scanner/scanner-security.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+Temporary compiled scanner test output under `.tmp/scanner-security` was removed after testing.
+
+### Current Status
+
+The scanner preserves legitimate public-site scanning while rejecting unsafe protocols, internal/private destinations, suspicious hostnames, and unsafe redirect targets before requests are followed.
+
+### Next Task
+
+Add a proper project test script or lightweight test runner so scanner security tests can run from `npm` without the temporary compile step.
+---
+
+# 66. COMPLETED: API Rate Limiting and Abuse Protection
+
+### Completed Task
+
+Added server-side rate limiting for selected externally reachable CMP API mutation/intake routes. The limits are intentionally scoped to public write/intake endpoints and authenticated expensive admin mutations, while normal dashboard page rendering and public SDK config/script reads remain unthrottled for legitimate customer traffic. Database schema, consent logic, SDK behavior, billing behavior, and UI were not changed.
+
+### Files Changed
+
+- `src/lib/rate-limit.ts` - new reusable in-memory fixed-window server-side rate-limiting utility with client IP extraction, safe `429 Too Many Requests` responses, `Retry-After`, and rate-limit headers.
+- `src/lib/rate-limit.test.cjs` - targeted utility test harness for allowed requests, exceeded limits, IP parsing, and 429 response shape.
+- `src/app/api/consent/record/route.ts` - rate-limited public consent submissions by `websiteId + IP`.
+- `src/app/api/consent/withdraw/route.ts` - rate-limited public withdrawal submissions by `websiteId + IP`.
+- `src/app/api/rights-request/route.ts` - rate-limited unauthenticated rights-request intake by `websiteId + IP`.
+- `src/app/api/scanner/run/route.ts` - rate-limited authenticated scanner starts by `orgId + userId + IP`.
+- `src/app/api/api-keys/route.ts` - rate-limited API key creation by `orgId + userId + IP`.
+- `src/app/api/api-keys/[id]/route.ts` - rate-limited API key revocation by `orgId + userId + IP`.
+- `src/app/api/webhooks/endpoints/route.ts` - rate-limited webhook endpoint creation by `orgId + userId + IP`.
+- `src/app/api/webhooks/endpoints/[id]/route.ts` - rate-limited webhook endpoint update/delete by `orgId + userId + IP`.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Limiting Strategy
+
+- Public consent record submissions: 120 requests per minute per website/IP pair.
+- Public consent withdrawals: 30 requests per minute per website/IP pair.
+- Public rights-request intake: 5 requests per hour per website/IP pair.
+- Scanner start: 10 requests per hour per authenticated org/user/IP tuple.
+- API key creation: 20 requests per hour per authenticated org/user/IP tuple.
+- API key revocation: 60 requests per hour per authenticated org/user/IP tuple.
+- Webhook endpoint creation: 20 requests per hour per authenticated org/user/IP tuple.
+- Webhook endpoint update/delete: 60 requests per hour per authenticated org/user/IP tuple.
+- Public SDK script/config/tracker GET endpoints were inspected and left unthrottled to avoid breaking normal customer traffic and browser caching behavior.
+
+### Tests
+
+- Compiled the utility into `.tmp/rate-limit` for a local test harness.
+- Verified allowed requests decrement remaining count.
+- Verified exceeding the configured limit returns a blocked result.
+- Verified separate keys have separate buckets.
+- Verified `x-forwarded-for` client IP extraction.
+- Verified `rateLimitResponse()` returns HTTP 429 with safe body, `Retry-After`, `X-RateLimit-*`, and preserved CORS headers.
+
+### Verification
+
+- `npx tsc --outDir .tmp/rate-limit --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck src/lib/rate-limit.ts` -> exit 0.
+- `node src/lib/rate-limit.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+Temporary compiled rate-limit test output under `.tmp/rate-limit` was removed after testing.
+
+### Current Status
+
+High-risk public intake and authenticated mutation endpoints now return safe `429 Too Many Requests` responses when exceeded, without introducing billing/plan limits or changing normal dashboard rendering.
+
+### Next Task
+
+Replace the in-memory rate-limit store with a distributed store such as Redis or Postgres-backed counters before multi-instance production deployment.
+
+---
+
+# 67. COMPLETED: Tenant Isolation and Authorization Regression Tests
+
+### Completed Task
+
+Added focused automated regression coverage for tenant isolation and authorization checks across protected organization data paths. Database schema, UI, consent logic, SDK behavior, and unrelated features were not changed.
+
+### Files Changed
+
+- `src/lib/tenant-isolation-regression.test.cjs` - new standalone security harness that validates auth, local org/user resolution, user-scoped active membership checks, resource ownership predicates, cross-resource attachment guards, dashboard read scoping, and Owner/Admin gates.
+- `src/app/api/policies/[id]/purposes/[purposeId]/route.ts` - small security fix: verifies the detached purpose belongs to the active organization before deleting the policy-purpose link.
+- `src/app/api/vendors/[id]/purposes/[purposeId]/route.ts` - small security fix: verifies the detached purpose belongs to the active organization before deleting the vendor-purpose link.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Test Coverage
+
+The new harness covers:
+
+- Unauthorized users receive protected-route auth guards and `401` paths.
+- Authenticated users must resolve to a local user, active Clerk organization, and user-scoped active membership.
+- Organization A cannot read/update/delete Organization B-owned websites, policies, purposes, vendors, API keys, webhooks, scanner results, consent evidence, notifications, audit logs, trackers, consent records, settings, or rights requests.
+- Organization A cannot attach or detach Organization B purposes across policy-purpose and vendor-purpose relationships.
+- Integrations are scoped through organization-owned websites for connect and disconnect paths.
+- Notifications are scoped to the active organization and the current user or org-wide records.
+- Settings, team management, retention, and rights-request administration retain Owner/Admin-style role gates.
+
+### Vulnerabilities Fixed
+
+- `DELETE /api/policies/[id]/purposes/[purposeId]` previously scoped the policy through organization-owned websites but did not explicitly verify the `purposeId` belonged to the active organization before deleting the link.
+- `DELETE /api/vendors/[id]/purposes/[purposeId]` previously scoped the vendor to the organization but did not explicitly verify the `purposeId` belonged to the active organization before deleting the link.
+
+### Verification
+
+- `node src/lib/tenant-isolation-regression.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+### Current Status
+
+Tenant isolation and authorization regression coverage is in place as a lightweight standalone security harness, matching the existing project test style.
+
+### Next Task
+
+Add a proper project test script or lightweight test runner so all standalone security harnesses can run from `npm` without manual commands.
+
+---
+
+# 68. COMPLETED: Reliable Outbound Webhook Delivery
+
+### Completed Task
+
+Implemented a small reusable server-side webhook delivery service using the existing `webhook_endpoints` and `webhook_deliveries` tables. No database schema, dashboard UI, Clerk/authentication, or webhook management redesign changes were made.
+
+### Delivery Flow
+
+- Consent events are appended through `appendConsentEvent`.
+- After the consent event row is written, the delivery service maps eligible consent changes to webhook event types:
+  - `accepted` -> `consent.granted`
+  - `rejected` -> `consent.declined`
+  - `consent.withdrawn` -> `consent.withdrawn`
+- The service loads only active endpoints from the same `organizationId` and filters by `subscribedEvents`.
+- Each endpoint delivery sends a signed `POST` request with JSON payload `{ id, type, organizationId, data }`.
+- Delivery headers include `X-CMP-Signature`, `X-CMP-Timestamp`, `X-CMP-Event-Id`, and `X-CMP-Event-Type`.
+- Signatures are HMAC-SHA256 over `timestamp.payload` using the stored `signingSecretHash` as server-side key material.
+- Every attempt is recorded in `webhook_deliveries` with status, attempt number, payload, response status/body, safe error message, sent/completed times, and `nextRetryAt` when retrying.
+- Endpoint `lastDeliveryAt` is updated after a successful delivery.
+- Retries are bounded to 3 attempts with short backoff. Retryable failures are network/timeout failures, HTTP 408, HTTP 429, and HTTP 5xx. HTTP 4xx responses other than 408/429 are final failures.
+
+### Files Changed
+
+- `src/lib/webhooks/delivery.ts` - new reusable server-side delivery service with signing, verification helper, timeout handling, delivery persistence, active subscribed endpoint selection, ownership guard, and bounded retry/backoff.
+- `src/lib/webhooks/delivery.test.cjs` - targeted standalone webhook delivery harness.
+- `src/lib/consent-engine.ts` - dispatches webhook delivery after consent events are appended, best-effort and non-fatal to consent writes.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Tests
+
+`src/lib/webhooks/delivery.test.cjs` verifies:
+
+- HMAC signing and signature verification.
+- Required delivery headers include event ID, event type, timestamp, and signature.
+- Endpoint ownership is enforced before outbound delivery.
+- Transient HTTP 500 failures are recorded as `retrying`, retried with backoff, then succeed.
+- Non-retryable HTTP 400 failures are recorded once and not retried.
+- Timeout failures record the safe message `Webhook delivery timed out`.
+- Stored response bodies are truncated to 2,000 characters.
+- Retry classification for network/timeout, 408, 429, 5xx, and 4xx cases.
+
+### Verification
+
+- `npx tsc -p tsconfig.json --outDir .tmp/webhook-delivery --module commonjs --moduleResolution node --target ES2022 --noEmit false` -> exit 0.
+- `node src/lib/webhooks/delivery.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+Temporary compiled webhook test output under `.tmp/webhook-delivery` was removed after testing.
+
+### Known Limitations
+
+- Delivery runs inline and best-effort after consent events; there is no durable background queue or worker yet.
+- Existing endpoint rows store only `signingSecretHash`; the delivery service signs with that stored hash as key material to avoid schema changes or storing raw one-time secrets.
+- Audit-log webhook dispatch is supported by the reusable delivery service but not wired into every scattered audit-log write path yet.
+- Failed final deliveries are recorded but not automatically resumed later without a future worker/retry scheduler.
+
+### Current Status
+
+Outbound webhook delivery is functional for consent webhook events using existing endpoint subscriptions and delivery history tables.
+
+### Next Task
+
+Add a durable webhook retry worker or scheduled job that picks up failed/retryable `webhook_deliveries` rows by `nextRetryAt` and resumes delivery outside request handling.
+
+---
+
+# 69. COMPLETED: Consent Manager End-to-End Regression Coverage
+
+### Completed Task
+
+Added comprehensive end-to-end regression coverage for the existing Consent Manager flow without adding product features, changing UI, modifying Clerk/authentication, or changing the database schema.
+
+### Files Changed
+
+- `src/lib/consent-manager-e2e-regression.test.cjs` - new standalone E2E regression harness that executes the generated SDK in a lightweight fake browser, uses a real-shaped organization/website/published-policy/purpose/vendor/tracker fixture, and exercises the consent API contract in memory.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Test Matrix
+
+The new harness covers:
+
+- External SDK load with a real-shaped `siteKey`, organization, active website, published policy version, purposes, vendors, and tracker rules.
+- Banner display after SDK config load.
+- `Accept all` flow: consent record creation, all purpose/vendor grants, localStorage persistence, tagged script restoration, consent event creation, audit event creation, analytics counter update, evidence retrieval, and signed webhook delivery.
+- `Reject all` flow: required purpose remains granted, optional purposes/vendors denied, tracker script remains blocked, `consent.declined` webhook delivery.
+- Granular flow: mixed purpose/vendor decisions produce partial consent, allowed tracker restores, denied tracker remains blocked.
+- Reload/persistence: stored unexpired consent suppresses banner and reapplies enforcement.
+- Withdrawal: consent becomes withdrawn, storage is cleared, blocked scripts are re-paused, banner returns, `consent.withdrawn` webhook delivery is recorded.
+- Expiry/re-consent: expired stored consent is removed and the banner is shown again.
+- Tracker enforcement helpers: essential allowed, consent-controlled tracker allowed only with purpose/vendor grants, unclassified tracker blocked by default, domain suffix matching.
+- Consent evidence retrieval: correct organization can read the evidence bundle; another organization receives not found.
+- Analytics update: accepted/rejected/partial/withdrawn/event counters reflect consent activity.
+- Negative cases: invalid `siteKey`, invalid website ID, invalid consent ID shape, invalid consent payload choice, wrong-tenant website access, duplicate withdrawal, invalid JSON payload, and blocked tracker behavior.
+
+### Failures Found
+
+No concrete product bugs were discovered by this task. The new E2E harness passed after implementation.
+
+### Verification
+
+- `npx tsc -p tsconfig.json --outDir .tmp/consent-manager-e2e --module commonjs --moduleResolution node --target ES2022 --noEmit false` -> exit 0.
+- `node src/lib/consent-manager-e2e-regression.test.cjs` -> exit 0.
+- `node src/lib/tenant-isolation-regression.test.cjs` -> exit 0.
+- `npx tsc -p tsconfig.json --outDir .tmp/webhook-delivery --module commonjs --moduleResolution node --target ES2022 --noEmit false` -> exit 0.
+- `node src/lib/webhooks/delivery.test.cjs` -> exit 0.
+- `npx tsc --outDir .tmp/rate-limit --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/rate-limit.ts` -> exit 0.
+- `node src/lib/rate-limit.test.cjs` -> exit 0.
+- `npx tsc --outDir .tmp/scanner-security --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/scanner/ssrf-guard.ts src/lib/scanner/tracker-signatures.ts src/lib/scanner/html-analyser.ts` -> exit 0.
+- `node src/lib/scanner/scanner-security.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+Temporary compiled outputs under `.tmp/consent-manager-e2e`, `.tmp/webhook-delivery`, `.tmp/rate-limit`, and `.tmp/scanner-security` were removed after testing.
+
+### Known Limitations
+
+- The E2E test uses a fake browser/DOM and in-memory API contract rather than Playwright against a running Next.js server.
+- The test does not authenticate through real Clerk or create data in the local PostgreSQL database.
+- Dashboard analytics, evidence, and webhook behavior are verified at the data-contract level rather than by rendering protected dashboard pages in a browser.
+- Existing standalone harnesses still require temporary TypeScript compile commands before running; there is no unified `npm test` script yet.
+
+### Current Status
+
+The core Consent Manager flow now has comprehensive automated regression coverage in the project’s existing lightweight test style.
+
+### Next Task
+
+Add a proper project test script or lightweight test runner that compiles required TypeScript modules into `.tmp` and runs all standalone security/E2E harnesses from one `npm test` command.
+
+---
+
+# 70. COMPLETED: Production Observability and Reliability
+
+### Completed Task
+
+Added small production observability and reliability primitives for the existing application. No database schema, dashboard UI, Clerk/authentication, consent behavior, or monitoring provider changes were made.
+
+### Observability Changes
+
+- Added `src/lib/logger.ts`, a server-only structured logger with `debug`, `info`, `warn`, and `error` levels.
+- Logger output is JSON-shaped with timestamp, service name, level, message, and sanitized context.
+- Log context redacts sensitive key names including passwords, secrets, tokens, API keys, key hashes/prefixes, authorization, cookies, signatures, visitor IDs, requester emails, requester phones, and generic email fields.
+- Email-like values inside strings and error messages are redacted as `[REDACTED_EMAIL]`.
+- Error objects include name/message and include stack traces only outside production.
+- Replaced raw unexpected-error `console.error` calls in key server paths with structured logs:
+  - consent record fetch/submission event failures
+  - consent withdrawal event/failure paths
+  - consent-engine webhook dispatch failures
+  - scanner run failures
+  - scanner run API request failures
+  - webhook delivery failures before attempt recording
+  - webhook endpoint create/update/delete failures
+  - rights request intake/status failures
+
+### Reliability Changes
+
+- Added `GET /api/health`.
+- Health endpoint verifies application availability and database connectivity with `select 1`.
+- Successful response returns only high-level check status: app/database `ok`.
+- Failure response returns HTTP `503` with generic unhealthy status and logs structured diagnostic context server-side.
+- Health responses use `Cache-Control: no-store`.
+
+### Files Changed
+
+- `src/lib/logger.ts` - new server-side structured logger and sanitizer.
+- `src/lib/logger.test.cjs` - new focused logger sanitizer regression test.
+- `src/app/api/health/route.ts` - new lightweight health endpoint.
+- `src/lib/consent-engine.ts` - structured logging for non-fatal webhook dispatch failures.
+- `src/app/api/consent/record/route.ts` - structured logging for unexpected fetch/submission and event append failures.
+- `src/app/api/consent/withdraw/route.ts` - structured logging for unexpected withdrawal and event append failures.
+- `src/lib/scanner/scan-engine.ts` - structured logging for scan failures.
+- `src/app/api/scanner/run/route.ts` - structured logging for scanner API failures.
+- `src/lib/webhooks/delivery.ts` - structured logging for delivery failures before attempt recording.
+- `src/app/api/webhooks/endpoints/route.ts` - structured logging for endpoint creation failures.
+- `src/app/api/webhooks/endpoints/[id]/route.ts` - structured logging for endpoint update/delete failures.
+- `src/app/api/rights-request/route.ts` - structured logging for rights request intake failures.
+- `src/app/api/rights-request/[id]/route.ts` - structured logging for rights request status failures.
+- `src/lib/webhooks/delivery.test.cjs` - updated test module shim for logger import.
+- `src/lib/consent-manager-e2e-regression.test.cjs` - updated test module shim for logger import.
+- `CMP_AGENT_CONTEXT.md` - this handoff note.
+
+### Verification
+
+- `npx tsc --outDir .tmp/logger --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/logger.ts` -> exit 0.
+- `node src/lib/logger.test.cjs` -> exit 0.
+- `npx tsc -p tsconfig.json --outDir .tmp/consent-manager-e2e --module commonjs --moduleResolution node --target ES2022 --noEmit false` -> exit 0.
+- `node src/lib/consent-manager-e2e-regression.test.cjs` -> exit 0.
+- `node src/lib/tenant-isolation-regression.test.cjs` -> exit 0.
+- `npx tsc -p tsconfig.json --outDir .tmp/webhook-delivery --module commonjs --moduleResolution node --target ES2022 --noEmit false` -> exit 0.
+- `node src/lib/webhooks/delivery.test.cjs` -> exit 0.
+- `npx tsc --outDir .tmp/rate-limit --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/rate-limit.ts` -> exit 0.
+- `node src/lib/rate-limit.test.cjs` -> exit 0.
+- `npx tsc --outDir .tmp/scanner-security --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/scanner/ssrf-guard.ts src/lib/scanner/tracker-signatures.ts src/lib/scanner/html-analyser.ts` -> exit 0.
+- `node src/lib/scanner/scanner-security.test.cjs` -> exit 0.
+- `npx tsc --noEmit` -> exit 0.
+
+Temporary compiled outputs under `.tmp/logger`, `.tmp/consent-manager-e2e`, `.tmp/webhook-delivery`, `.tmp/rate-limit`, and `.tmp/scanner-security` were removed after testing.
+
+### Known Limitations
+
+- Logs currently go to stdout/stderr only; no external monitoring or log shipping provider is configured.
+- The health endpoint verifies database connectivity but does not check migrations, queue health, webhook backlog, Clerk availability, or outbound network availability.
+- Many lower-risk API routes still use existing raw `console.error` logging and can be migrated incrementally.
+- There is still no unified `npm test` command for the standalone harnesses.
+
+### Current Status
+
+The most important consent, scanner, webhook, rights request, and health paths now have safe structured diagnostic logging while preserving generic API responses.
+
+### Next Task
+
+Add a unified `npm test` script or lightweight Node runner that compiles required TypeScript modules into `.tmp`, runs all standalone regression harnesses, and cleans temporary output automatically.

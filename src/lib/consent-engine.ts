@@ -3,7 +3,10 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
+import { consentRecords } from "@/db/schema/consent-records";
 import { consentEvents } from "@/db/schema/consent-events";
+import { logger } from "@/lib/logger";
+import { deliverWebhookEvent } from "@/lib/webhooks/delivery";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -170,14 +173,71 @@ export async function appendConsentEvent({
   eventData: Record<string, unknown>;
   source?: string;
 }): Promise<void> {
-  await db.insert(consentEvents).values({
+  const [event] = await db.insert(consentEvents).values({
     consentRecordId,
     policyVersionId,
     eventType,
     eventData,
     source,
     occurredAt: new Date(),
-  });
+  }).returning({ id: consentEvents.id, eventType: consentEvents.eventType });
+
+  const [record] = await db
+    .select({
+      id: consentRecords.id,
+      consentId: consentRecords.consentId,
+      organizationId: consentRecords.organizationId,
+      websiteId: consentRecords.websiteId,
+      status: consentRecords.status,
+    })
+    .from(consentRecords)
+    .where(eq(consentRecords.id, consentRecordId))
+    .limit(1);
+
+  if (!record) return;
+
+  const webhookEventType = resolveConsentWebhookEventType(eventType, eventData, record.status);
+  if (!webhookEventType) return;
+
+  try {
+    await deliverWebhookEvent({
+      organizationId: record.organizationId,
+      eventId: event.id,
+      eventType: webhookEventType,
+      payload: {
+        consentRecordId: record.id,
+        consentId: record.consentId,
+        websiteId: record.websiteId,
+        policyVersionId,
+        source,
+        status: record.status,
+        eventType: event.eventType,
+        eventData,
+      },
+    });
+  } catch (error) {
+    logger.error("Webhook dispatch failed for consent event", {
+      operation: "consent.webhook.dispatch",
+      consentRecordId,
+      policyVersionId,
+      eventType,
+      error,
+    });
+  }
+}
+
+function resolveConsentWebhookEventType(
+  eventType: string,
+  eventData: Record<string, unknown>,
+  recordStatus: string,
+): string | null {
+  if (eventType === "consent.withdrawn") return "consent.withdrawn";
+
+  const status = typeof eventData.status === "string" ? eventData.status : recordStatus;
+  if (status === "accepted") return "consent.granted";
+  if (status === "rejected") return "consent.declined";
+
+  return null;
 }
 
 // ---------------------------------------------------------------------------

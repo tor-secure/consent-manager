@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { apiKeys } from "@/db/schema/api-keys";
 import { auditLogs } from "@/db/schema/audit-logs";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // DELETE /api/api-keys/[id] — revoke a key (sets status=revoked, revokedAt=now).
@@ -19,6 +20,13 @@ export async function DELETE(
     if (!isAuthenticated || !userId || !orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
+
+    const limit = rateLimit({
+      key: `api-key-revoke:${orgId}:${userId}:${getClientIp(_request)}`,
+      limit: 60,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 

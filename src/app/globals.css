@@ -58,6 +58,11 @@
   --radius-xl: 1.25rem;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.25rem;
+}
+
 html, body {
   background: var(--background);
   color: var(--foreground);
@@ -143,6 +148,14 @@ html, body {
   .btn:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  .btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn:active {
+    transform: scale(0.98);
   }
 
   .btn-primary {
@@ -354,6 +367,144 @@ html, body {
     animation: soft-pulse 2s var(--ease-out) infinite;
   }
 
+  .public-page {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.68) 0%, rgba(246, 247, 251, 0) 30%),
+      radial-gradient(circle at 18% 8%, rgba(79, 70, 229, 0.12), transparent 28rem),
+      radial-gradient(circle at 82% 18%, rgba(20, 184, 166, 0.12), transparent 26rem),
+      #f6f7fb;
+  }
+
+  .public-section {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .public-section::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, transparent, black 18%, black 72%, transparent);
+  }
+
+  .public-section-flow {
+    position: relative;
+  }
+
+  .public-section-flow::after {
+    content: "";
+    position: absolute;
+    left: max(1rem, calc((100vw - 80rem) / 2));
+    right: max(1rem, calc((100vw - 80rem) / 2));
+    bottom: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.28), rgba(20, 184, 166, 0.24), transparent);
+  }
+
+  .public-gradient-accent {
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.14), rgba(20, 184, 166, 0.1), rgba(255, 255, 255, 0));
+    animation: gradient-drift 8s var(--ease-out) infinite alternate;
+  }
+
+  .public-reveal {
+    animation: fade-up 520ms var(--ease-out) both;
+    animation-delay: var(--public-stagger, 0ms);
+  }
+
+  .public-scale-reveal {
+    animation: scale-in 520ms var(--ease-out) both;
+    animation-delay: var(--public-stagger, 0ms);
+  }
+
+  .public-parallax-slow,
+  .public-parallax-fast {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+
+  @supports (animation-timeline: view()) {
+    .public-parallax-slow {
+      animation: parallax-slow linear both;
+      animation-timeline: view();
+      animation-range: entry -10% exit 110%;
+    }
+
+    .public-parallax-fast {
+      animation: parallax-fast linear both;
+      animation-timeline: view();
+      animation-range: entry -10% exit 110%;
+    }
+
+    .public-reveal {
+      animation: scroll-fade-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 32%;
+    }
+
+    .public-scale-reveal {
+      animation: scroll-scale-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 34%;
+    }
+  }
+
+  .public-float {
+    animation: float-soft 5.5s var(--ease-out) infinite;
+    transform: translateZ(0);
+  }
+
+  .public-float-card {
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 18px 42px -28px rgba(15, 23, 42, 0.55);
+    transition: transform var(--duration-base) var(--ease-out),
+      box-shadow var(--duration-base) var(--ease-out),
+      border-color var(--duration-base) var(--ease-out);
+  }
+
+  .public-float-card svg {
+    transition: transform var(--duration-base) var(--ease-out),
+      color var(--duration-base) var(--ease-out);
+  }
+
+  .public-float-card:hover {
+    transform: translateY(-4px) scale(1.01);
+    border-color: rgba(129, 140, 248, 0.7);
+    box-shadow:
+      0 2px 5px rgba(15, 23, 42, 0.06),
+      0 24px 54px -30px rgba(15, 23, 42, 0.62);
+  }
+
+  .public-float-card:hover svg {
+    transform: translate3d(0, -1px, 0) scale(1.04);
+  }
+
+  .public-io-ready .public-reveal,
+  .public-io-ready .public-scale-reveal,
+  .public-io-ready .public-float-card {
+    opacity: 0;
+    animation: none;
+  }
+
+  .public-io-ready .public-reveal.is-visible {
+    animation: io-fade-up 460ms var(--ease-out) var(--public-stagger, 0ms) both;
+  }
+
+  .public-io-ready .public-scale-reveal.is-visible {
+    animation: io-scale-in 500ms var(--ease-out) var(--public-stagger, 0ms) both;
+  }
+
+  .public-io-ready .public-float-card.is-visible {
+    animation: io-card-in 480ms var(--ease-out) var(--public-stagger, 0ms) both;
+  }
+
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -413,6 +564,81 @@ html, body {
     50% { opacity: 0.55; }
   }
 
+  @keyframes float-soft {
+    0%, 100% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(0, -8px, 0); }
+  }
+
+  @keyframes gradient-drift {
+    from { transform: translate3d(-1%, -1%, 0) scale(1); opacity: 0.75; }
+    to { transform: translate3d(1%, 1%, 0) scale(1.04); opacity: 1; }
+  }
+
+  @keyframes parallax-slow {
+    from { transform: translate3d(0, -14px, 0); }
+    to { transform: translate3d(0, 18px, 0); }
+  }
+
+  @keyframes parallax-fast {
+    from { transform: translate3d(0, -26px, 0); }
+    to { transform: translate3d(0, 30px, 0); }
+  }
+
+  @keyframes scroll-fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes scroll-scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.965);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes io-fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 14px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes io-scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.975);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes io-card-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 12px, 0) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -442,8 +668,34 @@ html, body {
     scroll-behavior: auto !important;
   }
 
+  html {
+    scroll-behavior: auto;
+  }
+
   .card-lift:hover,
-  .card-shadow-hover:hover {
+  .card-shadow-hover:hover,
+  .public-float-card:hover,
+  .btn:hover {
     transform: none;
+  }
+
+  .public-gradient-accent,
+  .public-float,
+  .public-parallax-slow,
+  .public-parallax-fast,
+  .public-reveal,
+  .public-scale-reveal {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .public-parallax-slow,
+  .public-parallax-fast {
+    animation: none !important;
+    transform: none !important;
+    will-change: auto;
   }
 }

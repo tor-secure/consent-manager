@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
+import { logger } from "@/lib/logger";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -74,6 +76,13 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    const limit = rateLimit({
+      key: `rights-request:${websiteId}:${getClientIp(request)}`,
+      limit: 5,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     if (!(VALID_REQUEST_TYPES as readonly string[]).includes(requestType)) {
       return NextResponse.json(
@@ -172,7 +181,10 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Rights request intake failed:", error);
+    logger.error("Rights request intake failed", {
+      operation: "rights_request.create",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to submit request" },
       { status: 500 },

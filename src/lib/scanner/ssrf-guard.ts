@@ -44,6 +44,13 @@ const BLOCKED_HOST_SUFFIXES = [
   ".localdomain",
 ];
 
+const SUSPICIOUS_HOST_PARTS = new Set([
+  "localhost",
+  "metadata",
+  "internal",
+  "intranet",
+]);
+
 const blockedNets = new BlockList();
 
 // IPv4 special / non-public ranges
@@ -56,11 +63,13 @@ blockedNets.addSubnet("172.16.0.0", 12, "ipv4");
 blockedNets.addSubnet("192.168.0.0", 16, "ipv4");
 blockedNets.addSubnet("192.0.0.0", 24, "ipv4");
 blockedNets.addSubnet("192.0.2.0", 24, "ipv4");
+blockedNets.addSubnet("192.88.99.0", 24, "ipv4");
 blockedNets.addSubnet("198.18.0.0", 15, "ipv4");
 blockedNets.addSubnet("198.51.100.0", 24, "ipv4");
 blockedNets.addSubnet("203.0.113.0", 24, "ipv4");
 blockedNets.addSubnet("224.0.0.0", 4, "ipv4");
 blockedNets.addSubnet("240.0.0.0", 4, "ipv4");
+blockedNets.addSubnet("255.255.255.255", 32, "ipv4");
 
 // IPv6 special / non-public ranges
 blockedNets.addAddress("::", "ipv6");
@@ -68,6 +77,9 @@ blockedNets.addAddress("::1", "ipv6");
 blockedNets.addSubnet("fc00::", 7, "ipv6");
 blockedNets.addSubnet("fe80::", 10, "ipv6");
 blockedNets.addSubnet("ff00::", 8, "ipv6");
+blockedNets.addSubnet("64:ff9b::", 96, "ipv6");
+blockedNets.addSubnet("100::", 64, "ipv6");
+blockedNets.addSubnet("2002::", 16, "ipv6");
 blockedNets.addSubnet("2001:db8::", 32, "ipv6");
 
 function throwBlocked(): never {
@@ -127,8 +139,18 @@ function isBlockedHostname(hostname: string): boolean {
   const host = hostname.toLowerCase().replace(/\.$/, "");
   if (!host || host.length > MAX_HOSTNAME_LENGTH) return true;
   if (host.includes("metadata.google")) return true;
+  if (host.includes("..")) return true;
   if (BLOCKED_HOSTS.has(host)) return true;
-  return BLOCKED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
+  if (BLOCKED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix))) return true;
+
+  const labels = host.split(".");
+  if (labels.length < 2) return true;
+
+  return labels.some((label) => {
+    if (!label || label.length > 63) return true;
+    if (SUSPICIOUS_HOST_PARTS.has(label)) return true;
+    return !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label);
+  });
 }
 
 export function toAbsoluteScanUrl(input: string): string {
@@ -190,4 +212,8 @@ export async function assertSafeScanUrl(raw: string): Promise<URL> {
   const parsed = parseScanUrl(raw);
   await resolvePublicAddresses(parsed.hostname);
   return parsed;
+}
+
+export async function getSafeScanUrl(raw: string): Promise<string> {
+  return (await assertSafeScanUrl(raw)).href;
 }

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { scans } from "@/db/schema/scans";
 import { scanResults } from "@/db/schema/scan-results";
 import { trackers } from "@/db/schema/trackers";
+import { logger } from "@/lib/logger";
 import { analyseUrl } from "./html-analyser";
 import { toAbsoluteScanUrl, ScannerUrlError } from "./ssrf-guard";
 
@@ -152,6 +153,13 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
         updatedAt: new Date(),
       })
       .where(eq(scans.id, scan.id));
+
+    logger.error("Scanner run failed", {
+      operation: "scanner.run",
+      scanId: scan.id,
+      websiteId,
+      error,
+    });
 
     return scan.id;
   }

@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
 import { vendors } from "@/db/schema/vendors";
+import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
@@ -48,6 +49,17 @@ export async function DELETE(
 
     if (!vendor) {
       return NextResponse.json({ success: false, message: "Vendor not found" }, { status: 404 });
+    }
+
+    // Verify purpose belongs to this org before detaching.
+    const [purpose] = await db
+      .select({ id: purposes.id })
+      .from(purposes)
+      .where(and(eq(purposes.id, purposeId), eq(purposes.organizationId, organization.id)))
+      .limit(1);
+
+    if (!purpose) {
+      return NextResponse.json({ success: false, message: "Purpose not found" }, { status: 404 });
     }
 
     const deleted = await db

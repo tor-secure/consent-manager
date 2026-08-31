@@ -5,6 +5,8 @@ import { createHash, randomBytes } from "crypto";
 
 import { db } from "@/db";
 import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // All supported event types — validated server-side, never trusted from body.
@@ -39,6 +41,13 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    const limit = rateLimit({
+      key: `webhook-create:${orgId}:${userId}:${getClientIp(request)}`,
+      limit: 20,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 
@@ -189,7 +198,10 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Webhook endpoint creation failed:", error);
+    logger.error("Webhook endpoint creation failed", {
+      operation: "webhook_endpoint.create",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to create webhook endpoint" },
       { status: 500 },

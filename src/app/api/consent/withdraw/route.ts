@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { appendConsentEvent } from "@/lib/consent-engine";
+import { logger } from "@/lib/logger";
 import {
   isValidConsentId,
   isValidWebsiteId,
@@ -12,6 +13,7 @@ import {
   publicOptionsResponse,
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const CORS_HEADERS = publicCorsHeaders("POST, OPTIONS");
 
@@ -45,6 +47,13 @@ export async function POST(request: Request) {
         { status: 400, headers: CORS_HEADERS },
       );
     }
+
+    const limit = rateLimit({
+      key: `consent-withdraw:${websiteId}:${getClientIp(request)}`,
+      limit: 30,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit, CORS_HEADERS);
 
     // Verify website exists.
     const [website] = await db
@@ -114,7 +123,12 @@ export async function POST(request: Request) {
         },
       });
     } catch (eventError) {
-      console.error("appendConsentEvent (withdrawal) failed (non-fatal):", eventError);
+      logger.error("Append withdrawal consent event failed", {
+        operation: "consent.withdraw.event",
+        consentRecordId: record.id,
+        policyVersionId: record.policyVersionId,
+        error: eventError,
+      });
     }
 
     return NextResponse.json(
@@ -122,7 +136,10 @@ export async function POST(request: Request) {
       { headers: CORS_HEADERS },
     );
   } catch (error) {
-    console.error("Consent withdrawal failed:", error);
+    logger.error("Consent withdrawal failed", {
+      operation: "consent.withdraw",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to withdraw consent" },
       { status: 500, headers: CORS_HEADERS },

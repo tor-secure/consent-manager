@@ -10,6 +10,8 @@ import {
   ScannerUrlError,
   toAbsoluteScanUrl,
 } from "@/lib/scanner/ssrf-guard";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // POST /api/scanner/run
@@ -26,6 +28,13 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    const limit = rateLimit({
+      key: `scanner-run:${orgId}:${userId}:${getClientIp(request)}`,
+      limit: 10,
+      windowMs: 60 * 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
 
     const localUser = await resolveLocalUser(userId);
 
@@ -106,7 +115,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, scanId }, { status: 201 });
   } catch (error) {
-    console.error("Scanner run failed:", error);
+    logger.error("Scanner run request failed", {
+      operation: "scanner.run.request",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to run scan" },
       { status: 500 },
