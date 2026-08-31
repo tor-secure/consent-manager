@@ -41,6 +41,28 @@ export const purposes = pgTable(
       .notNull()
       .default("active"),
 
+    // ── DPDP Rules 2025 Rule 3 enrichment fields ──────────────────────────
+    //
+    // dataCategories: free-text labels of the personal data categories
+    //   processed under this purpose, e.g. ["Email address", "IP address"].
+    //   Stored as a PostgreSQL text array; NULL means "not specified".
+    //
+    // retentionPeriod: human-readable retention string shown in the notice,
+    //   e.g. "12 months", "Until account deletion", "90 days from last visit".
+    //   NULL means "not specified".
+    //
+    // legalBasis: one of the DPDP-recognised processing grounds.
+    //   Defaults to "consent" since this is a consent management platform.
+    //   NULL is allowed for legacy rows; the UI defaults to "consent".
+
+    dataCategories: text("data_categories").array(),
+
+    retentionPeriod: varchar("retention_period", { length: 255 }),
+
+    legalBasis: varchar("legal_basis", { length: 50 }),
+
+    // ─────────────────────────────────────────────────────────────────────
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })

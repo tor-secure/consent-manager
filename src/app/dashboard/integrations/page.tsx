@@ -111,27 +111,25 @@ export default async function IntegrationsPage() {
   ).size;
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-900">Integrations</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Connect third-party tools and tag managers to your websites.
-          {catalogRows.length > 0 && (
-            <>
-              {" "}
-              {connectedIntegrationCount} of {catalogRows.length} integration
-              {catalogRows.length !== 1 ? "s" : ""} connected
-              {totalConnections > 0 && ` (${totalConnections} connection${totalConnections !== 1 ? "s" : ""})`}.
-            </>
-          )}
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Integrations</h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Connect third-party tools and tag managers to your websites.
+            {catalogRows.length > 0 && (
+              <>
+                {" "}{connectedIntegrationCount} of {catalogRows.length} integration
+                {catalogRows.length !== 1 ? "s" : ""} connected
+                {totalConnections > 0 && ` (${totalConnections} connection${totalConnections !== 1 ? "s" : ""})`}.
+              </>
+            )}
+          </p>
+        </div>
       </div>
 
-      <IntegrationCatalog
-        integrations={integrationEntries}
-        websites={websiteOptions}
-      />
+      <IntegrationCatalog integrations={integrationEntries} websites={websiteOptions} />
     </div>
   );
 }

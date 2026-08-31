@@ -119,45 +119,44 @@ export default async function PreferenceCenterPreviewPage({
   const website = orgWebsites.find((w) => w.id === policy.websiteId);
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
       {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-6 flex items-center gap-2 text-sm text-neutral-500"
-      >
-        <Link href="/dashboard/policies" className="hover:text-neutral-900">
-          Policies
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          href={`/dashboard/policies/${policy.id}`}
-          className="hover:text-neutral-900"
-        >
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/policies" className="transition hover:text-slate-900">Policies</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <Link href={`/dashboard/policies/${policy.id}`} className="transition hover:text-slate-900">
           {policy.name}
         </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Preference Center</span>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <span className="text-slate-900">Preference Center</span>
       </nav>
 
       {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-900">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           Preference Center Preview
         </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          This is how the preference center will appear to visitors of{" "}
-          <span className="font-medium text-neutral-700">
+        <p className="mt-1 text-sm text-slate-500">
+          How the preference center appears to visitors of{" "}
+          <span className="font-medium text-slate-700">
             {website?.name ?? "this website"}
-          </span>
-          {" "}using policy version v{latestVersion.version}
+          </span>{" "}
+          using policy version v{latestVersion.version}
           {latestVersion.isPublished ? " (published)" : " (draft)"}.
         </p>
       </div>
 
       {/* Preview notice */}
-      <div className="mb-6 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-        <strong>Preview mode:</strong> Submitting here will create a real consent
-        record scoped to this website. Use this to test the flow end-to-end.
+      <div className="flex items-start gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-indigo-800">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 16 16"
+          stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <circle cx="8" cy="8" r="6" />
+          <path strokeLinecap="round" d="M8 7v4M8 5h.01" />
+        </svg>
+        <p>
+          <strong className="font-semibold">Preview mode.</strong>{" "}
+          Submitting here creates a real consent record scoped to this website. Use this to test the flow end-to-end.
+        </p>
       </div>
 
       {/* Preference Center */}

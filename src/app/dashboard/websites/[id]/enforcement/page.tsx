@@ -10,45 +10,30 @@ import { trackers } from "@/db/schema/trackers";
 import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
 import { categoriseTrackers, type TrackerRule } from "@/lib/sdk/enforcement";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { StatCard } from "@/components/ui/stat-card";
 
 // ---------------------------------------------------------------------------
-// Badge helpers
+// Helpers
 // ---------------------------------------------------------------------------
 
 function TypeBadge({ type }: { type: string }) {
-  const styles: Record<string, string> = {
-    cookie: "bg-amber-50 text-amber-700",
-    pixel: "bg-blue-50 text-blue-700",
-    script: "bg-purple-50 text-purple-700",
-    beacon: "bg-pink-50 text-pink-700",
-    fingerprint: "bg-red-50 text-red-700",
-    storage: "bg-teal-50 text-teal-700",
-    other: "bg-neutral-100 text-neutral-600",
+  const variantMap: Record<string, "warning" | "primary" | "purple" | "danger" | "neutral"> = {
+    cookie:      "warning",
+    pixel:       "primary",
+    script:      "purple",
+    beacon:      "neutral",
+    fingerprint: "danger",
+    storage:     "neutral",
+    other:       "neutral",
   };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[type] ?? styles.other}`}>
+    <Badge variant={variantMap[type] ?? "neutral"} size="sm" className="capitalize">
       {type}
-    </span>
+    </Badge>
   );
 }
-
-function EnforcementBadge({ label, color }: { label: string; color: "green" | "amber" | "red" | "neutral" }) {
-  const styles = {
-    green: "bg-green-50 text-green-700 ring-1 ring-green-600/20",
-    amber: "bg-amber-50 text-amber-700 ring-1 ring-amber-600/20",
-    red: "bg-red-50 text-red-700 ring-1 ring-red-600/20",
-    neutral: "bg-neutral-100 text-neutral-600 ring-1 ring-neutral-500/20",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${styles[color]}`}>
-      {label}
-    </span>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TrackerTable — shared table component
-// ---------------------------------------------------------------------------
 
 function TrackerTable({
   rules,
@@ -61,78 +46,117 @@ function TrackerTable({
 }) {
   if (rules.length === 0) {
     return (
-      <div className="rounded-md border border-dashed px-5 py-6 text-center">
-        <p className="text-sm text-neutral-400">None.</p>
+      <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-center">
+        <p className="text-sm text-slate-400">None.</p>
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border bg-white">
-      <table className="min-w-full divide-y text-sm">
-        <thead>
-          <tr className="bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-            <th className="px-4 py-3">Tracker</th>
-            <th className="px-4 py-3">Type</th>
-            <th className="px-4 py-3">Domain / Identifier</th>
-            <th className="px-4 py-3">Required purpose</th>
-            <th className="px-4 py-3">Vendor</th>
-            <th className="px-4 py-3">Enforcement</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y">
-          {rules.map((rule) => (
-            <tr key={rule.id} className="hover:bg-neutral-50">
-              <td className="px-4 py-3 font-medium text-neutral-900">{rule.name}</td>
-              <td className="px-4 py-3"><TypeBadge type={rule.type} /></td>
-              <td className="px-4 py-3 text-neutral-500">
-                {rule.domain && <p className="font-mono text-xs">{rule.domain}</p>}
-                {rule.identifier && (
-                  <p className="mt-0.5 max-w-[200px] truncate font-mono text-xs text-neutral-400">
-                    {rule.identifier}
-                  </p>
-                )}
-                {!rule.domain && !rule.identifier && <span className="text-neutral-300">—</span>}
-              </td>
-              <td className="px-4 py-3 text-neutral-600">
-                {rule.purposeKey ? (
-                  <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-xs">
-                    {rule.purposeKey}
-                  </code>
-                ) : rule.purposeId ? (
-                  <span className="text-xs text-neutral-400">
-                    {purposeMap.get(rule.purposeId) ?? rule.purposeId.slice(0, 8)}
-                  </span>
-                ) : (
-                  <span className="text-neutral-300">—</span>
-                )}
-              </td>
-              <td className="px-4 py-3 text-neutral-600">
-                {rule.vendorId ? (
-                  vendorMap.get(rule.vendorId) ?? <span className="text-neutral-400 text-xs">{rule.vendorId.slice(0, 8)}</span>
-                ) : (
-                  <span className="text-neutral-300">—</span>
-                )}
-              </td>
-              <td className="px-4 py-3">
-                {rule.isEssential ? (
-                  <EnforcementBadge label="Always allowed" color="green" />
-                ) : rule.purposeId || rule.vendorId ? (
-                  <EnforcementBadge label="Blocked until consent" color="amber" />
-                ) : (
-                  <EnforcementBadge label="Always blocked" color="red" />
-                )}
-              </td>
+    <Card>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-100 bg-slate-50/60">
+              {["Tracker", "Type", "Domain / Identifier", "Required purpose", "Vendor", "Enforcement"].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  {h}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {rules.map((rule) => (
+              <tr key={rule.id} className="group transition-colors hover:bg-slate-50/80">
+                <td className="px-4 py-3 font-medium text-slate-900">{rule.name}</td>
+                <td className="px-4 py-3"><TypeBadge type={rule.type} /></td>
+                <td className="px-4 py-3 text-slate-500">
+                  {rule.domain && (
+                    <code className="block font-mono text-xs text-slate-600 group-hover:text-indigo-600 transition-colors">
+                      {rule.domain}
+                    </code>
+                  )}
+                  {rule.identifier && (
+                    <code className="mt-0.5 block max-w-[200px] truncate font-mono text-xs text-slate-400">
+                      {rule.identifier}
+                    </code>
+                  )}
+                  {!rule.domain && !rule.identifier && <span className="text-slate-300">—</span>}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {rule.purposeKey ? (
+                    <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">
+                      {rule.purposeKey}
+                    </code>
+                  ) : rule.purposeId ? (
+                    <span className="text-xs text-slate-400">
+                      {purposeMap.get(rule.purposeId) ?? rule.purposeId.slice(0, 8)}
+                    </span>
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {rule.vendorId ? (
+                    vendorMap.get(rule.vendorId) ?? (
+                      <span className="text-xs text-slate-400">{rule.vendorId.slice(0, 8)}</span>
+                    )
+                  ) : (
+                    <span className="text-slate-300">—</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {rule.isEssential ? (
+                    <Badge variant="success" size="sm">Always allowed</Badge>
+                  ) : rule.purposeId || rule.vendorId ? (
+                    <Badge variant="warning" size="sm">Blocked until consent</Badge>
+                  ) : (
+                    <Badge variant="danger" size="sm">Always blocked</Badge>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
 // ---------------------------------------------------------------------------
-// Page — server component
+// Stat icons
+// ---------------------------------------------------------------------------
+
+function IconAllow() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+  );
+}
+function IconBlock() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="15" y1="9" x2="9" y2="15" />
+      <line x1="9" y1="9" x2="15" y2="15" />
+    </svg>
+  );
+}
+function IconConsent() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Page
 // ---------------------------------------------------------------------------
 
 export default async function EnforcementPage({
@@ -149,7 +173,6 @@ export default async function EnforcementPage({
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
-
   if (!localOrg) return null;
 
   const [website] = await db
@@ -157,29 +180,21 @@ export default async function EnforcementPage({
     .from(websites)
     .where(and(eq(websites.id, id), eq(websites.organizationId, localOrg.id)))
     .limit(1);
-
   if (!website) notFound();
 
-  // Fetch all active trackers for this website.
   const trackerRows = await db
     .select({
-      id: trackers.id,
-      name: trackers.name,
-      type: trackers.type,
-      domain: trackers.domain,
-      identifier: trackers.identifier,
-      purposeId: trackers.purposeId,
-      vendorId: trackers.vendorId,
-      isEssential: trackers.isEssential,
-      status: trackers.status,
+      id: trackers.id, name: trackers.name, type: trackers.type,
+      domain: trackers.domain, identifier: trackers.identifier,
+      purposeId: trackers.purposeId, vendorId: trackers.vendorId,
+      isEssential: trackers.isEssential, status: trackers.status,
     })
     .from(trackers)
     .where(and(eq(trackers.websiteId, website.id), eq(trackers.status, "active")))
     .orderBy(trackers.name);
 
-  // Resolve purpose keys and vendor names in bulk.
   const purposeIds = [...new Set(trackerRows.map((t) => t.purposeId).filter(Boolean) as string[])];
-  const vendorIds = [...new Set(trackerRows.map((t) => t.vendorId).filter(Boolean) as string[])];
+  const vendorIds  = [...new Set(trackerRows.map((t) => t.vendorId).filter(Boolean)  as string[])];
 
   const [purposeRows, vendorRows] = await Promise.all([
     purposeIds.length > 0
@@ -190,116 +205,111 @@ export default async function EnforcementPage({
       : Promise.resolve([]),
   ]);
 
-  const purposeKeyMap = new Map(purposeRows.map((p) => [p.id, p.key]));
+  const purposeKeyMap  = new Map(purposeRows.map((p) => [p.id, p.key]));
   const purposeNameMap = new Map(purposeRows.map((p) => [p.id, p.name]));
-  const vendorMap = new Map(vendorRows.map((v) => [v.id, v.name]));
+  const vendorMap      = new Map(vendorRows.map((v) => [v.id, v.name]));
 
   const rules: TrackerRule[] = trackerRows.map((t) => ({
-    id: t.id,
-    name: t.name,
-    type: t.type as TrackerRule["type"],
-    domain: t.domain,
-    identifier: t.identifier,
+    id: t.id, name: t.name, type: t.type as TrackerRule["type"],
+    domain: t.domain, identifier: t.identifier,
     purposeKey: t.purposeId ? (purposeKeyMap.get(t.purposeId) ?? null) : null,
-    purposeId: t.purposeId,
-    vendorId: t.vendorId,
-    isEssential: t.isEssential,
-    status: t.status,
+    purposeId: t.purposeId, vendorId: t.vendorId,
+    isEssential: t.isEssential, status: t.status,
   }));
 
   const { essential, consentRequired, unclassified } = categoriseTrackers(rules);
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
+
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-neutral-500">
-        <Link href="/dashboard/websites" className="hover:text-neutral-900">Websites</Link>
-        <span aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="hover:text-neutral-900">{website.name}</Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Enforcement</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <span className="text-slate-900">Enforcement</span>
       </nav>
 
       {/* Page header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">Tracker Enforcement</h1>
-          <p className="mt-1 text-sm text-neutral-500">
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Tracker Enforcement</h1>
+          <p className="mt-1 text-sm text-slate-500">
             How the CMP SDK enforces consent for trackers on{" "}
-            <span className="font-medium text-neutral-700">{website.domain}</span>.
+            <span className="font-medium text-slate-700">{website.domain}</span>.
           </p>
         </div>
         <Link
           href={`/dashboard/websites/${website.id}/installation`}
-          className="shrink-0 rounded-md border bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
         >
           Installation guide
         </Link>
       </div>
 
-      {/* Summary */}
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-lg border bg-white p-5">
-          <p className="text-sm text-neutral-500">Always allowed</p>
-          <p className="mt-1 text-2xl font-semibold text-green-700">{essential.length}</p>
-          <p className="mt-0.5 text-xs text-neutral-400">Essential trackers</p>
-        </div>
-        <div className="rounded-lg border bg-white p-5">
-          <p className="text-sm text-neutral-500">Blocked until consent</p>
-          <p className="mt-1 text-2xl font-semibold text-amber-700">{consentRequired.length}</p>
-          <p className="mt-0.5 text-xs text-neutral-400">Require a purpose or vendor grant</p>
-        </div>
-        <div className="rounded-lg border bg-white p-5">
-          <p className="text-sm text-neutral-500">Always blocked</p>
-          <p className="mt-1 text-2xl font-semibold text-red-700">{unclassified.length}</p>
-          <p className="mt-0.5 text-xs text-neutral-400">No purpose or vendor assigned</p>
-        </div>
+      {/* Summary stat cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard label="Always allowed"        value={essential.length}       icon={<IconAllow />}   iconColor="green"  description="Essential trackers" />
+        <StatCard label="Blocked until consent" value={consentRequired.length} icon={<IconConsent />} iconColor="amber"  description="Require purpose or vendor grant" />
+        <StatCard label="Always blocked"        value={unclassified.length}    icon={<IconBlock />}   iconColor="rose"   description="No purpose or vendor assigned" />
       </div>
 
+      {/* Empty state */}
       {rules.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">No trackers configured yet</p>
-          <p className="mt-1 text-sm text-neutral-400">
-            Add trackers manually or run a scan to detect them.
-          </p>
-          <Link href="/dashboard/trackers" className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700">
-            Go to Trackers
-          </Link>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className="text-slate-300">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">No trackers configured yet</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Add trackers manually or run a scan to detect them.
+              </p>
+            </div>
+            <Link
+              href="/dashboard/trackers"
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            >
+              Go to Trackers
+            </Link>
+          </CardContent>
+        </Card>
       )}
 
+      {/* Tracker sections */}
       {rules.length > 0 && (
         <div className="space-y-8">
-          {/* Consent-required */}
           <section>
-            <h2 className="mb-3 text-base font-semibold text-neutral-900">
+            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
               Blocked until consent ({consentRequired.length})
             </h2>
-            <p className="mb-3 text-sm text-neutral-500">
-              These trackers are blocked by the SDK until the visitor grants the
-              required purpose or vendor consent.
+            <p className="mb-3 text-sm text-slate-500">
+              Blocked by the SDK until the visitor grants the required purpose or vendor consent.
             </p>
             <TrackerTable rules={consentRequired} purposeMap={purposeNameMap} vendorMap={vendorMap} />
           </section>
 
-          {/* Unclassified — always blocked */}
           <section>
-            <h2 className="mb-3 text-base font-semibold text-neutral-900">
+            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
               Always blocked — unclassified ({unclassified.length})
             </h2>
-            <p className="mb-3 text-sm text-neutral-500">
-              These trackers have no purpose or vendor assigned and are always
-              blocked. Assign a purpose to make them consent-controlled.
+            <p className="mb-3 text-sm text-slate-500">
+              No purpose or vendor assigned. Assign a purpose to make them consent-controlled.
             </p>
             <TrackerTable rules={unclassified} purposeMap={purposeNameMap} vendorMap={vendorMap} />
           </section>
 
-          {/* Essential */}
           <section>
-            <h2 className="mb-3 text-base font-semibold text-neutral-900">
+            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
               Always allowed — essential ({essential.length})
             </h2>
-            <p className="mb-3 text-sm text-neutral-500">
+            <p className="mb-3 text-sm text-slate-500">
               Essential trackers are never blocked regardless of consent state.
             </p>
             <TrackerTable rules={essential} purposeMap={purposeNameMap} vendorMap={vendorMap} />

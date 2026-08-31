@@ -10,8 +10,28 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
-import { parseBannerConfig } from "@/lib/banner-config";
+import { parseBannerConfig, resolveTranslation } from "@/lib/banner-config";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
+
+// ---------------------------------------------------------------------------
+// GET /api/sdk/[siteKey]/config
+// Public, CORS-enabled endpoint.
+//
+// Optional query param: ?lang=<language-code>
+// If supplied (or inferred from Accept-Language header), the response merges
+// the matching translation over the English root fields so the SDK always
+// receives already-resolved text for the requested language.
+// English root fields remain in the payload as the authoritative fallback.
+// ---------------------------------------------------------------------------
+
+/** Parse the best matching language from Accept-Language header. */
+function parseBestLang(acceptLang: string | null): string {
+  if (!acceptLang) return "en";
+  // e.g. "hi-IN,hi;q=0.9,en;q=0.8" → "hi"
+  const first = acceptLang.split(",")[0]?.trim();
+  if (!first) return "en";
+  return first.split(";")[0]?.trim().toLowerCase() ?? "en";
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/config
@@ -21,7 +41,7 @@ import type { TrackerRule } from "@/lib/sdk/enforcement";
 // ---------------------------------------------------------------------------
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ siteKey: string }> },
 ) {
   try {
@@ -39,6 +59,12 @@ export async function GET(
         { status: 400, headers: corsHeaders },
       );
     }
+
+    // Resolve requested language: ?lang= takes precedence, then Accept-Language.
+    const url = new URL(request.url);
+    const langParam = url.searchParams.get("lang")?.trim().toLowerCase();
+    const acceptLang = request.headers.get("accept-language");
+    const requestedLang = langParam || parseBestLang(acceptLang);
 
     // Resolve website by siteKey — siteKey is globally unique.
     const [website] = await db
@@ -106,6 +132,23 @@ export async function GET(
       latestVersion.configuration as Record<string, unknown>,
     );
 
+    // Resolve translated notice text for the requested language.
+    // The resolved fields are merged into bannerConfig so the SDK receives
+    // ready-to-display text without needing to implement its own fallback.
+    const resolvedText = resolveTranslation(bannerConfig, requestedLang);
+    const localizedConfig = {
+      ...bannerConfig,
+      title:                resolvedText.title,
+      description:          resolvedText.description,
+      acceptAllLabel:       resolvedText.acceptAllLabel,
+      rejectAllLabel:       resolvedText.rejectAllLabel,
+      customizeLabel:       resolvedText.customizeLabel,
+      savePreferencesLabel: resolvedText.savePreferencesLabel,
+      privacyPolicyText:    resolvedText.privacyPolicyText,
+      // Keep the full translations map so clients can implement their own
+      // language switching without re-fetching the config endpoint.
+    };
+
     // Purposes attached to this version.
     const versionPurposes = await db
       .select({
@@ -114,6 +157,11 @@ export async function GET(
         name: purposes.name,
         description: purposes.description,
         isRequired: purposes.isRequired,
+        // DPDP Rule 3 enrichment — included in the SDK payload so the
+        // Preference Center can display retention period and data categories.
+        dataCategories:  purposes.dataCategories,
+        retentionPeriod: purposes.retentionPeriod,
+        legalBasis:      purposes.legalBasis,
       })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
@@ -207,7 +255,8 @@ export async function GET(
           version: latestVersion.version,
           isPublished: latestVersion.isPublished,
         },
-        bannerConfig,
+        bannerConfig: localizedConfig,
+        resolvedLanguage: requestedLang,
         purposes: versionPurposes,
         vendors: resolvedVendors,
         trackerRules,

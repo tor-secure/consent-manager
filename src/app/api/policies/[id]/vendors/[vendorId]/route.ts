@@ -3,13 +3,13 @@ import { NextResponse } from "next/server";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // ---------------------------------------------------------------------------
 // DELETE /api/policies/[id]/vendors/[vendorId]
@@ -33,15 +33,21 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
     // ── Resolve org ─────────────────────────────────────────────────────────
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
+    }
+
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
 
     // ── Scope policy through org websites ────────────────────────────────────

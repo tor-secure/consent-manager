@@ -145,251 +145,173 @@ function ConsentProvider() {
   // ---------------------------------------------------------------------------
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-8">
       {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-6 flex items-center gap-2 text-sm text-neutral-500"
-      >
-        <Link href="/dashboard/websites" className="hover:text-neutral-900">
-          Websites
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          href={`/dashboard/websites/${website.id}`}
-          className="hover:text-neutral-900"
-        >
-          {website.name}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Installation</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <span className="text-slate-900">Installation</span>
       </nav>
 
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">
-          SDK Installation
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">SDK Installation</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Add the CMP banner to{" "}
-          <span className="font-medium text-neutral-700">{website.domain}</span>{" "}
+          <span className="font-medium text-slate-700">{website.domain}</span>{" "}
           using the snippet below.
         </p>
       </div>
 
-      {/* No active policy warning */}
+      {/* Policy status banners */}
       {!activePolicy && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <strong>No active consent policy.</strong> Create and activate a policy for this
-          website before deploying the SDK so the banner has content to display.{" "}
-          <Link
-            href={`/dashboard/policies/new?websiteId=${website.id}`}
-            className="underline underline-offset-2"
-          >
-            Create policy →
-          </Link>
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+            stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" d="M8 2l6 12H2z" />
+            <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
+          </svg>
+          <p>
+            <strong className="font-semibold">No active consent policy.</strong>{" "}
+            Create and activate a policy for this website before deploying the SDK.{" "}
+            <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
+              className="font-medium underline underline-offset-2 hover:text-amber-900">
+              Create policy →
+            </Link>
+          </p>
         </div>
       )}
-
       {activePolicy && (
-        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-          <strong>Active policy:</strong> &ldquo;{activePolicy.name}&rdquo; is configured for
-          this website. The SDK will load this policy on page visit.
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
+            stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
+          </svg>
+          <p>
+            <strong className="font-semibold">Active policy:</strong>{" "}
+            &ldquo;{activePolicy.name}&rdquo; is configured for this website.
+          </p>
         </div>
       )}
 
-      <div className="space-y-8 max-w-3xl">
+      <div className="max-w-3xl space-y-8">
 
         {/* Step 1 — Site key */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-neutral-900">
-            Step 1 — Your site key
-          </h2>
-          <p className="mb-3 text-sm text-neutral-500">
-            This is the unique identifier for{" "}
-            <strong>{website.domain}</strong>. It is safe to include in
-            client-side code.
+          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 1 — Your site key</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Unique identifier for <strong className="text-slate-700">{website.domain}</strong>. Safe to include in client-side code.
           </p>
-          <div className="flex items-center gap-3 rounded-lg border bg-neutral-50 px-4 py-3">
-            <code className="flex-1 font-mono text-sm text-neutral-900">
+          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm text-slate-900">
               {website.siteKey}
             </code>
-            <span className="text-xs text-neutral-400">site key</span>
+            <span className="shrink-0 text-xs text-slate-400">site key</span>
           </div>
         </section>
 
         {/* Step 2 — Add the snippet */}
         <section>
-          <h2 className="mb-1 text-base font-semibold text-neutral-900">
-            Step 2 — Add the snippet
-          </h2>
-          <p className="mb-4 text-sm text-neutral-500">
+          <h2 className="mb-1 text-base font-semibold text-slate-900">Step 2 — Add the snippet</h2>
+          <p className="mb-4 text-sm text-slate-500">
             Paste the snippet as high in the{" "}
-            <code className="rounded bg-neutral-100 px-1 font-mono text-xs">&lt;head&gt;</code>{" "}
-            as possible, before any analytics or advertising scripts. This ensures the
-            banner loads before other tracking begins.
+            <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">&lt;head&gt;</code>{" "}
+            as possible, before any analytics or advertising scripts.
           </p>
 
-          {/* HTML */}
           <div className="mb-4">
-            <p className="mb-2 text-sm font-medium text-neutral-700">HTML / static sites</p>
+            <p className="mb-2 text-sm font-semibold text-slate-700">HTML / static sites</p>
             <CodeBlock code={htmlSnippet} language="html" />
           </div>
-
-          {/* Next.js */}
           <div className="mb-4">
-            <p className="mb-2 text-sm font-medium text-neutral-700">Next.js (App Router / Pages Router)</p>
+            <p className="mb-2 text-sm font-semibold text-slate-700">Next.js (App Router / Pages Router)</p>
             <CodeBlock code={nextjsSnippet} language="tsx" />
           </div>
-
-          {/* React */}
           <div>
-            <p className="mb-2 text-sm font-medium text-neutral-700">React (CRA / Vite)</p>
+            <p className="mb-2 text-sm font-semibold text-slate-700">React (CRA / Vite)</p>
             <CodeBlock code={reactSnippet} language="tsx" />
           </div>
         </section>
 
         {/* Step 3 — How it works */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-neutral-900">
-            Step 3 — How the SDK works
-          </h2>
-          <ol className="space-y-2 text-sm text-neutral-600 list-decimal list-inside">
-            <li>
-              The SDK script loads asynchronously and calls{" "}
-              <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
-                {configUrlAbsolute}
-              </code>{" "}
-              to fetch the active banner configuration.
-            </li>
-            <li>
-              If the visitor has no stored consent, the banner is shown based on
-              the configured layout, position, and text.
-            </li>
-            <li>
-              When the visitor makes a choice, the SDK calls{" "}
-              <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
-                POST /api/consent/record
-              </code>{" "}
-              and stores the <code className="rounded bg-neutral-100 px-1 font-mono text-xs">consentId</code>{" "}
-              in <code className="rounded bg-neutral-100 px-1 font-mono text-xs">localStorage</code>.
-            </li>
-            <li>
-              On subsequent visits, stored consent is respected until it expires
-              (configured in the banner settings).
-            </li>
-            <li>
-              Visitors can reopen the Preference Center at any time to update or
-              withdraw consent.
-            </li>
+          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 3 — How the SDK works</h2>
+          <ol className="list-inside list-decimal space-y-2 text-sm text-slate-600">
+            <li>Loads asynchronously and fetches the active banner configuration from <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">{configUrlAbsolute}</code>.</li>
+            <li>Shows the banner if no stored consent is found.</li>
+            <li>On visitor choice, calls <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">POST /api/consent/record</code> and stores the <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">consentId</code> in <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">localStorage</code>.</li>
+            <li>On subsequent visits, stored consent is respected until it expires.</li>
+            <li>Visitors can reopen the Preference Center at any time to update or withdraw consent.</li>
           </ol>
         </section>
 
-        {/* Config endpoint reference */}
+        {/* Config endpoint */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-neutral-900">
-            Config API endpoint
-          </h2>
-          <p className="mb-3 text-sm text-neutral-500">
-            The SDK loads configuration from this public endpoint. You can also
-            call it directly to inspect the active configuration.
+          <h2 className="mb-3 text-base font-semibold text-slate-900">Config API endpoint</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Public endpoint — call it directly to inspect the active configuration.
           </p>
           <CodeBlock code={configEndpointNote} language="text" label="endpoint" />
         </section>
 
-        {/* Enforcement — data-cmp-purpose */}
+        {/* Script enforcement */}
         <section>
-          <h2 className="mb-1 text-base font-semibold text-neutral-900">
-            Script enforcement
-          </h2>
-          <p className="mb-4 text-sm text-neutral-500">
+          <h2 className="mb-1 text-base font-semibold text-slate-900">Script enforcement</h2>
+          <p className="mb-4 text-sm text-slate-500">
             Tag third-party scripts with{" "}
-            <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
-              data-cmp-purpose
-            </code>{" "}
-            and set{" "}
-            <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
-              type=&quot;text/plain&quot;
-            </code>
-            . The SDK will pause them until the visitor grants the required
-            purpose and restore execution automatically. Essential scripts
-            (no{" "}
-            <code className="rounded bg-neutral-100 px-1 font-mono text-xs">
-              data-cmp-purpose
-            </code>
-            ) are never blocked.
+            <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">data-cmp-purpose</code>{" "}
+            and <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">type=&quot;text/plain&quot;</code>.
+            The SDK pauses them until consent is granted.
           </p>
           <CodeBlock code={enforceSnippet} language="html" label="enforcement" />
 
-          <div className="mt-4 rounded-md border bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
-            <p className="font-medium text-neutral-700 mb-1">How it works</p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
-              <li>
-                Scripts tagged with <code className="rounded bg-neutral-100 px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK changes their type.
-              </li>
-              <li>
-                The SDK reads the tracker rules from{" "}
-                <code className="rounded bg-neutral-100 px-1 font-mono">{configUrlAbsolute}</code>{" "}
-                which includes domain, identifier, and required purposeKey for each tracker.
-              </li>
-              <li>
-                When consent changes, the SDK calls <code className="rounded bg-neutral-100 px-1 font-mono">window.CMP.onConsentChange(fn)</code> and re-evaluates all tagged scripts.
-              </li>
-              <li>
-                Untagged third-party scripts are not blocked. Add them to your{" "}
-                <Link href={`/dashboard/trackers`} className="underline underline-offset-2 hover:text-neutral-900">
-                  Trackers
-                </Link>{" "}
-                list and tag them to enable enforcement.
-              </li>
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
+            <p className="mb-2 text-sm font-semibold text-slate-700">How it works</p>
+            <ul className="list-inside list-disc space-y-1.5 text-xs text-slate-600">
+              <li>Scripts with <code className="rounded-md bg-slate-100 px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK restores them.</li>
+              <li>Tracker rules come from the config endpoint, including domain, identifier, and required purposeKey.</li>
+              <li>When consent changes, the SDK re-evaluates all tagged scripts via <code className="rounded-md bg-slate-100 px-1 font-mono">window.CMP.onConsentChange(fn)</code>.</li>
+              <li>Untagged scripts are not blocked — add them to your{" "}
+                <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-slate-900">Trackers</Link>{" "}
+                list and tag them to enable enforcement.</li>
             </ul>
           </div>
         </section>
 
         {/* Step 4 — Verify */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-neutral-900">
-            Step 4 — Verify installation
-          </h2>
-          <p className="mb-3 text-sm text-neutral-500">
-            Click the button below to confirm that the SDK config endpoint
-            resolves correctly for your site key.
+          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 4 — Verify installation</h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Confirm that the SDK config endpoint resolves correctly for your site key.
           </p>
           <VerifyInstallation siteKey={website.siteKey} />
         </section>
 
         {/* Next steps */}
-        <section className="rounded-lg border bg-neutral-50 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-neutral-700">
-            Next steps
-          </h2>
-          <ul className="space-y-2 text-sm text-neutral-600">
+        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <h2 className="mb-3 text-sm font-semibold text-slate-700">Next steps</h2>
+          <ul className="space-y-2 text-sm text-slate-600">
             <li>
-              <Link
-                href={`/dashboard/policies/new?websiteId=${website.id}`}
-                className="font-medium text-neutral-900 underline underline-offset-2 hover:text-neutral-700"
-              >
+              <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
+                className="font-medium text-slate-900 underline underline-offset-2 transition hover:text-indigo-600">
                 Create a consent policy
-              </Link>{" "}
-              if you haven&apos;t already.
+              </Link>{" "}if you haven&apos;t already.
             </li>
             <li>
               <Link
-                href={`/dashboard/policies/${activePolicy?.id ?? ""}`}
-                className={`font-medium underline underline-offset-2 ${activePolicy ? "text-neutral-900 hover:text-neutral-700" : "pointer-events-none text-neutral-400"}`}
+                href={activePolicy ? `/dashboard/policies/${activePolicy.id}` : "#"}
+                className={`font-medium underline underline-offset-2 transition ${activePolicy ? "text-slate-900 hover:text-indigo-600" : "pointer-events-none text-slate-400"}`}
               >
                 Configure the banner appearance
-              </Link>{" "}
-              in the Banner Configuration section of your policy.
+              </Link>{" "}in the Banner Studio on your policy page.
             </li>
             <li>
-              <Link
-                href={`/dashboard/websites/${website.id}/settings`}
-                className="font-medium text-neutral-900 underline underline-offset-2 hover:text-neutral-700"
-              >
+              <Link href={`/dashboard/websites/${website.id}/settings`}
+                className="font-medium text-slate-900 underline underline-offset-2 transition hover:text-indigo-600">
                 Update website settings
-              </Link>{" "}
-              to set the default language and region.
+              </Link>{" "}to set the default language and region.
             </li>
           </ul>
         </section>

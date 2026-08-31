@@ -5,6 +5,12 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
+import { users } from "@/db/schema/users";
+import {
+  resolveLocalOrganization,
+  resolveLocalUser,
+  resolveActiveMembership,
+} from "@/lib/api-auth-helpers";
 
 // Allowed environment values — validated server-side, never trusted from body.
 const VALID_ENVIRONMENTS = ["production", "staging", "development"] as const;
@@ -33,17 +39,29 @@ export async function PUT(
       );
     }
 
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 },
+      );
+    }
+
     // Resolve local org from Clerk — never trust client-supplied org IDs.
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json(
         { success: false, message: "Organization not found" },
         { status: 404 },
+      );
+    }
+
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json(
+        { success: false, message: "You do not belong to this organization." },
+        { status: 403 },
       );
     }
 

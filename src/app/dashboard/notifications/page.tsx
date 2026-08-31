@@ -7,54 +7,34 @@ import { organizations } from "@/db/schema/organizations";
 import { users } from "@/db/schema/users";
 import { notifications } from "@/db/schema/notifications";
 import { NotificationActions } from "@/components/notifications/notification-actions";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function PriorityBadge({ priority }: { priority: string }) {
-  const styles: Record<string, string> = {
-    urgent: "bg-red-50 text-red-700 ring-1 ring-red-600/20",
-    high: "bg-orange-50 text-orange-700 ring-1 ring-orange-600/20",
-    normal: "bg-neutral-100 text-neutral-600",
-    low: "bg-neutral-50 text-neutral-400",
-  };
-  if (priority === "normal" || priority === "low") return null;
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[priority] ?? styles.normal}`}
-    >
-      {priority}
-    </span>
-  );
+function priorityVariant(priority: string): "danger" | "warning" | "neutral" | undefined {
+  if (priority === "urgent") return "danger";
+  if (priority === "high") return "warning";
+  return undefined; // don't render low/normal
 }
 
-function TypeBadge({ type }: { type: string }) {
-  // Shorten dot-namespaced types: "policy.published" → "policy"
+function typeVariant(type: string): "primary" | "purple" | "success" | "warning" | "danger" | "neutral" {
   const label = type.split(".")[0];
-  const styles: Record<string, string> = {
-    policy: "bg-blue-50 text-blue-700",
-    scan: "bg-purple-50 text-purple-700",
-    website: "bg-teal-50 text-teal-700",
-    consent: "bg-green-50 text-green-700",
-    billing: "bg-amber-50 text-amber-700",
-    system: "bg-neutral-100 text-neutral-600",
-    security: "bg-red-50 text-red-700",
+  const map: Record<string, "primary" | "purple" | "success" | "warning" | "danger" | "neutral"> = {
+    policy:   "primary",
+    scan:     "purple",
+    website:  "primary",
+    consent:  "success",
+    billing:  "warning",
+    system:   "neutral",
+    security: "danger",
   };
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[label] ?? styles.system}`}
-    >
-      {type}
-    </span>
-  );
+  return map[label] ?? "neutral";
 }
 
-// Map resourceType to a dashboard path prefix.
-function resourceLink(
-  resourceType: string | null,
-  resourceId: string | null,
-): string | null {
+function resourceLink(resourceType: string | null, resourceId: string | null): string | null {
   if (!resourceType || !resourceId) return null;
   const paths: Record<string, string> = {
     policy: `/dashboard/policies/${resourceId}`,
@@ -68,7 +48,7 @@ function resourceLink(
 }
 
 // ---------------------------------------------------------------------------
-// Page — server component
+// Page
 // ---------------------------------------------------------------------------
 
 export default async function NotificationsPage() {
@@ -80,7 +60,6 @@ export default async function NotificationsPage() {
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
-
   if (!organization) return null;
 
   const [localUser] = await db
@@ -88,10 +67,8 @@ export default async function NotificationsPage() {
     .from(users)
     .where(eq(users.clerkUserId, clerkUserId))
     .limit(1);
-
   if (!localUser) return null;
 
-  // Fetch all notifications for this user (or org-wide) ordered newest first.
   const rows = await db
     .select()
     .from(notifications)
@@ -107,104 +84,114 @@ export default async function NotificationsPage() {
   const unreadCount = rows.filter((r) => !r.isRead).length;
 
   return (
-    <div className="p-8">
-      {/* Page header */}
-      <div className="mb-6 flex items-start justify-between gap-4">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-neutral-900">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
               Notifications
             </h1>
             {unreadCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-red-500 px-2 py-0.5 text-xs font-semibold text-white">
+              <Badge variant="danger" size="sm">
                 {unreadCount} unread
-              </span>
+              </Badge>
             )}
           </div>
-          <p className="mt-1 text-sm text-neutral-500">
-            Updates and alerts for your organization.
+          <p className="mt-1 text-sm text-slate-500">
+            Updates and alerts for your organisation.
           </p>
         </div>
 
         {unreadCount > 0 && (
-          <NotificationActions hasUnread={true} />
+          <div className="shrink-0">
+            <NotificationActions hasUnread={true} />
+          </div>
         )}
       </div>
 
-      {/* Empty state */}
+      {/* ── Empty state ──────────────────────────────────────────────────── */}
       {rows.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">
-            No notifications yet
-          </p>
-          <p className="mt-1 text-sm text-neutral-400">
-            Notifications will appear here when there are updates for your
-            organization.
-          </p>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className="text-slate-300">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 01-3.46 0" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">No notifications yet</p>
+              <p className="mt-1 text-sm text-slate-500">
+                Updates will appear here as actions are performed in your organisation.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Notification list */}
+      {/* ── Notification list ────────────────────────────────────────────── */}
       {rows.length > 0 && (
         <div className="space-y-2">
           {rows.map((n) => {
             const link = resourceLink(n.resourceType, n.resourceId);
+            const pv = priorityVariant(n.priority);
+            const typeLabel = n.type.split(".")[0];
 
             return (
               <div
                 key={n.id}
-                className={`rounded-lg border bg-white p-4 transition ${
-                  !n.isRead ? "border-blue-200 bg-blue-50/30" : ""
+                className={`rounded-2xl border bg-white transition ${
+                  !n.isRead
+                    ? "border-indigo-200 bg-indigo-50/30"
+                    : "border-slate-200"
                 }`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 px-5 py-4">
                   {/* Unread dot */}
-                  <div className="mt-1.5 shrink-0">
-                    {!n.isRead ? (
-                      <span className="block h-2 w-2 rounded-full bg-blue-500" />
-                    ) : (
-                      <span className="block h-2 w-2 rounded-full bg-transparent" />
+                  <div className="mt-1.5 shrink-0 w-2">
+                    {!n.isRead && (
+                      <span className="block h-2 w-2 rounded-full bg-indigo-500" />
                     )}
                   </div>
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p
-                        className={`text-sm font-medium ${
-                          n.isRead ? "text-neutral-700" : "text-neutral-900"
-                        }`}
-                      >
+                      <p className={`text-sm font-semibold ${n.isRead ? "text-slate-600" : "text-slate-900"}`}>
                         {n.title}
                       </p>
-                      <TypeBadge type={n.type} />
-                      <PriorityBadge priority={n.priority} />
+                      <Badge variant={typeVariant(n.type)} size="sm" className="capitalize">
+                        {typeLabel}
+                      </Badge>
+                      {pv && (
+                        <Badge variant={pv} size="sm" className="capitalize">
+                          {n.priority}
+                        </Badge>
+                      )}
                     </div>
 
-                    <p className="mt-1 text-sm text-neutral-500">{n.message}</p>
+                    <p className="mt-1 text-sm text-slate-500">{n.message}</p>
 
                     <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <time
-                        dateTime={n.createdAt.toISOString()}
-                        className="text-xs text-neutral-400"
-                      >
+                      <time dateTime={n.createdAt.toISOString()} className="text-xs text-slate-400">
                         {n.createdAt.toLocaleDateString("en-GB", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
+                          day: "numeric", month: "short", year: "numeric",
                         })}{" "}
                         {n.createdAt.toLocaleTimeString("en-GB", {
-                          hour: "2-digit",
-                          minute: "2-digit",
+                          hour: "2-digit", minute: "2-digit",
                         })}
                       </time>
 
                       {link && (
                         <Link
                           href={link}
-                          className="text-xs font-medium text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+                          className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800"
                         >
-                          View {n.resourceType?.replace(/_/g, " ")}
+                          View {n.resourceType?.replace(/_/g, " ")} →
                         </Link>
                       )}
                     </div>
@@ -212,7 +199,9 @@ export default async function NotificationsPage() {
 
                   {/* Per-item mark as read */}
                   {!n.isRead && (
-                    <NotificationActions notificationId={n.id} hasUnread={false} />
+                    <div className="shrink-0">
+                      <NotificationActions notificationId={n.id} hasUnread={false} />
+                    </div>
                   )}
                 </div>
               </div>

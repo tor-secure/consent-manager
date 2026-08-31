@@ -234,7 +234,7 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
   let cumulative = 0;
 
   return (
-    <div className="flex flex-col md:flex-row items-center gap-8">
+    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
       <div className="relative shrink-0">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Consent by purpose donut chart">
           <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#f1f5f9" strokeWidth="28" />
@@ -267,18 +267,18 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 w-full md:w-auto min-w-[240px]">
+      <div className="flex-1 space-y-3 w-full min-w-0">
         {slices.map((s, i) => {
           const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
           return (
-            <div key={i} className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
+            <div key={i} className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
                 <span className="h-3 w-3 rounded-full shrink-0" style={{ background: s.color }} />
                 <span className="text-sm font-medium text-slate-700 truncate">{s.name}</span>
               </div>
-              <div className="flex items-baseline gap-2 shrink-0">
+              <div className="flex items-baseline gap-1.5 shrink-0">
                 <span className="text-sm font-bold text-slate-900">{pct}%</span>
-                <span className="text-xs text-slate-400 tabular-nums">({s.value.toLocaleString()})</span>
+                <span className="hidden sm:inline text-xs text-slate-400 tabular-nums">({s.value.toLocaleString()})</span>
               </div>
             </div>
           );
@@ -524,21 +524,21 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="px-4 py-6 sm:px-6 md:px-8 md:py-8 space-y-6 md:space-y-8 animate-fade-in">
       {/* Page header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-bold tracking-tight text-slate-900">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
             Dashboard
           </h1>
-          <p className="mt-2 text-base text-slate-500 text-balance">
+          <p className="mt-1.5 text-sm text-slate-500 text-balance sm:text-base">
             Welcome back! Here&apos;s what&apos;s happening with consents.
           </p>
         </div>
       </div>
 
-      {/* Metric cards */}
-      <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-4">
+      {/* Metric cards — 1 col on mobile, 2 on sm, 4 on xl */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total Consents"
           value={totalConsents}
@@ -573,12 +573,13 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Main grid: Consent Overview + Consent by Purpose */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <CardTitle>Consent Overview</CardTitle>
+      {/* Main grid: Consent Overview + Consent by Purpose
+          Stack on mobile/tablet, side-by-side on lg+ */}
+      <div className="grid gap-5 lg:grid-cols-5">
+        <Card className="lg:col-span-3 min-w-0">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Consent Overview</CardTitle>
               <DateRangeDropdown label="Last 30 days" />
             </div>
           </CardHeader>
@@ -591,9 +592,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Consent by Purpose</CardTitle>
+        <Card className="lg:col-span-2 min-w-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Consent by Purpose</CardTitle>
           </CardHeader>
           <CardContent>
             <DonutChart slices={donutSlices} total={donutTotal} />
@@ -601,12 +602,13 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Bottom grid: Recent Requests + Compliance Status */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <CardTitle>Recent Consent Requests</CardTitle>
+      {/* Bottom grid: Recent Requests + Compliance Status
+          Stack on mobile/tablet, side-by-side on lg+ */}
+      <div className="grid gap-5 lg:grid-cols-5">
+        <Card className="lg:col-span-3 min-w-0">
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitle className="text-base sm:text-lg">Recent Consent Requests</CardTitle>
               <Link
                 href="/dashboard/consent"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors rounded-xl px-3.5 h-9 inline-flex items-center bg-indigo-50 hover:bg-indigo-100/80"
@@ -615,20 +617,21 @@ export default async function DashboardPage() {
               </Link>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1.5">
+          <CardContent className="space-y-1">
             {recentRequests.map((req, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-4 rounded-2xl px-3 -mx-1 py-3 hover:bg-slate-50/80 transition-colors group"
+                className="flex items-center gap-3 rounded-2xl px-3 -mx-1 py-3 hover:bg-slate-50/80 transition-colors"
               >
                 <AvatarFallback name={req.name} idx={idx} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-slate-900 truncate">{req.name}</p>
                   <p className="text-xs text-slate-500 truncate mt-0.5">{req.email}</p>
                 </div>
-                <div className="flex items-center gap-4 shrink-0">
+                {/* On very small screens hide the time, show status only */}
+                <div className="flex shrink-0 items-center gap-2 sm:gap-4">
                   <RequestStatusBadge status={req.status} />
-                  <span className="text-xs text-slate-400 tabular-nums w-14 text-right">
+                  <span className="hidden sm:block text-xs text-slate-400 tabular-nums w-12 text-right">
                     {req.time}
                   </span>
                 </div>
@@ -637,21 +640,22 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Compliance Status</CardTitle>
+        <Card className="lg:col-span-2 min-w-0">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">Compliance Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col md:flex-row items-center gap-6">
+            {/* Side-by-side on sm+, stacked on mobile */}
+            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
               <ComplianceShield />
-              <div className="flex-1 min-w-0 space-y-4 w-full">
+              <div className="flex-1 min-w-0 space-y-3 w-full text-center sm:text-left">
                 <div>
-                  <h4 className="text-lg font-bold text-slate-900">You&apos;re compliant!</h4>
-                  <p className="mt-1.5 text-sm text-slate-500 leading-relaxed">
+                  <h4 className="text-base font-bold text-slate-900 sm:text-lg">You&apos;re compliant!</h4>
+                  <p className="mt-1 text-sm text-slate-500 leading-relaxed">
                     All systems are up to date and running smoothly.
                   </p>
                 </div>
-                <div className="space-y-3 pt-1">
+                <div className="space-y-2.5 pt-1">
                   {complianceChecks.map((label) => (
                     <ComplianceCheckItem key={label} label={label} />
                   ))}
@@ -662,27 +666,25 @@ export default async function DashboardPage() {
         </Card>
       </div>
 
-      {/* Empty state guidance — still there but styled, visible only when no websites */}
+      {/* Empty state — no websites */}
       {websiteCount === 0 && (
         <Card>
           <CardContent className="pt-6">
-            <div className="rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center bg-gradient-to-br from-slate-50 to-indigo-50/30">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl gradient-primary shadow-lg shadow-indigo-500/25">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="rounded-3xl border-2 border-dashed border-slate-200 p-8 md:p-10 text-center bg-gradient-to-br from-slate-50 to-indigo-50/30">
+              <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-3xl gradient-primary shadow-lg shadow-indigo-500/25 md:h-16 md:w-16">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="16" />
                   <line x1="8" y1="12" x2="16" y2="12" />
                 </svg>
               </div>
-              <p className="text-base font-semibold text-slate-800">
-                No websites yet
-              </p>
-              <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
+              <p className="text-base font-semibold text-slate-800">No websites yet</p>
+              <p className="mt-2 text-sm text-slate-500 max-w-sm mx-auto">
                 Add your first website to start collecting consent data and unlock all dashboard analytics.
               </p>
               <Link
                 href="/dashboard/websites/new"
-                className="mt-6 inline-flex items-center gap-2 rounded-2xl gradient-primary text-white px-6 h-11 text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/30 hover:brightness-105 transition-all duration-200"
+                className="mt-6 inline-flex items-center gap-2 rounded-2xl gradient-primary text-white px-5 h-10 text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:brightness-105 transition-all duration-200 md:px-6 md:h-11"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="12" y1="5" x2="12" y2="19" />
@@ -695,62 +697,60 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      {/* Footer stats: website & policy counts */}
+      {/* Footer stat cards: Websites / Policies / Trackers */}
       {websiteCount > 0 && (
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-3">
           <Card>
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl stat-icon-teal text-white shrink-0">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <CardContent className="py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-teal text-white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                   </svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-500">Websites</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{websiteCount}</p>
-                  <p className="text-xs text-slate-400 mt-1">Registered websites</p>
+                  <p className="text-2xl font-bold text-slate-900">{websiteCount}</p>
+                  <p className="text-xs text-slate-400">Registered websites</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl stat-icon-purple text-white shrink-0">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <CardContent className="py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-purple text-white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
                     <line x1="16" y1="13" x2="8" y2="13" />
                     <line x1="16" y1="17" x2="8" y2="17" />
                   </svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-500">Policies</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{policyCount}</p>
-                  <p className="text-xs text-slate-400 mt-1">Across all websites</p>
+                  <p className="text-2xl font-bold text-slate-900">{policyCount}</p>
+                  <p className="text-xs text-slate-400">Across all websites</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="py-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl stat-icon-amber text-white shrink-0">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
+            <CardContent className="py-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-amber text-white">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-500">Trackers</p>
-                  <p className="text-2xl font-bold text-slate-900 mt-1">{trackerCount}</p>
-                  <p className="text-xs text-slate-400 mt-1">Detected across all websites</p>
+                  <p className="text-2xl font-bold text-slate-900">{trackerCount}</p>
+                  <p className="text-xs text-slate-400">Detected across all websites</p>
                 </div>
               </div>
             </CardContent>

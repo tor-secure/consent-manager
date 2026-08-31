@@ -106,6 +106,15 @@ function IconAnalytics() {
   );
 }
 
+function IconRightsRequests() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+    </svg>
+  );
+}
+
 function IconAuditLogs() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -227,8 +236,9 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Security & Governance",
     items: [
-      { label: "Audit Logs", href: "/dashboard/audit-logs", icon: <IconAuditLogs />, ariaLabel: "Review audit logs" },
-      { label: "Notifications", href: "/dashboard/notifications", icon: <IconNotifications />, ariaLabel: "View notifications" },
+      { label: "Audit Logs",       href: "/dashboard/audit-logs",       icon: <IconAuditLogs />,       ariaLabel: "Review audit logs" },
+      { label: "Notifications",    href: "/dashboard/notifications",    icon: <IconNotifications />,   ariaLabel: "View notifications" },
+      { label: "Rights Requests",  href: "/dashboard/rights-requests",  icon: <IconRightsRequests />,  ariaLabel: "Manage DPDP rights requests" },
     ],
   },
   {

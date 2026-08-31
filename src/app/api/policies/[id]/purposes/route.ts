@@ -3,23 +3,19 @@ import { NextResponse } from "next/server";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // ---------------------------------------------------------------------------
 // Shared: resolve org + verify policy ownership, return latest version id
 // ---------------------------------------------------------------------------
 
 async function resolveContext(policyId: string, orgId: string) {
-  const [organization] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
+  const organization = await resolveLocalOrganization(orgId);
 
   if (!organization) return null;
 
@@ -74,6 +70,21 @@ export async function POST(
 
     if (!isAuthenticated || !userId || !orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
+    const localOrg = await resolveLocalOrganization(orgId);
+    if (!localOrg) {
+      return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
+    }
+
+    const membership = await resolveActiveMembership(localOrg.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
 
     const ctx = await resolveContext(policyId, orgId);

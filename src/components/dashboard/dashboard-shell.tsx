@@ -179,9 +179,9 @@ export function DashboardShell({
             </div>
           </header>
 
-          {/* Page content */}
+          {/* Page content — no wrapper padding; each page owns its own spacing */}
           <main className="flex-1 min-w-0 overflow-x-hidden">
-            <div className="px-5 md:px-8 py-6 md:py-10">{children}</div>
+            {children}
           </main>
         </div>
       </div>

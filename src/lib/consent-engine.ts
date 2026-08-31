@@ -181,6 +181,25 @@ export async function appendConsentEvent({
 }
 
 // ---------------------------------------------------------------------------
+// isConsentExpired — returns true when the record has passed its expiresAt
+// timestamp and has not been explicitly withdrawn.
+// A null expiresAt means the consent never expires (treat as valid).
+// This function is pure (no I/O) and safe to call in both server and edge.
+// ---------------------------------------------------------------------------
+
+export function isConsentExpired(record: {
+  expiresAt: Date | null;
+  status: string;
+  withdrawnAt: Date | null;
+}): boolean {
+  // Withdrawn consent is handled separately — not considered "expired".
+  if (record.status === "withdrawn" || record.withdrawnAt !== null) return false;
+  // No expiry date → never expires.
+  if (!record.expiresAt) return false;
+  return new Date(record.expiresAt) < new Date();
+}
+
+// ---------------------------------------------------------------------------
 // deriveOverallStatus — given a list of decisions, determine the overall
 // consent record status string.
 // ---------------------------------------------------------------------------

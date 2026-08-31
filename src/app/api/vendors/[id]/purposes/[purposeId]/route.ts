@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { vendors } from "@/db/schema/vendors";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // ---------------------------------------------------------------------------
 // DELETE /api/vendors/[id]/purposes/[purposeId]
@@ -24,14 +24,19 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
 
+    const organization = await resolveLocalOrganization(orgId);
     if (!organization) {
       return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
+    }
+
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
 
     // Verify vendor belongs to this org.

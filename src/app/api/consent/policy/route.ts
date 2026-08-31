@@ -88,6 +88,10 @@ export async function GET(request: Request) {
         name: purposes.name,
         description: purposes.description,
         isRequired: purposes.isRequired,
+        // DPDP Rule 3 enrichment
+        dataCategories:  purposes.dataCategories,
+        retentionPeriod: purposes.retentionPeriod,
+        legalBasis:      purposes.legalBasis,
       })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))

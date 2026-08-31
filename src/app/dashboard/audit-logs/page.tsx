@@ -8,10 +8,8 @@ import { organizations } from "@/db/schema/organizations";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { users } from "@/db/schema/users";
 import { AuditLogFilters } from "@/components/audit-logs/audit-log-filters";
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 const PAGE_SIZE = 50;
 
@@ -19,46 +17,27 @@ const PAGE_SIZE = 50;
 // Helpers
 // ---------------------------------------------------------------------------
 
-function ActionBadge({ action }: { action: string }) {
-  // Colour by verb prefix.
+function actionVariant(action: string): "success" | "primary" | "danger" | "purple" | "warning" | "neutral" {
   const verb = action.split(".")[0]?.toLowerCase() ?? "";
-  const styles: Record<string, string> = {
-    create: "bg-green-50 text-green-700",
-    update: "bg-blue-50 text-blue-700",
-    delete: "bg-red-50 text-red-700",
-    login: "bg-purple-50 text-purple-700",
-    logout: "bg-neutral-100 text-neutral-600",
-    publish: "bg-amber-50 text-amber-700",
-    archive: "bg-yellow-50 text-yellow-700",
+  const map: Record<string, "success" | "primary" | "danger" | "purple" | "warning" | "neutral"> = {
+    create:  "success",
+    update:  "primary",
+    delete:  "danger",
+    login:   "purple",
+    logout:  "neutral",
+    publish: "warning",
+    archive: "warning",
+    revoke:  "danger",
+    invite:  "primary",
+    connect: "success",
   };
-  return (
-    <span
-      className={`inline-flex items-center rounded px-2 py-0.5 font-mono text-xs ${styles[verb] ?? "bg-neutral-100 text-neutral-600"}`}
-    >
-      {action}
-    </span>
-  );
-}
-
-function ResourceTypeBadge({ type }: { type: string | null }) {
-  if (!type) return <span className="text-neutral-300 text-xs">—</span>;
-  return (
-    <span className="inline-flex items-center rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-600">
-      {type}
-    </span>
-  );
+  return map[verb] ?? "neutral";
 }
 
 function PaginationBar({
-  page,
-  totalCount,
-  q,
-  days,
+  page, totalCount, q, days,
 }: {
-  page: number;
-  totalCount: number;
-  q: string;
-  days: string;
+  page: number; totalCount: number; q: string; days: string;
 }) {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   if (totalPages <= 1) return null;
@@ -73,25 +52,26 @@ function PaginationBar({
   }
 
   return (
-    <div className="mt-4 flex items-center justify-between text-sm text-neutral-500">
+    <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-sm text-slate-500">
       <span>
-        Page {page} of {totalPages} ({totalCount.toLocaleString()} events)
+        Page {page} of {totalPages}{" "}
+        <span className="text-slate-400">({totalCount.toLocaleString()} events)</span>
       </span>
       <div className="flex items-center gap-2">
         {page > 1 && (
           <Link
             href={pageUrl(page - 1)}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            Previous
+            ← Previous
           </Link>
         )}
         {page < totalPages && (
           <Link
             href={pageUrl(page + 1)}
-            className="rounded-md border px-3 py-1.5 text-sm hover:bg-neutral-50"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
-            Next
+            Next →
           </Link>
         )}
       </div>
@@ -100,9 +80,7 @@ function PaginationBar({
 }
 
 // ---------------------------------------------------------------------------
-// Page — server component
-// Auth + bootstrap guaranteed by the dashboard layout.
-// All filtering happens server-side; URL params drive the query.
+// Page
 // ---------------------------------------------------------------------------
 
 export default async function AuditLogsPage({
@@ -118,219 +96,190 @@ export default async function AuditLogsPage({
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
-
   if (!localOrg) return null;
 
   const { q = "", days = "30", page: pageStr = "1" } = await searchParams;
-  const page = Math.max(1, parseInt(pageStr, 10) || 1);
+  const page   = Math.max(1, parseInt(pageStr, 10) || 1);
   const offset = (page - 1) * PAGE_SIZE;
 
-  // ---------------------------------------------------------------------------
-  // Build WHERE clause
-  // ---------------------------------------------------------------------------
-
+  // Build WHERE
   const conditions = [eq(auditLogs.organizationId, localOrg.id)];
-
-  // Date range filter.
   if (days !== "all") {
-    const daysNum = parseInt(days, 10);
-    if (!isNaN(daysNum) && daysNum > 0) {
+    const n = parseInt(days, 10);
+    if (!isNaN(n) && n > 0) {
       const since = new Date();
-      since.setDate(since.getDate() - daysNum);
+      since.setDate(since.getDate() - n);
       conditions.push(gte(auditLogs.createdAt, since));
     }
   }
-
-  // Search filter — matches action or resourceType.
   const trimmedQ = q.trim();
   if (trimmedQ) {
-    const pattern = `%${trimmedQ}%`;
+    const pat = `%${trimmedQ}%`;
     conditions.push(
-      or(
-        ilike(auditLogs.action, pattern),
-        ilike(auditLogs.resourceType, pattern),
-        ilike(auditLogs.description, pattern),
-      )!,
+      or(ilike(auditLogs.action, pat), ilike(auditLogs.resourceType, pat), ilike(auditLogs.description, pat))!,
     );
   }
-
   const whereClause = and(...conditions);
 
-  // ---------------------------------------------------------------------------
-  // Fetch total count and page of rows in parallel.
-  // ---------------------------------------------------------------------------
-
-  const [countResult, rows] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(auditLogs)
-      .where(whereClause)
+  const [totalCount, rows] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(auditLogs).where(whereClause)
       .then((r) => r[0]?.count ?? 0),
-
-    db
-      .select({
-        id: auditLogs.id,
-        userId: auditLogs.userId,
-        action: auditLogs.action,
-        resourceType: auditLogs.resourceType,
-        resourceId: auditLogs.resourceId,
-        description: auditLogs.description,
-        metadata: auditLogs.metadata,
-        ipAddress: auditLogs.ipAddress,
-        createdAt: auditLogs.createdAt,
-      })
-      .from(auditLogs)
-      .where(whereClause)
-      .orderBy(desc(auditLogs.createdAt))
-      .limit(PAGE_SIZE)
-      .offset(offset),
+    db.select({
+      id: auditLogs.id,
+      userId: auditLogs.userId,
+      action: auditLogs.action,
+      resourceType: auditLogs.resourceType,
+      resourceId: auditLogs.resourceId,
+      description: auditLogs.description,
+      metadata: auditLogs.metadata,
+      ipAddress: auditLogs.ipAddress,
+      createdAt: auditLogs.createdAt,
+    })
+      .from(auditLogs).where(whereClause).orderBy(desc(auditLogs.createdAt))
+      .limit(PAGE_SIZE).offset(offset),
   ]);
 
-  const totalCount = Number(countResult);
-
-  // Resolve user names for the rows on this page.
   const userIds = [...new Set(rows.map((r) => r.userId).filter(Boolean) as string[])];
-
-  const userRows =
-    userIds.length > 0
-      ? await db
-          .select({ id: users.id, name: users.name, email: users.email })
-          .from(users)
-          .where(
-            userIds.length === 1
-              ? eq(users.id, userIds[0])
-              : sql`${users.id} = ANY(${sql.raw(`ARRAY[${userIds.map((id) => `'${id}'`).join(",")}]::uuid[]`)})`,
-          )
-      : [];
-
+  const userRows = userIds.length > 0
+    ? await db.select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(userIds.length === 1
+          ? eq(users.id, userIds[0])
+          : sql`${users.id} = ANY(${sql.raw(`ARRAY[${userIds.map((id) => `'${id}'`).join(",")}]::uuid[]`)})`)
+    : [];
   const userMap = new Map(userRows.map((u) => [u.id, u]));
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
-
   return (
-    <div className="p-8">
-      {/* Page header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-neutral-900">Audit Logs</h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          A read-only record of all actions performed in your organization.
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Audit Logs</h1>
+        <p className="mt-1 text-sm text-slate-500">
+          A read-only record of all actions performed in your organisation.
         </p>
       </div>
 
-      {/* Filters — client island, wrapped in Suspense for useSearchParams */}
-      <Suspense fallback={<div className="mb-6 h-10" />}>
-        <AuditLogFilters
-          currentQ={q}
-          currentDays={days}
-          totalCount={totalCount}
-        />
+      {/* ── Filters ──────────────────────────────────────────────────────── */}
+      <Suspense fallback={<div className="h-10" />}>
+        <AuditLogFilters currentQ={q} currentDays={days} totalCount={Number(totalCount)} />
       </Suspense>
 
-      {/* Empty state */}
+      {/* ── Empty state ──────────────────────────────────────────────────── */}
       {rows.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">No audit events found</p>
-          <p className="mt-1 text-sm text-neutral-400">
-            {trimmedQ || days !== "all"
-              ? "Try adjusting your search or date range."
-              : "Audit events will appear here as actions are performed."}
-          </p>
-          {(trimmedQ || days !== "all") && (
-            <Link
-              href="/dashboard/audit-logs"
-              className="mt-4 inline-block text-sm text-neutral-900 underline underline-offset-2"
-            >
-              Clear filters
-            </Link>
-          )}
-        </div>
+        <Card>
+          <div className="flex flex-col items-center gap-4 py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+                className="text-slate-300">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-base font-semibold text-slate-700">No audit events found</p>
+              <p className="mt-1 text-sm text-slate-500">
+                {trimmedQ || days !== "all"
+                  ? "Try adjusting your search or date range."
+                  : "Audit events will appear here as actions are performed."}
+              </p>
+            </div>
+            {(trimmedQ || days !== "all") && (
+              <Link
+                href="/dashboard/audit-logs"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Clear filters
+              </Link>
+            )}
+          </div>
+        </Card>
       )}
 
-      {/* Log table */}
+      {/* ── Log table ────────────────────────────────────────────────────── */}
       {rows.length > 0 && (
-        <>
-          <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="min-w-full divide-y text-sm">
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
               <thead>
-                <tr className="bg-neutral-50 text-left text-xs font-medium uppercase tracking-wider text-neutral-500">
-                  <th className="px-4 py-3">Timestamp</th>
-                  <th className="px-4 py-3">Actor</th>
-                  <th className="px-4 py-3">Action</th>
-                  <th className="px-4 py-3">Resource</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">IP</th>
+                <tr className="border-b border-slate-100 bg-slate-50/60">
+                  {["Timestamp", "Actor", "Action", "Resource", "Description", "IP"].map((h) => (
+                    <th key={h}
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y divide-slate-100">
                 {rows.map((row) => {
                   const actor = row.userId ? userMap.get(row.userId) : null;
 
                   return (
-                    <tr key={row.id} className="transition hover:bg-neutral-50">
+                    <tr key={row.id} className="group transition-colors hover:bg-slate-50/80">
+
                       {/* Timestamp */}
-                      <td className="whitespace-nowrap px-4 py-3 text-xs text-neutral-500">
-                        <time dateTime={row.createdAt.toISOString()}>
+                      <td className="whitespace-nowrap px-5 py-3.5">
+                        <time dateTime={row.createdAt.toISOString()} className="text-xs text-slate-500">
                           {row.createdAt.toLocaleDateString("en-GB", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
+                            day: "numeric", month: "short", year: "numeric",
                           })}
-                          <span className="ml-1.5 text-neutral-400">
+                          <span className="ml-1.5 text-slate-400">
                             {row.createdAt.toLocaleTimeString("en-GB", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
+                              hour: "2-digit", minute: "2-digit", second: "2-digit",
                             })}
                           </span>
                         </time>
                       </td>
 
                       {/* Actor */}
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-3.5">
                         {actor ? (
                           <div>
-                            <p className="font-medium text-neutral-900">{actor.name}</p>
-                            <p className="text-xs text-neutral-400">{actor.email}</p>
+                            <p className="font-medium text-slate-800">{actor.name}</p>
+                            <p className="text-xs text-slate-400">{actor.email}</p>
                           </div>
                         ) : (
-                          <span className="text-xs text-neutral-400">System</span>
+                          <span className="text-xs text-slate-400">System</span>
                         )}
                       </td>
 
                       {/* Action */}
-                      <td className="px-4 py-3">
-                        <ActionBadge action={row.action} />
+                      <td className="px-5 py-3.5">
+                        <Badge variant={actionVariant(row.action)} size="sm"
+                          className="font-mono">
+                          {row.action}
+                        </Badge>
                       </td>
 
                       {/* Resource */}
-                      <td className="px-4 py-3">
-                        <ResourceTypeBadge type={row.resourceType} />
-                        {row.resourceId && (
-                          <p className="mt-0.5 font-mono text-xs text-neutral-400">
-                            {row.resourceId.slice(0, 8)}…
-                          </p>
+                      <td className="px-5 py-3.5">
+                        {row.resourceType ? (
+                          <Badge variant="neutral" size="sm" className="font-mono">
+                            {row.resourceType}
+                          </Badge>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
                         )}
                       </td>
 
                       {/* Description */}
-                      <td className="max-w-xs px-4 py-3 text-neutral-600">
-                        <p className="truncate">{row.description ?? "—"}</p>
-                        {/* Show non-empty metadata as a collapsed summary */}
-                        {row.metadata && Object.keys(row.metadata).length > 0 && (
-                          <p className="mt-0.5 truncate text-xs text-neutral-400">
-                            {Object.keys(row.metadata)
-                              .slice(0, 3)
-                              .map((k) => `${k}: ${String(row.metadata[k]).slice(0, 20)}`)
-                              .join(" · ")}
-                          </p>
-                        )}
+                      <td className="max-w-xs px-5 py-3.5 text-xs text-slate-500">
+                        <p className="line-clamp-2">{row.description ?? "—"}</p>
                       </td>
 
                       {/* IP */}
-                      <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-neutral-500">
-                        {row.ipAddress ?? <span className="text-neutral-300">—</span>}
+                      <td className="px-5 py-3.5">
+                        {row.ipAddress ? (
+                          <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-500">
+                            {String(row.ipAddress)}
+                          </code>
+                        ) : (
+                          <span className="text-slate-300 text-xs">—</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -339,8 +288,8 @@ export default async function AuditLogsPage({
             </table>
           </div>
 
-          <PaginationBar page={page} totalCount={totalCount} q={q} days={days} />
-        </>
+          <PaginationBar page={page} totalCount={Number(totalCount)} q={q} days={days} />
+        </Card>
       )}
     </div>
   );

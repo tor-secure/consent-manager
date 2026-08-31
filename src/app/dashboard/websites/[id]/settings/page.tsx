@@ -66,34 +66,22 @@ export default async function WebsiteSettingsPage({
   };
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
       {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-6 flex items-center gap-2 text-sm text-neutral-500"
-      >
-        <Link href="/dashboard/websites" className="hover:text-neutral-900">
-          Websites
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link
-          href={`/dashboard/websites/${website.id}`}
-          className="hover:text-neutral-900"
-        >
-          {website.name}
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Settings</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <span className="text-slate-900">Settings</span>
       </nav>
 
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">
-          Website Settings
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Website Settings</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Update the configuration for{" "}
-          <span className="font-medium text-neutral-700">{website.name}</span>.
+          <span className="font-medium text-slate-700">{website.name}</span>.
         </p>
       </div>
 

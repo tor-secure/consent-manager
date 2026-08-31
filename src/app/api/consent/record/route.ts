@@ -17,6 +17,7 @@ import {
   buildDecisionRows,
   appendConsentEvent,
   deriveOverallStatus,
+  isConsentExpired,
   type ConsentSubmission,
 } from "@/lib/consent-engine";
 
@@ -63,6 +64,13 @@ export async function GET(request: Request) {
       );
     }
 
+    // ── Expiry check ────────────────────────────────────────────────────
+    // If the consent has expired we return it with expired=true and
+    // requiresReconsent=true so the SDK can surface the banner again.
+    // We do NOT mutate the DB here — the record is updated only when the
+    // visitor makes a new explicit choice (POST).
+    const expired = isConsentExpired(record);
+
     const decisions = await db
       .select()
       .from(consentDecisions)
@@ -71,22 +79,32 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        // expired=true means the stored consent should not be honoured.
+        // The SDK treats this identically to "no stored consent" and will
+        // re-show the banner / Preference Center.
+        expired,
+        requiresReconsent: expired,
         record: {
           id: record.id,
           consentId: record.consentId,
-          status: record.status,
+          // If expired, override the logical status so callers don't treat
+          // it as accepted/rejected.
+          status: expired ? "expired" : record.status,
           consentedAt: record.consentedAt,
           expiresAt: record.expiresAt,
           withdrawnAt: record.withdrawnAt,
           policyVersionId: record.policyVersionId,
         },
-        decisions: decisions.map((d) => ({
-          purposeId: d.purposeId,
-          vendorId: d.vendorId,
-          granted: d.granted,
-          decision: d.decision,
-          decidedAt: d.decidedAt,
-        })),
+        // When expired, return empty decisions so the SDK has a clean slate.
+        decisions: expired
+          ? []
+          : decisions.map((d) => ({
+              purposeId: d.purposeId,
+              vendorId: d.vendorId,
+              granted: d.granted,
+              decision: d.decision,
+              decidedAt: d.decidedAt,
+            })),
       },
       { headers: CORS_HEADERS },
     );
@@ -190,7 +208,7 @@ export async function POST(request: Request) {
 
     // Load all purposes and vendors attached to this version.
     const versionPurposes = await db
-      .select({ id: purposes.id, isRequired: purposes.isRequired })
+      .select({ id: purposes.id, key: purposes.key, name: purposes.name, isRequired: purposes.isRequired })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
       .where(eq(policyPurposes.policyVersionId, latestVersion.id));
@@ -222,8 +240,49 @@ export async function POST(request: Request) {
     const now = new Date();
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
 
+    // ── Consent evidence snapshot ────────────────────────────────────────
+    // Stored in consent_records.metadata (existing JSONB field, always {}).
+    // Captures the notice/policy state at the exact moment consent was given
+    // so that the evidence bundle can be reconstructed later even if the
+    // policy is subsequently edited or purposes are renamed.
+    const purposeKeys = versionPurposes.map((p) => p.key).sort();
+    const purposeNames = versionPurposes.map((p) => p.name).sort();
+
+    const evidenceMetadata: Record<string, unknown> = {
+      // Policy / notice version presented
+      policyVersionId:     latestVersion.id,
+      policyVersionNumber: latestVersion.version,
+
+      // Notice text snapshot (what the visitor actually saw)
+      noticeTitle:       bannerConfig.title,
+      noticeDescription: bannerConfig.description,
+      noticeLanguage:    bannerConfig.language || "en",
+
+      // Banner appearance context
+      bannerLayout:   bannerConfig.layout,
+      bannerPosition: bannerConfig.position,
+
+      // Purposes and vendors in scope at consent time
+      purposeCount:  versionPurposes.length,
+      vendorCount:   vendorIds.length,
+      purposeKeys,           // human-readable keys preserved against future renaming
+      purposeNames,          // display names at consent time
+
+      // Consent mechanics
+      consentExpireDays: bannerConfig.consentExpireDays,
+      defaultConsent:    bannerConfig.defaultConsent,
+
+      // Technical context
+      capturedAt: now.toISOString(),
+    };
+
+    // User-agent is NOT captured here because it is not available server-side
+    // in the App Router API route without reading an incoming header. The SDK
+    // can pass it as body.context.userAgent in a future extension.
+
     let consentRecord: typeof consentRecords.$inferSelect;
     const isNew = !body.consentId;
+    let wasExpiredRecord = false; // set inside the else branch, used for event type
 
     await db.transaction(async (tx) => {
       if (isNew) {
@@ -243,7 +302,7 @@ export async function POST(request: Request) {
             source: "web",
             consentedAt: now,
             expiresAt,
-            metadata: {},
+            metadata: evidenceMetadata,
           })
           .returning();
       } else {
@@ -263,6 +322,11 @@ export async function POST(request: Request) {
           throw new Error("Consent record not found or already withdrawn");
         }
 
+        // ── Expiry handling on re-consent ──────────────────────────────
+        // When a visitor submits new consent for an expired record we accept
+        // it as a valid re-consent (same consentId, fresh timestamps).
+        wasExpiredRecord = isConsentExpired(existing[0]);
+
         [consentRecord] = await tx
           .update(consentRecords)
           .set({
@@ -270,6 +334,7 @@ export async function POST(request: Request) {
             policyVersionId: latestVersion.id,
             consentedAt: now,
             expiresAt,
+            metadata: evidenceMetadata,
             updatedAt: now,
           })
           .where(
@@ -305,14 +370,30 @@ export async function POST(request: Request) {
     });
 
     // Append consent event outside transaction (best-effort, non-blocking).
+    // Use a distinct event type when re-consenting after expiry so the audit
+    // trail clearly shows the visitor renewed an expired consent.
+    let eventType: string;
+    if (isNew) {
+      eventType = "consent.created";
+    } else if (wasExpiredRecord) {
+      eventType = "consent.expired_and_renewed";
+    } else {
+      eventType = "consent.updated";
+    }
+
     await appendConsentEvent({
       consentRecordId: consentRecord!.id,
       policyVersionId: latestVersion.id,
-      eventType: isNew ? "consent.created" : "consent.updated",
+      eventType,
       eventData: {
         choice: submission.choice,
         status: overallStatus,
         decisionCount: decisionRows.length,
+        // Evidence: human-readable purpose keys and version number at consent
+        // time, preserved even if purposes are renamed or policy is edited.
+        policyVersionNumber: latestVersion.version,
+        purposeKeys,
+        ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
       },
     });
 

@@ -4,8 +4,8 @@ import { eq, and } from "drizzle-orm";
 import { createHash, randomBytes } from "crypto";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 // All supported event types — validated server-side, never trusted from body.
 export const WEBHOOK_EVENT_TYPES = [
@@ -40,16 +40,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const localUser = await resolveLocalUser(userId);
+
+    if (!localUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 },
+      );
+    }
+
+    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json(
         { success: false, message: "Organization not found" },
         { status: 404 },
+      );
+    }
+
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json(
+        { success: false, message: "You do not belong to this organization." },
+        { status: 403 },
       );
     }
 

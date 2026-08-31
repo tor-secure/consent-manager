@@ -7,6 +7,11 @@ import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
+import {
+  resolveLocalOrganization,
+  resolveLocalUser,
+  resolveActiveMembership,
+} from "@/lib/api-auth-helpers";
 
 export async function POST(request: Request) {
   try {
@@ -26,17 +31,29 @@ export async function POST(request: Request) {
       );
     }
 
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json(
+        { success: false, message: "User not found" },
+        { status: 404 },
+      );
+    }
+
     // Resolve local org — never trust client-supplied IDs.
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json(
         { success: false, message: "Organization not found" },
         { status: 404 },
+      );
+    }
+
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json(
+        { success: false, message: "You do not belong to this organization." },
+        { status: 403 },
       );
     }
 

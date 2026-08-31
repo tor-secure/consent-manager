@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { CreateWebhookForm } from "./create-webhook-form";
 
 // ---------------------------------------------------------------------------
@@ -29,39 +31,12 @@ export type WebhookEndpointRow = {
   verified: boolean;
   lastDeliveryAt: Date | null;
   createdAt: Date;
-  // Recent deliveries for this endpoint (pre-fetched server-side)
   deliveries: DeliveryRow[];
 };
 
 // ---------------------------------------------------------------------------
-// Small helpers
+// Helpers
 // ---------------------------------------------------------------------------
-
-function DeliveryStatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    success: "bg-green-50 text-green-700",
-    failed: "bg-red-50 text-red-700",
-    pending: "bg-neutral-100 text-neutral-600",
-    retrying: "bg-amber-50 text-amber-700",
-  };
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[status] ?? styles.pending}`}>
-      {status}
-    </span>
-  );
-}
-
-function EndpointStatusBadge({ status }: { status: string }) {
-  return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-      status === "active"
-        ? "bg-green-50 text-green-700 ring-1 ring-green-600/20"
-        : "bg-neutral-100 text-neutral-600 ring-1 ring-neutral-500/20"
-    }`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
 
 function fmt(date: Date | null) {
   if (!date) return "—";
@@ -74,18 +49,12 @@ function fmtTime(date: Date | null) {
 }
 
 // ---------------------------------------------------------------------------
-// Signing secret one-time banner (reuse ApiKeyCreatedBanner pattern)
+// Signing-secret one-time banner
 // ---------------------------------------------------------------------------
 
 function SigningSecretBanner({
-  secret,
-  name,
-  onDismiss,
-}: {
-  secret: string;
-  name: string;
-  onDismiss: () => void;
-}) {
+  secret, name, onDismiss,
+}: { secret: string; name: string; onDismiss: () => void }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -97,36 +66,35 @@ function SigningSecretBanner({
   }
 
   return (
-    <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-5">
-      <div className="mb-1 flex items-start justify-between gap-4">
+    <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+      <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-green-800">
+          <p className="text-sm font-semibold text-emerald-800">
             Webhook signing secret — copy it now
           </p>
-          <p className="mt-0.5 text-xs text-green-700">
-            &ldquo;{name}&rdquo; — This secret is shown only once. Use it to verify webhook
-            signatures on your server.
+          <p className="mt-0.5 text-xs text-emerald-700">
+            &ldquo;{name}&rdquo; — Shown only once. Use it to verify webhook signatures on your server.
           </p>
         </div>
         <button
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="shrink-0 rounded p-1 text-green-600 hover:bg-green-100"
+          className="shrink-0 rounded-xl p-1.5 text-emerald-600 transition hover:bg-emerald-100"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2 2l10 10M12 2 2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        <code className="flex-1 overflow-x-auto rounded-md border border-green-200 bg-white px-3 py-2 font-mono text-sm text-neutral-900 select-all">
+      <div className="flex items-center gap-2">
+        <code className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-sm text-slate-900 select-all">
           {secret}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="shrink-0 rounded-md border border-green-300 bg-white px-3 py-2 text-sm font-medium text-green-800 hover:bg-green-50"
+          className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
@@ -140,10 +108,7 @@ function SigningSecretBanner({
 // ---------------------------------------------------------------------------
 
 function EndpointCard({
-  endpoint,
-  onToggle,
-  onDelete,
-  busyId,
+  endpoint, onToggle, onDelete, busyId,
 }: {
   endpoint: WebhookEndpointRow;
   onToggle: (id: string, newStatus: "active" | "disabled") => void;
@@ -152,30 +117,29 @@ function EndpointCard({
 }) {
   const [showDeliveries, setShowDeliveries] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
   const isActive = endpoint.status === "active";
 
   return (
-    <div className="rounded-lg border bg-white">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 p-5">
+    <Card>
+      {/* Header row */}
+      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-neutral-900">{endpoint.name}</p>
-            <EndpointStatusBadge status={endpoint.status} />
+            <p className="font-semibold text-slate-900">{endpoint.name}</p>
+            <Badge variant={isActive ? "success" : "neutral"} size="sm" className="capitalize">
+              {endpoint.status}
+            </Badge>
             {endpoint.verified && (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
-                Verified
-              </span>
+              <Badge variant="primary" size="sm">Verified</Badge>
             )}
           </div>
-          <code className="mt-1 block truncate font-mono text-xs text-neutral-500">
+          <code className="mt-1 block truncate font-mono text-xs text-slate-500">
             {endpoint.url}
           </code>
           {endpoint.description && (
-            <p className="mt-1 text-sm text-neutral-500">{endpoint.description}</p>
+            <p className="mt-1 text-sm text-slate-500">{endpoint.description}</p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-neutral-400">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <span>Created {fmt(endpoint.createdAt)}</span>
             {endpoint.lastDeliveryAt && (
               <span>Last delivery {fmt(endpoint.lastDeliveryAt)}</span>
@@ -184,12 +148,12 @@ function EndpointCard({
         </div>
 
         {/* Actions */}
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
           <button
             type="button"
             disabled={busyId === endpoint.id}
             onClick={() => onToggle(endpoint.id, isActive ? "disabled" : "active")}
-            className="rounded-md border px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-40"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40"
           >
             {busyId === endpoint.id ? "…" : isActive ? "Disable" : "Enable"}
           </button>
@@ -198,25 +162,25 @@ function EndpointCard({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-md border px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+              className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 shadow-sm transition hover:bg-rose-50"
             >
               Delete
             </button>
           ) : (
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-neutral-500">Confirm?</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-slate-500">Confirm?</span>
               <button
                 type="button"
                 disabled={busyId === endpoint.id}
                 onClick={() => onDelete(endpoint.id)}
-                className="rounded-md bg-red-600 px-2 py-1 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-40"
+                className="rounded-xl bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-40"
               >
                 Yes, delete
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-md border px-2 py-1 text-xs text-neutral-600 hover:bg-neutral-50"
+                className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
               >
                 Cancel
               </button>
@@ -227,15 +191,15 @@ function EndpointCard({
 
       {/* Subscribed events */}
       {endpoint.subscribedEvents.length > 0 && (
-        <div className="border-t px-5 py-3">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+        <div className="border-t border-slate-100 px-5 py-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
             Subscribed events ({endpoint.subscribedEvents.length})
           </p>
           <div className="flex flex-wrap gap-1.5">
             {endpoint.subscribedEvents.map((ev) => (
               <code
                 key={ev}
-                className="rounded bg-neutral-100 px-2 py-0.5 font-mono text-xs text-neutral-600"
+                className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600"
               >
                 {ev}
               </code>
@@ -244,20 +208,17 @@ function EndpointCard({
         </div>
       )}
 
-      {/* Delivery history toggle */}
-      <div className="border-t px-5 py-3">
+      {/* Delivery history */}
+      <div className="border-t border-slate-100 px-5 py-3">
         <button
           type="button"
           onClick={() => setShowDeliveries((v) => !v)}
-          className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-900"
+          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 rounded-lg"
         >
           <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
+            width="14" height="14" viewBox="0 0 14 14" fill="none"
             aria-hidden="true"
-            className={`transition-transform ${showDeliveries ? "rotate-90" : ""}`}
+            className={`transition-transform duration-150 ${showDeliveries ? "rotate-90" : ""}`}
           >
             <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -267,35 +228,44 @@ function EndpointCard({
         {showDeliveries && (
           <div className="mt-3">
             {endpoint.deliveries.length === 0 ? (
-              <p className="text-xs text-neutral-400">No deliveries yet.</p>
+              <p className="text-xs text-slate-400">No deliveries yet.</p>
             ) : (
-              <div className="overflow-hidden rounded-md border">
-                <table className="min-w-full divide-y text-xs">
-                  <thead className="bg-neutral-50 text-neutral-500">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="min-w-full divide-y divide-slate-100 text-xs">
+                  <thead className="bg-slate-50/60">
                     <tr>
-                      <th className="px-3 py-2 text-left font-medium uppercase tracking-wide">Event</th>
-                      <th className="px-3 py-2 text-left font-medium uppercase tracking-wide">Status</th>
-                      <th className="px-3 py-2 text-left font-medium uppercase tracking-wide">HTTP</th>
-                      <th className="px-3 py-2 text-left font-medium uppercase tracking-wide">Attempt</th>
-                      <th className="px-3 py-2 text-left font-medium uppercase tracking-wide">Sent</th>
+                      {["Event", "Status", "HTTP", "Attempt", "Sent"].map((h) => (
+                        <th key={h} className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-slate-500">
+                          {h}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y bg-white">
+                  <tbody className="divide-y divide-slate-100 bg-white">
                     {endpoint.deliveries.map((d) => (
-                      <tr key={d.id} className="hover:bg-neutral-50">
+                      <tr key={d.id} className="hover:bg-slate-50/80">
                         <td className="px-3 py-2">
-                          <code className="rounded bg-neutral-100 px-1.5 py-0.5 font-mono text-neutral-600">
+                          <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">
                             {d.eventType}
                           </code>
                         </td>
                         <td className="px-3 py-2">
-                          <DeliveryStatusBadge status={d.status} />
+                          <Badge
+                            variant={
+                              d.status === "success" ? "success"
+                              : d.status === "failed" ? "danger"
+                              : d.status === "retrying" ? "warning"
+                              : "neutral"
+                            }
+                            size="sm"
+                            className="capitalize"
+                          >
+                            {d.status}
+                          </Badge>
                         </td>
-                        <td className="px-3 py-2 text-neutral-600">
-                          {d.responseStatusCode ?? "—"}
-                        </td>
-                        <td className="px-3 py-2 text-neutral-500">#{d.attemptNumber}</td>
-                        <td className="px-3 py-2 text-neutral-400">{fmtTime(d.sentAt)}</td>
+                        <td className="px-3 py-2 text-slate-600">{d.responseStatusCode ?? "—"}</td>
+                        <td className="px-3 py-2 text-slate-500">#{d.attemptNumber}</td>
+                        <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{fmtTime(d.sentAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -305,31 +275,25 @@ function EndpointCard({
           </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 }
 
 // ---------------------------------------------------------------------------
-// WebhookEndpointManager — top-level client component
+// WebhookEndpointManager
 // ---------------------------------------------------------------------------
 
 export function WebhookEndpointManager({
   initialEndpoints,
-}: {
-  initialEndpoints: WebhookEndpointRow[];
-}) {
+}: { initialEndpoints: WebhookEndpointRow[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [createdSecret, setCreatedSecret] = useState<{
-    secret: string;
-    name: string;
-  } | null>(null);
+  const [createdSecret, setCreatedSecret] = useState<{ secret: string; name: string } | null>(null);
 
   async function toggleEndpoint(id: string, newStatus: "active" | "disabled") {
-    setBusyId(id);
-    setError("");
+    setBusyId(id); setError("");
     try {
       const res = await fetch(`/api/webhooks/endpoints/${id}`, {
         method: "PATCH",
@@ -341,30 +305,23 @@ export function WebhookEndpointManager({
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   async function deleteEndpoint(id: string) {
-    setBusyId(id);
-    setError("");
+    setBusyId(id); setError("");
     try {
-      const res = await fetch(`/api/webhooks/endpoints/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Failed to delete endpoint");
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   return (
-    <div>
+    <div className="space-y-4">
       {/* One-time secret banner */}
       {createdSecret && (
         <SigningSecretBanner
@@ -376,26 +333,29 @@ export function WebhookEndpointManager({
 
       {/* Global error */}
       {error && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <svg className="h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16"
+            stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 5v3M8 11h.01" />
+          </svg>
           {error}
+          <button onClick={() => setError("")} className="ml-auto shrink-0 text-rose-400 hover:text-rose-600">✕</button>
         </div>
       )}
 
       {/* Create form */}
-      <div className="mb-6">
-        <CreateWebhookForm
-          onCreated={(created) => {
-            setCreatedSecret({ secret: created.signingSecret, name: created.name });
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
-        />
-      </div>
+      <CreateWebhookForm
+        onCreated={(created) => {
+          setCreatedSecret({ secret: created.signingSecret, name: created.name });
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
 
       {/* Empty state */}
       {initialEndpoints.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">No webhook endpoints yet</p>
-          <p className="mt-1 text-sm text-neutral-400">
+        <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+          <p className="text-sm font-medium text-slate-600">No webhook endpoints yet</p>
+          <p className="mt-1 text-sm text-slate-400">
             Create an endpoint to start receiving webhook events.
           </p>
         </div>

@@ -58,14 +58,14 @@ function HeaderIconButton({
 function HeaderLeft() {
   return (
     <>
-      <div className="lg:hidden flex items-center gap-2.5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-md shadow-indigo-500/25">
+      <div className="lg:hidden flex items-center gap-2.5 min-w-0">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl gradient-primary shadow-md shadow-indigo-500/25">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
             <path d="M9 12l2 2 4-4" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-        <span className="text-base font-bold text-slate-900">Consent Manager</span>
+        <span className="hidden sm:block text-base font-bold text-slate-900 truncate">Consent Manager</span>
       </div>
       <div className="lg:ml-0">
         <OrganizationSwitcher
@@ -110,6 +110,7 @@ function HeaderRight() {
             userButtonTrigger:
               "h-11 rounded-2xl px-2 py-1.5 bg-white soft-shadow hover:bg-slate-50 transition-all duration-200 gap-2.5 border-0",
             userButtonAvatarBox: "h-8 w-8 rounded-xl",
+            userButtonOuterIdentifier: "hidden sm:block",
           },
         }}
         showName={true}

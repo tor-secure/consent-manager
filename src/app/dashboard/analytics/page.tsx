@@ -210,6 +210,10 @@ export default async function AnalyticsPage({
           .where(
             and(
               eq(consentRecords.organizationId, localOrg.id),
+              // Scope purposes to this org — prevents cross-org purpose name
+              // leakage when a purposeId from another org is present in decisions.
+              eq(purposes.organizationId, localOrg.id),
+              inArray(consentRecords.websiteId, websiteIds),
               sql`${consentDecisions.purposeId} IS NOT NULL`,
               since ? gte(consentRecords.createdAt, since) : undefined,
             ),
@@ -239,6 +243,7 @@ export default async function AnalyticsPage({
           .where(
             and(
               eq(consentRecords.organizationId, localOrg.id),
+              inArray(consentRecords.websiteId, websiteIds),
               since ? gte(consentEvents.occurredAt, since) : undefined,
             ),
           )
@@ -311,6 +316,7 @@ export default async function AnalyticsPage({
           .where(
             and(
               eq(consentRecords.organizationId, localOrg.id),
+              inArray(consentRecords.websiteId, websiteIds),
               since ? gte(consentEvents.occurredAt, since) : undefined,
             ),
           )

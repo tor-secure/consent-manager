@@ -1,13 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
-import { users } from "@/db/schema/users";
 import { apiKeys } from "@/db/schema/api-keys";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { generateApiKey } from "@/lib/api-key-utils";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 const VALID_ENVIRONMENTS = ["live", "test"] as const;
 
@@ -19,24 +17,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const [organization] = await db
-      .select({ id: organizations.id })
-      .from(organizations)
-      .where(eq(organizations.clerkOrganizationId, orgId))
-      .limit(1);
+    const localUser = await resolveLocalUser(userId);
+
+    if (!localUser) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+
+    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
     }
 
-    const [localUser] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.clerkUserId, userId))
-      .limit(1);
-
-    if (!localUser) {
-      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
 
     const body = await request.json();

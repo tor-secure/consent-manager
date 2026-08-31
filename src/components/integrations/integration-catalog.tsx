@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 // ---------------------------------------------------------------------------
-// Types — serializable props from the server page
+// Types
 // ---------------------------------------------------------------------------
 
 export type IntegrationEntry = {
@@ -17,12 +19,11 @@ export type IntegrationEntry = {
   iconUrl: string | null;
   documentationUrl: string | null;
   isOfficial: boolean;
-  // Connections for this integration across org websites
   connections: ConnectionEntry[];
 };
 
 export type ConnectionEntry = {
-  connectionId: string; // websiteIntegrations.id
+  connectionId: string;
   websiteId: string;
   websiteName: string;
   websiteDomain: string;
@@ -42,27 +43,25 @@ export type WebsiteOption = {
 // ---------------------------------------------------------------------------
 
 function CategoryBadge({ category }: { category: string }) {
-  const styles: Record<string, string> = {
-    analytics: "bg-blue-50 text-blue-700",
-    "tag-manager": "bg-purple-50 text-purple-700",
-    advertising: "bg-orange-50 text-orange-700",
-    "customer-data": "bg-teal-50 text-teal-700",
-    "consent-mode": "bg-green-50 text-green-700",
-    crm: "bg-pink-50 text-pink-700",
-    other: "bg-neutral-100 text-neutral-600",
+  const variantMap: Record<string, "primary" | "purple" | "warning" | "success" | "neutral"> = {
+    analytics:       "primary",
+    "tag-manager":   "purple",
+    advertising:     "warning",
+    "customer-data": "success",
+    "consent-mode":  "success",
+    crm:             "purple",
+    other:           "neutral",
   };
   return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${styles[category] ?? styles.other}`}
-    >
+    <Badge variant={variantMap[category] ?? "neutral"} size="sm" className="capitalize">
       {category.replace(/-/g, " ")}
-    </span>
+    </Badge>
   );
 }
 
 function OfficialBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-600">
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <circle cx="5" cy="5" r="4.25" fill="#16a34a" />
         <path d="M3 5l1.5 1.5 2.5-3" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
@@ -77,71 +76,48 @@ function OfficialBadge() {
 // ---------------------------------------------------------------------------
 
 function IntegrationCard({
-  integration,
-  websites,
-}: {
-  integration: IntegrationEntry;
-  websites: WebsiteOption[];
-}) {
+  integration, websites,
+}: { integration: IntegrationEntry; websites: WebsiteOption[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [selectedWebsiteId, setSelectedWebsiteId] = useState(
-    websites[0]?.id ?? "",
-  );
+  const [selectedWebsiteId, setSelectedWebsiteId] = useState(websites[0]?.id ?? "");
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  // Which websites are not yet connected to this integration.
-  const connectedWebsiteIds = new Set(
-    integration.connections.map((c) => c.websiteId),
-  );
-  const unconnectedWebsites = websites.filter(
-    (w) => !connectedWebsiteIds.has(w.id),
-  );
+  const connectedIds = new Set(integration.connections.map((c) => c.websiteId));
+  const unconnected  = websites.filter((w) => !connectedIds.has(w.id));
 
   async function connect() {
     if (!selectedWebsiteId) return;
-    setBusyId("connect");
-    setError("");
+    setBusyId("connect"); setError("");
     try {
       const res = await fetch("/api/integrations/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          integrationId: integration.id,
-          websiteId: selectedWebsiteId,
-        }),
+        body: JSON.stringify({ integrationId: integration.id, websiteId: selectedWebsiteId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Failed to connect");
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   async function disconnect(connectionId: string) {
-    setBusyId(connectionId);
-    setError("");
+    setBusyId(connectionId); setError("");
     try {
-      const res = await fetch(
-        `/api/integrations/${connectionId}/disconnect`,
-        { method: "DELETE" },
-      );
+      const res = await fetch(`/api/integrations/${connectionId}/disconnect`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Failed to disconnect");
       startTransition(() => router.refresh());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+    } finally { setBusyId(null); }
   }
 
   return (
-    <div className="flex flex-col rounded-lg border bg-white p-5">
+    <div className="flex flex-col rounded-2xl bg-white card-shadow p-5">
       {/* Header */}
       <div className="flex items-start gap-3">
         {integration.iconUrl ? (
@@ -151,53 +127,50 @@ function IntegrationCard({
             alt={integration.name}
             width={36}
             height={36}
-            className="h-9 w-9 rounded-md object-contain"
+            className="h-9 w-9 rounded-xl object-contain"
           />
         ) : (
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-neutral-100 text-lg font-bold text-neutral-400">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-base font-bold text-slate-400">
             {integration.name.charAt(0)}
           </div>
         )}
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-neutral-900">{integration.name}</p>
+            <p className="font-semibold text-slate-900">{integration.name}</p>
             {integration.isOfficial && <OfficialBadge />}
           </div>
-          <p className="text-xs text-neutral-400">{integration.provider}</p>
+          <p className="text-xs text-slate-400">{integration.provider}</p>
         </div>
 
-        <CategoryBadge category={integration.category} />
+        <div className="shrink-0">
+          <CategoryBadge category={integration.category} />
+        </div>
       </div>
 
       {/* Description */}
       {integration.description && (
-        <p className="mt-3 text-sm text-neutral-500">{integration.description}</p>
+        <p className="mt-3 text-sm text-slate-500">{integration.description}</p>
       )}
 
       {/* Connected websites */}
       {integration.connections.length > 0 && (
         <div className="mt-4">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-neutral-400">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
             Connected ({integration.connections.length})
           </p>
           <ul role="list" className="space-y-1.5">
             {integration.connections.map((c) => (
               <li
                 key={c.connectionId}
-                className="flex items-center justify-between rounded-md border bg-neutral-50 px-3 py-2 text-sm"
+                className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
               >
-                <div>
-                  <span className="font-medium text-neutral-800">{c.websiteName}</span>
-                  <span className="ml-1.5 text-xs text-neutral-400">{c.websiteDomain}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="font-medium text-slate-800">{c.websiteName}</span>
+                  <span className="ml-1.5 text-xs text-slate-400 hidden sm:inline">{c.websiteDomain}</span>
                   {c.connectedAt && (
-                    <span className="ml-2 text-xs text-neutral-400">
-                      since{" "}
-                      {c.connectedAt.toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    <span className="ml-2 text-xs text-slate-400 hidden sm:inline">
+                      since {c.connectedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   )}
                 </div>
@@ -205,7 +178,7 @@ function IntegrationCard({
                   type="button"
                   disabled={isPending || busyId === c.connectionId}
                   onClick={() => disconnect(c.connectionId)}
-                  className="ml-3 shrink-0 rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-40"
+                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-40"
                 >
                   {busyId === c.connectionId ? "…" : "Disconnect"}
                 </button>
@@ -215,15 +188,15 @@ function IntegrationCard({
         </div>
       )}
 
-      {/* Connect to another website */}
-      {unconnectedWebsites.length > 0 && (
-        <div className="mt-4 flex items-center gap-2">
+      {/* Connect selector */}
+      {unconnected.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <select
             value={selectedWebsiteId}
             onChange={(e) => setSelectedWebsiteId(e.target.value)}
-            className="flex-1 rounded-md border px-2 py-1.5 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+            className="h-9 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
           >
-            {unconnectedWebsites.map((w) => (
+            {unconnected.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.domain})
               </option>
@@ -233,33 +206,31 @@ function IntegrationCard({
             type="button"
             disabled={isPending || busyId === "connect" || !selectedWebsiteId}
             onClick={connect}
-            className="shrink-0 rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
           >
             {busyId === "connect" ? "…" : "Connect"}
           </button>
         </div>
       )}
 
-      {unconnectedWebsites.length === 0 && websites.length > 0 && (
-        <p className="mt-4 text-xs text-neutral-400">
-          Connected to all your websites.
-        </p>
+      {unconnected.length === 0 && websites.length > 0 && (
+        <p className="mt-4 text-xs text-slate-400">Connected to all your websites.</p>
       )}
 
       {/* Error */}
       {error && (
-        <p className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
           {error}
         </p>
       )}
 
-      {/* Documentation link */}
+      {/* Documentation */}
       {integration.documentationUrl && (
         <a
           href={integration.documentationUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-auto pt-4 text-xs text-neutral-400 underline underline-offset-2 hover:text-neutral-700"
+          className="mt-auto pt-4 text-xs text-slate-400 underline underline-offset-2 transition hover:text-slate-600"
         >
           Documentation →
         </a>
@@ -269,16 +240,12 @@ function IntegrationCard({
 }
 
 // ---------------------------------------------------------------------------
-// IntegrationCatalog — top-level client component
+// IntegrationCatalog
 // ---------------------------------------------------------------------------
 
 export function IntegrationCatalog({
-  integrations,
-  websites,
-}: {
-  integrations: IntegrationEntry[];
-  websites: WebsiteOption[];
-}) {
+  integrations, websites,
+}: { integrations: IntegrationEntry[]; websites: WebsiteOption[] }) {
   const [categoryFilter, setCategoryFilter] = useState("all");
 
   const categories = [
@@ -286,31 +253,26 @@ export function IntegrationCatalog({
     ...new Set(integrations.map((i) => i.category)),
   ].sort((a, b) => (a === "all" ? -1 : b === "all" ? 1 : a.localeCompare(b)));
 
-  const filtered =
-    categoryFilter === "all"
-      ? integrations
-      : integrations.filter((i) => i.category === categoryFilter);
+  const filtered = categoryFilter === "all"
+    ? integrations
+    : integrations.filter((i) => i.category === categoryFilter);
 
-  // Count total active connections across all integrations.
-  const totalConnections = integrations.reduce(
-    (sum, i) => sum + i.connections.length,
-    0,
-  );
+  const totalConnections = integrations.reduce((sum, i) => sum + i.connections.length, 0);
 
   return (
-    <div>
-      {/* Category filter tabs */}
+    <div className="space-y-5">
+      {/* Category filter pills */}
       {categories.length > 2 && (
-        <div className="mb-6 flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
           {categories.map((cat) => (
             <button
               key={cat}
               type="button"
               onClick={() => setCategoryFilter(cat)}
-              className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
+              className={`rounded-2xl px-3 py-1.5 text-xs font-medium capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 categoryFilter === cat
-                  ? "bg-neutral-900 text-white"
-                  : "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 soft-shadow"
               }`}
             >
               {cat === "all" ? `All (${integrations.length})` : cat.replace(/-/g, " ")}
@@ -319,50 +281,54 @@ export function IntegrationCatalog({
         </div>
       )}
 
-      {/* Summary */}
+      {/* Summary pill */}
       {totalConnections > 0 && (
-        <p className="mb-4 text-sm text-neutral-500">
-          {totalConnections} active connection{totalConnections !== 1 ? "s" : ""} across your
-          websites.
-        </p>
-      )}
-
-      {/* Empty state — no integrations in catalog */}
-      {integrations.length === 0 && (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-sm font-medium text-neutral-600">
-            No integrations available
-          </p>
-          <p className="mt-1 text-sm text-neutral-400">
-            Integration catalog entries will appear here once added.
-          </p>
+        <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow self-start">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span className="font-semibold text-slate-800">{totalConnections}</span>
+          <span className="text-slate-500">active connection{totalConnections !== 1 ? "s" : ""}</span>
         </div>
       )}
 
-      {/* Empty state — no websites */}
+      {/* Empty — no catalog */}
+      {integrations.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
+            <p className="text-sm font-semibold text-slate-700">No integrations available</p>
+            <p className="text-xs text-slate-400">Integration catalog entries will appear here once added.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty — no websites */}
       {integrations.length > 0 && websites.length === 0 && (
-        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+            stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <path strokeLinecap="round" d="M8 2l6 12H2z" />
+            <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
+          </svg>
           Add a website before connecting integrations.
         </div>
       )}
 
-      {/* Empty filter result */}
+      {/* Empty filter */}
       {integrations.length > 0 && filtered.length === 0 && (
-        <div className="rounded-lg border border-dashed p-8 text-center">
-          <p className="text-sm text-neutral-500">
-            No integrations in this category.
-          </p>
-          <button
-            type="button"
-            onClick={() => setCategoryFilter("all")}
-            className="mt-3 text-sm text-neutral-900 underline underline-offset-2"
-          >
-            Show all
-          </button>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <p className="text-sm text-slate-500">No integrations in this category.</p>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("all")}
+              className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+            >
+              Show all
+            </button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Integration grid */}
+      {/* Grid */}
       {filtered.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((integration) => (

@@ -40,14 +40,14 @@ export default async function DevelopersPage() {
   const activeCount = rows.filter((k) => k.status === "active").length;
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">API Keys</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">API Keys</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Manage API keys for programmatic access to the CMP API.{" "}
           {activeCount > 0 && (
-            <span className="text-neutral-700">
+            <span className="font-medium text-slate-700">
               {activeCount} active key{activeCount !== 1 ? "s" : ""}.
             </span>
           )}
@@ -55,10 +55,17 @@ export default async function DevelopersPage() {
       </div>
 
       {/* Security notice */}
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        <strong>Security:</strong> API keys grant access to your organization&apos;s data. Keep them
-        secret and never commit them to source control. Revoke any key that may have been
-        compromised.
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+          stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" d="M8 2l6 12H2z" />
+          <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
+        </svg>
+        <p>
+          <strong className="font-semibold">Security reminder:</strong>{" "}
+          API keys grant access to your organisation&apos;s data. Keep them secret and never
+          commit them to source control. Revoke any key that may have been compromised.
+        </p>
       </div>
 
       <ApiKeyManager initialKeys={keyList} />

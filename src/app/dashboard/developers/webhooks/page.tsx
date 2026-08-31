@@ -102,20 +102,20 @@ export default async function WebhooksPage() {
   const activeCount = endpointRows.filter((e) => e.status === "active").length;
 
   return (
-    <div className="p-8">
+    <div className="px-5 py-8 md:px-8 md:py-10 space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-6 flex items-center gap-2 text-sm text-neutral-500">
-        <Link href="/dashboard/developers" className="hover:text-neutral-900">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+        <Link href="/dashboard/developers" className="transition hover:text-slate-900">
           API Keys
         </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Webhooks</span>
+        <span className="text-slate-300" aria-hidden="true">/</span>
+        <span className="text-slate-900">Webhooks</span>
       </nav>
 
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">Webhooks</h1>
-        <p className="mt-1 text-sm text-neutral-500">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Webhooks</h1>
+        <p className="mt-1 text-sm text-slate-500">
           Receive real-time event notifications at your endpoints.
           {endpointRows.length > 0 && (
             <> {activeCount} active endpoint{activeCount !== 1 ? "s" : ""}.</>
@@ -124,13 +124,19 @@ export default async function WebhooksPage() {
       </div>
 
       {/* Security notice */}
-      <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-        <strong>Verify signatures:</strong> Every delivery includes a{" "}
-        <code className="rounded bg-amber-100 px-1 font-mono text-xs">
-          X-CMP-Signature
-        </code>{" "}
-        header. Use your endpoint&apos;s signing secret to verify the payload has not
-        been tampered with.
+      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+          stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" d="M8 2l6 12H2z" />
+          <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
+        </svg>
+        <p>
+          <strong className="font-semibold">Verify signatures:</strong> Every delivery includes a{" "}
+          <code className="rounded-md bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+            X-CMP-Signature
+          </code>{" "}
+          header. Use your endpoint&apos;s signing secret to verify the payload has not been tampered with.
+        </p>
       </div>
 
       <WebhookEndpointManager initialEndpoints={endpoints} />
