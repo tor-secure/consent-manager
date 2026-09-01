@@ -15,7 +15,7 @@ export function PageHeader({
   return (
     <header
       className={[
-        "mb-6 sm:mb-8 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+        "mb-7 sm:mb-9 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
         className,
       ].join(" ")}
     >

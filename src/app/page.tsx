@@ -1,25 +1,37 @@
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { HomeProductPreview } from "@/components/public/home-product-preview";
 import Link from "next/link";
 
-const consentMetrics = [
-  { label: "Consent rate", value: "84%" },
-  { label: "Active policies", value: "12" },
-  { label: "Vendors mapped", value: "48" },
+const productFacts = [
+  "Tenant-scoped workspaces",
+  "Consent records and audit history",
+  "Browser SDK, APIs, and webhooks",
 ];
 
-const heroShowcaseCards = [
-  { label: "Consent Banner", value: "Published", tone: "bg-indigo-50 text-indigo-700" },
-  { label: "Purposes", value: "8 active", tone: "bg-teal-50 text-teal-700" },
-  { label: "Vendors", value: "32 mapped", tone: "bg-slate-100 text-slate-700" },
-  { label: "Analytics", value: "84% opt-in", tone: "bg-emerald-50 text-emerald-700" },
+const valueProps = [
+  {
+    title: "Publish notices companies can maintain",
+    description:
+      "Configure banners, preference centers, and policy versions from one workspace instead of ad-hoc site code.",
+  },
+  {
+    title: "Govern purposes, vendors, and trackers",
+    description:
+      "Map what you collect, who processes it, and which scripts appear on each property.",
+  },
+  {
+    title: "Keep operational evidence close",
+    description:
+      "Review consent activity, scans, rights requests, and administrative changes without leaving the product.",
+  },
 ];
 
 const features = [
   {
     title: "Consent Management",
     description:
-      "Launch polished consent banners, preference centers, and policy versions that are easy to maintain.",
+      "Launch consent banners, preference centers, and policy versions that privacy teams can update without a release cycle for every copy change.",
     icon: (
       <path d="M9 12.75 11.25 15 15 9.75M12 3.75l6 2.25v4.5c0 3.7-2.45 7.15-6 8.25-3.55-1.1-6-4.55-6-8.25V6l6-2.25Z" />
     ),
@@ -27,7 +39,7 @@ const features = [
   {
     title: "Purpose & Vendor Management",
     description:
-      "Map purposes, vendors, data uses, and legal context in one organized governance layer.",
+      "Organize purposes, vendors, and legal context so notices stay aligned with how the business actually uses data.",
     icon: (
       <path d="M7.5 7.5h9M7.5 12h9M7.5 16.5h5.25M5.25 3.75h13.5c.83 0 1.5.67 1.5 1.5v13.5c0 .83-.67 1.5-1.5 1.5H5.25c-.83 0-1.5-.67-1.5-1.5V5.25c0-.83.67-1.5 1.5-1.5Z" />
     ),
@@ -35,7 +47,7 @@ const features = [
   {
     title: "Tracker Scanner",
     description:
-      "Discover scripts, pixels, cookies, and third-party trackers before they create compliance risk.",
+      "Scan a site for scripts, pixels, cookies, and third-party tags, then review findings against the vendors you already manage.",
     icon: (
       <path d="M10.5 18.75a8.25 8.25 0 1 1 5.83-14.08 8.25 8.25 0 0 1-5.83 14.08ZM16.5 16.5l3.75 3.75M8.25 10.5h4.5M10.5 8.25v4.5" />
     ),
@@ -43,23 +55,23 @@ const features = [
   {
     title: "Consent Analytics",
     description:
-      "Track consent rates, preference trends, policy performance, and audit activity over time.",
+      "Inspect consent activity, purpose trends, and workspace reporting from the same control center used to publish notices.",
     icon: (
       <path d="M5.25 18.75V12m6.75 6.75V5.25m6.75 13.5v-9M3.75 20.25h16.5" />
     ),
   },
   {
-    title: "SDK",
+    title: "SDK & enforcement",
     description:
-      "Embed a lightweight browser SDK that loads notices, applies consent state, and enforces controls.",
+      "Install a lightweight browser SDK that loads notices, records choices, and applies preference state on the property.",
     icon: (
       <path d="m8.25 8.25-4.5 3.75 4.5 3.75M15.75 8.25l4.5 3.75-4.5 3.75M13.5 5.25l-3 13.5" />
     ),
   },
   {
-    title: "Privacy Controls",
+    title: "Privacy operations",
     description:
-      "Centralize retention, rights requests, grievance contacts, and evidence needed for privacy operations.",
+      "Handle rights requests, retention settings, grievance contacts, and audit logs alongside consent configuration.",
     icon: (
       <path d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75ZM9 12l2 2 4-4" />
     ),
@@ -68,39 +80,77 @@ const features = [
 
 const workflowSteps = [
   {
-    title: "Website",
-    description: "Add each property that needs a compliant consent experience.",
-    icon: (
-      <path d="M4.5 6.75h15M6 18.75h12A1.5 1.5 0 0 0 19.5 17.25v-10.5A1.5 1.5 0 0 0 18 5.25H6a1.5 1.5 0 0 0-1.5 1.5v10.5A1.5 1.5 0 0 0 6 18.75ZM8.25 9.75h3M8.25 12.75h7.5" />
-    ),
+    title: "Add a website",
+    description: "Register each property that needs a consent experience.",
   },
   {
-    title: "Configure Policy",
+    title: "Configure policy",
     description: "Define notice copy, purposes, vendors, regions, and preference behavior.",
-    icon: (
-      <path d="M8.25 6.75h7.5M8.25 10.5h7.5M8.25 14.25h4.5M6.75 3.75h10.5A1.5 1.5 0 0 1 18.75 5.25v13.5l-3-1.5-3 1.5-3-1.5-3 1.5V5.25A1.5 1.5 0 0 1 6.75 3.75Z" />
-    ),
   },
   {
-    title: "Install SDK",
-    description: "Place one lightweight script on your site to load and enforce consent.",
-    icon: (
-      <path d="m8.25 9-3.75 3 3.75 3M15.75 9l3.75 3-3.75 3M13.5 6l-3 12" />
-    ),
+    title: "Install the SDK",
+    description: "Place one script so the site can load and enforce consent state.",
   },
   {
-    title: "Visitor Consent",
-    description: "Visitors see a polished banner and choose the purposes they allow.",
-    icon: (
-      <path d="M7.5 12.75 10.5 15.75 16.5 8.25M12 21a8.25 8.25 0 1 0 0-16.5A8.25 8.25 0 0 0 12 21Z" />
-    ),
+    title: "Collect visitor choices",
+    description: "Visitors see the banner or preference center and record their decisions.",
   },
   {
-    title: "Manage Results",
-    description: "Review consent records, scan findings, analytics, and operational controls.",
-    icon: (
-      <path d="M5.25 18.75h13.5M6.75 15.75v-4.5M12 15.75V6M17.25 15.75v-7.5" />
-    ),
+    title: "Operate the workspace",
+    description: "Review records, scans, analytics, and requests from the dashboard.",
+  },
+];
+
+const privacyControls = [
+  {
+    title: "Tenant isolation",
+    description: "Organization data stays scoped to the signed-in workspace.",
+  },
+  {
+    title: "Audit history",
+    description: "Keep operational records of consent activity and administrative changes.",
+  },
+  {
+    title: "Rights requests",
+    description: "Intake and track data-subject requests from a dedicated workspace queue.",
+  },
+  {
+    title: "Retention controls",
+    description: "Configure how long consent and related records are kept in the organization.",
+  },
+];
+
+const platformCapabilities = [
+  {
+    title: "Browser SDK",
+    description: "Load notices, record consent, and apply preference state from a lightweight script.",
+  },
+  {
+    title: "API keys",
+    description: "Issue organization-scoped keys for dashboard-adjacent developer workflows.",
+  },
+  {
+    title: "Webhooks",
+    description: "Subscribe to consent and operational events for downstream systems.",
+  },
+  {
+    title: "Tracker scanner",
+    description: "Scan a site for scripts, pixels, cookies, and third-party tags your team already manages.",
+  },
+];
+
+const monitoringItems = [
+  {
+    title: "Consent activity",
+    description: "See granted and withdrawn records in the analytics workspace.",
+  },
+  {
+    title: "Scan findings",
+    description: "Review detected trackers against mapped vendors and purposes.",
+  },
+  {
+    title: "Notifications",
+    description: "Stay current on operational events from inside the product.",
   },
 ];
 
@@ -108,194 +158,154 @@ const footerGroups = [
   {
     title: "Product",
     links: [
-      { label: "Product", href: "#product" },
-      { label: "Features", href: "#features" },
-      { label: "How It Works", href: "#how-it-works" },
-      { label: "Pricing", href: "#pricing" },
+      { label: "Overview", href: "#product" },
+      { label: "Platform", href: "#features" },
+      { label: "Workflow", href: "#how-it-works" },
+      { label: "Get started", href: "#pricing" },
     ],
   },
   {
-    title: "Resources",
+    title: "Platform",
     links: [
-      { label: "Documentation", href: "#resources" },
-      { label: "SDK Guide", href: "#resources" },
-      { label: "Compliance Hub", href: "#resources" },
-      { label: "Support", href: "#resources" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "#company" },
-      { label: "Customers", href: "#company" },
-      { label: "Contact", href: "#company" },
+      { label: "Security", href: "#solutions" },
+      { label: "Developers", href: "#resources" },
+      { label: "Analytics", href: "#monitoring" },
       { label: "Sign In", href: "/sign-in" },
     ],
   },
   {
-    title: "Legal",
+    title: "Workspace",
     links: [
-      { label: "Privacy", href: "#legal" },
-      { label: "Terms", href: "#legal" },
-      { label: "Security", href: "#legal" },
+      { label: "Dashboard", href: "/dashboard" },
       { label: "Sign Up", href: "/sign-up" },
+      { label: "About", href: "#company" },
     ],
   },
 ];
 
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  align = "left",
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  align?: "left" | "center";
+}) {
+  return (
+    <div className={["public-reveal max-w-2xl", align === "center" ? "mx-auto text-center" : ""].join(" ")}>
+      <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">{eyebrow}</p>
+      <h2 className="mt-3 text-balance text-3xl font-semibold leading-tight tracking-tight text-[var(--foreground)] sm:text-[2.15rem]">
+        {title}
+      </h2>
+      <p className="mt-4 text-base leading-7 text-[var(--muted-foreground)]">{description}</p>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
-    <div className="public-page min-h-screen overflow-hidden text-slate-950">
+    <div className="public-page min-h-screen text-[var(--foreground)]">
       <HomeInteractions />
       <HomeNavbar />
       <main>
-        <section className="public-section public-section-flow relative">
-          <div className="public-gradient-accent absolute left-1/2 top-8 h-72 w-[min(48rem,80vw)] -translate-x-1/2 rounded-full blur-3xl" />
-          <div className="public-parallax-slow absolute right-[8%] top-28 hidden h-24 w-24 rounded-3xl border border-white/70 bg-white/40 shadow-sm backdrop-blur md:block" />
-          <div className="public-parallax-fast absolute left-[4%] bottom-20 hidden h-16 w-16 rounded-full border border-indigo-100 bg-indigo-100/45 shadow-sm md:block" />
-
-          <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[0.95fr_1.05fr] lg:px-8 lg:py-24 xl:gap-16">
-          <div className="public-reveal max-w-3xl">
-            <p className="mb-4 inline-flex rounded-full border border-indigo-100 bg-white px-3 py-1 text-sm font-semibold uppercase tracking-[0.12em] text-indigo-600 shadow-sm">
-              Consent management platform
-            </p>
-            <h1 className="text-balance text-4xl font-semibold leading-tight tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-              Build trust with consent infrastructure that feels effortless.
-            </h1>
-            <p className="mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-              CMP helps SaaS teams launch compliant consent experiences, govern
-              vendors, monitor trackers, and keep audit-ready records across every
-              website from one polished workspace.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/sign-up" className="btn btn-primary min-h-12 rounded-xl px-5">
-                Get Started
-              </Link>
-              <Link
-                href="#product"
-                className="btn min-h-12 rounded-xl border border-slate-200 bg-white px-5 text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950"
-              >
-                See How It Works
-              </Link>
-            </div>
-          </div>
-
-          <div
-            id="product"
-            className="public-scale-reveal relative mx-auto w-full max-w-2xl lg:max-w-none"
-            aria-label="Consent Manager product overview"
-          >
-            <div className="public-parallax-slow absolute -left-8 top-10 h-32 w-32 rounded-full bg-teal-200/35 blur-3xl" />
-            <div className="public-parallax-fast absolute -right-10 bottom-8 h-40 w-40 rounded-full bg-indigo-200/45 blur-3xl" />
-            <div className="public-float-card relative rounded-2xl border border-slate-200 bg-white/95 p-3 shadow-[0_28px_90px_-42px_rgba(15,23,42,0.55)] backdrop-blur">
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
-                <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3">
-                  <div>
-                    <p className="text-xs font-medium text-slate-500">Workspace</p>
-                    <p className="text-sm font-semibold text-slate-950">Privacy Control Center</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                    Live
-                  </span>
-                </div>
-
-                <div className="grid gap-3 p-4 sm:grid-cols-3">
-                  {consentMetrics.map((metric) => (
-                    <div key={metric.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <p className="text-xs font-medium text-slate-500">{metric.label}</p>
-                      <p className="mt-2 text-2xl font-semibold text-slate-950">{metric.value}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-4 p-4 pt-0 lg:grid-cols-[1fr_0.78fr]">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                      <p className="text-sm font-semibold text-slate-950">Consent performance</p>
-                      <p className="text-xs font-medium text-slate-500">Last 30 days</p>
-                    </div>
-                    <div className="space-y-3">
-                      {[
-                        ["Necessary", "100%"],
-                        ["Analytics", "76%"],
-                        ["Marketing", "58%"],
-                      ].map(([label, value]) => (
-                        <div key={label}>
-                          <div className="mb-1.5 flex justify-between text-xs font-medium text-slate-600">
-                            <span>{label}</span>
-                            <span>{value}</span>
-                          </div>
-                          <div className="h-2 rounded-full bg-slate-100">
-                            <div
-                              className="h-2 rounded-full bg-indigo-600"
-                              style={{ width: value }}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-slate-200 bg-slate-950 p-4 text-white shadow-sm">
-                    <p className="text-sm font-semibold">Tracker scan</p>
-                    <p className="mt-1 text-xs text-slate-400">shop.example.com</p>
-                    <div className="mt-5 space-y-3">
-                      {["Analytics vendor mapped", "Marketing pixel blocked", "Policy version published"].map(
-                        (item) => (
-                          <div key={item} className="flex items-center gap-3 text-xs text-slate-200">
-                            <span className="h-2 w-2 rounded-full bg-teal-400" />
-                            <span>{item}</span>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </div>
+        <section className="public-hero public-section-flow">
+          <div className="public-container grid items-center gap-14 py-16 sm:py-20 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-16 lg:py-24 xl:py-28">
+            <div className="max-w-xl">
+              <p className="animate-fade-up hero-stagger-1 mb-5 inline-flex rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">
+                Consent management platform
+              </p>
+              <h1 className="animate-fade-up hero-stagger-2 text-balance text-[2.15rem] font-semibold leading-[1.12] tracking-tight text-[var(--foreground)] sm:text-5xl lg:text-[3.35rem]">
+                Privacy operations for companies that need consent they can actually run.
+              </h1>
+              <p className="animate-fade-up hero-stagger-3 mt-6 max-w-lg text-base leading-7 text-[var(--muted-foreground)] sm:text-lg">
+                Consent Manager helps privacy, legal, and engineering teams publish notices,
+                collect visitor choices, map vendors and trackers, and keep records in one
+                tenant-scoped workspace.
+              </p>
+              <div className="animate-fade-up hero-stagger-4 mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link href="/sign-up" className="btn btn-primary min-h-12 rounded-lg px-5">
+                  Get Started
+                </Link>
+                <Link href="#how-it-works" className="btn btn-secondary min-h-12 rounded-lg px-5">
+                  See the workflow
+                </Link>
               </div>
+              <ul className="animate-fade-up hero-stagger-5 mt-8 space-y-2 text-sm text-[var(--muted-foreground)]">
+                {productFacts.map((fact) => (
+                  <li key={fact} className="flex items-start gap-2">
+                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--accent)]" aria-hidden="true" />
+                    {fact}
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            <div className="pointer-events-none absolute -bottom-7 left-4 right-4 hidden grid-cols-2 gap-3 lg:grid">
-              {heroShowcaseCards.map((card, index) => (
-                <div
-                  key={card.label}
-                  className="public-float rounded-2xl border border-white/80 bg-white/90 p-3 shadow-[0_18px_42px_-28px_rgba(15,23,42,0.55)] backdrop-blur"
-                  style={{ animationDelay: `${index * 180}ms` }}
-                >
-                  <p className="text-xs font-medium text-slate-500">{card.label}</p>
-                  <p className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${card.tone}`}>
-                    {card.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+            <HomeProductPreview />
           </div>
         </section>
 
-        <section id="features" className="public-section public-section-flow border-t border-slate-200/80 bg-white">
-          <div className="public-parallax-slow absolute right-0 top-20 h-56 w-56 rounded-full bg-indigo-100/45 blur-3xl" />
-          <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <div className="public-reveal max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-indigo-600">
-                Features
-              </p>
-              <h2 className="mt-3 text-balance text-3xl font-semibold leading-tight tracking-normal text-slate-950 sm:text-4xl">
-                Everything your team needs to run consent with confidence.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                CMP brings consent UX, tracker discovery, governance workflows, and
-                reporting into a simple operating layer for privacy-focused teams.
-              </p>
+        <section className="public-section public-section-flow public-section-alt border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <SectionHeading
+              eyebrow="Why it exists"
+              title="A control center for consent, not a pile of disconnected tools."
+              description="The product is built for companies that need banners, vendor maps, scans, and records in the same operating layer."
+            />
+            <div className="mt-12 grid gap-6 lg:grid-cols-3">
+              {valueProps.map((item) => (
+                <article
+                  key={item.title}
+                  className="public-reveal border-t border-[var(--border)] pt-6"
+                >
+                  <h3 className="text-lg font-semibold tracking-tight text-[var(--foreground)]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">{item.description}</p>
+                </article>
+              ))}
             </div>
+          </div>
+        </section>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature, index) => (
+        <section id="how-it-works" className="public-section public-section-flow public-section-deep border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <SectionHeading
+              align="center"
+              eyebrow="Workflow"
+              title="From website setup to operational insight."
+              description="A linear path: register the property, configure policy, install the SDK, collect choices, then manage the results."
+            />
+            <ol className="mt-12 grid gap-4 lg:grid-cols-5">
+              {workflowSteps.map((step, index) => (
+                <li
+                  key={step.title}
+                  className="public-reveal rounded-xl border border-[var(--border)] bg-[var(--card)] p-5"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
+                    0{index + 1}
+                  </p>
+                  <h3 className="mt-3 text-base font-semibold text-[var(--foreground)]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{step.description}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section id="features" className="public-section public-section-flow public-section-alt border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <SectionHeading
+              eyebrow="Platform"
+              title="The capabilities already in the workspace."
+              description="Consent UX, governance, scanning, analytics, SDK enforcement, and privacy operations share one visual and data model."
+            />
+            <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map((feature) => (
                 <article
                   key={feature.title}
-                  className="public-reveal public-float-card rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-sm"
-                  style={{ animationDelay: `${index * 45}ms` }}
+                  className="public-reveal public-float-card rounded-xl border border-[var(--border)] bg-[var(--card)] p-6"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--info-soft)] text-[var(--primary)]">
                     <svg
                       aria-hidden="true"
                       viewBox="0 0 24 24"
@@ -309,179 +319,139 @@ export default function Home() {
                       {feature.icon}
                     </svg>
                   </div>
-                  <h3 className="mt-5 text-lg font-semibold tracking-normal text-slate-950">
+                  <h3 className="mt-5 text-lg font-semibold tracking-tight text-[var(--foreground)]">
                     {feature.title}
                   </h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-600">{feature.description}</p>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted-foreground)]">{feature.description}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section id="how-it-works" className="public-section public-section-flow border-t border-slate-200/80 bg-[#f6f7fb]">
-          <div className="public-parallax-fast absolute left-[-3rem] top-24 h-64 w-64 rounded-full bg-teal-100/55 blur-3xl" />
-          <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <div className="public-reveal mx-auto max-w-2xl text-center">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-indigo-600">
-                How it works
-              </p>
-              <h2 className="mt-3 text-balance text-3xl font-semibold leading-tight tracking-normal text-slate-950 sm:text-4xl">
-                From website setup to consent insight in five focused steps.
-              </h2>
-              <p className="mt-4 text-base leading-7 text-slate-600">
-                A simple operating flow helps teams publish, enforce, and monitor
-                consent without stitching together separate tools.
-              </p>
-            </div>
-
-            <div className="mt-12 grid gap-4 lg:grid-cols-5">
-              {workflowSteps.map((step, index) => (
+        <section id="solutions" className="public-section public-section-flow border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <SectionHeading
+              eyebrow="Security & privacy"
+              title="Built around control, isolation, and records."
+              description="Consent Manager is organized around tenant-scoped workspaces and operational history. It does not replace legal advice or claim certifications that are not documented here."
+            />
+            <div className="mt-12 grid gap-4 sm:grid-cols-2">
+              {privacyControls.map((item) => (
                 <article
-                  key={step.title}
-                  className="public-reveal public-float-card relative rounded-2xl border border-slate-200 bg-white/95 p-5 shadow-sm"
-                  style={{ animationDelay: `${index * 55}ms` }}
+                  key={item.title}
+                  className="public-reveal rounded-xl border border-[var(--border)] bg-[var(--card)] p-6"
                 >
-                  {index < workflowSteps.length - 1 ? (
-                    <div
-                      aria-hidden="true"
-                      className="absolute left-1/2 top-full hidden h-4 w-px bg-slate-200 lg:left-auto lg:right-[-0.5rem] lg:top-10 lg:block lg:h-px lg:w-4"
-                    />
-                  ) : null}
-                  <div className="flex items-start gap-4 lg:block">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white shadow-sm">
-                      <svg
-                        aria-hidden="true"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-5 w-5"
-                      >
-                        {step.icon}
-                      </svg>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 lg:mt-5">
-                        <span className="text-xs font-semibold text-indigo-600">
-                          Step {index + 1}
-                        </span>
-                        {index < workflowSteps.length - 1 ? (
-                          <span className="text-xs font-medium text-slate-400 lg:hidden">
-                            -&gt;
-                          </span>
-                        ) : null}
-                      </div>
-                      <h3 className="mt-1.5 text-base font-semibold tracking-normal text-slate-950">
-                        {step.title}
-                      </h3>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {step.description}
-                      </p>
-                    </div>
-                  </div>
+                  <h3 className="text-base font-semibold text-[var(--foreground)]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{item.description}</p>
                 </article>
               ))}
-            </div>
-
-            <div className="public-scale-reveal mt-8 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur sm:p-5">
-              <div className="flex flex-col gap-3 text-sm font-medium text-slate-600 sm:flex-row sm:items-center sm:justify-center">
-                {workflowSteps.map((step, index) => (
-                  <div key={step.title} className="flex items-center gap-3">
-                    <span className="rounded-full bg-indigo-50 px-3 py-1 text-indigo-700">
-                      {step.title}
-                    </span>
-                    {index < workflowSteps.length - 1 ? (
-                      <span aria-hidden="true" className="hidden text-slate-300 sm:inline">
-                        -&gt;
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </section>
 
-        <section id="pricing" className="public-section border-t border-slate-200/80 bg-white">
-          <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
-            <div className="public-scale-reveal relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 px-6 py-12 text-center shadow-[0_30px_100px_-48px_rgba(15,23,42,0.78)] sm:px-10 lg:px-16">
-              <div className="public-gradient-accent absolute inset-x-10 top-0 h-28 rounded-full blur-3xl" />
+        <section id="resources" className="public-section public-section-flow public-section-alt border-t border-[var(--border)]">
+          <div className="public-container grid items-start gap-12 py-16 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:py-24">
+            <SectionHeading
+              eyebrow="Developers"
+              title="SDK, keys, webhooks, and scans in the same product."
+              description="These are existing modules in the workspace, not a partner marketplace or implied certifications."
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              {platformCapabilities.map((item) => (
+                <article
+                  key={item.title}
+                  className="public-reveal rounded-xl border border-[var(--border)] bg-[var(--background)] p-5"
+                >
+                  <h3 className="text-sm font-semibold text-[var(--foreground)]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{item.description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="monitoring" className="public-section public-section-flow public-section-deep border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <SectionHeading
+              eyebrow="Monitoring"
+              title="See what visitors chose and what the site is loading."
+              description="Analytics, scanner results, and in-product notifications stay inside the same shell used to configure consent."
+            />
+            <div className="mt-12 grid gap-4 lg:grid-cols-3">
+              {monitoringItems.map((item) => (
+                <article
+                  key={item.title}
+                  className="public-reveal rounded-xl border border-[var(--border)] bg-[var(--card)] p-6"
+                >
+                  <h3 className="text-base font-semibold text-[var(--foreground)]">{item.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{item.description}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" className="public-section border-t border-[var(--border)]">
+          <div className="public-container py-16 sm:py-20 lg:py-24">
+            <div className="public-scale-reveal relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[#10192b] px-6 py-14 text-center sm:px-10 lg:px-16">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,color-mix(in_srgb,var(--accent)_18%,transparent),transparent_70%)]" />
               <div className="relative">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-indigo-200">
-                Ready to launch
-              </p>
-              <h2 className="mx-auto mt-3 max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-normal text-white sm:text-4xl">
-                Start managing consent, vendors, and privacy controls from one focused workspace.
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-300">
-                Give your team the tools to publish compliant notices, enforce preferences,
-                and keep every consent decision audit-ready.
-              </p>
-              <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-                <Link
-                  href="/sign-up"
-                  className="btn min-h-12 rounded-xl bg-white px-5 text-slate-950 shadow-sm hover:bg-slate-100"
-                >
-                  Get Started
-                </Link>
-                <Link
-                  href="/sign-in"
-                  className="btn min-h-12 rounded-xl border border-white/15 bg-white/10 px-5 text-white hover:bg-white/15"
-                >
-                  Sign In
-                </Link>
-              </div>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[color-mix(in_srgb,white_70%,var(--accent))]">
+                  Start in the workspace
+                </p>
+                <h2 className="mx-auto mt-3 max-w-3xl text-balance text-3xl font-semibold leading-tight tracking-tight text-white sm:text-4xl">
+                  Run consent, vendors, and privacy operations from one product.
+                </h2>
+                <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/65">
+                  Create an organization, add a website, and configure the notice your visitors will see.
+                </p>
+                <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                  <Link href="/sign-up" className="btn min-h-12 rounded-lg bg-white px-5 text-[#10192b] hover:bg-white/90">
+                    Get Started
+                  </Link>
+                  <Link
+                    href="/sign-in"
+                    className="btn min-h-12 rounded-lg border border-white/15 bg-white/5 px-5 text-white hover:bg-white/10"
+                  >
+                    Sign In
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
         </section>
       </main>
 
-      <footer id="site-footer" className="public-section border-t border-slate-200/80 bg-white">
-        <div className="public-parallax-slow absolute bottom-0 right-8 h-44 w-44 rounded-full bg-indigo-100/35 blur-3xl" />
-        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-[1.2fr_2fr]">
-            <div>
+      <footer id="site-footer" className="border-t border-[var(--border)] bg-[var(--card)]">
+        <div className="public-container py-14">
+          <div className="grid gap-10 lg:grid-cols-[1.15fr_1.85fr]">
+            <div id="company">
               <Link
                 href="/"
-                className="inline-flex items-center gap-3 rounded-xl text-slate-950 transition hover:text-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-500"
+                className="inline-flex items-center gap-3 rounded-lg text-[var(--foreground)] transition hover:text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--ring)]"
                 aria-label="CMP home"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-950 text-sm font-semibold text-white shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--primary)] text-[12px] font-semibold text-[var(--primary-foreground)]">
                   CMP
                 </span>
-                <span className="text-sm font-semibold tracking-normal">Consent Manager</span>
+                <span className="text-sm font-semibold">Consent Manager</span>
               </Link>
-              <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
-                Consent infrastructure for SaaS teams that need clean visitor
-                experiences and reliable privacy operations.
+              <p className="mt-4 max-w-sm text-sm leading-6 text-[var(--muted-foreground)]">
+                Consent infrastructure for teams that need clear visitor experiences and
+                reliable privacy operations.
               </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link href="/sign-in" className="text-sm font-medium text-slate-600 transition hover:text-slate-950">
-                  Sign In
-                </Link>
-                <span aria-hidden="true" className="text-slate-300">
-                  /
-                </span>
-                <Link href="/sign-up" className="text-sm font-medium text-indigo-600 transition hover:text-indigo-700">
-                  Sign Up
-                </Link>
-              </div>
             </div>
-
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            <div id="legal" className="grid gap-8 sm:grid-cols-3">
               {footerGroups.map((group) => (
                 <div key={group.title}>
-                  <h2 className="text-sm font-semibold text-slate-950">{group.title}</h2>
+                  <h2 className="text-sm font-semibold text-[var(--foreground)]">{group.title}</h2>
                   <ul className="mt-4 space-y-3">
                     {group.links.map((link) => (
                       <li key={`${group.title}-${link.label}`}>
                         <Link
                           href={link.href}
-                          className="text-sm text-slate-600 transition hover:text-indigo-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
+                          className="text-sm text-[var(--muted-foreground)] transition hover:text-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)]"
                         >
                           {link.label}
                         </Link>
@@ -492,10 +462,9 @@ export default function Home() {
               ))}
             </div>
           </div>
-
-          <div className="mt-10 flex flex-col gap-3 border-t border-slate-200 pt-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-12 flex flex-col gap-3 border-t border-[var(--border)] pt-6 text-sm text-[var(--muted-foreground)] sm:flex-row sm:items-center sm:justify-between">
             <p>&copy; 2026 Consent Manager. All rights reserved.</p>
-            <p>Built for privacy-first teams.</p>
+            <p>Privacy, security, and consent operations.</p>
           </div>
         </div>
       </footer>

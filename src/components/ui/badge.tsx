@@ -9,13 +9,13 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variantStyles: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-700 ring-1 ring-slate-200",
-  success: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20",
-  warning: "bg-amber-50 text-amber-700 ring-1 ring-amber-500/20",
-  danger: "bg-rose-50 text-rose-700 ring-1 ring-rose-500/20",
-  neutral: "bg-slate-100 text-slate-600 ring-1 ring-slate-200",
-  primary: "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500/20",
-  purple: "bg-violet-50 text-violet-700 ring-1 ring-violet-500/20",
+  default: "bg-[var(--muted)] text-[var(--secondary-foreground)] ring-1 ring-[var(--border)]",
+  success: "bg-[var(--success-soft)] text-[var(--success)] ring-1 ring-[color-mix(in_srgb,var(--success)_22%,transparent)]",
+  warning: "bg-[var(--warning-soft)] text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]",
+  danger: "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[color-mix(in_srgb,var(--danger)_22%,transparent)]",
+  neutral: "bg-[var(--muted)] text-[var(--muted-foreground)] ring-1 ring-[var(--border)]",
+  primary: "bg-[var(--info-soft)] text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]",
+  purple: "bg-[var(--muted)] text-[var(--purple)] ring-1 ring-[var(--border)]",
 };
 
 const sizeStyles: Record<BadgeSize, string> = {

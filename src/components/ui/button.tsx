@@ -12,15 +12,15 @@ export interface ButtonProps
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-indigo-600 text-white shadow-sm shadow-indigo-500/20 hover:bg-indigo-500 hover:shadow-md hover:shadow-indigo-500/25 active:bg-indigo-700 active:scale-[0.98]",
+    "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-sm)] hover:bg-[var(--primary-hover)] active:scale-[0.98]",
   secondary:
-    "bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300",
+    "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--hover)]",
   ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    "bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
   outline:
-    "bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300",
+    "bg-[var(--card)] text-[var(--secondary-foreground)] border border-[var(--border)] hover:bg-[var(--muted)]",
   danger:
-    "bg-rose-600 text-white shadow-sm shadow-rose-500/20 hover:bg-rose-500 active:bg-rose-700",
+    "bg-[var(--danger)] text-white shadow-[var(--shadow-sm)] hover:opacity-90 active:scale-[0.98]",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -71,7 +71,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         className={[
           "inline-flex items-center justify-center gap-2 font-medium select-none",
           "transition-[background-color,box-shadow,color,transform,opacity] duration-200 ease-out",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
           "disabled:pointer-events-none disabled:opacity-50",
           variantStyles[variant],
           sizeStyles[size],

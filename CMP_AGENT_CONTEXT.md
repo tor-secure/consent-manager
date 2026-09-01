@@ -4848,3 +4848,151 @@ The most important consent, scanner, webhook, rights request, and health paths n
 ### Next Task
 
 Add a unified `npm test` script or lightweight Node runner that compiles required TypeScript modules into `.tmp`, runs all standalone regression harnesses, and cleans temporary output automatically.
+
+---
+
+# 57. COMPLETED: Light/dark design-system UI/UX pass
+
+### Completed Task
+
+Applied a product-wide visual redesign using shared design tokens, a real dark theme (not a simple invert), and updated primitives/shell/marketing. No database, API, Clerk, consent, scanner, SDK, webhook, or rights-request logic was changed.
+
+### Design tokens / palette
+
+CSS variables on `:root` and `.dark` in `src/app/globals.css`.
+
+Light: cool gray canvas (`#f3f5f8`), navy primary (`#2c4a7c`), teal accent (`#0f766e`), white cards, restrained semantic colors.
+
+Dark: charcoal foundation (`#0b1220`), elevated card (`#121c2e`), lighter blue primary (`#8aa4d4`), teal accent (`#2dd4bf`), distinct border/surface layers.
+
+Also: `--primary-hover`, `--accent-soft`, `--success-soft` / `--warning-soft` / `--danger-soft` / `--info-soft`, `--hover`, `--shadow-sm` / `--shadow-md`, motion duration/easing tokens.
+
+Tailwind `@custom-variant dark (&:where(.dark, .dark *));`. `color-scheme` set per theme.
+
+### Theme implementation
+
+- Theme bootstrap uses `next/script` with `strategy="beforeInteractive"` (not a raw `<script>` in the layout tree). `ThemeProvider` always hydrates as `light`/`resolved=false`, then syncs from storage/DOM after mount so the toggle does not mismatch SSR.
+
+Existing `bg-white` / `text-slate-*` / `border-slate-*` / indigo utility classes are remapped under `html.dark` so dashboard modules inherit the theme without rewriting every page.
+
+### Shared components changed
+
+- Button, Card, Badge, Alert, EmptyState, StatCard, Skeleton — token-based states including hover, focus-visible, disabled, loading.
+- New: Input, Select, Textarea, FormSection.
+- Dashboard shell, sidebar, notification bell, dashboard layout (org switcher/search/profile chrome).
+- Homepage + `HomeNavbar`.
+- Overview charts use token stroke/fill colors (series math unchanged).
+
+### Animation / scroll
+
+- Existing keyframes retained; `prefers-reduced-motion` still disables non-essential motion.
+- Smooth scroll only on `html:has(.public-page)` so dashboard scroll is not forced smooth.
+- Public IO/scroll reveals unchanged.
+
+### Responsive / accessibility
+
+- Shared `.page-wrap`, table scroll, 44px-class controls, visible `:focus-visible`.
+- Live multi-breakpoint browser pass was not available in this session.
+
+### Files changed (principal)
+
+- `src/app/globals.css`, `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/dashboard/layout.tsx`, `src/app/dashboard/page.tsx`
+- `src/app/sign-in/[[...sign-in]]/page.tsx`, `src/app/sign-up/[[...sign-up]]/page.tsx`
+- `src/components/theme/*` (new)
+- `src/components/ui/*` (tokens + new form primitives)
+- `src/components/dashboard/dashboard-shell.tsx`, `sidebar-nav.tsx`
+- `src/components/public/home-navbar.tsx`
+- `src/components/notifications/notification-bell.tsx`
+- `CMP_AGENT_CONTEXT.md`
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- Logger harness was not re-run (requires a separate `tsc --outDir .tmp/logger` compile step)
+
+### Known limitations
+
+- Clerk `SignIn` / `SignUp` / `UserButton` / `OrganizationSwitcher` widgets are not fully restyled for dark mode.
+- Dark coverage for leftover one-off colors (e.g. some `bg-indigo-500`, `text-white` on dark CTAs) relies on remaps plus tokens; a few hardcoded hex values may remain.
+- No dedicated Input wiring on every form yet; forms still use existing markup plus `.field-input` where already present.
+- Browser visual QA (light/dark, mobile, reduced-motion) was not executed here.
+
+### Next Task
+
+Build the Billing page. The next agent must:
+
+- Inspect `src/db/schema/plans.ts`, `src/db/schema/subscriptions.ts`, `src/db/schema/subscription-usage.ts`, and `src/db/schema/invoices.ts`.
+- Build `/dashboard/billing` as an org-scoped billing overview page using the shared Card/Badge/StatCard/Button primitives.
+- Display: current plan name and features, subscription status, billing period, next renewal date, usage metrics from `subscription_usage`, and recent invoices.
+- Do not implement payment processing, Stripe integration, or plan upgrades yet — display only.
+- Update the sidebar "Billing" nav item href from `/dashboard/settings/organization` to `/dashboard/billing`.
+- Run `npx tsc --noEmit` and update `CMP_AGENT_CONTEXT.md`.
+
+---
+
+# 58. COMPLETED: Public homepage and application-layout visual redesign
+
+### Completed Task
+
+Redesigned the public homepage and shared application chrome so the CMP reads as one premium privacy/security SaaS product. No database, API, Clerk, consent, SDK, scanner, webhook, rights-request, or tenant-isolation logic was changed.
+
+### Visual system
+
+- Tokens remain in `src/app/globals.css`: navy primary, teal accent, cool gray/navy foundation, semantic colors, `--header-height: 5rem`, `--public-max: 72rem`.
+- Light: soft canvas, white/cool cards, deep navy type.
+- Dark: charcoal/navy surfaces, elevated cards, lighter blue primary, teal highlights. Grid/dot overlays use `var(--foreground)` so they remain visible in both themes.
+
+### Navbar / header
+
+- Public header is `min-h-20` with a stronger logo lockup, denser nav, theme toggle, and a clearer CTA.
+- Dashboard topbar matches at `h-20` and uses the same surface/blur language as the sidebar.
+- Mobile menu keeps grid-row animation; hamburger remains labeled.
+
+### Homepage
+
+- Layered hero: dots, faint technical lines, radial depth, then alternating section surfaces (`public-section-alt`, `public-section-deep`).
+- Hero copy states what the product is, who it is for, and why it exists, plus product-fact bullets that only describe existing capabilities.
+- Product visual is a labeled workspace/browser preview plus a sample consent notice — not live metrics, logos, or certifications.
+- Sections: value, workflow, platform capabilities, security/privacy, developers, monitoring, final CTA, footer.
+
+### Background / animation / scroll
+
+- Hero and section grids/dots/radials; separators remain thin and restrained.
+- Smooth hash scrolling with sticky-header offset; IO reveals retained; `prefers-reduced-motion` still disables non-essential motion.
+- Hero uses staggered `animate-fade-up` delays.
+
+### Dashboard shell
+
+- Sidebar active state is a soft surface plus teal rail instead of a filled primary pill.
+- Slightly tighter collapsed width; page wrap and page-title spacing increased.
+
+### Files changed
+
+- `src/app/globals.css`
+- `src/app/page.tsx`
+- `src/components/public/home-navbar.tsx`
+- `src/components/public/home-product-preview.tsx` (new)
+- `src/components/public/home-interactions.tsx`
+- `src/components/dashboard/dashboard-shell.tsx`
+- `src/components/dashboard/sidebar-nav.tsx`
+- `src/app/dashboard/layout.tsx`
+- `src/components/ui/page-header.tsx`
+- `CMP_AGENT_CONTEXT.md`
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- Live multi-breakpoint browser QA of light/dark/reduced-motion was not run in this session
+
+### Remaining UI limitations
+
+- Clerk widgets are still not fully restyled.
+- Individual dashboard module pages were not redesigned one-by-one; they inherit tokens, page-wrap, and shell changes.
+- Homepage preview figures remain illustrative sample layout only.
+
+### Next Task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+

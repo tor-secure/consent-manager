@@ -279,21 +279,21 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
         collapsed ? "justify-center px-2" : "",
         isActive
           ? "sidebar-item-active"
-          : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+          : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
       ].join(" ")}
       aria-current={isActive ? "page" : undefined}
     >
       <span
         className={[
           "flex shrink-0 items-center justify-center transition-colors duration-200",
-          isActive ? "text-white" : "text-slate-400 group-hover:text-slate-600",
+          isActive ? "text-[var(--primary)]" : "text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]",
         ].join(" ")}
       >
         {item.icon}
       </span>
       {!collapsed && <span className="truncate">{item.label}</span>}
       {collapsed && (
-        <span className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-xl bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg shadow-slate-900/20 transition-opacity duration-150 group-hover:opacity-100">
+        <span className="pointer-events-none absolute left-full ml-3 z-50 whitespace-nowrap rounded-xl bg-[var(--popover)] px-2.5 py-1.5 text-xs font-medium text-[var(--popover-foreground)] opacity-0 shadow-[var(--shadow-md)] border border-[var(--border)] transition-opacity duration-150 group-hover:opacity-100">
           {item.label}
         </span>
       )}
@@ -305,7 +305,7 @@ function SidebarGroupLabel({ label, collapsed }: { label: string; collapsed: boo
   if (collapsed) return null;
   return (
     <div className="mt-6 first:mt-0 mb-2.5 px-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
         {label}
       </p>
     </div>
@@ -318,16 +318,16 @@ function BrandLogo({ collapsed }: { collapsed: boolean }) {
       suppressHydrationWarning
       className={`flex items-center gap-3 px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-500/20">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
-          <path d="M9 12l2 2 4-4" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M9 12l2 2 4-4" stroke="currentColor" className="text-[var(--primary)]" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
       {!collapsed && (
         <div className="min-w-0">
-          <p className="text-[17px] font-bold tracking-tight text-slate-900">Consent</p>
-          <p className="text-[15px] font-semibold text-slate-500 leading-none">Manager</p>
+          <p className="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Consent</p>
+          <p className="text-[15px] font-semibold text-[var(--muted-foreground)] leading-none">Manager</p>
         </div>
       )}
     </div>
@@ -337,7 +337,7 @@ function BrandLogo({ collapsed }: { collapsed: boolean }) {
 function CompliancePromo({ collapsed }: { collapsed: boolean }) {
   if (collapsed) {
     return (
-      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary shadow-lg shadow-indigo-500/25">
+      <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl gradient-primary">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 11l3 3L22 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -346,24 +346,24 @@ function CompliancePromo({ collapsed }: { collapsed: boolean }) {
     );
   }
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 shadow-sm shadow-indigo-500/20">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+      <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary)]">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M9 11l3 3L22 4" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
-      <h4 className="text-center text-sm font-semibold text-slate-900">
+      <h4 className="text-center text-sm font-semibold text-[var(--foreground)]">
         Stay compliant
       </h4>
-      <p className="mt-1.5 text-center text-xs leading-relaxed text-slate-500">
+      <p className="mt-1.5 text-center text-xs leading-relaxed text-[var(--muted-foreground)]">
         Manage consents and build trust transparently.
       </p>
     </div>
   );
 }
 
-export function SidebarNav({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => void }) {
   return (
     <div
       suppressHydrationWarning

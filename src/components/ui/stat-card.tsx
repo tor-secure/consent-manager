@@ -27,9 +27,9 @@ const iconColorClasses: Record<StatIconColor, string> = {
 };
 
 const trendClasses: Record<StatTrend, string> = {
-  up: "text-emerald-600",
-  down: "text-rose-600",
-  neutral: "text-slate-500",
+  up: "text-[var(--success)]",
+  down: "text-[var(--danger)]",
+  neutral: "text-[var(--muted-foreground)]",
 };
 
 function TrendArrow({ direction }: { direction: StatTrend }) {
@@ -66,14 +66,14 @@ export function StatCard({
   return (
     <div
       className={[
-        "rounded-2xl bg-white card-shadow p-5 sm:p-6 card-lift",
+        "rounded-2xl bg-[var(--card)] border border-[var(--border)] card-shadow p-5 sm:p-6 card-lift",
         className,
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-slate-500">{label}</p>
-          <p className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900 tabular-nums">
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">{label}</p>
+          <p className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--foreground)] tabular-nums">
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
           {(trend || description) && (
@@ -85,7 +85,7 @@ export function StatCard({
                 </span>
               )}
               {description && (
-                <span className="text-slate-400">{description}</span>
+                <span className="text-[var(--muted-foreground)]">{description}</span>
               )}
             </div>
           )}

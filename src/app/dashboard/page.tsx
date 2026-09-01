@@ -142,12 +142,12 @@ function ChartPlaceholder({
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[480px]" role="img" aria-label="Consent overview chart">
         <defs>
           <linearGradient id="activeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6366f1" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
           </linearGradient>
           <linearGradient id="withdrawnFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#f43f5e" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.02" />
+            <stop offset="0%" stopColor="var(--danger)" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="var(--danger)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
 
@@ -158,7 +158,7 @@ function ChartPlaceholder({
               x2={width - padX}
               y1={toY(t / 10000 * maxVal)}
               y2={toY(t / 10000 * maxVal)}
-              stroke="#e2e8f0"
+              stroke="var(--border)"
               strokeDasharray="4 4"
             />
             <text
@@ -166,7 +166,7 @@ function ChartPlaceholder({
               y={toY(t / 10000 * maxVal) + 4}
               textAnchor="end"
               fontSize="10"
-              fill="#94a3b8"
+              fill="var(--muted-foreground)"
               fontFamily="inherit"
             >
               {t / 1000}K
@@ -175,12 +175,12 @@ function ChartPlaceholder({
         ))}
 
         <path d={areaPath(activeSeries)} fill="url(#activeFill)" />
-        <path d={linePath(activeSeries)} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={linePath(activeSeries)} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         {activeSeries.map((v, i) => (
-          <circle key={`a-${i}`} cx={toX(i)} cy={toY(v)} r={i === activeSeries.length - 1 ? 4.5 : 0} fill="white" stroke="#6366f1" strokeWidth="2.5" />
+          <circle key={`a-${i}`} cx={toX(i)} cy={toY(v)} r={i === activeSeries.length - 1 ? 4.5 : 0} fill="var(--card)" stroke="var(--primary)" strokeWidth="2.5" />
         ))}
 
-        <path d={linePath(withdrawnSeries)} fill="none" stroke="#f43f5e" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" opacity="0.75" />
+        <path d={linePath(withdrawnSeries)} fill="none" stroke="var(--danger)" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" opacity="0.75" />
 
         {["Apr 14", "Apr 21", "Apr 28", "May 05", "May 12"].map((label, i) => {
           const idx = Math.floor((i / 4) * (points - 1));
@@ -191,7 +191,7 @@ function ChartPlaceholder({
               y={height - 6}
               textAnchor="middle"
               fontSize="10"
-              fill="#94a3b8"
+              fill="var(--muted-foreground)"
               fontFamily="inherit"
             >
               {label}
@@ -202,12 +202,12 @@ function ChartPlaceholder({
 
       <div className="flex flex-wrap items-center gap-5 mt-4 pl-2">
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-indigo-500" />
-          <span className="text-sm text-slate-600">Active Consents</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--primary)]" />
+          <span className="text-sm text-[var(--muted-foreground)]">Active Consents</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-          <span className="text-sm text-slate-600">Withdrawn Consents</span>
+          <span className="h-2.5 w-2.5 rounded-full bg-[var(--danger)]" />
+          <span className="text-sm text-[var(--muted-foreground)]">Withdrawn Consents</span>
         </div>
       </div>
     </div>
@@ -237,7 +237,7 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
       <div className="relative shrink-0">
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Consent by purpose donut chart">
-          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#f1f5f9" strokeWidth="28" />
+          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="var(--muted)" strokeWidth="28" />
           {slices.map((s, i) => {
             const pct = total > 0 ? s.value / total : 0;
             const dash = pct * circumference;
@@ -262,8 +262,8 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-3xl font-bold text-slate-900">{total.toLocaleString()}</p>
-          <p className="text-sm text-slate-500 mt-1">Total</p>
+          <p className="text-3xl font-bold text-[var(--foreground)]">{total.toLocaleString()}</p>
+          <p className="text-sm text-[var(--muted-foreground)] mt-1">Total</p>
         </div>
       </div>
 
@@ -274,11 +274,11 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
             <div key={i} className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 min-w-0">
                 <span className="h-3 w-3 rounded-full shrink-0" style={{ background: s.color }} />
-                <span className="text-sm font-medium text-slate-700 truncate">{s.name}</span>
+                <span className="text-sm font-medium text-[var(--secondary-foreground)] truncate">{s.name}</span>
               </div>
               <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-sm font-bold text-slate-900">{pct}%</span>
-                <span className="hidden sm:inline text-xs text-slate-400 tabular-nums">({s.value.toLocaleString()})</span>
+                <span className="text-sm font-bold text-[var(--foreground)]">{pct}%</span>
+                <span className="hidden sm:inline text-xs text-[var(--muted-foreground)] tabular-nums">({s.value.toLocaleString()})</span>
               </div>
             </div>
           );
@@ -462,10 +462,10 @@ export default async function DashboardPage() {
   const policyCount = policyRows.length;
 
   const donutSlices: PurposeSlice[] = [
-    { name: "Marketing", color: "#818cf8", value: purposeBreakdown[0]?.granted ?? Math.round(totalConsents * 0.4) },
-    { name: "Analytics", color: "#6ee7b7", value: purposeBreakdown[1]?.granted ?? Math.round(totalConsents * 0.25) },
-    { name: "Personalization", color: "#fdba74", value: purposeBreakdown[2]?.granted ?? Math.round(totalConsents * 0.2) },
-    { name: "Others", color: "#fda4af", value: purposeBreakdown[3]?.granted ?? Math.round(totalConsents * 0.15) },
+    { name: "Marketing", color: "var(--primary)", value: purposeBreakdown[0]?.granted ?? Math.round(totalConsents * 0.4) },
+    { name: "Analytics", color: "var(--accent)", value: purposeBreakdown[1]?.granted ?? Math.round(totalConsents * 0.25) },
+    { name: "Personalization", color: "var(--warning)", value: purposeBreakdown[2]?.granted ?? Math.round(totalConsents * 0.2) },
+    { name: "Others", color: "var(--danger)", value: purposeBreakdown[3]?.granted ?? Math.round(totalConsents * 0.15) },
   ];
   const donutTotal = donutSlices.reduce((a, b) => a + b.value, 0) || totalConsents || 1;
 

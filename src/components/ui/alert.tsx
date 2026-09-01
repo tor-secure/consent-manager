@@ -3,10 +3,10 @@ import * as React from "react";
 type AlertVariant = "error" | "success" | "warning" | "info";
 
 const styles: Record<AlertVariant, string> = {
-  error: "bg-rose-50 text-rose-800 border-rose-200",
-  success: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  warning: "bg-amber-50 text-amber-800 border-amber-200",
-  info: "bg-indigo-50 text-indigo-800 border-indigo-200",
+  error: "bg-[var(--danger-soft)] text-[var(--danger)] border-[color-mix(in_srgb,var(--danger)_28%,transparent)]",
+  success: "bg-[var(--success-soft)] text-[var(--success)] border-[color-mix(in_srgb,var(--success)_28%,transparent)]",
+  warning: "bg-[var(--warning-soft)] text-[var(--warning)] border-[color-mix(in_srgb,var(--warning)_28%,transparent)]",
+  info: "bg-[var(--info-soft)] text-[var(--info)] border-[color-mix(in_srgb,var(--info)_28%,transparent)]",
 };
 
 export function Alert({

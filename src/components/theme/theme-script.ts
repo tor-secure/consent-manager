@@ -1,0 +1,1 @@
+export const THEME_BOOTSTRAP_SCRIPT = `(function(){try{var t=localStorage.getItem("cmp:theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.classList.add("dark");document.documentElement.style.colorScheme="dark";}else{document.documentElement.style.colorScheme="light";}}catch(e){}})();`;

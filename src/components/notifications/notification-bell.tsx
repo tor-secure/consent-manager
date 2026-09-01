@@ -41,7 +41,7 @@ export function NotificationBell() {
           ? `Notifications — ${count} unread`
           : "Notifications"
       }
-      className="relative flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-slate-500 soft-shadow hover:text-slate-900 hover:bg-slate-50 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
+      className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
     >
       <svg
         width="18"
@@ -61,7 +61,7 @@ export function NotificationBell() {
       {loaded && count > 0 && (
         <span
           aria-hidden="true"
-          className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold leading-none text-white shadow-md shadow-rose-500/30 ring-2 ring-white"
+          className="absolute -top-0.5 -right-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--danger)] px-1.5 text-[10px] font-bold leading-none text-white ring-2 ring-[var(--card)]"
         >
           {count > 99 ? "99+" : count}
         </span>

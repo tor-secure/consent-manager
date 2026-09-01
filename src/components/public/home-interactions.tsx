@@ -5,11 +5,12 @@ import { useEffect } from "react";
 const anchorTargets: Record<string, string> = {
   product: "product",
   features: "features",
-  solutions: "how-it-works",
-  resources: "site-footer",
+  solutions: "solutions",
+  resources: "resources",
   pricing: "pricing",
-  company: "site-footer",
-  legal: "site-footer",
+  company: "company",
+  legal: "legal",
+  monitoring: "monitoring",
   "how-it-works": "how-it-works",
 };
 

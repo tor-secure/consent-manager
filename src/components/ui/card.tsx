@@ -10,7 +10,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={[
-          "rounded-2xl bg-white card-shadow",
+          "rounded-2xl bg-[var(--card)] text-[var(--card-foreground)] border border-[var(--border)] card-shadow",
           hover ? "card-lift" : "",
           className,
         ].join(" ")}
@@ -48,7 +48,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
       <h3
         ref={ref}
         className={[
-          "text-lg font-semibold leading-none tracking-tight text-slate-900",
+          "text-lg font-semibold leading-none tracking-tight text-[var(--foreground)]",
           className,
         ].join(" ")}
         {...props}
@@ -67,7 +67,7 @@ const CardDescription = React.forwardRef<HTMLParagraphElement, CardDescriptionPr
     return (
       <p
         ref={ref}
-        className={["text-sm text-slate-500", className].join(" ")}
+        className={["text-sm text-[var(--muted-foreground)]", className].join(" ")}
         {...props}
       >
         {children}
