@@ -20,6 +20,15 @@ export const organizationCoreSelect = {
   deletedAt: organizations.deletedAt,
 };
 
+export const organizationSettingsSelect = {
+  ...organizationCoreSelect,
+  dpoName: organizations.dpoName,
+  dpoEmail: organizations.dpoEmail,
+  grievanceOfficerName: organizations.grievanceOfficerName,
+  grievanceOfficerEmail: organizations.grievanceOfficerEmail,
+  grievancePortalUrl: organizations.grievancePortalUrl,
+};
+
 export type OrganizationCoreRow = {
   [K in keyof typeof organizationCoreSelect]: (typeof organizations.$inferSelect)[K];
 };

@@ -10,7 +10,7 @@ import { roles } from "@/db/schema/roles";
 import { auditLogs } from "@/db/schema/audit-logs";
 
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
-import { organizationCoreSelect } from "@/lib/schema-selects";
+import { organizationCoreSelect, organizationSettingsSelect } from "@/lib/schema-selects";
 
 const AUTHORIZED_ROLES = ["Owner", "Admin"] as const;
 const VALID_REGIONS    = ["IN","EU","US","UK","AU","CA","SG","AE"] as const;
@@ -31,7 +31,7 @@ export async function PUT(request: Request) {
     }
 
     const [organization] = await db
-      .select(organizationCoreSelect)
+      .select(organizationSettingsSelect)
       .from(organizations)
       .where(eq(organizations.clerkOrganizationId, orgId))
       .limit(1);
@@ -179,6 +179,11 @@ export async function PUT(request: Request) {
     diff("defaultLanguage",       organization.defaultLanguage,        defaultLanguage);
     diff("defaultRegion",         organization.defaultRegion,          defaultRegion);
     diff("onboardingCompleted",   organization.onboardingCompleted,    onboardingCompleted);
+    diff("dpoName",               organization.dpoName,                dpoName);
+    diff("dpoEmail",              organization.dpoEmail,               dpoEmail);
+    diff("grievanceOfficerName",  organization.grievanceOfficerName,   grievanceOfficerName);
+    diff("grievanceOfficerEmail", organization.grievanceOfficerEmail,  grievanceOfficerEmail);
+    diff("grievancePortalUrl",    organization.grievancePortalUrl,     grievancePortalUrl);
 
     if (Object.keys(changes).length === 0) {
       return NextResponse.json({ success: true, message: "No changes to save" });

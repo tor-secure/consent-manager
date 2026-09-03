@@ -6,6 +6,7 @@ import { organizations } from "@/db/schema/organizations";
 import { users } from "@/db/schema/users";
 import { memberships } from "@/db/schema/memberships";
 import { roles } from "@/db/schema/roles";
+import { organizationSettingsSelect } from "@/lib/schema-selects";
 import {
   OrganizationSettingsForm,
   type OrgSettingsData,
@@ -20,7 +21,7 @@ export default async function OrganizationSettingsPage() {
   if (!orgId || !clerkUserId) return null;
 
   const [organization] = await db
-    .select(organizationCoreSelect)
+    .select(organizationSettingsSelect)
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
@@ -59,11 +60,11 @@ export default async function OrganizationSettingsPage() {
     defaultLanguage: organization.defaultLanguage,
     defaultRegion: organization.defaultRegion,
     onboardingCompleted: organization.onboardingCompleted,
-    dpoName: null,
-    dpoEmail: null,
-    grievanceOfficerName: null,
-    grievanceOfficerEmail: null,
-    grievancePortalUrl: null,
+    dpoName: organization.dpoName ?? null,
+    dpoEmail: organization.dpoEmail ?? null,
+    grievanceOfficerName: organization.grievanceOfficerName ?? null,
+    grievanceOfficerEmail: organization.grievanceOfficerEmail ?? null,
+    grievancePortalUrl: organization.grievancePortalUrl ?? null,
   };
 
   return (
