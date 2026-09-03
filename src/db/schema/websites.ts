@@ -63,9 +63,7 @@ export const websites = pgTable(
     }),
 
     consentIntegrations: jsonb("consent_integrations")
-      .$type<Record<string, unknown>>()
-      .notNull()
-      .default({}),
+      .$type<Record<string, unknown>>(),
 
     verified: boolean("verified")
       .notNull()

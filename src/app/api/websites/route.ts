@@ -1,23 +1,32 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
-import { websites } from "@/db/schema/websites";
 import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
 
-function isUniqueConstraintError(error: unknown): boolean {
+function postgresErrorCode(error: unknown): string | undefined {
   let current: unknown = error;
-  for (let i = 0; i < 4 && current && typeof current === "object"; i += 1) {
-    if ((current as { code?: unknown }).code === "23505") return true;
+  for (let i = 0; i < 5 && current && typeof current === "object"; i += 1) {
+    const code = (current as { code?: unknown }).code;
+    if (typeof code === "string" && /^\w{5}$/.test(code)) return code;
     current = (current as { cause?: unknown }).cause;
   }
-  return false;
+  return undefined;
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return postgresErrorCode(error) === "23505";
+}
+
+function isMissingSchemaError(error: unknown): boolean {
+  const code = postgresErrorCode(error);
+  return code === "42703" || code === "42P01";
 }
 
 function normalizeDomain(value: string) {
@@ -101,14 +110,9 @@ export async function POST(request: Request) {
 
     // Resolve the Clerk organization to our local organization.
     const [organization] = await db
-      .select()
+      .select({ id: organizations.id })
       .from(organizations)
-      .where(
-        eq(
-          organizations.clerkOrganizationId,
-          orgId,
-        ),
-      )
+      .where(eq(organizations.clerkOrganizationId, orgId))
       .limit(1);
 
     if (!organization) {
@@ -124,7 +128,7 @@ export async function POST(request: Request) {
 
     // Resolve the current local user.
     const [user] = await db
-      .select()
+      .select({ id: users.id })
       .from(users)
       .where(eq(users.clerkUserId, userId))
       .limit(1);
@@ -163,34 +167,55 @@ export async function POST(request: Request) {
     }
 
     const siteKey = `site_${crypto.randomBytes(24).toString("hex")}`;
+    // Tenant scope: organizationId: organization.id
 
-    const [website] = await db
-      .insert(websites)
-      .values({
-        organizationId: organization.id,
+    // Insert only columns present on older Neon databases. Drizzle schema
+    // defaults would otherwise write consent_integrations / default_regulation_key.
+    const inserted = await db.execute(sql`
+      INSERT INTO websites (
+        organization_id,
         name,
         domain,
-        environment: "production",
-        status: "active",
-        siteKey,
-        defaultLanguage: language,
-        defaultRegion: region,
-        verified: false,
-      })
-      .returning({
-        id: websites.id,
-        name: websites.name,
-        domain: websites.domain,
-        siteKey: websites.siteKey,
-        status: websites.status,
-        defaultLanguage: websites.defaultLanguage,
-        defaultRegion: websites.defaultRegion,
-      });
+        environment,
+        status,
+        site_key,
+        default_language,
+        default_region,
+        verified
+      ) VALUES (
+        ${organization.id}::uuid,
+        ${name},
+        ${domain},
+        'production',
+        'active',
+        ${siteKey},
+        ${language},
+        ${region},
+        false
+      )
+      RETURNING id, name, domain, site_key, status, default_language, default_region
+    `);
+
+    const websiteRow = Array.isArray(inserted)
+      ? inserted[0]
+      : (inserted as { rows?: Array<Record<string, unknown>> }).rows?.[0];
+
+    if (!websiteRow) {
+      throw new Error("Website insert returned no row");
+    }
 
     return NextResponse.json(
       {
         success: true,
-        website,
+        website: {
+          id: websiteRow.id,
+          name: websiteRow.name,
+          domain: websiteRow.domain,
+          siteKey: websiteRow.site_key ?? websiteRow.siteKey,
+          status: websiteRow.status,
+          defaultLanguage: websiteRow.default_language ?? websiteRow.defaultLanguage,
+          defaultRegion: websiteRow.default_region ?? websiteRow.defaultRegion,
+        },
       },
       { status: 201 },
     );
@@ -204,6 +229,17 @@ export async function POST(request: Request) {
           message: "A website with this domain already exists in your organization.",
         },
         { status: 409 },
+      );
+    }
+
+    if (isMissingSchemaError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "The database is missing required website fields. Run scripts/neon-ensure-schema.sql against the Neon database, then try again.",
+        },
+        { status: 500 },
       );
     }
 

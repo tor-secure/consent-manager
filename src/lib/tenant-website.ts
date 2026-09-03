@@ -57,7 +57,12 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
     )
     .limit(1);
 
-  return row ?? null;
+  if (!row) return null;
+
+  return {
+    ...row,
+    consentIntegrations: row.consentIntegrations ?? {},
+  };
 });
 
 export async function requireTenantWebsite(websiteId: string): Promise<TenantWebsite> {
