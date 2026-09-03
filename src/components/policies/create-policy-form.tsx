@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
+import { TemplateTile } from "@/components/dashboard/create-page-header";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
@@ -104,28 +105,17 @@ export function CreatePolicyForm({
         title="Start from a template"
         description="Pick a ready-made policy, then edit the name, copy, and purposes before you create it."
       >
-        <div className="grid gap-2 sm:grid-cols-2">
-          {POLICY_TEMPLATES.map((tpl) => {
-            const active = templateId === tpl.id;
-            return (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => applyTemplate(tpl.id)}
-                className={`rounded-2xl border p-3 text-left transition ${
-                  active
-                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
-                    : "border-[var(--border)] hover:border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <p className="text-sm font-semibold text-slate-900">{tpl.name}</p>
-                <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
-                  {tpl.regionLabel}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">{tpl.summary}</p>
-              </button>
-            );
-          })}
+        <div className="grid items-stretch gap-3 sm:grid-cols-2">
+          {POLICY_TEMPLATES.map((tpl) => (
+            <TemplateTile
+              key={tpl.id}
+              active={templateId === tpl.id}
+              eyebrow={tpl.regionLabel}
+              title={tpl.name}
+              summary={tpl.summary}
+              onClick={() => applyTemplate(tpl.id)}
+            />
+          ))}
         </div>
       </FormCard>
 
@@ -187,8 +177,8 @@ export function CreatePolicyForm({
 
         {templatePurposes.length > 0 ? (
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-slate-700">Purposes in this template</p>
-            <p className="text-xs text-slate-500">
+            <p className="field-label mb-0">Purposes in this template</p>
+            <p className="text-xs leading-relaxed text-[var(--muted-foreground)]">
               Uncheck any you do not need. Missing purposes are created in your organization; existing ones with the same key are reused.
             </p>
             <div className="space-y-2">

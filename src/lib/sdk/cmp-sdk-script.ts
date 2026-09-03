@@ -118,6 +118,7 @@ ${apiBaseLine}
   var _config      = null;
   var _decisions   = {};
   var _consentId   = null;
+  var _abVariantId = null;
   var _listeners   = [];
   var _explicitLang = '';
   var _pcLastFocus = null;
@@ -137,6 +138,48 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function log(msg) {
     if (window.__CMP_DEBUG) console.log('[CMP]', msg);
   }
+
+  function applyAssignedAbTest(data) {
+    _abVariantId = null;
+    if (!data || !data.bannerConfig || !data.abTest || !data.abTest.enabled) return data;
+    var variants = data.abTest.variants;
+    if (!variants || variants.length < 2) return data;
+    var storeKey = 'cmp_ab_' + SITE_KEY;
+    var id = null;
+    var i;
+    var selected = null;
+    try { id = sessionStorage.getItem(storeKey); } catch (eAb) {}
+    for (i = 0; i < variants.length; i++) {
+      if (variants[i] && variants[i].id === id) { selected = variants[i]; break; }
+    }
+    if (!selected) {
+      var total = 0;
+      for (i = 0; i < variants.length; i++) total += Math.max(0, Number(variants[i].weight) || 0);
+      if (total <= 0) {
+        selected = variants[Math.min(variants.length - 1, Math.floor(Math.random() * variants.length))];
+      } else {
+        var cursor = Math.random() * total;
+        for (i = 0; i < variants.length; i++) {
+          cursor -= Math.max(0, Number(variants[i].weight) || 0);
+          if (cursor <= 0) { selected = variants[i]; break; }
+        }
+        if (!selected) selected = variants[variants.length - 1];
+      }
+      try { if (selected && selected.id) sessionStorage.setItem(storeKey, selected.id); } catch (eStore) {}
+    }
+    if (!selected) return data;
+    _abVariantId = selected.id;
+    var overrides = selected.overrides || {};
+    var keys = ['layout','position','showRejectAll','showAcceptAll','showCustomize','showCloseButton','overlayEnabled','blockPageUntilConsent','title','description'];
+    for (i = 0; i < keys.length; i++) {
+      if (Object.prototype.hasOwnProperty.call(overrides, keys[i])) {
+        data.bannerConfig[keys[i]] = overrides[keys[i]];
+      }
+    }
+    if (data.bannerConfig.layout === 'dialog') data.bannerConfig.position = 'center';
+    return data;
+  }
+
 
   function detectRequestedLang() {
     if (_explicitLang) return _explicitLang;
@@ -591,6 +634,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       websiteId: _config.websiteId,
       consentId: _consentId || undefined,
       language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
+      abVariant: _abVariantId || undefined,
       submission: {
         choice: job.choice,
         purposeDecisions: job.purposeDecisions || [],
@@ -1384,7 +1428,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             if (callback) callback(new Error(data.message || 'Config load failed'));
             return;
           }
-          _config = data;
+          _config = applyAssignedAbTest(data);
           _hostScroll.beginTransition();
           if (bannerOpen) { removeBanner(); renderBanner(); }
           if (pcOpen) renderPreferenceCenter();
@@ -1435,7 +1479,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.success) { log('Config load failed: ' + data.message); return; }
-      _config = data;
+      _config = applyAssignedAbTest(data);
       initExternalSignals();
 
       var stored = loadStoredConsent();

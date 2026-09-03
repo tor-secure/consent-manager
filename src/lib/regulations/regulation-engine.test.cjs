@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "../../..");
 const outDir = path.join(root, ".tmp/regulations");
 
 execSync(
-  "npx tsc --outDir .tmp/regulations --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/regulations/catalog.ts src/lib/regulations/engine.ts src/lib/regulations/geo.ts src/lib/regulations/policy-selection.ts src/lib/signals/google-consent-mode.ts src/lib/signals/iab-adapter.ts src/lib/signals/consent-integrations.ts",
+  "npx tsc --outDir .tmp/regulations --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/regulations/catalog.ts src/lib/regulations/engine.ts src/lib/regulations/geo.ts src/lib/regulations/policy-selection.ts src/lib/regulations/legal-engine.ts src/lib/signals/google-consent-mode.ts src/lib/signals/iab-adapter.ts src/lib/signals/consent-integrations.ts src/lib/consent-proof.ts src/lib/intelligence/ab-test.ts src/lib/intelligence/ab-stats.ts src/lib/intelligence/simulator.ts src/lib/intelligence/data-flow.ts src/lib/intelligence/recommendations.ts src/lib/intelligence/firewall.ts src/lib/intelligence/graph-model.ts src/lib/sdk/enforcement.ts src/lib/monitoring/consent-quality.ts src/lib/monitoring/drift-engine.ts",
   { cwd: root, stdio: "pipe" },
 );
 
@@ -22,7 +22,7 @@ function compiled(name, folder) {
   return found;
 }
 
-const { resolveRegulationProfile, matchRegulationFromGeo } = require(compiled("engine", "regulations"));
+const { resolveRegulationProfile, matchRegulationFromGeo, rankRegulationsFromGeo } = require(compiled("engine", "regulations"));
 const { resolveJurisdiction } = require(compiled("geo", "regulations"));
 const { selectConsentPolicy, findConflictingJurisdictionRules } = require(
   compiled("policy-selection", "regulations"),
@@ -48,6 +48,9 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
 {
   const ca = matchRegulationFromGeo({ country: "US", region: "CA", at: new Date("2024-01-01") });
   assert.equal(ca.key, "ccpa");
+  const ranked = rankRegulationsFromGeo({ country: "US", region: "CA", at: new Date("2024-01-01") });
+  assert.equal(ranked[0].key, "ccpa");
+  assert.equal(ranked[0].score, 100);
   const inGeo = matchRegulationFromGeo({ country: "IN", region: null });
   assert.equal(inGeo.key, "dpdp");
   const fallback = matchRegulationFromGeo({ country: null, region: null });
@@ -153,7 +156,117 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.match(sdk, /window\.__CMP_GEO/);
   const config = fs.readFileSync(path.join(root, "src/app/api/sdk/[siteKey]/config/route.ts"), "utf8");
   assert.match(config, /resolveWebsiteConsentContext/);
+  assert.match(config, /legalEngine/);
   assert.doesNotMatch(config, /searchParams\.get\(["']organizationId["']\)/);
+  assert.match(config, /abTest/);
+  assert.match(sdk, /applyAssignedAbTest/);
+  assert.match(sdk, /abVariant/);
+}
+
+{
+  const { createConsentCryptoProof, verifyConsentCryptoProof } = require(compiled("consent-proof", ""));
+  const claims = {
+    v: 1,
+    consentId: "cid_test",
+    websiteId: "11111111-1111-1111-1111-111111111111",
+    policyVersionId: "22222222-2222-2222-2222-222222222222",
+    status: "accepted",
+    choice: "accept-all",
+    jurisdiction: "IN",
+    decisions: [
+      { purposeId: "b", vendorId: null, granted: false },
+      { purposeId: "a", vendorId: null, granted: true },
+    ],
+    consentedAt: "2026-01-01T00:00:00.000Z",
+  };
+  const proof = createConsentCryptoProof(claims, new Date("2026-01-01T00:00:00.000Z"));
+  assert.equal(proof.alg, "HMAC-SHA256");
+  assert.equal(proof.hash.length, 64);
+  assert.equal(verifyConsentCryptoProof({ claims, proof }).intact, true);
+  const tampered = { ...claims, status: "rejected" };
+  assert.equal(verifyConsentCryptoProof({ claims: tampered, proof }).hashMatches, false);
+}
+
+{
+  const { pickAbVariant, applyAbOverrides, parseBannerAbTest, defaultBannerAbTest } = require(compiled("ab-test", "intelligence"));
+  const { summarizeAbChoices } = require(compiled("ab-stats", "intelligence"));
+  const { simulatePrivacyImpact } = require(compiled("simulator", "intelligence"));
+  const { evaluateFirewall, grantsForScenario } = require(compiled("firewall", "intelligence"));
+  const { buildDataFlowMap } = require(compiled("data-flow", "intelligence"));
+  const { buildConsentRecommendations } = require(compiled("recommendations", "intelligence"));
+
+  const picked = pickAbVariant(defaultBannerAbTest(), () => 0.1);
+  assert.equal(picked.id, "control");
+  const dialog = applyAbOverrides({ layout: "bar", position: "bottom" }, { layout: "dialog" });
+  assert.equal(dialog.layout, "dialog");
+  assert.equal(dialog.position, "center");
+  assert.equal(parseBannerAbTest({ enabled: true, variants: [{ id: "a" }] }), null);
+
+  const stats = summarizeAbChoices([
+    { variantId: "control", choice: "accept-all", count: 2 },
+    { variantId: "control", choice: "reject-all", count: 2 },
+  ]);
+  assert.equal(stats[0].acceptRate, 50);
+
+  const scenarios = simulatePrivacyImpact({
+    thirdPartyScanItems: 10,
+    scanItemsWithActiveTracker: 2,
+    nonEssentialTrackers: 4,
+    trackersWithVendor: 1,
+    trackersWithPurpose: 1,
+    consentControlledTrackers: 1,
+    enforcibleTrackers: 1,
+    openFindings: [{ severity: "high", findingType: "unmapped_tracker" }],
+    hasPublishedPolicy: false,
+    consentExpireDays: null,
+    consentRecordCount: 0,
+    lastCompletedScanAt: null,
+    now: new Date("2026-01-01T00:00:00Z"),
+  });
+  assert.ok(scenarios.find((row) => row.id === "publish_policy").delta >= 0);
+
+  const snapshot = {
+    website: { id: "w", name: "Site", domain: "example.com" },
+    purposes: [{ id: "p1", key: "analytics", name: "Analytics", isRequired: false, dataCategories: ["usage"], legalBasis: "consent" }],
+    vendors: [{ id: "v1", name: "GA", domain: "google-analytics.com", country: "US", purposeIds: ["p1"] }],
+    trackers: [{
+      id: "t1",
+      name: "GA",
+      type: "script",
+      domain: "google-analytics.com",
+      identifier: "ga",
+      purposeId: "p1",
+      vendorId: "v1",
+      isEssential: false,
+      status: "active",
+    }],
+  };
+  const hops = buildDataFlowMap(snapshot);
+  assert.equal(hops[0].vendor, "GA");
+  assert.ok(hops[0].dataCategories.includes("usage"));
+
+  const recs = buildConsentRecommendations({
+    snapshot: { ...snapshot, trackers: [{ ...snapshot.trackers[0], purposeId: null, vendorId: null }] },
+    quality: null,
+    openFindingCount: 0,
+    published: true,
+  });
+  assert.ok(recs.some((row) => row.id === "unclassified-trackers"));
+
+  const grants = grantsForScenario(snapshot, "reject-all");
+  const firewall = evaluateFirewall([{
+    id: "t1",
+    name: "GA",
+    type: "script",
+    domain: "google-analytics.com",
+    identifier: "ga",
+    purposeKey: "analytics",
+    purposeId: "p1",
+    vendorId: "v1",
+    isEssential: false,
+    status: "active",
+  }], grants);
+  assert.equal(firewall.blockedCount, 1);
 }
 
 console.log("regulation-engine.test.cjs passed");

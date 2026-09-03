@@ -242,9 +242,9 @@ export default async function AnalyticsPage({
               description={`Visitor consent records · ${analytics.period}.`}
             />
             {!hasData ? (
-              <EmptyNote text="No consent records in this period." />
+              <EmptyNote text="No consent records updated in this period. Install the SDK, publish a policy, and collect a choice — or widen the date range." />
             ) : (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-5">
                 <StatCard label="Total records" value={analytics.overview.total} icon={<IconTotal />} iconColor="blue" description="One row per consent record" />
                 <StatCard label="Accepted" value={analytics.overview.accepted} icon={<IconAccepted />} iconColor="green" description={`${analytics.overview.acceptRate}% of records`} />
                 <StatCard label="Rejected" value={analytics.overview.rejected} icon={<IconRejected />} iconColor="rose" description={`${analytics.overview.rejectRate}% of records`} />
@@ -306,12 +306,16 @@ export default async function AnalyticsPage({
               title="Consent outcomes"
               description={`Accept / reject / granular / withdraw rates from stored records and choice events · ${analytics.period}.`}
             />
-            <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-              <StatCard label="Accept-all rate" value={`${analytics.overview.acceptAllRate}%`} icon={<IconAccepted />} iconColor="green" description="From choice events" />
-              <StatCard label="Reject-all rate" value={`${analytics.overview.rejectAllRate}%`} icon={<IconRejected />} iconColor="rose" description="From choice events" />
-              <StatCard label="Granular rate" value={`${analytics.overview.interactionGranularRate}%`} icon={<IconPartial />} iconColor="purple" description="From choice events" />
-              <StatCard label="Withdrawal rate" value={`${analytics.overview.eventWithdrawalRate}%`} icon={<IconWithdrawn />} iconColor="amber" description="Withdraw events / interactions" />
-            </div>
+            {analytics.overview.choiceEvents > 0 || analytics.overview.interactions > 0 ? (
+              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                <StatCard label="Accept-all rate" value={`${analytics.overview.acceptAllRate}%`} icon={<IconAccepted />} iconColor="green" description="From choice events" />
+                <StatCard label="Reject-all rate" value={`${analytics.overview.rejectAllRate}%`} icon={<IconRejected />} iconColor="rose" description="From choice events" />
+                <StatCard label="Granular rate" value={`${analytics.overview.interactionGranularRate}%`} icon={<IconPartial />} iconColor="purple" description="From choice events" />
+                <StatCard label="Withdrawal rate" value={`${analytics.overview.eventWithdrawalRate}%`} icon={<IconWithdrawn />} iconColor="amber" description="Withdraw events / interactions" />
+              </div>
+            ) : (
+              <EmptyNote text="Choice rates appear after the SDK records accept, reject, granular, or withdraw events." />
+            )}
           </section>
 
           {analytics.websiteSummary.length > 0 && (

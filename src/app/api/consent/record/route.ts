@@ -11,6 +11,7 @@ import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { parseBannerConfig, resolveTranslation } from "@/lib/banner-config";
+import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import { logger } from "@/lib/logger";
 import {
@@ -35,6 +36,7 @@ import {
   buildAnalyticsHints,
   mergeAnalyticsMetadata,
 } from "@/lib/analytics/client-hints";
+import { createConsentCryptoProof } from "@/lib/consent-proof";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -343,6 +345,7 @@ export async function POST(request: Request) {
     const overallStatus = deriveOverallStatus(decisionRows);
     const now = new Date();
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
+    const consentId = isNew ? generateConsentId() : String(rawConsentId).trim();
 
     // ── Consent evidence snapshot ────────────────────────────────────────
     const purposeKeys  = versionPurposes.map((p) => p.key).sort();
@@ -376,6 +379,23 @@ export async function POST(request: Request) {
       defaultConsent:      bannerConfig.defaultConsent,
       choice:              submission.choice,
       capturedAt:          now.toISOString(),
+      cryptoProof: createConsentCryptoProof({
+        v: 1,
+        consentId,
+        websiteId: website.id,
+        policyVersionId: latestVersion.id,
+        status: overallStatus,
+        choice: submission.choice,
+        jurisdiction: body.jurisdiction
+          ? String(body.jurisdiction).trim().slice(0, 100)
+          : bannerConfig.region || null,
+        decisions: decisionRows.map((row) => ({
+          purposeId: row.purposeId,
+          vendorId: row.vendorId,
+          granted: row.granted,
+        })),
+        consentedAt: now.toISOString(),
+      }, now),
       },
       buildAnalyticsHints({
         headers: request.headers,
@@ -385,6 +405,19 @@ export async function POST(request: Request) {
           : bannerConfig.region || null,
       }),
     );
+
+    const abConfigured = parseBannerAbTest(
+      latestVersion.configuration &&
+        typeof latestVersion.configuration === "object" &&
+        !Array.isArray(latestVersion.configuration)
+        ? (latestVersion.configuration as Record<string, unknown>).abTest
+        : null,
+    );
+    const abVariant =
+      typeof body.abVariant === "string" ? body.abVariant.trim().slice(0, 40) : "";
+    if (abConfigured && abVariant && abConfigured.variants.some((row) => row.id === abVariant)) {
+      evidenceMetadata.abTest = { variantId: abVariant };
+    }
 
     // ── Transaction: save record + decisions ─────────────────────────────
     let wasExpiredRecord = false;
@@ -397,7 +430,6 @@ export async function POST(request: Request) {
 
     await db.transaction(async (tx) => {
       if (isNew) {
-        const consentId = generateConsentId();
         const [inserted] = await tx
           .insert(consentRecords)
           .values({
@@ -528,6 +560,13 @@ export async function POST(request: Request) {
           decision: d.decision,
           decidedAt: d.decidedAt,
         })),
+        proof: (evidenceMetadata.cryptoProof as { hash: string; alg: string; signedAt: string } | undefined)
+          ? {
+              alg: (evidenceMetadata.cryptoProof as { alg: string }).alg,
+              hash: (evidenceMetadata.cryptoProof as { hash: string }).hash,
+              signedAt: (evidenceMetadata.cryptoProof as { signedAt: string }).signedAt,
+            }
+          : null,
       },
       { status: isNew ? 201 : 200, headers: CORS_HEADERS },
     );

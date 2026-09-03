@@ -1,17 +1,16 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
-import { eq, inArray, sql, desc, and } from "drizzle-orm";
+import { eq, inArray, sql, desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { trackers } from "@/db/schema/trackers";
-import { consentDecisions } from "@/db/schema/consent-decisions";
-import { purposes } from "@/db/schema/purposes";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { loadConsentAnalytics } from "@/lib/analytics/queries";
 
 // ---------------------------------------------------------------------------
 // Icons for StatCards
@@ -56,64 +55,49 @@ function IconShieldAlert() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Section: Date range selector (stylized pill dropdown placeholder)
-// ---------------------------------------------------------------------------
+type TrendRow = {
+  day: string;
+  interactions: number;
+  acceptAll: number;
+  rejectAll: number;
+  granular: number;
+  withdrawals: number;
+};
 
-function DateRangeDropdown({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      className="inline-flex items-center gap-2 rounded-2xl bg-white soft-shadow px-4 h-10 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/30"
-    >
-      {label}
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="6 9 12 15 18 9" />
-      </svg>
-    </button>
-  );
+function formatChartDay(day: string) {
+  const parsed = new Date(`${day}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return day;
+  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-// ---------------------------------------------------------------------------
-// Section: Consent Overview — Simple line chart visualization with SVG
-// ---------------------------------------------------------------------------
-
-function ChartPlaceholder({
-  active,
-  withdrawn,
-  total,
-}: {
-  active: number;
-  withdrawn: number;
-  total: number;
-}) {
-  const points = 8;
-  const base = total > 0 ? total : 100;
-  const maxVal = base * 1.2;
-
-  function generateSeries(startRatio: number, volatility: number) {
-    const data: number[] = [];
-    let val = base * startRatio;
-    for (let i = 0; i < points; i++) {
-      val += (Math.sin(i * 1.2 + startRatio * 10) + (Math.random() - 0.3)) * volatility * base * 0.12;
-      val = Math.max(base * startRatio * 0.4, Math.min(maxVal, val));
-      data.push(val);
-    }
-    return data;
+function ConsentTrendChart({ rows }: { rows: TrendRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-12 text-center">
+        <p className="text-sm font-medium text-[var(--foreground)]">No consent events in the last 30 days</p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          The chart appears after visitors submit a choice on a site with the SDK installed.
+        </p>
+      </div>
+    );
   }
 
-  const activeSeries = generateSeries(active / Math.max(base, 1), 0.7);
-  const withdrawnSeries = generateSeries(withdrawn / Math.max(base, 1) * 2.5, 0.4);
+  const consented = rows.map((row) => row.acceptAll + row.granular);
+  const withdrawn = rows.map((row) => row.withdrawals);
+  const points = rows.length;
+  const maxVal = Math.max(1, ...consented, ...withdrawn);
+  const yTicks = Array.from(new Set([0, Math.round(maxVal / 2), maxVal]));
 
   const width = 520;
   const height = 180;
-  const padX = 30;
+  const padX = 36;
   const padY = 24;
   const chartW = width - padX * 2;
   const chartH = height - padY * 2;
+  const last = Math.max(points - 1, 1);
 
   function toX(i: number) {
-    return padX + (i / (points - 1)) * chartW;
+    return padX + (i / last) * chartW;
   }
   function toY(v: number) {
     return padY + chartH - (v / maxVal) * chartH;
@@ -134,19 +118,18 @@ function ChartPlaceholder({
     return `${start} ${line}`;
   }
 
-  const yTicks = [0, 2000, 4000, 6000, 8000, 10000];
+  const labelIndexes =
+    points <= 5
+      ? rows.map((_, i) => i)
+      : [0, Math.floor((points - 1) / 2), points - 1];
 
   return (
     <div className="w-full table-scroll scrollbar-thin">
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto min-w-[480px]" role="img" aria-label="Consent overview chart">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full min-w-[480px]" role="img" aria-label="Consent events over the last 30 days">
         <defs>
           <linearGradient id="activeFill" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
             <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
-          </linearGradient>
-          <linearGradient id="withdrawnFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--danger)" stopOpacity="0.18" />
-            <stop offset="100%" stopColor="var(--danger)" stopOpacity="0.02" />
           </linearGradient>
         </defs>
 
@@ -155,58 +138,52 @@ function ChartPlaceholder({
             <line
               x1={padX}
               x2={width - padX}
-              y1={toY(t / 10000 * maxVal)}
-              y2={toY(t / 10000 * maxVal)}
+              y1={toY(t)}
+              y2={toY(t)}
               stroke="var(--border)"
               strokeDasharray="4 4"
             />
             <text
               x={padX - 8}
-              y={toY(t / 10000 * maxVal) + 4}
+              y={toY(t) + 4}
               textAnchor="end"
               fontSize="10"
               fill="var(--muted-foreground)"
               fontFamily="inherit"
             >
-              {t / 1000}K
+              {t}
             </text>
           </g>
         ))}
 
-        <path d={areaPath(activeSeries)} fill="url(#activeFill)" />
-        <path d={linePath(activeSeries)} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {activeSeries.map((v, i) => (
-          <circle key={`a-${i}`} cx={toX(i)} cy={toY(v)} r={i === activeSeries.length - 1 ? 4.5 : 0} fill="var(--card)" stroke="var(--primary)" strokeWidth="2.5" />
+        <path d={areaPath(consented)} fill="url(#activeFill)" />
+        <path d={linePath(consented)} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={toX(points - 1)} cy={toY(consented[points - 1])} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2.5" />
+        <path d={linePath(withdrawn)} fill="none" stroke="var(--danger)" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" opacity="0.75" />
+
+        {labelIndexes.map((i) => (
+          <text
+            key={`${rows[i].day}-${i}`}
+            x={toX(i)}
+            y={height - 6}
+            textAnchor="middle"
+            fontSize="10"
+            fill="var(--muted-foreground)"
+            fontFamily="inherit"
+          >
+            {formatChartDay(rows[i].day)}
+          </text>
         ))}
-
-        <path d={linePath(withdrawnSeries)} fill="none" stroke="var(--danger)" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" opacity="0.75" />
-
-        {["Apr 14", "Apr 21", "Apr 28", "May 05", "May 12"].map((label, i) => {
-          const idx = Math.floor((i / 4) * (points - 1));
-          return (
-            <text
-              key={label}
-              x={toX(idx)}
-              y={height - 6}
-              textAnchor="middle"
-              fontSize="10"
-              fill="var(--muted-foreground)"
-              fontFamily="inherit"
-            >
-              {label}
-            </text>
-          );
-        })}
       </svg>
 
-      <div className="flex flex-wrap items-center gap-5 mt-4 pl-2">
+      <div className="mt-4 flex flex-wrap items-center gap-5 pl-2">
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--primary)]" />
-          <span className="text-sm text-[var(--muted-foreground)]">Active Consents</span>
+          <span className="text-sm text-[var(--muted-foreground)]">Accept all + granular</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--danger)]" />
-          <span className="text-sm text-[var(--muted-foreground)]">Withdrawn Consents</span>
+          <span className="text-sm text-[var(--muted-foreground)]">Withdrawals</span>
         </div>
       </div>
     </div>
@@ -229,6 +206,17 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
   const cx = size / 2;
   const cy = size / 2;
   const circumference = 2 * Math.PI * radius;
+
+  if (slices.length === 0 || total === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-12 text-center">
+        <p className="text-sm font-medium text-[var(--foreground)]">No purpose decisions yet</p>
+        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+          Granted choices per purpose show here after visitors save preferences.
+        </p>
+      </div>
+    );
+  }
 
   let cumulative = 0;
 
@@ -324,28 +312,39 @@ function AvatarFallback({ name, idx }: { name: string; idx: number }) {
 // Section: Compliance Status
 // ---------------------------------------------------------------------------
 
-function ComplianceShield() {
+function ComplianceShield({ complete }: { complete: boolean }) {
   return (
-    <div className="relative flex shrink-0 h-[140px] w-[140px] items-center justify-center">
-      <div className="absolute inset-0 rounded-full bg-emerald-50/50 animate-pulse" style={{ animationDuration: "3s" }} />
-      <div className="absolute inset-4 rounded-full bg-emerald-50" />
-      <div className="absolute inset-8 rounded-full bg-emerald-100" />
-      <div className="relative h-16 w-16 rounded-2xl gradient-success flex items-center justify-center compliance-glow">
+    <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center">
+      <div className={`absolute inset-4 rounded-full ${complete ? "bg-emerald-50" : "bg-slate-100"}`} />
+      <div className={`absolute inset-8 rounded-full ${complete ? "bg-emerald-100" : "bg-slate-200"}`} />
+      <div
+        className={`relative flex h-16 w-16 items-center justify-center rounded-2xl ${
+          complete ? "gradient-success compliance-glow" : "bg-slate-400"
+        }`}
+      >
         <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
+          {complete ? <polyline points="20 6 9 17 4 12" /> : <line x1="12" y1="8" x2="12" y2="16" />}
         </svg>
       </div>
     </div>
   );
 }
 
-function ComplianceCheckItem({ label }: { label: string }) {
+function ComplianceCheckItem({ label, done }: { label: string; done: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="h-5 w-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
+      <div
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+          done ? "bg-emerald-100" : "bg-slate-100"
+        }`}
+      >
+        {done ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        ) : (
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+        )}
       </div>
       <span className="text-sm text-slate-600">{label}</span>
     </div>
@@ -368,10 +367,7 @@ export default async function DashboardPage() {
   const websiteCount = orgWebsites.length;
   const websiteIds = orgWebsites.map((w) => w.id);
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const [consentStatusTotals, trackerRows, policyRows, purposeBreakdown, recentRecords] = await Promise.all([
+  const [consentStatusTotals, trackerRows, policyRows, recentRecords, analytics] = await Promise.all([
     db
       .select({
         total: sql<number>`count(*)::int`,
@@ -398,31 +394,6 @@ export default async function DashboardPage() {
           .where(inArray(consentPolicies.websiteId, websiteIds))
       : Promise.resolve([]),
 
-    websiteIds.length > 0
-      ? db
-          .select({
-            purposeId: consentDecisions.purposeId,
-            purposeName: purposes.name,
-            total: sql<number>`count(*)::int`,
-            granted: sql<number>`count(*) filter (where ${consentDecisions.granted} = true)::int`,
-          })
-          .from(consentDecisions)
-          .innerJoin(
-            consentRecords,
-            eq(consentDecisions.consentRecordId, consentRecords.id),
-          )
-          .innerJoin(purposes, eq(consentDecisions.purposeId, purposes.id))
-          .where(
-            and(
-              eq(consentRecords.organizationId, localOrg.id),
-              sql`${consentDecisions.purposeId} IS NOT NULL`,
-            ),
-          )
-          .groupBy(consentDecisions.purposeId, purposes.name)
-          .orderBy(sql`count(*) desc`)
-          .limit(4)
-      : Promise.resolve([]),
-
     db
       .select({
         visitorId: consentRecords.visitorId,
@@ -431,13 +402,11 @@ export default async function DashboardPage() {
         createdAt: consentRecords.createdAt,
       })
       .from(consentRecords)
-      .where(
-        and(
-          eq(consentRecords.organizationId, localOrg.id),
-        ),
-      )
+      .where(eq(consentRecords.organizationId, localOrg.id))
       .orderBy(desc(consentRecords.createdAt))
       .limit(4),
+
+    loadConsentAnalytics(localOrg.id, { days: "30" }),
   ]);
 
   const totalConsents = consentStatusTotals[0]?.total ?? 0;
@@ -446,17 +415,25 @@ export default async function DashboardPage() {
   const activeConsents = acceptedConsents + partialConsents;
   const pendingConsents = consentStatusTotals[0]?.pending ?? 0;
   const withdrawnConsents = consentStatusTotals[0]?.withdrawn ?? 0;
-  const consentRecordCount = totalConsents;
   const trackerCount = trackerRows.length;
   const policyCount = policyRows.length;
 
-  const donutSlices: PurposeSlice[] = [
-    { name: "Marketing", color: "var(--primary)", value: purposeBreakdown[0]?.granted ?? Math.round(totalConsents * 0.4) },
-    { name: "Analytics", color: "var(--accent)", value: purposeBreakdown[1]?.granted ?? Math.round(totalConsents * 0.25) },
-    { name: "Personalization", color: "var(--warning)", value: purposeBreakdown[2]?.granted ?? Math.round(totalConsents * 0.2) },
-    { name: "Others", color: "var(--danger)", value: purposeBreakdown[3]?.granted ?? Math.round(totalConsents * 0.15) },
+  const PURPOSE_COLORS = [
+    "var(--primary)",
+    "var(--accent)",
+    "var(--warning)",
+    "var(--danger)",
+    "var(--success)",
   ];
-  const donutTotal = donutSlices.reduce((a, b) => a + b.value, 0) || totalConsents || 1;
+  const donutSlices: PurposeSlice[] = analytics.purposes
+    .filter((row) => row.granted > 0)
+    .slice(0, 5)
+    .map((row, index) => ({
+      name: row.purposeName,
+      color: PURPOSE_COLORS[index % PURPOSE_COLORS.length],
+      value: row.granted,
+    }));
+  const donutTotal = donutSlices.reduce((sum, slice) => sum + slice.value, 0);
 
   const recentRequests: RecentRequest[] = recentRecords.map((r) => {
     let status: RecentRequest["status"] = "Pending";
@@ -479,17 +456,13 @@ export default async function DashboardPage() {
     return { name, email: resolvedEmail, status, time };
   });
 
-  const activePct = 12.5;
-  const pendingPct = 3.1;
-  const withdrawnPct = -6.2;
-  const activeTrend = 8.3;
-
   const complianceChecks = [
-    "Privacy Policy Updated",
-    "Consent Records Secure",
-    "Data Processing Verified",
-    "Third-party Agreements Active",
+    { label: "Website registered", done: websiteCount > 0 },
+    { label: "Consent policy created", done: policyCount > 0 },
+    { label: "Consent records collected", done: totalConsents > 0 },
+    { label: "Trackers detected", done: trackerCount > 0 },
   ];
+  const setupComplete = websiteCount > 0 && policyCount > 0 && totalConsents > 0;
 
   return (
     <div className="page-wrap space-y-6 sm:space-y-8 animate-fade-in">
@@ -514,32 +487,28 @@ export default async function DashboardPage() {
           value={totalConsents}
           icon={<IconUsersGroup />}
           iconColor="blue"
-          trend={{ direction: "up", value: `${activePct}%` }}
-          description="vs last month"
+          description="All recorded consents"
         />
         <StatCard
           label="Active Consents"
           value={activeConsents}
           icon={<IconCheckCircle />}
           iconColor="green"
-          trend={{ direction: "up", value: `${activeTrend}%` }}
-          description="vs last month"
+          description="Accepted or granular"
         />
         <StatCard
           label="Pending Requests"
           value={pendingConsents}
           icon={<IconClock />}
           iconColor="amber"
-          trend={{ direction: "up", value: `${pendingPct}%` }}
-          description="vs last month"
+          description="Awaiting a choice"
         />
         <StatCard
           label="Withdrawn Consents"
           value={withdrawnConsents}
           icon={<IconShieldAlert />}
           iconColor="rose"
-          trend={{ direction: "down", value: `${Math.abs(withdrawnPct)}%` }}
-          description="vs last month"
+          description="Visitor withdrew consent"
         />
       </div>
 
@@ -550,21 +519,18 @@ export default async function DashboardPage() {
           <CardHeader className="pb-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <CardTitle className="text-base sm:text-lg">Consent Overview</CardTitle>
-              <DateRangeDropdown label="Last 30 days" />
+              <span className="text-sm text-slate-500">Last 30 days</span>
             </div>
           </CardHeader>
           <CardContent>
-            <ChartPlaceholder
-              active={activeConsents}
-              withdrawn={withdrawnConsents}
-              total={totalConsents}
-            />
+            <ConsentTrendChart rows={analytics.trends} />
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2 min-w-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base sm:text-lg">Consent by Purpose</CardTitle>
+            <p className="mt-1 text-sm text-slate-500">Granted decisions · last 30 days</p>
           </CardHeader>
           <CardContent>
             <DonutChart slices={donutSlices} total={donutTotal} />
@@ -624,21 +590,21 @@ export default async function DashboardPage() {
           <CardContent>
             {/* Side-by-side on sm+, stacked on mobile */}
             <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-              <ComplianceShield />
+              <ComplianceShield complete={setupComplete} />
               <div className="flex-1 min-w-0 space-y-3 w-full text-center sm:text-left">
                 <div>
                   <h4 className="text-base font-bold text-slate-900 sm:text-lg">
-                    {websiteCount === 0 ? "Get started" : "You\u2019re on track"}
+                    {setupComplete ? "Collecting consent" : "Setup in progress"}
                   </h4>
                   <p className="mt-1 text-sm text-slate-500 leading-relaxed">
-                    {websiteCount === 0
-                      ? "Add a website and publish a consent policy to start collecting records."
-                      : "Keep policies published and the SDK installed on each site."}
+                    {setupComplete
+                      ? "Policies and live records are in place. Keep the SDK installed on each site."
+                      : "Complete the items below so analytics can show real visitor choices."}
                   </p>
                 </div>
                 <div className="space-y-2.5 pt-1">
-                  {complianceChecks.map((label) => (
-                    <ComplianceCheckItem key={label} label={label} />
+                  {complianceChecks.map((item) => (
+                    <ComplianceCheckItem key={item.label} label={item.label} done={item.done} />
                   ))}
                 </div>
               </div>

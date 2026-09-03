@@ -66,7 +66,7 @@ export function StatCard({
   return (
     <div
       className={[
-        "rounded-2xl bg-[var(--card)] border border-[var(--border)] card-shadow p-5 sm:p-6 card-lift",
+        "rounded-2xl bg-[var(--card)] border border-[var(--border)] card-shadow p-5 sm:p-6 card-lift h-full",
         className,
       ].join(" ")}
     >
@@ -77,7 +77,7 @@ export function StatCard({
             {typeof value === "number" ? value.toLocaleString() : value}
           </p>
           {(trend || description) && (
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+            <div className="mt-2 flex min-h-8 flex-wrap items-center gap-2 text-xs">
               {trend && (
                 <span className={["inline-flex items-center gap-1 font-medium", trendClasses[trend.direction]].join(" ")}>
                   <TrendArrow direction={trend.direction} />

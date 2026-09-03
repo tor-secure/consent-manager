@@ -238,6 +238,17 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Intelligence",
+    items: [
+      { label: "Consent firewall", href: "/dashboard/firewall", icon: <IconAnalytics />, ariaLabel: "Preview tracker blocking" },
+      { label: "Impact simulator", href: "/dashboard/simulator", icon: <IconAnalytics />, ariaLabel: "Simulate privacy impact" },
+      { label: "Experiments", href: "/dashboard/experiments", icon: <IconAnalytics />, ariaLabel: "Banner A/B tests" },
+      { label: "Dependency graph", href: "/dashboard/graph", icon: <IconAnalytics />, ariaLabel: "Consent dependency graph" },
+      { label: "Recommendations", href: "/dashboard/recommendations", icon: <IconAnalytics />, ariaLabel: "Consent recommendations" },
+      { label: "Data flow map", href: "/dashboard/data-flow", icon: <IconAnalytics />, ariaLabel: "Data flow consent map" },
+    ],
+  },
+  {
     label: "Security & Governance",
     items: [
       { label: "Audit Logs",       href: "/dashboard/audit-logs",       icon: <IconAuditLogs />,       ariaLabel: "Review audit logs" },

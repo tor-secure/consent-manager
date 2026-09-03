@@ -12,8 +12,8 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="space-y-1.5">
-      <label htmlFor={htmlFor} className="field-label">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={htmlFor} className="field-label mb-0">
         {label}
       </label>
       {children}
@@ -27,10 +27,12 @@ export function Field({
 export function FormCard({
   title,
   description,
+  titleExtra,
   children,
 }: {
   title?: string;
   description?: ReactNode;
+  titleExtra?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -38,12 +40,17 @@ export function FormCard({
       {(title || description) && (
         <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
           {title ? (
-            <h2 className="text-base font-semibold tracking-tight text-[var(--foreground)]">
-              {title}
-            </h2>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-base font-semibold tracking-tight text-[var(--foreground)]">
+                {title}
+              </h2>
+              {titleExtra}
+            </div>
           ) : null}
           {description ? (
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">{description}</p>
+            <p className={`text-sm leading-relaxed text-[var(--muted-foreground)] ${title ? "mt-1" : ""}`}>
+              {description}
+            </p>
           ) : null}
         </div>
       )}

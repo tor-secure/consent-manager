@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { requireTenantWebsite } from "@/lib/tenant-website";
+import { siteVerificationToken } from "@/lib/website-domain-verify";
+import { DomainVerifyPanel } from "@/components/websites/domain-verify-panel";
 import { WebsiteDetailRelated } from "@/components/websites/website-detail-related";
 import { WebsitePrivacyOverview } from "@/components/websites/website-privacy-overview";
 import { Badge } from "@/components/ui/badge";
@@ -152,37 +154,55 @@ export default async function WebsiteDetailPage({
 
         <Card>
           <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">SDK Installation</h2>
+            <h2 className="text-base font-semibold text-slate-900">Domain verification</h2>
             <p className="mt-0.5 text-sm text-slate-500">
-              Embed the CMP banner on your website using the JavaScript SDK.
+              Confirm you control {website.domain} with DNS, a meta tag, or a well-known file.
             </p>
           </div>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="min-w-0">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
-                  Site key
-                </p>
-                <code className="mt-0.5 block truncate font-mono text-sm text-slate-700">
-                  {website.siteKey}
-                </code>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-              <p className="text-xs font-medium text-indigo-700">Quick install</p>
-              <code className="mt-1 block text-xs text-indigo-600 leading-relaxed break-all">
-                {`<script src="/api/sdk/script?siteKey=${website.siteKey}" async></script>`}
-              </code>
-            </div>
-            <Link
-              href={`/dashboard/websites/${website.id}/installation`}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
-            >
-              View installation guide
-            </Link>
+          <CardContent>
+            <DomainVerifyPanel
+              websiteId={website.id}
+              domain={website.domain}
+              token={siteVerificationToken(website.id, website.siteKey)}
+              verified={website.verified}
+              verifiedAt={website.verifiedAt}
+            />
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <div className="border-b border-slate-100 px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">SDK Installation</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Embed the CMP banner on your website using the JavaScript SDK.
+          </p>
+        </div>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Site key
+              </p>
+              <code className="mt-0.5 block truncate font-mono text-sm text-slate-700">
+                {website.siteKey}
+              </code>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+            <p className="text-xs font-medium text-indigo-700">Quick install</p>
+            <code className="mt-1 block text-xs text-indigo-600 leading-relaxed break-all">
+              {`<script src="/api/sdk/script?siteKey=${website.siteKey}" async></script>`}
+            </code>
+          </div>
+          <Link
+            href={`/dashboard/websites/${website.id}/installation`}
+            className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+          >
+            View installation guide
+          </Link>
+        </CardContent>
+      </Card>
 
       <Suspense fallback={<RelatedFallback />}>
         <WebsitePrivacyOverview websiteId={website.id} />

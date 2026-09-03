@@ -87,8 +87,8 @@ export async function loadConsentAnalytics(
     scopedWebsiteIds.length > 0
       ? inArray(consentRecords.websiteId, scopedWebsiteIds)
       : sql`false`,
-    period.since ? gte(consentRecords.createdAt, period.since) : undefined,
-    period.until ? lte(consentRecords.createdAt, period.until) : undefined,
+    period.since ? gte(consentRecords.updatedAt, period.since) : undefined,
+    period.until ? lte(consentRecords.updatedAt, period.until) : undefined,
     country ? sql`${countryExpr} = ${country}` : undefined,
     device ? sql`${deviceExpr} = ${device}` : undefined,
     browser ? sql`${browserExpr} = ${browser}` : undefined,

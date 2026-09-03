@@ -7,6 +7,7 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { websiteJurisdictionRules } from "@/db/schema/website-jurisdiction-rules";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { WebsiteRegulationForm } from "@/components/websites/website-regulation-form";
+import { GeoLegalEnginePreview } from "@/components/websites/geo-legal-engine-preview";
 
 export default async function WebsiteRegulationsPage({
   params,
@@ -58,6 +59,8 @@ export default async function WebsiteRegulationsPage({
           Configure jurisdiction-aware policy selection and optional Google / IAB signals. These settings do not make the organization legally compliant.
         </p>
       </div>
+
+      <GeoLegalEnginePreview websiteId={website.id} />
 
       <WebsiteRegulationForm
         websiteId={website.id}

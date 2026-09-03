@@ -36,6 +36,16 @@ export function normalizeRegion(value: string | null | undefined): string | null
   return trimmed;
 }
 
+export function regionFromRequestHeaders(headers: {
+  get(name: string): string | null;
+}): string | null {
+  return normalizeRegion(
+    headers.get("x-vercel-ip-country-region") ||
+      headers.get("cf-region-code") ||
+      headers.get("x-region-code"),
+  );
+}
+
 export function resolveJurisdiction(input: {
   country?: string | null;
   region?: string | null;

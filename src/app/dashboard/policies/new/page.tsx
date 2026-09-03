@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
+import { CreatePageHeader, CreateFormShell } from "@/components/dashboard/create-page-header";
 import {
   CreatePolicyForm,
   type WebsiteOption,
@@ -35,45 +36,23 @@ export default async function NewPolicyPage({
     .orderBy(websites.name);
 
   return (
-    <div className="page-wrap">
-      {/* Breadcrumb */}
-      <nav
-        aria-label="Breadcrumb"
-        className="mb-6 flex items-center gap-2 text-sm text-neutral-500"
-      >
-        <Link
-          href="/dashboard/policies"
-          className="hover:text-neutral-900"
-        >
-          Policies
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">New policy</span>
-      </nav>
+    <div className="page-wrap space-y-8">
+      <CreatePageHeader
+        backHref="/dashboard/policies"
+        backLabel="Policies"
+        current="New policy"
+        title="Create consent policy"
+        description="Start from a template or a blank draft. You can still edit purposes and publish later."
+      />
 
-      {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-neutral-900">
-          Create consent policy
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Start from a template or a blank draft. You can still edit purposes and publish later.
-        </p>
-      </div>
-
-      <div className="max-w-3xl">
+      <CreateFormShell>
         {orgWebsites.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-10 text-center">
-            <p className="text-sm font-medium text-neutral-600">
-              No websites found
-            </p>
-            <p className="mt-1 text-sm text-neutral-400">
+          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--card)] px-6 py-12 text-center card-shadow">
+            <p className="text-base font-semibold text-[var(--foreground)]">No websites found</p>
+            <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-[var(--muted-foreground)]">
               You need at least one website before creating a consent policy.
             </p>
-            <Link
-              href="/dashboard/websites/new"
-              className="mt-5 inline-block rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700"
-            >
+            <Link href="/dashboard/websites/new" className="btn btn-primary mt-6">
               Add a website
             </Link>
           </div>
@@ -83,7 +62,7 @@ export default async function NewPolicyPage({
             defaultWebsiteId={defaultWebsiteId}
           />
         )}
-      </div>
+      </CreateFormShell>
     </div>
   );
 }

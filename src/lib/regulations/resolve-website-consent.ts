@@ -8,6 +8,7 @@ import { websiteJurisdictionRules } from "@/db/schema/website-jurisdiction-rules
 import { resolveJurisdiction } from "@/lib/regulations/geo";
 import { matchRegulationFromGeo, resolveRegulationProfile } from "@/lib/regulations/engine";
 import { selectConsentPolicy } from "@/lib/regulations/policy-selection";
+import { runGeoLegalEngine } from "@/lib/regulations/legal-engine";
 
 export async function resolveWebsiteConsentContext(input: {
   websiteId: string;
@@ -65,11 +66,23 @@ export async function resolveWebsiteConsentContext(input: {
   const inferred = matchRegulationFromGeo({ country: geo.country, region: geo.region });
   const regulation = configured ?? inferred;
 
+  const legalEngine = runGeoLegalEngine({
+    country: input.country,
+    region: input.region,
+    websiteDefaultRegion: input.websiteDefaultRegion,
+    selection,
+    configuredRegulation: configured,
+    inferredRegulation: inferred,
+    regulation,
+    regulationSource: configured ? "configured" : inferred ? "inferred" : "none",
+  });
+
   return {
     geo,
     selection,
     selectedPolicy,
     regulation,
     regulationSource: configured ? "configured" : inferred ? "inferred" : "none",
+    legalEngine,
   };
 }

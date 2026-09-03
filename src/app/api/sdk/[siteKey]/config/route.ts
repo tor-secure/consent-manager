@@ -11,6 +11,7 @@ import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
 import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText } from "@/lib/banner-config";
+import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
 import {
@@ -21,6 +22,8 @@ import {
 import { logger } from "@/lib/logger";
 import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
 import { publicRegulationSummary } from "@/lib/regulations/engine";
+import { countryFromRequestHeaders } from "@/lib/analytics/client-hints";
+import { regionFromRequestHeaders } from "@/lib/regulations/geo";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { toPublicGoogleConsentConfig } from "@/lib/signals/google-consent-mode";
 import { buildIabSignalSnapshot } from "@/lib/signals/iab-adapter";
@@ -60,8 +63,8 @@ export async function GET(
     }
 
     const url = new URL(request.url);
-    const countryHint = url.searchParams.get("country");
-    const regionHint = url.searchParams.get("region");
+    const countryHint = url.searchParams.get("country") || countryFromRequestHeaders(request.headers);
+    const regionHint = url.searchParams.get("region") || regionFromRequestHeaders(request.headers);
 
     // Resolve website by siteKey — siteKey is globally unique.
     const [website] = await db
@@ -157,6 +160,13 @@ export async function GET(
 
     const bannerConfig = toPublicBannerConfig(
       parseBannerConfig(latestVersion.configuration as Record<string, unknown>),
+    );
+    const abTest = parseBannerAbTest(
+      latestVersion.configuration &&
+        typeof latestVersion.configuration === "object" &&
+        !Array.isArray(latestVersion.configuration)
+        ? (latestVersion.configuration as Record<string, unknown>).abTest
+        : null,
     );
 
     const requestedLang = resolveRequestedLocale({
@@ -281,6 +291,7 @@ export async function GET(
           selection: resolved.selection.reason,
         },
         bannerConfig: localizedConfig,
+        abTest,
         resolvedLanguage: resolvedNotice.resolvedLocale,
         purposes: versionPurposes.map((purpose) => {
           const overlay = overlayEntityText(
@@ -315,6 +326,19 @@ export async function GET(
           source: resolved.geo.source,
         },
         regulation: publicRegulationSummary(resolved.regulation),
+        legalEngine: {
+          confidence: resolved.legalEngine.confidence,
+          source: resolved.legalEngine.regulationSource,
+          policyReason: resolved.legalEngine.policyReason,
+          ux: resolved.legalEngine.ux,
+          reasoning: resolved.legalEngine.reasoning,
+          alternatives: resolved.legalEngine.alternatives.map((row) => ({
+            key: row.key,
+            label: row.label,
+            score: row.score,
+          })),
+          disclaimer: resolved.legalEngine.disclaimer,
+        },
         signals: {
           googleConsentMode: toPublicGoogleConsentConfig(integrations.googleConsentMode),
           iabTcf: iab.tcf,

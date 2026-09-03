@@ -55,6 +55,42 @@ export async function WebsitePrivacyOverview({ websiteId }: { websiteId: string 
           Privacy drift
         </Link>
         <Link
+          href={`/dashboard/firewall?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Firewall
+        </Link>
+        <Link
+          href={`/dashboard/simulator?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Impact simulator
+        </Link>
+        <Link
+          href={`/dashboard/graph?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Graph
+        </Link>
+        <Link
+          href={`/dashboard/data-flow?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Data flow
+        </Link>
+        <Link
+          href={`/dashboard/recommendations?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Recommendations
+        </Link>
+        <Link
+          href={`/dashboard/experiments?website=${websiteId}`}
+          className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+        >
+          Experiments
+        </Link>
+        <Link
           href={`/dashboard/websites/${websiteId}/enforcement`}
           className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
         >

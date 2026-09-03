@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { Field, FormActions, FormCard } from "@/components/ui/field";
+import { TemplateTile } from "@/components/dashboard/create-page-header";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import { PURPOSE_TEMPLATES, type PurposeTemplate } from "@/lib/templates/purpose-templates";
 
@@ -18,9 +24,7 @@ function deriveKey(name: string): string {
     .slice(0, 100);
 }
 
-const inputCls = "field-input";
 
-// DPDP Rules 2025 — common data-category labels as suggestions.
 const DATA_CATEGORY_SUGGESTIONS = [
   "Email address",
   "Phone number",
@@ -229,235 +233,153 @@ export function CreatePurposeForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Start from a template</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            Choose a common cookie category, then edit the wording before you save.
-          </p>
-        </div>
-        <div className="grid gap-2 p-4 sm:grid-cols-2">
-          <button
-            type="button"
+    <form onSubmit={handleSubmit} className="space-y-5" aria-busy={saving}>
+      <FormCard
+        title="Start from a template"
+        description="Choose a common cookie category, then edit the wording before you save."
+      >
+        <div className="grid items-stretch gap-3 sm:grid-cols-2">
+          <TemplateTile
+            active={templateKey === "custom"}
+            title="Custom"
+            summary="Blank purpose — fill in your own details."
             onClick={() => applyPurposeTemplate(null)}
-            className={`rounded-2xl border p-3 text-left transition ${
-              templateKey === "custom"
-                ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
-                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-            }`}
+          />
+          {PURPOSE_TEMPLATES.map((tpl) => (
+            <TemplateTile
+              key={tpl.key}
+              active={templateKey === tpl.key}
+              title={tpl.name}
+              summary={tpl.summary}
+              onClick={() => applyPurposeTemplate(tpl)}
+            />
+          ))}
+        </div>
+      </FormCard>
+
+      <FormCard title="Purpose details" description="Name and key identify this purpose in policies, banners, and consent records.">
+        <Field label="Name" htmlFor="purpose-name">
+          <Input
+            id="purpose-name"
+            value={name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            required
+            maxLength={150}
+            placeholder="Analytics"
+          />
+        </Field>
+        <Field
+          label="Key"
+          htmlFor="purpose-key"
+          hint="Lowercase letters, digits, and underscores only. Cannot be changed after creation."
+        >
+          <Input
+            id="purpose-key"
+            value={key}
+            onChange={(e) => {
+              setKeyTouched(true);
+              setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 100));
+            }}
+            required
+            maxLength={100}
+            placeholder="analytics"
+            className="font-mono"
+          />
+        </Field>
+        <Field label="Description (optional)" htmlFor="purpose-description">
+          <Textarea
+            id="purpose-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="Explain what this purpose is for — shown to visitors in the consent banner."
+          />
+        </Field>
+        <Field label="Status" htmlFor="purpose-status">
+          <Select
+            id="purpose-status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as "active" | "inactive")}
           >
-            <p className="text-sm font-semibold text-slate-900">Custom</p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-500">Blank purpose — fill in your own details.</p>
-          </button>
-          {PURPOSE_TEMPLATES.map((tpl) => {
-            const active = templateKey === tpl.key;
-            return (
-              <button
-                key={tpl.key}
-                type="button"
-                onClick={() => applyPurposeTemplate(tpl)}
-                className={`rounded-2xl border p-3 text-left transition ${
-                  active
-                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
-                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <p className="text-sm font-semibold text-slate-900">{tpl.name}</p>
-                <p className="mt-1 text-xs leading-relaxed text-slate-500">{tpl.summary}</p>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </Select>
+        </Field>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={isRequired}
+            onChange={(e) => setIsRequired(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+          />
+          <span className="text-sm text-[var(--secondary-foreground)]">
+            This purpose is required (visitor cannot decline)
+          </span>
+        </label>
+      </FormCard>
 
-      {/* ── Core details ──────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Purpose details</h2>
-        </div>
-        <div className="space-y-5 p-6">
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Name <span className="text-rose-500">*</span>
-            </label>
-            <input
-              value={name}
-              onChange={(e) => handleNameChange(e.target.value)}
-              required
-              maxLength={150}
-              placeholder="Analytics"
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Key{" "}
-              <span className="font-normal text-slate-400">(unique identifier, auto-generated)</span>
-            </label>
-            <input
-              value={key}
-              onChange={(e) => {
-                setKeyTouched(true);
-                setKey(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 100));
-              }}
-              required
-              maxLength={100}
-              placeholder="analytics"
-              className={`${inputCls} font-mono`}
-            />
-            <p className="mt-1 text-xs text-slate-400">
-              Lowercase letters, digits, and underscores only. Cannot be changed after creation.
-            </p>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Description{" "}
-              <span className="font-normal text-slate-400">(optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={1000}
-              placeholder="Explain what this purpose is for — shown to visitors in the consent banner."
-              className={inputCls}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as "active" | "inactive")}
-              className={inputCls}
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              checked={isRequired}
-              onChange={(e) => setIsRequired(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-indigo-600"
-            />
-            <span className="text-sm text-slate-700">
-              This purpose is required (visitor cannot decline)
-            </span>
-          </label>
-        </div>
-      </div>
-
-      {/* ── DPDP Notice enrichment ────────────────────────────────────── */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-base font-semibold text-slate-900">
-              DPDP Notice information
-            </h2>
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
-              DPDP Rules 2025 Rule 3
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">
-            Required for a compliant consent notice under the Digital Personal Data
-            Protection Rules 2025. Shown to visitors in the Preference Center when
-            purpose descriptions are enabled.
-          </p>
-        </div>
-        <div className="space-y-5 p-6">
-
-          {/* Data categories */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Personal data categories processed
-            </label>
-            <DataCategoriesInput
-              value={dataCategories}
-              onChange={setDataCategories}
-            />
-          </div>
-
-          {/* Retention period */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Retention period
-            </label>
-            <input
-              value={retentionPeriod}
-              onChange={(e) => setRetentionPeriod(e.target.value)}
-              maxLength={255}
-              placeholder="e.g. 12 months, Until account deletion, 90 days from last visit"
-              className={inputCls}
-            />
-            <p className="mt-1 text-xs text-slate-400">
-              How long personal data processed for this purpose is retained.
-              This text is shown directly in the consent notice.
-            </p>
-          </div>
-
-          {/* Legal basis */}
-          <div>
-            <label className="mb-1.5 block text-sm font-semibold text-slate-700">
-              Legal basis for processing
-            </label>
-            <select
-              value={legalBasis}
-              onChange={(e) => setLegalBasis(e.target.value)}
-              className={inputCls}
-            >
-              {LEGAL_BASIS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-xs text-slate-400">
-              For most consent-based purposes, select <strong>Consent (DPDP §6)</strong>.
-            </p>
-          </div>
-
-        </div>
-      </div>
-
-      {/* ── Error ─────────────────────────────────────────────────────── */}
-      {error && (
-        <div className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <svg
-            className="mt-0.5 h-4 w-4 shrink-0 text-rose-400"
-            fill="none"
-            viewBox="0 0 16 16"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden="true"
+      <FormCard
+        title="DPDP notice information"
+        titleExtra={
+          <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
+            DPDP Rules 2025 Rule 3
+          </span>
+        }
+        description="Shown in the preference center when purpose descriptions are enabled. Required for a compliant notice under the Digital Personal Data Protection Rules 2025."
+      >
+        <Field label="Personal data categories processed" htmlFor="data-cat-input">
+          <DataCategoriesInput
+            value={dataCategories}
+            onChange={setDataCategories}
+          />
+        </Field>
+        <Field
+          label="Retention period"
+          htmlFor="purpose-retention"
+          hint="How long personal data processed for this purpose is retained. This text is shown in the consent notice."
+        >
+          <Input
+            id="purpose-retention"
+            value={retentionPeriod}
+            onChange={(e) => setRetentionPeriod(e.target.value)}
+            maxLength={255}
+            placeholder="e.g. 12 months, Until account deletion, 90 days from last visit"
+          />
+        </Field>
+        <Field
+          label="Legal basis for processing"
+          htmlFor="purpose-legal-basis"
+          hint="For most consent-based purposes, select Consent (DPDP §6)."
+        >
+          <Select
+            id="purpose-legal-basis"
+            value={legalBasis}
+            onChange={(e) => setLegalBasis(e.target.value)}
           >
-            <circle cx="8" cy="8" r="6" />
-            <path strokeLinecap="round" d="M8 5v3M8 11h.01" />
-          </svg>
+            {LEGAL_BASIS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </FormCard>
+
+      {error ? (
+        <Alert variant="error" role="alert">
           {error}
-        </div>
-      )}
+        </Alert>
+      ) : null}
 
-      {/* ── Actions ───────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
+      <FormActions>
+        <Button type="button" variant="outline" onClick={() => router.back()} disabled={saving}>
+          Cancel
+        </Button>
         <Button type="submit" loading={saving}>
           {saving ? "Creating purpose..." : "Create purpose"}
         </Button>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-        >
-          Cancel
-        </button>
-      </div>
+      </FormActions>
     </form>
   );
 }

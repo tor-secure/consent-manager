@@ -22,6 +22,7 @@ export type TenantWebsite = {
   defaultRegulationKey: string | null;
   consentIntegrations: Record<string, unknown>;
   verified: boolean;
+  verifiedAt: Date | null;
   createdAt: Date;
 };
 
@@ -49,6 +50,7 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
       defaultLanguage: websites.defaultLanguage,
       defaultRegion: websites.defaultRegion,
       verified: websites.verified,
+      verifiedAt: websites.verifiedAt,
       createdAt: websites.createdAt,
     })
     .from(websites)

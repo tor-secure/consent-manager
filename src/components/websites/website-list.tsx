@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HoverGlassCard } from "@/components/ui/hover-glass-card";
 
 export type WebsiteRow = {
   id: string;
@@ -112,52 +112,61 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
       )}
 
       {filtered.length > 0 && (
-        <ul role="list" className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <ul role="list" className="grid gap-6 py-2 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((website) => (
-            <li key={website.id}>
-              <Link
+            <li key={website.id} className="min-w-0">
+              <HoverGlassCard
                 href={`/dashboard/websites/${website.id}`}
-                className="group flex h-full flex-col rounded-2xl bg-white card-shadow p-5 sm:p-6 card-lift"
+                className="h-full min-h-[254px] w-full flex-col p-5 text-left font-medium sm:p-6"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex w-full items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                    <p className="truncate text-base font-bold text-slate-900">
                       {website.name}
                     </p>
-                    <p className="mt-0.5 truncate text-sm text-slate-500">
+                    <p className="mt-0.5 truncate text-sm font-medium text-slate-600">
                       {website.domain}
                     </p>
                   </div>
                   <StatusBadge status={website.status} />
                 </div>
 
-                <dl className="mt-5 space-y-2 text-sm">
+                <dl className="mt-5 w-full space-y-2 text-sm font-medium">
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-400 font-medium">Environment</dt>
-                    <dd className="capitalize text-slate-700">
+                    <dt className="text-slate-500">Environment</dt>
+                    <dd className="capitalize text-slate-800">
                       {website.environment}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-400 font-medium">Region</dt>
-                    <dd className="text-slate-700">
+                    <dt className="text-slate-500">Region</dt>
+                    <dd className="text-slate-800">
                       {website.defaultRegion ?? "—"}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-400 font-medium">Language</dt>
-                    <dd className="uppercase tracking-wide text-slate-700">
+                    <dt className="text-slate-500">Language</dt>
+                    <dd className="uppercase tracking-wide text-slate-800">
                       {website.defaultLanguage}
                     </dd>
                   </div>
                 </dl>
 
-                <div className="mt-5 pt-4 border-t border-slate-100">
+                <div className="mt-auto w-full border-t border-white/70 pt-4">
                   <VerifiedBadge verified={website.verified} />
                 </div>
-              </Link>
+              </HoverGlassCard>
             </li>
           ))}
+          <li className="min-w-0">
+            <HoverGlassCard
+              href="/dashboard/websites/new"
+              className="h-full min-h-[254px] w-full flex-col gap-2 p-5 font-bold sm:p-6"
+            >
+              <span className="text-lg">Add website</span>
+              <span className="text-sm font-medium text-slate-600">Click me</span>
+            </HoverGlassCard>
+          </li>
         </ul>
       )}
     </div>

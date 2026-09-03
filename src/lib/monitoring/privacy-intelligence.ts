@@ -11,7 +11,7 @@ import { vendors } from "@/db/schema/vendors";
 import { consentRecords } from "@/db/schema/consent-records";
 import { privacyFindings } from "@/db/schema/privacy-findings";
 import { loadCmpSnapshot } from "@/lib/monitoring/process-scan-drift";
-import { calculateConsentQualityScore, type ConsentQualityScore } from "@/lib/monitoring/consent-quality";
+import { calculateConsentQualityScore, type ConsentQualityInput, type ConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { buildPageIntelligence, type PageIntelligence } from "@/lib/monitoring/page-intelligence";
 import { isFirstPartyDomain, itemKey, type FindingSeverity, type ScanItemSnapshot } from "@/lib/monitoring/drift-engine";
 import { aggregatePrivacyRisk } from "@/lib/monitoring/privacy-risk";
@@ -36,6 +36,33 @@ async function computeWebsiteQualityScoreUnsafe(websiteId: string): Promise<{
   websiteName: string;
   websiteDomain: string;
   score: ConsentQualityScore;
+} | null> {
+  const loaded = await loadQualityScoreInputUnsafe(websiteId);
+  if (!loaded) return null;
+  return {
+    websiteId: loaded.websiteId,
+    websiteName: loaded.websiteName,
+    websiteDomain: loaded.websiteDomain,
+    score: calculateConsentQualityScore(loaded.input),
+  };
+}
+
+export async function loadQualityScoreInput(websiteId: string) {
+  try {
+    return await loadQualityScoreInputUnsafe(websiteId);
+  } catch (error) {
+    if (isSchemaMismatchError(error)) return null;
+    throw error;
+  }
+}
+
+async function loadQualityScoreInputUnsafe(websiteId: string): Promise<{
+  websiteId: string;
+  websiteName: string;
+  websiteDomain: string;
+  input: ConsentQualityInput;
+  published: boolean;
+  openFindingCount: number;
 } | null> {
   const cmp = await loadCmpSnapshot(websiteId);
   if (!cmp) return null;
@@ -97,7 +124,9 @@ async function computeWebsiteQualityScoreUnsafe(websiteId: string): Promise<{
     websiteId: cmp.websiteId,
     websiteName: cmp.websiteName,
     websiteDomain: cmp.websiteDomain,
-    score: calculateConsentQualityScore({
+    published: Boolean(cmp.publishedPolicyVersionId),
+    openFindingCount: openFindings.length,
+    input: {
       thirdPartyScanItems: thirdParty.length,
       scanItemsWithActiveTracker,
       nonEssentialTrackers: nonEssential.length,
@@ -113,7 +142,7 @@ async function computeWebsiteQualityScoreUnsafe(websiteId: string): Promise<{
       consentExpireDays: cmp.publishedConsentExpireDays ?? null,
       consentRecordCount: Number(consentCountRows[0]?.count ?? 0),
       lastCompletedScanAt: latestScan?.completedAt ?? null,
-    }),
+    },
   };
 }
 

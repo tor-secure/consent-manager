@@ -53,59 +53,68 @@ export function resolveRegulationProfile(input: {
   };
 }
 
+export type RankedRegulation = {
+  key: RegulationKey;
+  label: string;
+  version: string;
+  score: number;
+  match: "country_region" | "region" | "country_exact" | "country";
+};
+
+export function rankRegulationsFromGeo(input: {
+  country: string | null;
+  region: string | null;
+  at?: Date;
+}): RankedRegulation[] {
+  const country = (input.country ?? "").trim().toUpperCase();
+  const region = (input.region ?? "").trim().toUpperCase();
+  const at = input.at ?? new Date();
+  const ranked: RankedRegulation[] = [];
+
+  for (const profile of REGULATION_CATALOG) {
+    const version = resolveRegulationVersion(profile, at);
+    if (!version) continue;
+    const countries = version.jurisdictionScope.countries;
+    const regions = version.jurisdictionScope.regions;
+    let match: RankedRegulation["match"] | null = null;
+    let score = 0;
+
+    if (country && region && countries.includes(country) && regions.includes(region)) {
+      match = "country_region";
+      score = 100;
+    } else if (region && regions.includes(region)) {
+      match = "region";
+      score = 85;
+    } else if (country && countries.includes(country) && regions.length === 0) {
+      match = "country_exact";
+      score = 90;
+    } else if (country && countries.includes(country)) {
+      match = "country";
+      score = 70;
+    }
+
+    if (match) {
+      ranked.push({
+        key: profile.key,
+        label: profile.label,
+        version: version.version,
+        score,
+        match,
+      });
+    }
+  }
+
+  return ranked.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+}
+
 export function matchRegulationFromGeo(input: {
   country: string | null;
   region: string | null;
   at?: Date;
 }): ResolvedRegulation | null {
-  const country = (input.country ?? "").trim().toUpperCase();
-  const region = (input.region ?? "").trim().toUpperCase();
-  const at = input.at ?? new Date();
-
-  if (country && region) {
-    for (const profile of REGULATION_CATALOG) {
-      const version = resolveRegulationVersion(profile, at);
-      if (!version) continue;
-      if (
-        version.jurisdictionScope.countries.includes(country) &&
-        version.jurisdictionScope.regions.includes(region)
-      ) {
-        return resolveRegulationProfile({ key: profile.key, at });
-      }
-    }
-  }
-
-  if (region) {
-    for (const profile of REGULATION_CATALOG) {
-      const version = resolveRegulationVersion(profile, at);
-      if (!version) continue;
-      if (version.jurisdictionScope.regions.includes(region)) {
-        return resolveRegulationProfile({ key: profile.key, at });
-      }
-    }
-  }
-
-  if (country) {
-    for (const profile of REGULATION_CATALOG) {
-      const version = resolveRegulationVersion(profile, at);
-      if (!version) continue;
-      if (
-        version.jurisdictionScope.countries.includes(country) &&
-        version.jurisdictionScope.regions.length === 0
-      ) {
-        return resolveRegulationProfile({ key: profile.key, at });
-      }
-    }
-    for (const profile of REGULATION_CATALOG) {
-      const version = resolveRegulationVersion(profile, at);
-      if (!version) continue;
-      if (version.jurisdictionScope.countries.includes(country)) {
-        return resolveRegulationProfile({ key: profile.key, at });
-      }
-    }
-  }
-
-  return null;
+  const top = rankRegulationsFromGeo(input)[0];
+  if (!top) return null;
+  return resolveRegulationProfile({ key: top.key, at: input.at });
 }
 
 export function publicRegulationSummary(resolved: ResolvedRegulation | null) {

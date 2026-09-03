@@ -13,10 +13,10 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
 import {
-  resolveLocalOrganization,
-  resolveLocalUser,
-  resolveActiveMembership,
-} from "@/lib/api-auth-helpers";
+  createConsentCryptoProof,
+  readStoredCryptoProof,
+  verifyConsentCryptoProof,
+} from "@/lib/consent-proof";
 
 // ---------------------------------------------------------------------------
 // GET /api/consent/evidence/[consentId]
@@ -156,6 +156,34 @@ export async function GET(
       .where(eq(consentEvents.consentRecordId, record.id))
       .orderBy(consentEvents.occurredAt);
 
+    const metadata =
+      record.metadata && typeof record.metadata === "object"
+        ? (record.metadata as Record<string, unknown>)
+        : {};
+    const storedProof = readStoredCryptoProof(metadata);
+    const claims = {
+      v: 1 as const,
+      consentId: record.consentId,
+      websiteId: record.websiteId,
+      policyVersionId: record.policyVersionId,
+      status: record.status,
+      choice: typeof metadata.choice === "string" ? metadata.choice : null,
+      jurisdiction: record.jurisdiction,
+      decisions: decisions.map((d) => ({
+        purposeId: d.purposeId,
+        vendorId: d.vendorId,
+        granted: d.granted,
+      })),
+      consentedAt:
+        typeof metadata.capturedAt === "string"
+          ? metadata.capturedAt
+          : (record.consentedAt ?? record.createdAt).toISOString(),
+    };
+    const currentProof = createConsentCryptoProof(claims, record.updatedAt);
+    const verification = storedProof
+      ? verifyConsentCryptoProof({ claims, proof: storedProof })
+      : { hashMatches: false, signatureValid: false, intact: false };
+
     // ── Assemble the evidence bundle ──────────────────────────────────────
     return NextResponse.json({
       success: true,
@@ -219,6 +247,12 @@ export async function GET(
           source:     e.source,
           occurredAt: e.occurredAt,
         })),
+
+        proof: {
+          stored: storedProof,
+          currentHash: currentProof.hash,
+          verification,
+        },
       },
     });
   } catch (error) {

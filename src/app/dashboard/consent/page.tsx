@@ -414,6 +414,12 @@ export default async function ConsentRecordsPage() {
                           <code className="rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
                             {record.consentId.slice(0, 18)}…
                           </code>
+                          <Link
+                            href={`/dashboard/consent/${record.consentId}`}
+                            className="mt-1 block text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
+                          >
+                            Proof
+                          </Link>
                         </td>
 
                         {/* Website */}
