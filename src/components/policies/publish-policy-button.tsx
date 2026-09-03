@@ -50,31 +50,46 @@ export function PublishPolicyButton({
 
   // ── Already published ─────────────────────────────────────────────────────
 
-  if (isPublished && state.phase !== "success") {
+  // ── Already published: still allow a new live version ─────────────────────
+
+  if (isPublished && state.phase !== "success" && state.phase !== "confirm" && state.phase !== "publishing" && state.phase !== "error") {
     return (
-      <div className="flex items-center gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20">
-          {/* checkmark icon */}
-          <svg
-            aria-hidden="true"
-            className="h-3.5 w-3.5"
-            fill="none"
-            viewBox="0 0 16 16"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-          </svg>
-          Published
-        </span>
-        {publishedAt && (
-          <span className="text-xs text-neutral-400">
-            {new Date(publishedAt).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-700 ring-1 ring-green-600/20">
+            <svg
+              aria-hidden="true"
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 16 16"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
+            </svg>
+            Published
           </span>
+          {publishedAt && (
+            <span className="text-xs text-neutral-400">
+              {new Date(publishedAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          )}
+        </div>
+        {hasPurposes ? (
+          <button
+            onClick={() => setState({ phase: "confirm" })}
+            className="self-start rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700"
+          >
+            Publish new version
+          </button>
+        ) : (
+          <p className="text-xs text-neutral-400">
+            Attach at least one purpose to publish a new version.
+          </p>
         )}
       </div>
     );
@@ -146,12 +161,13 @@ export function PublishPolicyButton({
     return (
       <div className="flex flex-col gap-2.5 rounded-lg border border-amber-200 bg-amber-50 p-4">
         <p className="text-sm font-medium text-amber-900">
-          Publish version v{latestVersionNumber}?
+          {isPublished
+            ? "Publish a new live version?"
+            : `Publish version v${latestVersionNumber}?`}
         </p>
         <p className="text-xs text-amber-700">
-          Publishing makes this version live. Visitors to the website will start
-          seeing the updated consent banner immediately. This action cannot be
-          undone — to make further changes you will need to create a new version.
+          Publishing makes this version live. Visitors will see the latest purposes,
+          vendors, and banner settings. You can publish again later after more changes.
         </p>
         <div className="flex items-center gap-2 pt-1">
           <button
@@ -193,7 +209,7 @@ export function PublishPolicyButton({
             disabled={isPending}
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-60"
           >
-            {isPending ? "Publishing..." : `Yes, publish v${latestVersionNumber}`}
+            {isPending ? "Publishing..." : isPublished ? "Yes, publish new version" : `Yes, publish v${latestVersionNumber}`}
           </button>
           <button
             onClick={() => setState({ phase: "idle" })}

@@ -374,6 +374,7 @@ export async function POST(request: Request) {
       purposeNames,
       consentExpireDays:   bannerConfig.consentExpireDays,
       defaultConsent:      bannerConfig.defaultConsent,
+      choice:              submission.choice,
       capturedAt:          now.toISOString(),
       },
       buildAnalyticsHints({
@@ -517,8 +518,16 @@ export async function POST(request: Request) {
         success: true,
         consentId: savedRecord.consentId,
         status: overallStatus,
+        choice: submission.choice,
         policyVersionId: latestVersion.id,
         expiresAt: savedRecord.expiresAt,
+        decisions: decisionRows.map((d) => ({
+          purposeId: d.purposeId,
+          vendorId: d.vendorId,
+          granted: d.granted,
+          decision: d.decision,
+          decidedAt: d.decidedAt,
+        })),
       },
       { status: isNew ? 201 : 200, headers: CORS_HEADERS },
     );

@@ -5,11 +5,11 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 // ---------------------------------------------------------------------------
 // DELETE /api/policies/[id]/vendors/[vendorId]
@@ -76,14 +76,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
     }
 
-    // ── Get latest version ───────────────────────────────────────────────────
-    const allVersions = await db
-      .select({ id: consentPolicyVersions.id, version: consentPolicyVersions.version })
-      .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
-
-    const latestVersion = allVersions[allVersions.length - 1] ?? null;
+    const latestVersion = await ensureDraftPolicyVersion(policy.id);
     if (!latestVersion) {
       return NextResponse.json({ success: false, message: "Policy version not found" }, { status: 404 });
     }

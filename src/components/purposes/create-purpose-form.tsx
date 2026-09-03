@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { PURPOSE_TEMPLATES, type PurposeTemplate } from "@/lib/templates/purpose-templates";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -158,7 +159,7 @@ function DataCategoriesInput({
 export function CreatePurposeForm() {
   const router = useRouter();
 
-  // Core fields
+  const [templateKey, setTemplateKey] = useState<string>("custom");
   const [name, setName]               = useState("");
   const [key, setKey]                 = useState("");
   const [keyTouched, setKeyTouched]   = useState(false);
@@ -166,14 +167,29 @@ export function CreatePurposeForm() {
   const [isRequired, setIsRequired]   = useState(false);
   const [status, setStatus]           = useState<"active" | "inactive">("active");
 
-  // DPDP enrichment fields
   const [dataCategories, setDataCategories] = useState<string[]>([]);
   const [retentionPeriod, setRetentionPeriod] = useState("");
   const [legalBasis, setLegalBasis]   = useState("consent");
 
-  // Form state
   const { pending: saving, run } = useAsyncAction();
   const [error, setError]     = useState("");
+
+  function applyPurposeTemplate(tpl: PurposeTemplate | null) {
+    if (!tpl) {
+      setTemplateKey("custom");
+      return;
+    }
+    setTemplateKey(tpl.key);
+    setName(tpl.name);
+    setKey(tpl.key);
+    setKeyTouched(true);
+    setDescription(tpl.description);
+    setIsRequired(tpl.isRequired);
+    setDataCategories([...tpl.dataCategories]);
+    setRetentionPeriod(tpl.retentionPeriod);
+    setLegalBasis(tpl.legalBasis);
+    setStatus("active");
+  }
 
   function handleNameChange(value: string) {
     setName(value);
@@ -214,6 +230,47 @@ export function CreatePurposeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-slate-900">Start from a template</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Choose a common cookie category, then edit the wording before you save.
+          </p>
+        </div>
+        <div className="grid gap-2 p-4 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => applyPurposeTemplate(null)}
+            className={`rounded-2xl border p-3 text-left transition ${
+              templateKey === "custom"
+                ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
+                : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+            }`}
+          >
+            <p className="text-sm font-semibold text-slate-900">Custom</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">Blank purpose — fill in your own details.</p>
+          </button>
+          {PURPOSE_TEMPLATES.map((tpl) => {
+            const active = templateKey === tpl.key;
+            return (
+              <button
+                key={tpl.key}
+                type="button"
+                onClick={() => applyPurposeTemplate(tpl)}
+                className={`rounded-2xl border p-3 text-left transition ${
+                  active
+                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
+                    : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <p className="text-sm font-semibold text-slate-900">{tpl.name}</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{tpl.summary}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* ── Core details ──────────────────────────────────────────────── */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">

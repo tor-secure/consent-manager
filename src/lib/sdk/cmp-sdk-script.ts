@@ -125,6 +125,8 @@ ${apiBaseLine}
   var _ackedPurposeIds = {};
   var _ackedVendorIds = {};
   var _hasVendorSnapshot = false;
+  var _submitBusy = false;
+  var _queuedSubmit = null;
 ${HOST_SCROLL_LOCK_RUNTIME}
   if (window.__CMP_HOST_SCROLL_LOCK__ && typeof window.__CMP_HOST_SCROLL_LOCK__.teardown === 'function') {
     try { window.__CMP_HOST_SCROLL_LOCK__.teardown(); } catch (eLock) {}
@@ -525,15 +527,74 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     } catch(e) { log('Failed to save consent: ' + e); }
   }
 
-  function submitConsent(choice, purposeDecisions, vendorDecisions, callback) {
+  function buildOptimisticDecisions(choice, purposeDecisions, vendorDecisions) {
+    var out = [];
+    var i;
+    if (choice === 'granular') {
+      (purposeDecisions || []).forEach(function(d) {
+        if (!d || !d.purposeId) return;
+        out.push({ purposeId: d.purposeId, vendorId: null, granted: !!d.granted, decision: 'granular' });
+      });
+      (vendorDecisions || []).forEach(function(d) {
+        if (!d || !d.vendorId) return;
+        out.push({ purposeId: null, vendorId: d.vendorId, granted: !!d.granted, decision: 'granular' });
+      });
+      return out;
+    }
+    var grantAll = choice === 'accept-all';
+    var purposes = (_config && _config.purposes) || [];
+    var vendors = (_config && _config.vendors) || [];
+    for (i = 0; i < purposes.length; i++) {
+      out.push({
+        purposeId: purposes[i].id,
+        vendorId: null,
+        granted: grantAll || !!purposes[i].isRequired,
+        decision: choice
+      });
+    }
+    for (i = 0; i < vendors.length; i++) {
+      out.push({
+        purposeId: null,
+        vendorId: vendors[i].id,
+        granted: grantAll,
+        decision: choice
+      });
+    }
+    return out;
+  }
+
+  function persistLatestChoice(choice, decisionsArray) {
+    applyDecisions(decisionsArray);
+    try {
+      var scope = currentScopeSnapshot(_config);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        consentId: _consentId || '',
+        decisions: decisionsArray,
+        choice: choice || '',
+        policyVersionId: scope.policyVersionId,
+        purposeIds: scope.purposeIds,
+        vendorIds: scope.vendorIds
+      }));
+    } catch (ePersist) {}
+    enforceScriptTags();
+    publishExternalSignals();
+    _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
+  }
+
+  function flushConsentSubmit() {
+    if (_submitBusy || !_queuedSubmit || !_config) return;
+    var job = _queuedSubmit;
+    _queuedSubmit = null;
+    _submitBusy = true;
+
     var body = {
       websiteId: _config.websiteId,
       consentId: _consentId || undefined,
       language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
       submission: {
-        choice: choice,
-        purposeDecisions: purposeDecisions || [],
-        vendorDecisions:  vendorDecisions  || []
+        choice: job.choice,
+        purposeDecisions: job.purposeDecisions || [],
+        vendorDecisions: job.vendorDecisions || []
       }
     };
 
@@ -545,19 +606,35 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.success) throw new Error(data.message || 'Submit failed');
-
-      return fetch(API_BASE + '/api/consent/record?consentId=' + data.consentId
-        + '&websiteId=' + _config.websiteId)
-        .then(function(r) { return r.json(); })
-        .then(function(rec) {
-          saveConsent(data.consentId, rec.decisions || [], data.expiresAt, choice);
-          if (callback) callback(null, data.consentId);
-        });
+      if (data.consentId) _consentId = data.consentId;
+      if (_queuedSubmit) return;
+      var decisions = (data.decisions && data.decisions.length)
+        ? data.decisions
+        : job.optimistic;
+      saveConsent(data.consentId, decisions, data.expiresAt, job.choice);
+      if (job.callback) job.callback(null, data.consentId);
     })
     .catch(function(err) {
       log('Submit consent failed: ' + err);
-      if (callback) callback(err);
+      if (!_queuedSubmit && job.callback) job.callback(err);
+    })
+    .then(function() {
+      _submitBusy = false;
+      flushConsentSubmit();
     });
+  }
+
+  function submitConsent(choice, purposeDecisions, vendorDecisions, callback) {
+    var optimistic = buildOptimisticDecisions(choice, purposeDecisions, vendorDecisions);
+    persistLatestChoice(choice, optimistic);
+    _queuedSubmit = {
+      choice: choice,
+      purposeDecisions: purposeDecisions || [],
+      vendorDecisions: vendorDecisions || [],
+      callback: callback,
+      optimistic: optimistic
+    };
+    flushConsentSubmit();
   }
 
   function bannerPositionStyle(layout, position) {

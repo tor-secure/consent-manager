@@ -22,12 +22,11 @@ export default function NewPurposePage() {
           Create purpose
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Purposes are shared across your organization and can be attached to
-          any consent policy.
+          Start from a ready-made category such as analytics or advertising, then customise the notice text.
         </p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-3xl">
         <CreatePurposeForm />
       </div>
     </div>

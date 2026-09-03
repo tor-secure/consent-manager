@@ -151,7 +151,7 @@ export default async function PolicyDetailPage({
   // ── Derived values ────────────────────────────────────────────────────────
   const isPublished  = latestVersion?.isPublished ?? false;
   const hasPurposes  = attachedIds.size > 0;
-  const publishedVer = versions.find((v) => v.isPublished);
+  const publishedVer = [...versions].reverse().find((v) => v.isPublished);
 
   const policyStatusVariant: Record<string, "success" | "warning" | "neutral"> = {
     active:   "success",

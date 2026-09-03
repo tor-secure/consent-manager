@@ -5,11 +5,11 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 // ---------------------------------------------------------------------------
 // Shared: resolve org → policy → latest version → attached purposeIds
@@ -42,13 +42,7 @@ async function resolveContext(policyId: string, orgId: string) {
 
   if (!policy) return null;
 
-  const allVersions = await db
-    .select({ id: consentPolicyVersions.id, version: consentPolicyVersions.version })
-    .from(consentPolicyVersions)
-    .where(eq(consentPolicyVersions.policyId, policy.id))
-    .orderBy(consentPolicyVersions.version);
-
-  const latestVersion = allVersions[allVersions.length - 1] ?? null;
+  const latestVersion = await ensureDraftPolicyVersion(policy.id);
   if (!latestVersion) return null;
 
   // Fetch purpose IDs attached to this version.

@@ -3,15 +3,19 @@ import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
+import { purposes } from "@/db/schema/purposes";
+import { policyPurposes } from "@/db/schema/policy-purposes";
 import {
   resolveLocalOrganization,
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { defaultBannerConfig, parseBannerConfig } from "@/lib/banner-config";
+import { getPolicyTemplate } from "@/lib/templates/policy-templates";
+import { getPurposeTemplate, isPurposeTemplateKey } from "@/lib/templates/purpose-templates";
 
 export async function POST(request: Request) {
   try {
@@ -65,6 +69,18 @@ export async function POST(request: Request) {
       ? String(body.description).trim()
       : null;
     const isDefault = body.isDefault === true;
+    const templateId = String(body.templateId ?? "custom").trim() || "custom";
+    const template = getPolicyTemplate(templateId) ?? getPolicyTemplate("custom");
+    if (!template) {
+      return NextResponse.json({ success: false, message: "Invalid policy template" }, { status: 400 });
+    }
+
+    const requestedKeys = Array.isArray(body.purposeKeys)
+      ? (body.purposeKeys as unknown[])
+          .map((k) => String(k).trim())
+          .filter((k) => isPurposeTemplateKey(k))
+      : template.purposeKeys;
+    const purposeKeys = [...new Set(requestedKeys)];
 
     if (!websiteId) {
       return NextResponse.json(
@@ -132,10 +148,57 @@ export async function POST(request: Request) {
           policyId: policy.id,
           version: 1,
           status: "draft",
-          configuration: {},
+          configuration: parseBannerConfig({
+            ...(defaultBannerConfig() as unknown as Record<string, unknown>),
+            ...(template.banner as unknown as Record<string, unknown>),
+          }) as unknown as Record<string, unknown>,
           isPublished: false,
         })
         .returning();
+
+      if (purposeKeys.length > 0) {
+        const existingPurposes = await tx
+          .select({ id: purposes.id, key: purposes.key })
+          .from(purposes)
+          .where(eq(purposes.organizationId, organization.id));
+        const byKey = new Map(existingPurposes.map((p) => [p.key, p.id]));
+        const attachIds: string[] = [];
+
+        for (const key of purposeKeys) {
+          const found = byKey.get(key);
+          if (found) {
+            attachIds.push(found);
+            continue;
+          }
+          const spec = getPurposeTemplate(key);
+          if (!spec) continue;
+          const [created] = await tx
+            .insert(purposes)
+            .values({
+              organizationId: organization.id,
+              key: spec.key,
+              name: spec.name,
+              description: spec.description,
+              isRequired: spec.isRequired,
+              status: "active",
+              dataCategories: spec.dataCategories,
+              retentionPeriod: spec.retentionPeriod,
+              legalBasis: spec.legalBasis,
+            })
+            .returning({ id: purposes.id, key: purposes.key });
+          byKey.set(created.key, created.id);
+          attachIds.push(created.id);
+        }
+
+        if (attachIds.length > 0) {
+          await tx.insert(policyPurposes).values(
+            attachIds.map((purposeId) => ({
+              policyVersionId: version.id,
+              purposeId,
+            })),
+          );
+        }
+      }
 
       return { policy, version };
     });

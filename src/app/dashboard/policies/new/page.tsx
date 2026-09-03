@@ -57,12 +57,11 @@ export default async function NewPolicyPage({
           Create consent policy
         </h1>
         <p className="mt-1 text-sm text-neutral-500">
-          A new policy starts as a draft. You can configure purposes and publish
-          it later.
+          Start from a template or a blank draft. You can still edit purposes and publish later.
         </p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-3xl">
         {orgWebsites.length === 0 ? (
           <div className="rounded-lg border border-dashed p-10 text-center">
             <p className="text-sm font-medium text-neutral-600">

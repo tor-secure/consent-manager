@@ -8,24 +8,21 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 // ---------------------------------------------------------------------------
 // POST /api/policies/[id]/publish
 //
-// Publishes the latest draft version of a consent policy.
+// Publishes the latest draft. If the latest version is already live, a new
+// draft is copied first so purposes/vendors added after the first publish
+// can go live as a new version.
 //
-// Validation rules (all must pass before any write):
-//   1. Caller is authenticated and belongs to the org that owns this policy.
+// Validation:
+//   1. Caller belongs to the org that owns this policy.
 //   2. The policy has at least one version.
-//   3. The latest version is NOT already published (prevents accidental
-//      overwrite — to re-publish with changes the user must bump a new version).
-//   4. The latest version has at least one purpose attached.
+//   3. The version being published has at least one purpose.
 //
-// On success:
-//   • Sets latest version: isPublished=true, status='active',
-//     publishedAt=now, effectiveFrom=now.
-//   • Sets the parent consent_policy: status='active'.
-//   • Returns the updated version row.
+// On success the version is marked published and the parent policy is active.
 // ---------------------------------------------------------------------------
 
 export async function POST(
@@ -83,19 +80,8 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
     }
 
-    // ── 3. Get latest version ───────────────────────────────────────────────
-    const allVersions = await db
-      .select({
-        id: consentPolicyVersions.id,
-        version: consentPolicyVersions.version,
-        status: consentPolicyVersions.status,
-        isPublished: consentPolicyVersions.isPublished,
-      })
-      .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
-
-    const latestVersion = allVersions[allVersions.length - 1] ?? null;
+    // ── 3. Get a draft to publish (clone if the latest is already live) ─────
+    const latestVersion = await ensureDraftPolicyVersion(policy.id);
 
     if (!latestVersion) {
       return NextResponse.json(
@@ -104,21 +90,7 @@ export async function POST(
       );
     }
 
-    // ── 4. Guard: already published ─────────────────────────────────────────
-    if (latestVersion.isPublished) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            `Version v${latestVersion.version} is already published. ` +
-            "Create a new draft version to make changes.",
-          alreadyPublished: true,
-        },
-        { status: 409 },
-      );
-    }
-
-    // ── 5. Guard: must have at least one purpose ────────────────────────────
+    // ── 4. Guard: must have at least one purpose ────────────────────────────
     const [purposeCount] = await db
       .select({ count: policyPurposes.id })
       .from(policyPurposes)

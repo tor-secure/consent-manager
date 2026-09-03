@@ -5,10 +5,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 // ---------------------------------------------------------------------------
 // Shared: resolve org + verify policy ownership, return latest version id
@@ -41,17 +41,10 @@ async function resolveContext(policyId: string, orgId: string) {
 
   if (!policy) return null;
 
-  // Get the latest version (highest version number).
-  const allVersions = await db
-    .select({ id: consentPolicyVersions.id, version: consentPolicyVersions.version })
-    .from(consentPolicyVersions)
-    .where(eq(consentPolicyVersions.policyId, policy.id))
-    .orderBy(consentPolicyVersions.version);
+  const draft = await ensureDraftPolicyVersion(policy.id);
+  if (!draft) return null;
 
-  const latestVersion = allVersions[allVersions.length - 1] ?? null;
-  if (!latestVersion) return null;
-
-  return { organizationId: organization.id, policyId: policy.id, policyVersionId: latestVersion.id };
+  return { organizationId: organization.id, policyId: policy.id, policyVersionId: draft.id };
 }
 
 // ---------------------------------------------------------------------------

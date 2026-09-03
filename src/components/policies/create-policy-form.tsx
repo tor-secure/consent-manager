@@ -9,6 +9,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import {
+  POLICY_TEMPLATES,
+  getPolicyTemplate,
+  purposeTemplatesForPolicy,
+} from "@/lib/templates/policy-templates";
 
 export type WebsiteOption = {
   id: string;
@@ -28,9 +33,29 @@ export function CreatePolicyForm({
   const [websiteId, setWebsiteId] = useState(
     defaultWebsiteId ?? websites[0]?.id ?? "",
   );
+  const [templateId, setTemplateId] = useState("custom");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [isDefault, setIsDefault] = useState(false);
+  const [purposeKeys, setPurposeKeys] = useState<string[]>([]);
+
+  const selectedTemplate = getPolicyTemplate(templateId) ?? POLICY_TEMPLATES[0];
+  const templatePurposes = purposeTemplatesForPolicy(selectedTemplate);
+
+  function applyTemplate(id: string) {
+    const next = getPolicyTemplate(id) ?? POLICY_TEMPLATES[0];
+    setTemplateId(next.id);
+    setPurposeKeys([...next.purposeKeys]);
+    if (next.id === "custom") return;
+    setName(next.name);
+    setDescription(next.description);
+  }
+
+  function togglePurpose(key: string) {
+    setPurposeKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+  }
 
   const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
@@ -49,6 +74,8 @@ export function CreatePolicyForm({
             name,
             description: description.trim() || null,
             isDefault,
+            templateId,
+            purposeKeys,
           }),
         },
         {
@@ -74,8 +101,37 @@ export function CreatePolicyForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-5" aria-busy={saving}>
       <FormCard
+        title="Start from a template"
+        description="Pick a ready-made policy, then edit the name, copy, and purposes before you create it."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          {POLICY_TEMPLATES.map((tpl) => {
+            const active = templateId === tpl.id;
+            return (
+              <button
+                key={tpl.id}
+                type="button"
+                onClick={() => applyTemplate(tpl.id)}
+                className={`rounded-2xl border p-3 text-left transition ${
+                  active
+                    ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
+                    : "border-[var(--border)] hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <p className="text-sm font-semibold text-slate-900">{tpl.name}</p>
+                <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-400">
+                  {tpl.regionLabel}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{tpl.summary}</p>
+              </button>
+            );
+          })}
+        </div>
+      </FormCard>
+
+      <FormCard
         title="Policy details"
-        description="A new policy starts as a draft. You can attach purposes and publish it later."
+        description="A new policy starts as a draft. You can still change purposes and publish later."
       >
         <Field label="Website" htmlFor="policy-website">
           {websites.length === 0 ? (
@@ -128,6 +184,40 @@ export function CreatePolicyForm({
             Set as the default policy for this website
           </span>
         </label>
+
+        {templatePurposes.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-slate-700">Purposes in this template</p>
+            <p className="text-xs text-slate-500">
+              Uncheck any you do not need. Missing purposes are created in your organization; existing ones with the same key are reused.
+            </p>
+            <div className="space-y-2">
+              {templatePurposes.map((p) => (
+                <label
+                  key={p.key}
+                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] px-4 py-3"
+                >
+                  <input
+                    type="checkbox"
+                    checked={purposeKeys.includes(p.key)}
+                    onChange={() => togglePurpose(p.key)}
+                    className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-800">
+                      {p.name}
+                      {p.isRequired ? (
+                        <span className="ml-2 text-[11px] font-semibold uppercase text-indigo-600">Required</span>
+                      ) : null}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-slate-500">{p.summary}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {error ? (
           <Alert variant="error" role="alert">
             {error}
