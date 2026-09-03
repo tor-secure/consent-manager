@@ -1,5 +1,6 @@
 import "server-only";
 
+import { clerkClient } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -71,6 +72,46 @@ export async function resolveLocalOrganization(
     .where(eq(organizations.clerkOrganizationId, clerkOrganizationId))
     .limit(1);
   return row ?? null;
+}
+
+/**
+ * Clerk sessions often have a user but no active orgId yet after sign-in.
+ * Fall back to the first Clerk membership, then a local membership.
+ */
+export async function resolveActiveClerkOrgId(
+  userId: string,
+  sessionOrgId: string | null | undefined,
+): Promise<string | null> {
+  if (sessionOrgId) return sessionOrgId;
+
+  try {
+    const client = await clerkClient();
+    const list = await client.users.getOrganizationMembershipList({
+      userId,
+      limit: 1,
+    });
+    const fromClerk = list.data[0]?.organization.id;
+    if (fromClerk) return fromClerk;
+  } catch {
+    /* User may not belong to any Clerk organization yet. */
+  }
+
+  const localUser = await resolveLocalUser(userId);
+  if (!localUser) return null;
+
+  const [linked] = await db
+    .select({ clerkOrganizationId: organizations.clerkOrganizationId })
+    .from(memberships)
+    .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
+    .where(
+      and(
+        eq(memberships.userId, localUser.id),
+        eq(memberships.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  return linked?.clerkOrganizationId ?? null;
 }
 
 export function hasRole(roleName: string, allowed: readonly string[]): boolean {

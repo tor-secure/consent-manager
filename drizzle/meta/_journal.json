@@ -281,6 +281,13 @@
       "when": 1788200000000,
       "tag": "0039_continuous_scanner_analytics",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1788417165333,
+      "tag": "0040_redundant_warbound",
+      "breakpoints": true
     }
   ]
 }

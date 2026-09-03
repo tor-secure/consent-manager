@@ -1,4 +1,5 @@
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { bootstrapCurrentContext } from "@/lib/bootstrap-current-context";
@@ -60,13 +61,12 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  let context: Awaited<ReturnType<typeof bootstrapCurrentContext>>;
-
-  try {
-    context = await bootstrapCurrentContext();
-  } catch {
+  const { userId } = await auth();
+  if (!userId) {
     redirect("/sign-in");
   }
+
+  const context = await bootstrapCurrentContext();
 
   if (!context.organization) {
     redirect("/create-organization");

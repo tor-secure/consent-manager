@@ -9,6 +9,16 @@ import { websites } from "@/db/schema/websites";
 import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
+import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
+
+function isUniqueConstraintError(error: unknown): boolean {
+  let current: unknown = error;
+  for (let i = 0; i < 4 && current && typeof current === "object"; i += 1) {
+    if ((current as { code?: unknown }).code === "23505") return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
 
 function normalizeDomain(value: string) {
   return value
@@ -21,7 +31,7 @@ function normalizeDomain(value: string) {
 
 export async function POST(request: Request) {
   try {
-    const { isAuthenticated, userId, orgId } = await auth();
+    const { isAuthenticated, userId, orgId: sessionOrgId } = await auth();
 
     if (!isAuthenticated || !userId) {
       return NextResponse.json(
@@ -32,6 +42,8 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
+
+    const orgId = await resolveActiveClerkOrgId(userId, sessionOrgId);
 
     if (!orgId) {
       return NextResponse.json(
@@ -165,7 +177,15 @@ export async function POST(request: Request) {
         defaultRegion: region,
         verified: false,
       })
-      .returning();
+      .returning({
+        id: websites.id,
+        name: websites.name,
+        domain: websites.domain,
+        siteKey: websites.siteKey,
+        status: websites.status,
+        defaultLanguage: websites.defaultLanguage,
+        defaultRegion: websites.defaultRegion,
+      });
 
     return NextResponse.json(
       {
@@ -176,6 +196,16 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error("Website creation failed:", error);
+
+    if (isUniqueConstraintError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "A website with this domain already exists in your organization.",
+        },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json(
       {
