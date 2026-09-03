@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 import { CreateWebhookForm } from "./create-webhook-form";
 
 // ---------------------------------------------------------------------------
@@ -175,7 +176,7 @@ function EndpointCard({
                 onClick={() => onDelete(endpoint.id)}
                 className="rounded-xl bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-40"
               >
-                Yes, delete
+                {busyId === endpoint.id ? "Deleting..." : "Yes, delete"}
               </button>
               <button
                 type="button"
@@ -293,31 +294,41 @@ export function WebhookEndpointManager({
   const [createdSecret, setCreatedSecret] = useState<{ secret: string; name: string } | null>(null);
 
   async function toggleEndpoint(id: string, newStatus: "active" | "disabled") {
+    if (busyId) return;
     setBusyId(id); setError("");
-    try {
-      const res = await fetch(`/api/webhooks/endpoints/${id}`, {
+    const result = await dashboardFetch(
+      `/api/webhooks/endpoints/${id}`,
+      {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to update endpoint");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setBusyId(null); }
+      },
+      {
+        successMessage: newStatus === "disabled" ? "Webhook disabled successfully" : "Webhook enabled successfully",
+        errorFallback: "Unable to update webhook. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   async function deleteEndpoint(id: string) {
+    if (busyId) return;
     setBusyId(id); setError("");
-    try {
-      const res = await fetch(`/api/webhooks/endpoints/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to delete endpoint");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setBusyId(null); }
+    const result = await dashboardFetch(
+      `/api/webhooks/endpoints/${id}`,
+      { method: "DELETE" },
+      {
+        successMessage: "Webhook deleted successfully",
+        errorFallback: "Unable to delete webhook. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   return (

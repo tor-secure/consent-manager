@@ -33,6 +33,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "@/db") return { db: {} };
   if (request === "@/lib/logger") return { logger: { error() {}, warn() {}, info() {}, debug() {} } };
   if (request.startsWith("@/db/schema/")) return {};
+  if (request.startsWith("@/")) {
+    return originalLoad.call(this, findCompiled(`src/${request.slice(2)}.ts`), parent, isMain);
+  }
   return originalLoad.call(this, request, parent, isMain);
 };
 
@@ -181,12 +184,21 @@ function createStore() {
       consentExpireDays: 180,
       defaultConsent: "none",
       showVendorList: true,
+      language: "en",
+      translations: {},
     },
+    resolvedLanguage: "en",
+    locale: { language: "en", region: "IN", direction: "ltr", resolved: "en", supported: [] },
     purposes: store.purposes,
     vendors: store.vendors,
     trackerRules: store.trackerRules,
     locale: { language: "en", region: "IN" },
     grievance: {},
+    signals: {
+      googleConsentMode: { enabled: false, status: "disabled", purposeSignals: {} },
+      iabTcf: { enabled: false, status: "disabled" },
+      iabGpp: { enabled: false, status: "disabled" },
+    },
   };
 
   return store;
@@ -324,7 +336,13 @@ function createApi(store) {
         consentedAt: new Date().toISOString(),
         expiresAt,
         withdrawnAt: null,
-        metadata: { noticeTitle: store.config.bannerConfig.title },
+        metadata: (() => {
+          const localized = localizedConfig(store, body.language);
+          return {
+            noticeTitle: localized.bannerConfig.title,
+            noticeLanguage: localized.resolvedLanguage,
+          };
+        })(),
       };
       store.records.push(record);
       emitSideEffects(store, record, "consent.created", { status, choice: body.submission.choice });
@@ -413,7 +431,16 @@ class FakeElement {
     this.children = [];
     this.parentNode = null;
     this.listeners = {};
-    this.style = {};
+    this.style = {
+      _p: Object.create(null),
+      getPropertyValue(name) { return this._p[name] || ""; },
+      setProperty(name, value) { this._p[name] = String(value); },
+      removeProperty(name) {
+        const prev = this._p[name] || "";
+        delete this._p[name];
+        return prev;
+      },
+    };
     this.textContent = "";
     this.id = "";
   }
@@ -462,6 +489,16 @@ class FakeElement {
     this.listeners[type].push(handler);
   }
 
+  removeEventListener(type, handler) {
+    this.listeners[type] = (this.listeners[type] ?? []).filter((item) => item !== handler);
+  }
+
+  querySelectorAll() {
+    return [];
+  }
+
+  focus() {}
+
   click() {
     for (const handler of this.listeners.click ?? []) handler();
   }
@@ -471,6 +508,31 @@ function collect(rootElement, predicate, out = []) {
   if (predicate(rootElement)) out.push(rootElement);
   for (const child of rootElement.children ?? []) collect(child, predicate, out);
   return out;
+}
+
+function localizedConfig(store, requestedLang) {
+  const body = JSON.parse(JSON.stringify(store.config));
+  const packs = body.bannerConfig.translations || {};
+  const raw = String(requestedLang || "").trim();
+  const exact = packs[raw];
+  const base = raw.split("-")[0];
+  const pack = exact || packs[base];
+  if (pack) {
+    Object.assign(body.bannerConfig, pack);
+    body.resolvedLanguage = exact ? raw : base;
+  } else if (!raw || base === "en") {
+    body.resolvedLanguage = raw || "en";
+  } else {
+    body.resolvedLanguage = "en";
+  }
+  const langBase = String(body.resolvedLanguage).split("-")[0];
+  body.locale = {
+    ...(body.locale || {}),
+    resolved: body.resolvedLanguage,
+    direction: ["ar", "he", "fa", "ur"].includes(langBase) ? "rtl" : "ltr",
+    supported: Object.keys(packs),
+  };
+  return body;
 }
 
 function createBrowser(store, storageSeed = {}) {
@@ -495,15 +557,35 @@ function createBrowser(store, storageSeed = {}) {
       return [];
     },
     getElementById(id) {
-      return collect(this.body, (el) => el.id === id)[0] ?? null;
+      const hits = [];
+      if (this.body) collect(this.body, (el) => el.id === id || el.getAttribute("id") === id, hits);
+      if (hits[0]) return hits[0];
+      if (this.head) collect(this.head, (el) => el.id === id || el.getAttribute("id") === id, hits);
+      if (this.documentElement && (this.documentElement.id === id || this.documentElement.getAttribute("id") === id)) {
+        return this.documentElement;
+      }
+      return hits[0] ?? null;
+    },
+    contains(node) {
+      if (!node) return false;
+      if (node === this.documentElement || node === this.head || node === this.body) return true;
+      return (
+        collect(this.head, (el) => el === node).length > 0 ||
+        collect(this.body, (el) => el === node).length > 0
+      );
     },
     addEventListener(type, handler) {
       this.listeners[type] = this.listeners[type] ?? [];
       this.listeners[type].push(handler);
     },
+    removeEventListener(type, handler) {
+      this.listeners[type] = (this.listeners[type] ?? []).filter((item) => item !== handler);
+    },
   };
   document.body = new FakeElement("body", document);
   document.head = new FakeElement("head", document);
+  document.documentElement = new FakeElement("html", document);
+  document.documentElement.clientWidth = 1008;
 
   function script(attrs) {
     const el = new FakeElement("script", document);
@@ -530,8 +612,31 @@ function createBrowser(store, storageSeed = {}) {
   });
 
   const storage = new Map(Object.entries(storageSeed));
+  const windowListeners = {};
   const window = {
     __CMP_DEBUG: false,
+    location: { search: "", href: "https://example.com/" },
+    navigator: { language: "en-US", languages: ["en-US", "en"] },
+    pageYOffset: 240,
+    scrollY: 240,
+    innerWidth: 1024,
+    scrollTo(_x, y) {
+      this.pageYOffset = y;
+      this.scrollY = y;
+    },
+    addEventListener(type, handler) {
+      windowListeners[type] = windowListeners[type] ?? [];
+      windowListeners[type].push(handler);
+    },
+    removeEventListener(type, handler) {
+      windowListeners[type] = (windowListeners[type] ?? []).filter((item) => item !== handler);
+    },
+    __gtagCalls: [],
+    gtag(...args) {
+      this.__gtagCalls.push(args);
+    },
+    __tcfapi: undefined,
+    __gpp: undefined,
     console,
     document,
     URL,
@@ -556,7 +661,7 @@ function createBrowser(store, storageSeed = {}) {
       const parsed = new URL(url);
       let result;
       if (parsed.pathname === `/api/sdk/${store.website.siteKey}/config`) {
-        result = { status: 200, body: store.config };
+        result = { status: 200, body: localizedConfig(store, parsed.searchParams.get("lang")) };
       } else if (parsed.pathname.startsWith("/api/sdk/")) {
         result = { status: 404, body: { success: false, message: "Website not found" } };
       } else if (parsed.pathname === "/api/consent/record" && init.method === "POST") {
@@ -576,6 +681,7 @@ function createBrowser(store, storageSeed = {}) {
     },
   };
   window.window = window;
+  window.document = document;
   document.defaultView = window;
 
   return { adsScript, analyticsScript, api, document, storage, store, window };
@@ -596,6 +702,7 @@ async function loadSdk(browser) {
       fetch: browser.window.fetch,
       localStorage: browser.window.localStorage,
       URL,
+      URLSearchParams,
       CustomEvent: browser.window.CustomEvent,
       setTimeout,
       clearTimeout,
@@ -618,6 +725,9 @@ async function testAcceptAllFlow() {
 
   assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
   assert.ok(browser.document.getElementById("__cmp_banner__"), "banner should render");
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
+  assert.equal(browser.document.body.style.getPropertyValue("position"), "fixed");
+  assert.equal(browser.document.body.style.getPropertyValue("top"), "-240px");
 
   buttonByText(browser, "Accept all").click();
   await flush();
@@ -629,6 +739,10 @@ async function testAcceptAllFlow() {
   assert.equal(store.events.length, 1);
   assert.equal(store.auditLogs.length, 1);
   assert.equal(store.webhookDeliveries[0].eventType, "consent.granted");
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), null);
+  assert.equal(browser.document.body.style.getPropertyValue("position"), "");
+  assert.equal(browser.window.scrollY, 240);
   assert.deepEqual(browser.api.analytics(), {
     total: 1,
     accepted: 1,
@@ -657,6 +771,7 @@ async function testRejectAllFlow() {
   assert.equal(browser.window.CMP.getConsent().decisions.purposes[ids.analyticsPurpose], false);
   assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
   assert.equal(store.webhookDeliveries[0].eventType, "consent.declined");
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), null);
 }
 
 async function testGranularPersistenceWithdrawalAndExpiry() {
@@ -677,6 +792,7 @@ async function testGranularPersistenceWithdrawalAndExpiry() {
   await flush();
 
   assert.equal(store.records[0].status, "partial");
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), null);
   assert.notEqual(browser.document.scripts.find((s) => s.getAttribute("src") === "https://analytics.example/analytics.js").getAttribute("type"), "text/plain");
   assert.equal(browser.adsScript.getAttribute("type"), "text/plain");
 
@@ -692,6 +808,7 @@ async function testGranularPersistenceWithdrawalAndExpiry() {
   assert.equal(store.records[0].status, "withdrawn");
   assert.equal(reload.storage.get(`cmp_consent_${store.website.siteKey}`), undefined);
   assert.ok(reload.document.getElementById("__cmp_banner__"), "banner should return after withdrawal");
+  assert.equal(reload.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
   assert.equal(store.webhookDeliveries.at(-1).eventType, "consent.withdrawn");
   assert.equal(reload.api.withdraw({ consentId: "cid_e2e_1", websiteId: ids.websiteA }).status, 409);
 
@@ -742,12 +859,164 @@ async function testInvalidJsonPayload() {
   assert.deepEqual(result, { ok: false, status: 400, message: "Invalid JSON" });
 }
 
+async function testGoogleAndIabSignalPropagation() {
+  const store = createStore();
+  store.config.signals = {
+    googleConsentMode: {
+      enabled: true,
+      waitForUpdateMs: 500,
+      adsDataRedaction: true,
+      urlPassthrough: false,
+      purposeSignals: {
+        analytics: ["analytics_storage"],
+        ads: ["ad_storage", "ad_user_data", "ad_personalization"],
+        essential: ["security_storage"],
+      },
+    },
+    iabTcf: { enabled: true, status: "foundation" },
+    iabGpp: { enabled: true, status: "foundation" },
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  assert.equal(typeof browser.window.__tcfapi, "function");
+  assert.equal(typeof browser.window.__gpp, "function");
+  assert.ok(browser.window.__gtagCalls.some((call) => call[0] === "consent" && call[1] === "default"));
+
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  const updates = browser.window.__gtagCalls.filter((call) => call[0] === "consent" && call[1] === "update");
+  const update = updates[updates.length - 1];
+  assert.ok(update);
+  assert.equal(update[2].analytics_storage, "granted");
+  assert.equal(update[2].ad_storage, "granted");
+
+  browser.window.CMP.withdrawConsent();
+  await flush();
+  const withdrawn = [...browser.window.__gtagCalls].reverse().find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(withdrawn[2].analytics_storage, "denied");
+  assert.equal(withdrawn[2].security_storage, "granted");
+}
+
+async function testBannerLocalizationAndEvidenceLocale() {
+  const translations = {
+    hi: { title: "आपकी गोपनीयता", description: "हिंदी सूचना", acceptAllLabel: "सभी स्वीकार करें", rejectAllLabel: "सभी अस्वीकार करें", customizeLabel: "वरीयताएँ", savePreferencesLabel: "सहेजें", preferenceCenterTitle: "वरीयता केंद्र" },
+    es: { title: "Su privacidad", acceptAllLabel: "Aceptar todo" },
+    fr: { title: "Votre vie privée", acceptAllLabel: "Tout accepter", description: "Avis en français" },
+    de: { title: "Ihre Privatsphäre", acceptAllLabel: "Alle akzeptieren" },
+    pt: { title: "A sua privacidade", acceptAllLabel: "Aceitar tudo" },
+    ar: { title: "خصوصيتك", acceptAllLabel: "قبول الكل", description: "إشعار عربي" },
+    zh: { title: "您的隐私", acceptAllLabel: "全部接受" },
+    ja: { title: "プライバシー", acceptAllLabel: "すべて許可" },
+  };
+
+  async function visit(lang) {
+    const store = createStore();
+    store.config.bannerConfig.translations = translations;
+    const browser = createBrowser(store);
+    browser.window.location.search = `?lang=${encodeURIComponent(lang)}`;
+    await loadSdk(browser);
+    const banner = browser.document.getElementById("__cmp_banner__");
+    assert.ok(banner, `banner should render for ${lang}`);
+    return { store, browser, banner };
+  }
+
+  const hi = await visit("hi");
+  assert.equal(hi.banner.getAttribute("lang"), "hi");
+  assert.equal(hi.banner.getAttribute("dir"), "ltr");
+  assert.ok(buttonByText(hi.browser, "सभी स्वीकार करें"));
+  const hiTitle = collect(hi.banner, (el) => el.tagName === "STRONG")[0];
+  assert.equal(hiTitle.textContent, "आपकी गोपनीयता");
+  buttonByText(hi.browser, "सभी स्वीकार करें").click();
+  await flush();
+  assert.equal(hi.store.records[0].metadata.noticeLanguage, "hi");
+  assert.equal(hi.store.records[0].metadata.noticeTitle, "आपकी गोपनीयता");
+
+  const fr = await visit("fr-FR");
+  assert.ok(buttonByText(fr.browser, "Tout accepter"));
+  buttonByText(fr.browser, "Tout accepter").click();
+  await flush();
+  assert.equal(fr.store.records[0].metadata.noticeLanguage, "fr");
+
+  const pt = await visit("pt-BR");
+  assert.ok(buttonByText(pt.browser, "Aceitar tudo"));
+
+  const ar = await visit("ar");
+  assert.equal(ar.banner.getAttribute("dir"), "rtl");
+  assert.ok(buttonByText(ar.browser, "قبول الكل"));
+  buttonByText(ar.browser, "قبول الكل").click();
+  await flush();
+  assert.equal(ar.store.records[0].metadata.noticeLanguage, "ar");
+
+  const unsupported = await visit("xx-YY");
+  assert.ok(buttonByText(unsupported.browser, "Accept all"));
+  assert.equal(unsupported.banner.getAttribute("lang"), "en");
+
+  const switchLang = createStore();
+  switchLang.config.bannerConfig.translations = translations;
+  const browser = createBrowser(switchLang);
+  browser.window.location.search = "?lang=en";
+  await loadSdk(browser);
+  assert.ok(buttonByText(browser, "Accept all"));
+  const before = browser.window.CMP.getConsent();
+  browser.window.CMP.setLanguage("de");
+  await flush();
+  assert.ok(buttonByText(browser, "Alle akzeptieren"));
+  const after = browser.window.CMP.getConsent();
+  assert.deepEqual(after.decisions, before.decisions);
+  assert.equal(switchLang.records.length, 0);
+
+  browser.window.CMP.openPreferenceCenter();
+  const pc = browser.document.getElementById("__cmp_pc__");
+  assert.ok(pc);
+  const pcTitle = collect(pc, (el) => el.id === "__cmp_pc_title__")[0];
+  assert.ok(pcTitle);
+}
+
+async function testHostScrollLockSurfaces() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  browser.window.scrollY = 480;
+  browser.window.pageYOffset = 480;
+  await loadSdk(browser);
+
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
+  assert.ok(browser.document.getElementById("__cmp_host_lock_css"), "lock stylesheet should be injected once");
+
+  await loadSdk(browser);
+  const sheetsAfterReinit = collect(browser.document.head, (el) => el.id === "__cmp_host_lock_css");
+  assert.equal(sheetsAfterReinit.length, 1, "reinitialization must not duplicate lock stylesheets");
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
+
+  buttonByText(browser, "Customize").click();
+  assert.ok(browser.document.getElementById("__cmp_pc__"));
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
+  const pcBody = collect(browser.document.getElementById("__cmp_pc__"), (el) =>
+    String(el.getAttribute("style") || "").includes("overflow-y:auto"),
+  )[0];
+  assert.ok(pcBody, "preference center body should remain scrollable");
+
+  browser.window.CMP.setLanguage("en");
+  await flush();
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
+  assert.equal(store.records.length, 0);
+
+  buttonByText(browser, "Save preferences").click();
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_pc__"), null);
+  assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), null);
+  assert.equal(browser.window.scrollY, 480);
+}
+
 async function main() {
   await testAcceptAllFlow();
   await testRejectAllFlow();
   await testGranularPersistenceWithdrawalAndExpiry();
   testNegativeCasesAndEnforcement();
   await testInvalidJsonPayload();
+  await testGoogleAndIabSignalPropagation();
+  await testBannerLocalizationAndEvidenceLocale();
+  await testHostScrollLockSurfaces();
 
   console.log("consent manager e2e regression tests passed");
 }

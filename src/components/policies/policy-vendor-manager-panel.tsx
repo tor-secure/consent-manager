@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { notify } from "@/components/feedback/notify";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -353,60 +355,93 @@ export function PolicyVendorManagerPanel({
   const [addingId, setAddingId]     = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [error, setError]           = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-
-  function flash(msg: string) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 2500);
-  }
 
   function handleAttach(vendorId: string) {
+    if (addingId) return;
     setError(null); setAddingId(vendorId);
     startTransition(async () => {
-      try {
-        const res = await fetch(`/api/policies/${policyId}/vendors`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
+      const result = await dashboardFetch(
+        `/api/policies/${policyId}/vendors`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ vendorId }),
-        });
-        const data = (await res.json()) as { success: boolean; message?: string };
-        if (!data.success) setError(data.message ?? "Failed to attach vendor.");
-        else { flash("Vendor added."); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
-      finally { setAddingId(null); }
+        },
+        {
+          successMessage: "Vendor added successfully",
+          errorFallback: "Unable to add vendor. Please try again.",
+          onValidation: setError,
+        },
+      );
+      setAddingId(null);
+      if (!result.ok) return;
+      router.refresh();
     });
   }
 
   function handleCreateAndAttach(name: string, domain: string) {
     setError(null);
     startTransition(async () => {
-      try {
-        const createRes = await fetch("/api/vendors", {
-          method: "POST", headers: { "Content-Type": "application/json" },
+      const created = await dashboardFetch(
+        "/api/vendors",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, domain: domain || null, status: "active", source: "custom" }),
-        });
-        const createData = (await createRes.json()) as { success: boolean; message?: string; vendor?: { id: string } };
-        if (!createData.success || !createData.vendor) { setError(createData.message ?? "Failed to create vendor."); return; }
-        const attachRes = await fetch(`/api/policies/${policyId}/vendors`, {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ vendorId: createData.vendor.id }),
-        });
-        const attachData = (await attachRes.json()) as { success: boolean; message?: string };
-        if (!attachData.success) setError(attachData.message ?? "Vendor created but could not be attached.");
-        else { flash(`"${name}" created and added.`); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
+        },
+        {
+          successMessage: "Vendor created successfully",
+          errorFallback: "Something went wrong while creating the vendor.",
+          onValidation: setError,
+          silentSuccess: true,
+        },
+      );
+      if (!created.ok) return;
+      const vendorId =
+        typeof created.data === "object" &&
+        created.data !== null &&
+        "vendor" in created.data &&
+        typeof (created.data as { vendor?: { id?: unknown } }).vendor?.id === "string"
+          ? (created.data as { vendor: { id: string } }).vendor.id
+          : null;
+      if (!vendorId) {
+        notify.error("Unable to add vendor. Please try again.");
+        return;
+      }
+      const attached = await dashboardFetch(
+        `/api/policies/${policyId}/vendors`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ vendorId }),
+        },
+        {
+          successMessage: "Vendor added successfully",
+          errorFallback: "Unable to add vendor. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!attached.ok) return;
+      router.refresh();
     });
   }
 
-  function handleDetach(vendorId: string, vendorName: string) {
+  function handleDetach(vendorId: string) {
+    if (removingId) return;
     setError(null); setRemovingId(vendorId);
     startTransition(async () => {
-      try {
-        const res = await fetch(`/api/policies/${policyId}/vendors/${vendorId}`, { method: "DELETE" });
-        const data = (await res.json()) as { success: boolean; message?: string };
-        if (!data.success) setError(data.message ?? "Failed to detach vendor.");
-        else { flash(`"${vendorName}" removed.`); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
-      finally { setRemovingId(null); }
+      const result = await dashboardFetch(
+        `/api/policies/${policyId}/vendors/${vendorId}`,
+        { method: "DELETE" },
+        {
+          successMessage: "Vendor deleted successfully",
+          errorFallback: "Something went wrong while updating the vendor.",
+          onValidation: setError,
+        },
+      );
+      setRemovingId(null);
+      if (!result.ok) return;
+      router.refresh();
     });
   }
 
@@ -443,12 +478,6 @@ export function PolicyVendorManagerPanel({
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}><circle cx="8" cy="8" r="6"/><path strokeLinecap="round" d="M8 5v3M8 11h.01"/></svg>
             {error}
             <button onClick={() => setError(null)} className="ml-auto shrink-0 text-rose-400 hover:text-rose-600">✕</button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 14 14" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2 7l3.5 3.5L12 3.5"/></svg>
-            {successMsg}
           </div>
         )}
 
@@ -530,7 +559,7 @@ export function PolicyVendorManagerPanel({
                           </a>
                         )}
                         <button
-                          onClick={() => handleDetach(v.id, v.name)}
+                          onClick={() => handleDetach(v.id)}
                           disabled={removingId === v.id || isPending}
                           aria-label={`Remove ${v.name}`}
                           className="rounded-lg px-2.5 py-1 text-xs font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40"

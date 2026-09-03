@@ -22,24 +22,71 @@ Module._load = function patchedLoad(request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { sanitizeLogContext } = require(compiledPath);
+const { sanitizeLogContext, logger } = require(compiledPath);
 
 const sanitized = sanitizeLogContext({
   organizationId: "org_123",
   websiteId: "site_123",
+  duration: 42,
+  route: "POST /api/consent/record",
+  operation: "consent.record.create",
   requesterEmail: "person@example.com",
+  apiKey: "cmp_live_supersecret",
+  DATABASE_URL: "postgresql://consent_admin:sathwik11@localhost:5432/consent_platform",
   nested: {
-    webhookSecret: "whsec_hidden",
-    message: "Contact person@example.com for details",
+    webhookSecret: "whsec_hiddenvalue",
+    clerkSecret: "sk_test_abcdefghijklmnopqrstuvwxyz",
+    message: "Contact person@example.com postgres://user:hunter2@db.internal:5432/app",
+    metadata: { visitorId: "vis_1", extra: "keep-out" },
   },
-  error: new Error("Failed for person@example.com"),
+  error: new Error("Failed for person@example.com using sk_test_abcdefghijklmnopqrstuvwxyz"),
 });
 
 assert.equal(sanitized.organizationId, "org_123");
 assert.equal(sanitized.websiteId, "site_123");
+assert.equal(sanitized.duration, 42);
+assert.equal(sanitized.route, "POST /api/consent/record");
+assert.equal(sanitized.operation, "consent.record.create");
 assert.equal(sanitized.requesterEmail, "[REDACTED]");
+assert.equal(sanitized.apiKey, "[REDACTED]");
+assert.equal(sanitized.DATABASE_URL, "[REDACTED]");
 assert.equal(sanitized.nested.webhookSecret, "[REDACTED]");
-assert.equal(sanitized.nested.message, "Contact [REDACTED_EMAIL] for details");
-assert.equal(sanitized.error.message, "Failed for [REDACTED_EMAIL]");
+assert.equal(sanitized.nested.clerkSecret, "[REDACTED]");
+assert.equal(sanitized.nested.metadata, "[REDACTED]");
+assert.match(String(sanitized.nested.message), /\[REDACTED_EMAIL\]/);
+assert.match(String(sanitized.nested.message), /\[REDACTED_DB_URL\]/);
+assert.doesNotMatch(String(sanitized.nested.message), /hunter2/);
+assert.match(String(sanitized.error.message), /\[REDACTED_EMAIL\]/);
+assert.match(String(sanitized.error.message), /\[REDACTED_KEY\]/);
+assert.doesNotMatch(JSON.stringify(sanitized), /sathwik11/);
+assert.doesNotMatch(JSON.stringify(sanitized), /sk_test_abcdefghijklmnopqrstuvwxyz/);
+
+const captured = [];
+const originalError = console.error;
+console.error = (line) => {
+  captured.push(String(line));
+};
+try {
+  logger.error("unexpected failure", {
+    route: "POST /api/api-keys",
+    operation: "api-keys.create",
+    organizationId: "org_safe",
+    error: new Error("could not write postgresql://owner:neon-pass@ep-host/neondb"),
+    fullKey: "cmp_live_should_not_appear",
+  });
+} finally {
+  console.error = originalError;
+}
+
+assert.equal(captured.length, 1);
+const payload = JSON.parse(captured[0]);
+assert.equal(payload.level, "error");
+assert.equal(payload.message, "unexpected failure");
+assert.equal(payload.service, "consent-manager");
+assert.equal(payload.context.organizationId, "org_safe");
+assert.equal(payload.context.fullKey, "[REDACTED]");
+assert.match(String(payload.context.error.message), /\[REDACTED_DB_URL\]/);
+assert.doesNotMatch(captured[0], /neon-pass/);
+assert.doesNotMatch(captured[0], /cmp_live_should_not_appear/);
 
 console.log("logger tests passed");

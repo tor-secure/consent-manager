@@ -30,6 +30,12 @@ export const scans = pgTable("scans", {
     .notNull()
     .default("full"),
 
+  triggeredBy: varchar("triggered_by", {
+    length: 20,
+  })
+    .notNull()
+    .default("manual"),
+
   scannerVersion: varchar("scanner_version", {
     length: 50,
   }),

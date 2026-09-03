@@ -101,16 +101,47 @@ for (const [route, table] of authenticatedOrgRoutes) {
   assertOrgPredicate(route, table);
 }
 
+{
+  const { oneLine } = assertAuthenticated("src/app/api/regulations/route.ts");
+  assertMatches(
+    oneLine,
+    /resolveActiveMembership\(organization\.id,\s*localUser\.id\)/,
+    "regulation catalog is authenticated and membership-scoped",
+  );
+}
+
 for (const route of [
   "src/app/api/policies/route.ts",
   "src/app/api/policies/[id]/publish/route.ts",
   "src/app/api/policies/[id]/banner-config/route.ts",
   "src/app/api/scanner/run/route.ts",
   "src/app/api/scanner/[scanId]/route.ts",
+  "src/app/api/websites/[id]/scan-schedule/route.ts",
   "src/app/api/integrations/connect/route.ts",
   "src/app/api/integrations/[id]/disconnect/route.ts",
+  "src/app/api/websites/[id]/consent-integrations/route.ts",
+  "src/app/api/websites/[id]/jurisdiction-rules/route.ts",
 ]) {
   assertWebsiteOwnership(route);
+}
+
+{
+  const { oneLine } = assertAuthenticated("src/app/api/search/route.ts");
+  assertMatches(
+    oneLine,
+    /eq\(websites\.organizationId,\s*organization\.id\)/,
+    "dashboard search websites are organization scoped",
+  );
+  assertMatches(
+    oneLine,
+    /eq\(purposes\.organizationId,\s*organization\.id\)/,
+    "dashboard search purposes are organization scoped",
+  );
+  assertMatches(
+    oneLine,
+    /eq\(vendors\.organizationId,\s*organization\.id\)/,
+    "dashboard search vendors are organization scoped",
+  );
 }
 
 for (const route of [
@@ -227,4 +258,97 @@ assertOwnerAdminOnly("src/app/api/settings/retention/purge/route.ts");
   );
 }
 
+for (const route of [
+  "src/app/api/monitoring/findings/route.ts",
+  "src/app/api/monitoring/findings/[id]/route.ts",
+  "src/app/api/monitoring/findings/[id]/review/route.ts",
+  "src/app/api/monitoring/findings/[id]/resolve/route.ts",
+  "src/app/api/monitoring/run/route.ts",
+  "src/app/api/monitoring/quality/route.ts",
+  "src/app/api/monitoring/risk/route.ts",
+  "src/app/api/monitoring/pages/route.ts",
+]) {
+  const { oneLine } = assertAuthenticated(route);
+  assertMatches(
+    oneLine,
+    /eq\(privacyFindings\.organizationId,\s*organization\.id\)|eq\(websites\.organizationId,\s*organization\.id\)/,
+    `${route} scopes monitoring access to the active organization`,
+  );
+}
+
+{
+  const { oneLine } = assertAuthenticated("src/app/api/monitoring/run/route.ts");
+  assertMatches(
+    oneLine,
+    /eq\(websites\.id,\s*websiteId\).*eq\(websites\.organizationId,\s*organization\.id\)|eq\(websites\.organizationId,\s*organization\.id\)/,
+    "manual drift run verifies website ownership",
+  );
+}
+
+{
+  const source = read("src/app/dashboard/monitoring/page.tsx");
+  const oneLine = compact(source);
+  assertMatches(
+    oneLine,
+    /eq\(privacyFindings\.organizationId,\s*organizationId\)/,
+    "monitoring dashboard lists findings for the active organization only",
+  );
+}
+
+{
+  const risk = compact(read("src/app/dashboard/risk/page.tsx"));
+  assertMatches(
+    risk,
+    /loadOrgRiskSnapshot\(organizationId/,
+    "privacy risk dashboard loads findings for the active organization only",
+  );
+}
+
+{
+  const quality = compact(read("src/app/dashboard/quality/page.tsx"));
+  assertMatches(
+    quality,
+    /eq\(websites\.organizationId,\s*organizationId\)/,
+    "consent quality dashboard lists organization-owned websites only",
+  );
+}
+
+{
+  const { oneLine } = assertAuthenticated("src/app/api/analytics/consent/route.ts");
+  assertMatches(
+    oneLine,
+    /loadConsentAnalytics\(organization\.id/,
+    "consent analytics API is scoped to the active organization",
+  );
+  assert.doesNotMatch(
+    oneLine,
+    /searchParams\.get\(["']organizationId["']\)/,
+    "consent analytics API must not trust a client-supplied organizationId",
+  );
+}
+
+{
+  const source = read("src/app/dashboard/analytics/page.tsx");
+  const oneLine = compact(source);
+  assertMatches(
+    oneLine,
+    /loadConsentAnalytics\(localOrg\.id/,
+    "analytics dashboard loads metrics for the active organization only",
+  );
+}
+
+{
+  const source = read("src/app/api/cron/scans/route.ts");
+  assert.doesNotMatch(source, /auth\(\)/, "scheduled scan cron must not use a dashboard Clerk session");
+  assertIncludes(source, "authorizeCronRequest", "scheduled scan cron authenticates with a server secret");
+  assertIncludes(source, "runDueScheduledScans", "scheduled scan cron executes due scans");
+}
+
+{
+  const source = read("src/lib/scanner/run-due-scans.ts");
+  assertIncludes(source, "eq(websiteScanSchedules.organizationId, input.organizationId)", "schedule updates stay tenant scoped");
+  assertIncludes(source, "assertSafeScanUrl", "scheduled scans reuse SSRF protection");
+}
+
 console.log("tenant isolation regression tests passed");
+

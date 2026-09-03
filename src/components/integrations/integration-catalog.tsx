@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,32 +89,41 @@ function IntegrationCard({
   const unconnected  = websites.filter((w) => !connectedIds.has(w.id));
 
   async function connect() {
-    if (!selectedWebsiteId) return;
+    if (!selectedWebsiteId || busyId) return;
     setBusyId("connect"); setError("");
-    try {
-      const res = await fetch("/api/integrations/connect", {
+    const result = await dashboardFetch(
+      "/api/integrations/connect",
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ integrationId: integration.id, websiteId: selectedWebsiteId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to connect");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setBusyId(null); }
+      },
+      {
+        successMessage: "Integration connected successfully",
+        errorFallback: "Unable to connect integration. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   async function disconnect(connectionId: string) {
+    if (busyId) return;
     setBusyId(connectionId); setError("");
-    try {
-      const res = await fetch(`/api/integrations/${connectionId}/disconnect`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to disconnect");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setBusyId(null); }
+    const result = await dashboardFetch(
+      `/api/integrations/${connectionId}/disconnect`,
+      { method: "DELETE" },
+      {
+        successMessage: "Integration disconnected successfully",
+        errorFallback: "Unable to disconnect integration. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   return (

@@ -1,92 +1,32 @@
-// ---------------------------------------------------------------------------
-// BannerConfiguration — stored in consent_policy_versions.configuration JSONB
-// This is the canonical type. Both the API route and the form component import
-// from here to keep the shape in sync.
-// ---------------------------------------------------------------------------
+import {
+  LOCALE_OPTIONS,
+  SUPPORTED_LANGUAGES,
+  isRegisteredLocale,
+  languageOf,
+  localeDirection,
+  normalizeLocaleTag,
+  type SupportedLanguage,
+} from "@/lib/i18n/locale-registry";
+import {
+  BANNER_TEXT_FIELDS,
+  DEFAULT_NOTICE_STRINGS,
+  overlayEntityText,
+  resolveNotice,
+  translationStatus,
+  type NoticeStrings,
+  type NoticeTranslation,
+  type ResolvedNotice,
+  type TranslationStatus,
+} from "@/lib/i18n/resolve-notice";
+
+export type { SupportedLanguage, NoticeTranslation, TranslationStatus };
+export { SUPPORTED_LANGUAGES, LOCALE_OPTIONS, overlayEntityText, translationStatus };
 
 export type BannerPosition = "bottom" | "top" | "bottom-left" | "bottom-right" | "center";
 export type BannerLayout = "bar" | "box" | "dialog";
 export type ConsentDefault = "opt-in" | "opt-out" | "none";
 
-// ---------------------------------------------------------------------------
-// Supported languages (English + all 22 Indian Eighth-Schedule languages)
-// ---------------------------------------------------------------------------
-
-export type SupportedLanguage =
-  | "en"   // English (default / fallback)
-  | "as"   // Assamese
-  | "bn"   // Bengali
-  | "bodo" // Bodo
-  | "doi"  // Dogri
-  | "gu"   // Gujarati
-  | "hi"   // Hindi
-  | "kn"   // Kannada
-  | "ks"   // Kashmiri
-  | "kok"  // Konkani
-  | "mai"  // Maithili
-  | "ml"   // Malayalam
-  | "mni"  // Manipuri (Meitei)
-  | "mr"   // Marathi
-  | "ne"   // Nepali
-  | "or"   // Odia
-  | "pa"   // Punjabi
-  | "sa"   // Sanskrit
-  | "sat"  // Santali
-  | "sd"   // Sindhi
-  | "ta"   // Tamil
-  | "te"   // Telugu
-  | "ur";  // Urdu
-
-export const SUPPORTED_LANGUAGES: Array<{ code: SupportedLanguage; label: string }> = [
-  { code: "en",   label: "English" },
-  { code: "hi",   label: "Hindi (हिंदी)" },
-  { code: "bn",   label: "Bengali (বাংলা)" },
-  { code: "te",   label: "Telugu (తెలుగు)" },
-  { code: "mr",   label: "Marathi (मराठी)" },
-  { code: "ta",   label: "Tamil (தமிழ்)" },
-  { code: "gu",   label: "Gujarati (ગુજરાતી)" },
-  { code: "kn",   label: "Kannada (ಕನ್ನಡ)" },
-  { code: "ml",   label: "Malayalam (മലയാളം)" },
-  { code: "pa",   label: "Punjabi (ਪੰਜਾਬੀ)" },
-  { code: "or",   label: "Odia (ଓଡ଼ିଆ)" },
-  { code: "as",   label: "Assamese (অসমীয়া)" },
-  { code: "mai",  label: "Maithili (मैथिली)" },
-  { code: "ur",   label: "Urdu (اردو)" },
-  { code: "ks",   label: "Kashmiri (کشمیری)" },
-  { code: "ne",   label: "Nepali (नेपाली)" },
-  { code: "sd",   label: "Sindhi (سنڌي)" },
-  { code: "kok",  label: "Konkani (कोंकणी)" },
-  { code: "mni",  label: "Manipuri (মেইতেই)" },
-  { code: "bodo", label: "Bodo (बड़ो)" },
-  { code: "doi",  label: "Dogri (डोगरी)" },
-  { code: "sa",   label: "Sanskrit (संस्कृतम्)" },
-  { code: "sat",  label: "Santali (ᱥᱟᱱᱛᱟᱲᱤ)" },
-];
-
-// ---------------------------------------------------------------------------
-// NoticeTranslation — the subset of text fields that vary per language.
-// All fields are optional; undefined values fall back to the root (English)
-// value from BannerConfiguration.
-// ---------------------------------------------------------------------------
-
-export type NoticeTranslation = {
-  title?: string;
-  description?: string;
-  acceptAllLabel?: string;
-  rejectAllLabel?: string;
-  customizeLabel?: string;
-  savePreferencesLabel?: string;
-  privacyPolicyText?: string;
-};
-
-// ---------------------------------------------------------------------------
-// BannerConfiguration
-// ---------------------------------------------------------------------------
-
 export type BannerConfiguration = {
-  // ------------------------------------------------------------------
-  // Text (English / default)
-  // ------------------------------------------------------------------
   title: string;
   description: string;
   acceptAllLabel: string;
@@ -96,33 +36,26 @@ export type BannerConfiguration = {
   privacyPolicyText: string;
   privacyPolicyUrl: string;
   poweredByText: string;
+  closeLabel: string;
+  preferenceCenterTitle: string;
+  preferenceCenterDescription: string;
+  purposesHeading: string;
+  vendorsHeading: string;
+  requiredLabel: string;
 
-  // ------------------------------------------------------------------
-  // Multilingual translations (stored in the same JSONB)
-  // Key = SupportedLanguage code; value = partial NoticeTranslation.
-  // English ("en") fallbacks are always the root fields above.
-  // ------------------------------------------------------------------
   translations?: Record<string, NoticeTranslation>;
+  supportedLocales?: string[];
 
-  // ------------------------------------------------------------------
-  // Controls
-  // ------------------------------------------------------------------
   showAcceptAll: boolean;
   showRejectAll: boolean;
   showCustomize: boolean;
   showPoweredBy: boolean;
   showCloseButton: boolean;
 
-  // ------------------------------------------------------------------
-  // Preference center visibility
-  // ------------------------------------------------------------------
   showPurposeDescriptions: boolean;
   showVendorList: boolean;
   showLegalBasis: boolean;
 
-  // ------------------------------------------------------------------
-  // Behavior
-  // ------------------------------------------------------------------
   defaultConsent: ConsentDefault;
   closeOnOverlayClick: boolean;
   blockPageUntilConsent: boolean;
@@ -130,15 +63,9 @@ export type BannerConfiguration = {
   consentExpireDays: number;
   showOnEveryVisit: boolean;
 
-  // ------------------------------------------------------------------
-  // Locale
-  // ------------------------------------------------------------------
   language: string;
   region: string;
 
-  // ------------------------------------------------------------------
-  // Appearance
-  // ------------------------------------------------------------------
   position: BannerPosition;
   layout: BannerLayout;
   primaryColor: string;
@@ -148,24 +75,26 @@ export type BannerConfiguration = {
   overlayEnabled: boolean;
 };
 
-// ---------------------------------------------------------------------------
-// Defaults
-// ---------------------------------------------------------------------------
-
 export function defaultBannerConfig(): BannerConfiguration {
   return {
-    title: "We value your privacy",
-    description:
-      "We use cookies and similar technologies to enhance your browsing experience, serve personalized content, and analyze traffic. By clicking \"Accept all\", you consent to our use of cookies.",
-    acceptAllLabel: "Accept all",
-    rejectAllLabel: "Reject all",
-    customizeLabel: "Customize",
-    savePreferencesLabel: "Save preferences",
-    privacyPolicyText: "Privacy Policy",
+    title: DEFAULT_NOTICE_STRINGS.title,
+    description: DEFAULT_NOTICE_STRINGS.description,
+    acceptAllLabel: DEFAULT_NOTICE_STRINGS.acceptAllLabel,
+    rejectAllLabel: DEFAULT_NOTICE_STRINGS.rejectAllLabel,
+    customizeLabel: DEFAULT_NOTICE_STRINGS.customizeLabel,
+    savePreferencesLabel: DEFAULT_NOTICE_STRINGS.savePreferencesLabel,
+    privacyPolicyText: DEFAULT_NOTICE_STRINGS.privacyPolicyText,
     privacyPolicyUrl: "",
     poweredByText: "Powered by CMP",
+    closeLabel: DEFAULT_NOTICE_STRINGS.closeLabel,
+    preferenceCenterTitle: DEFAULT_NOTICE_STRINGS.preferenceCenterTitle,
+    preferenceCenterDescription: DEFAULT_NOTICE_STRINGS.preferenceCenterDescription,
+    purposesHeading: DEFAULT_NOTICE_STRINGS.purposesHeading,
+    vendorsHeading: DEFAULT_NOTICE_STRINGS.vendorsHeading,
+    requiredLabel: DEFAULT_NOTICE_STRINGS.requiredLabel,
 
     translations: {},
+    supportedLocales: [],
 
     showAcceptAll: true,
     showRejectAll: true,
@@ -197,42 +126,79 @@ export function defaultBannerConfig(): BannerConfiguration {
   };
 }
 
-// Merge stored JSONB with defaults so all fields always exist at runtime.
 export function parseBannerConfig(raw: Record<string, unknown>): BannerConfiguration {
   const defaults = defaultBannerConfig();
   const merged = { ...defaults, ...raw } as BannerConfiguration;
-  // Ensure translations is always an object (never null/undefined).
-  if (!merged.translations || typeof merged.translations !== "object") {
+  if (!merged.translations || typeof merged.translations !== "object" || Array.isArray(merged.translations)) {
     merged.translations = {};
   }
+  if (!Array.isArray(merged.supportedLocales)) {
+    merged.supportedLocales = [];
+  }
+  const language = normalizeLocaleTag(merged.language) ?? "en";
+  merged.language = isRegisteredLocale(language) || isRegisteredLocale(languageOf(language))
+    ? language
+    : "en";
   return merged;
+}
+
+function publicEntityMap(value: unknown): Record<string, { name?: string; description?: string }> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const out: Record<string, { name?: string; description?: string }> = {};
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (!key || key.length > 150 || !entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const row = entry as Record<string, unknown>;
+    const item: { name?: string; description?: string } = {};
+    if (typeof row.name === "string") item.name = row.name.slice(0, 255);
+    if (typeof row.description === "string") item.description = row.description.slice(0, 2000);
+    if (item.name || item.description) out[key] = item;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 function publicNoticeTranslation(value: unknown): NoticeTranslation | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const t = value as Record<string, unknown>;
   const out: NoticeTranslation = {};
-  if (typeof t.title === "string") out.title = t.title;
-  if (typeof t.description === "string") out.description = t.description;
-  if (typeof t.acceptAllLabel === "string") out.acceptAllLabel = t.acceptAllLabel;
-  if (typeof t.rejectAllLabel === "string") out.rejectAllLabel = t.rejectAllLabel;
-  if (typeof t.customizeLabel === "string") out.customizeLabel = t.customizeLabel;
-  if (typeof t.savePreferencesLabel === "string") {
-    out.savePreferencesLabel = t.savePreferencesLabel;
+  for (const field of [...BANNER_TEXT_FIELDS, "closeLabel", "preferenceCenterTitle", "preferenceCenterDescription", "purposesHeading", "vendorsHeading", "requiredLabel"] as const) {
+    if (typeof t[field] === "string") out[field] = t[field] as string;
   }
-  if (typeof t.privacyPolicyText === "string") out.privacyPolicyText = t.privacyPolicyText;
-  return out;
+  const purposes = publicEntityMap(t.purposes);
+  const vendors = publicEntityMap(t.vendors);
+  if (purposes) out.purposes = purposes;
+  if (vendors) out.vendors = vendors;
+  return Object.keys(out).length > 0 ? out : null;
 }
 
-/** Strip unknown JSONB keys before returning banner config to public clients. */
 export function toPublicBannerConfig(config: BannerConfiguration): BannerConfiguration {
   const translations: Record<string, NoticeTranslation> = {};
   for (const [code, value] of Object.entries(config.translations ?? {})) {
-    if (code.length > 16) continue;
+    const normalized = normalizeLocaleTag(code);
+    if (!normalized || normalized.length > 16) continue;
     const notice = publicNoticeTranslation(value);
-    if (notice) translations[code] = notice;
+    if (notice) translations[normalized] = notice;
   }
 
+  const supportedLocales = (config.supportedLocales ?? [])
+    .map((code) => normalizeLocaleTag(code))
+    .filter((code): code is string => Boolean(code));
+
+  return {
+    ...parseBannerConfig(config as unknown as Record<string, unknown>),
+    translations,
+    supportedLocales,
+  };
+}
+
+export type ResolvedNoticeText = NoticeStrings & {
+  resolvedLocale: string;
+  direction: "ltr" | "rtl";
+  status: TranslationStatus;
+  purposes: NoticeTranslation["purposes"];
+  vendors: NoticeTranslation["vendors"];
+};
+
+export function noticeRootFromConfig(config: BannerConfiguration): NoticeStrings {
   return {
     title: config.title,
     description: config.description,
@@ -241,106 +207,56 @@ export function toPublicBannerConfig(config: BannerConfiguration): BannerConfigu
     customizeLabel: config.customizeLabel,
     savePreferencesLabel: config.savePreferencesLabel,
     privacyPolicyText: config.privacyPolicyText,
-    privacyPolicyUrl: config.privacyPolicyUrl,
-    poweredByText: config.poweredByText,
-    translations,
-    showAcceptAll: config.showAcceptAll,
-    showRejectAll: config.showRejectAll,
-    showCustomize: config.showCustomize,
-    showPoweredBy: config.showPoweredBy,
-    showCloseButton: config.showCloseButton,
-    showPurposeDescriptions: config.showPurposeDescriptions,
-    showVendorList: config.showVendorList,
-    showLegalBasis: config.showLegalBasis,
-    defaultConsent: config.defaultConsent,
-    closeOnOverlayClick: config.closeOnOverlayClick,
-    blockPageUntilConsent: config.blockPageUntilConsent,
-    respectDoNotTrack: config.respectDoNotTrack,
-    consentExpireDays: config.consentExpireDays,
-    showOnEveryVisit: config.showOnEveryVisit,
-    language: config.language,
-    region: config.region,
-    position: config.position,
-    layout: config.layout,
-    primaryColor: config.primaryColor,
-    backgroundColor: config.backgroundColor,
-    textColor: config.textColor,
-    borderRadius: config.borderRadius,
-    overlayEnabled: config.overlayEnabled,
+    closeLabel: config.closeLabel || DEFAULT_NOTICE_STRINGS.closeLabel,
+    preferenceCenterTitle: config.preferenceCenterTitle || DEFAULT_NOTICE_STRINGS.preferenceCenterTitle,
+    preferenceCenterDescription:
+      config.preferenceCenterDescription || DEFAULT_NOTICE_STRINGS.preferenceCenterDescription,
+    purposesHeading: config.purposesHeading || DEFAULT_NOTICE_STRINGS.purposesHeading,
+    vendorsHeading: config.vendorsHeading || DEFAULT_NOTICE_STRINGS.vendorsHeading,
+    requiredLabel: config.requiredLabel || DEFAULT_NOTICE_STRINGS.requiredLabel,
   };
 }
-
-// ---------------------------------------------------------------------------
-// resolveTranslation
-//
-// Given a BannerConfiguration and a language code (e.g. "hi", "kn"),
-// returns the effective notice text by merging the translation over the
-// English (root) fields.
-//
-// Resolution order:
-//   1. Exact language code match (e.g. "hi")
-//   2. Base language prefix (e.g. "hi" for "hi-IN")
-//   3. English root fields (always present)
-//
-// This function is pure and has no I/O — safe to call in both server and
-// client contexts.
-// ---------------------------------------------------------------------------
-
-export type ResolvedNoticeText = {
-  title: string;
-  description: string;
-  acceptAllLabel: string;
-  rejectAllLabel: string;
-  customizeLabel: string;
-  savePreferencesLabel: string;
-  privacyPolicyText: string;
-};
 
 export function resolveTranslation(
   config: BannerConfiguration,
   lang: string,
-): ResolvedNoticeText {
-  const base: ResolvedNoticeText = {
-    title:               config.title,
-    description:         config.description,
-    acceptAllLabel:      config.acceptAllLabel,
-    rejectAllLabel:      config.rejectAllLabel,
-    customizeLabel:      config.customizeLabel,
-    savePreferencesLabel: config.savePreferencesLabel,
-    privacyPolicyText:   config.privacyPolicyText,
-  };
-
-  if (!lang || lang === "en") return base;
-
-  const t = config.translations ?? {};
-
-  // Try exact match first, then base prefix (e.g. "hi" for "hi-IN").
-  const translation: NoticeTranslation | undefined =
-    t[lang] ?? t[lang.split("-")[0]] ?? undefined;
-
-  if (!translation) return base;
-
-  return {
-    title:               translation.title               ?? base.title,
-    description:         translation.description         ?? base.description,
-    acceptAllLabel:      translation.acceptAllLabel      ?? base.acceptAllLabel,
-    rejectAllLabel:      translation.rejectAllLabel      ?? base.rejectAllLabel,
-    customizeLabel:      translation.customizeLabel      ?? base.customizeLabel,
-    savePreferencesLabel: translation.savePreferencesLabel ?? base.savePreferencesLabel,
-    privacyPolicyText:   translation.privacyPolicyText   ?? base.privacyPolicyText,
-  };
+): ResolvedNotice {
+  return resolveNotice({
+    requestedLocale: lang,
+    defaultLocale: config.language || "en",
+    root: noticeRootFromConfig(config),
+    translations: config.translations ?? {},
+  });
 }
 
-// ---------------------------------------------------------------------------
-// getTranslation — helper to get the mutable translation for a language code,
-// initialising to an empty object if not yet present.
-// ---------------------------------------------------------------------------
+export function applyResolvedNotice(
+  config: BannerConfiguration,
+  resolved: ResolvedNotice,
+): BannerConfiguration {
+  return {
+    ...config,
+    title: resolved.title,
+    description: resolved.description,
+    acceptAllLabel: resolved.acceptAllLabel,
+    rejectAllLabel: resolved.rejectAllLabel,
+    customizeLabel: resolved.customizeLabel,
+    savePreferencesLabel: resolved.savePreferencesLabel,
+    privacyPolicyText: resolved.privacyPolicyText,
+    closeLabel: resolved.closeLabel,
+    preferenceCenterTitle: resolved.preferenceCenterTitle,
+    preferenceCenterDescription: resolved.preferenceCenterDescription,
+    purposesHeading: resolved.purposesHeading,
+    vendorsHeading: resolved.vendorsHeading,
+    requiredLabel: resolved.requiredLabel,
+  };
+}
 
 export function getTranslation(
   config: BannerConfiguration,
   lang: string,
 ): NoticeTranslation {
-  return (config.translations ?? {})[lang] ?? {};
+  const key = normalizeLocaleTag(lang) ?? lang;
+  return (config.translations ?? {})[key] ?? (config.translations ?? {})[lang] ?? {};
 }
 
 export function setTranslation(
@@ -348,11 +264,14 @@ export function setTranslation(
   lang: string,
   patch: NoticeTranslation,
 ): BannerConfiguration {
+  const key = normalizeLocaleTag(lang) ?? lang;
   return {
     ...config,
     translations: {
       ...(config.translations ?? {}),
-      [lang]: patch,
+      [key]: patch,
     },
   };
 }
+
+export { localeDirection, normalizeLocaleTag };

@@ -370,11 +370,9 @@ function SdkDemoInner() {
 
         {/* Test: essential script (no purpose tag) — always allowed. */}
         {siteKey && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `console.log('[CMP Demo] ✅ essential script always runs');`,
-            }}
-          />
+          <Script id="cmp-demo-essential" strategy="afterInteractive">
+            {`console.log('[CMP Demo] ✅ essential script always runs');`}
+          </Script>
         )}
 
         {siteKey && (

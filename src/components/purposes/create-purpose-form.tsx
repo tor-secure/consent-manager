@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -15,8 +17,7 @@ function deriveKey(name: string): string {
     .slice(0, 100);
 }
 
-const inputCls =
-  "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition";
+const inputCls = "field-input";
 
 // DPDP Rules 2025 — common data-category labels as suggestions.
 const DATA_CATEGORY_SUGGESTIONS = [
@@ -171,7 +172,7 @@ export function CreatePurposeForm() {
   const [legalBasis, setLegalBasis]   = useState("consent");
 
   // Form state
-  const [saving, setSaving]   = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError]     = useState("");
 
   function handleNameChange(value: string) {
@@ -181,40 +182,42 @@ export function CreatePurposeForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      const res = await fetch("/api/purposes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          key: key.trim() || deriveKey(name),
-          description: description.trim() || null,
-          isRequired,
-          status,
-          // DPDP enrichment — send null/empty values as null
-          dataCategories:  dataCategories.length > 0 ? dataCategories : null,
-          retentionPeriod: retentionPeriod.trim() || null,
-          legalBasis,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to create purpose");
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/purposes",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            key: key.trim() || deriveKey(name),
+            description: description.trim() || null,
+            isRequired,
+            status,
+            dataCategories: dataCategories.length > 0 ? dataCategories : null,
+            retentionPeriod: retentionPeriod.trim() || null,
+            legalBasis,
+          }),
+        },
+        {
+          successMessage: "Purpose created successfully",
+          errorFallback: "Unable to create purpose. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
       router.push("/dashboard/purposes");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setSaving(false);
-    }
+    });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
 
       {/* ── Core details ──────────────────────────────────────────────── */}
-      <div className="rounded-2xl bg-white card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
+        <div className="border-b border-[var(--border)] px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">Purpose details</h2>
         </div>
         <div className="space-y-5 p-6">
@@ -296,8 +299,8 @@ export function CreatePurposeForm() {
       </div>
 
       {/* ── DPDP Notice enrichment ────────────────────────────────────── */}
-      <div className="rounded-2xl bg-white card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
+        <div className="border-b border-[var(--border)] px-6 py-4">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-base font-semibold text-slate-900">
               DPDP Notice information
@@ -387,13 +390,9 @@ export function CreatePurposeForm() {
 
       {/* ── Actions ───────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-        >
-          {saving ? "Creating…" : "Create purpose"}
-        </button>
+        <Button type="submit" loading={saving}>
+          {saving ? "Creating purpose..." : "Create purpose"}
+        </Button>
         <button
           type="button"
           onClick={() => router.back()}

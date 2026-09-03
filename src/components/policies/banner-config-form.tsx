@@ -2,18 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
   defaultBannerConfig,
   parseBannerConfig,
   getTranslation,
   setTranslation,
   SUPPORTED_LANGUAGES,
+  resolveTranslation,
+  translationStatus,
+  applyResolvedNotice,
   type BannerConfiguration,
   type BannerPosition,
   type BannerLayout,
   type ConsentDefault,
   type NoticeTranslation,
 } from "@/lib/banner-config";
+import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
+import { localeLabel } from "@/lib/i18n/locale-registry";
 
 // ---------------------------------------------------------------------------
 // Shared primitives
@@ -73,10 +79,12 @@ function Toggle({
 // Live preview
 // ---------------------------------------------------------------------------
 
-function BannerPreview({ config }: { config: BannerConfiguration }) {
+function BannerPreview({ config, locale }: { config: BannerConfiguration; locale?: string }) {
   const isBar = config.layout === "bar";
   const isBox = config.layout === "box";
   const radius = `${config.borderRadius}px`;
+  const resolved = resolveTranslation(config, locale || config.language || "en");
+  const preview = applyResolvedNotice(config, resolved);
 
   const positionClass: Record<BannerPosition, string> = {
     bottom: "bottom-0 left-0 right-0",
@@ -99,35 +107,35 @@ function BannerPreview({ config }: { config: BannerConfiguration }) {
         <div className="mb-1.5 h-1.5 w-4/5 rounded bg-slate-300" />
       </div>
       {config.overlayEnabled && <div className="absolute inset-0 bg-black/30" />}
-      <div className={`absolute ${positionClass[config.position]} ${config.position === "center" ? "" : "p-2"}`} style={{ zIndex: 10 }}>
+      <div className={`absolute ${positionClass[config.position]} ${config.position === "center" ? "" : "p-2"}`} style={{ zIndex: 10 }} dir={resolved.direction} lang={resolved.resolvedLocale}>
         <div style={{
           backgroundColor: config.backgroundColor, color: config.textColor,
           borderRadius: radius, border: "1px solid #e5e7eb",
           padding: isBar ? "8px 12px" : "12px",
           maxWidth: isBox ? "220px" : isBar ? "100%" : "260px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-          fontSize: "9px", lineHeight: 1.4,
+          fontSize: "9px", lineHeight: 1.4, textAlign: "start",
         }}>
-          {config.title && <p style={{ fontWeight: 600, marginBottom: 3, fontSize: "10px" }}>{config.title}</p>}
-          {config.description && !isBar && (
+          {preview.title && <p style={{ fontWeight: 600, marginBottom: 3, fontSize: "10px" }}>{preview.title}</p>}
+          {preview.description && !isBar && (
             <p style={{ opacity: 0.75, marginBottom: 6, fontSize: "8px" }}>
-              {config.description.slice(0, 80)}{config.description.length > 80 ? "…" : ""}
+              {preview.description.slice(0, 80)}{preview.description.length > 80 ? "…" : ""}
             </p>
           )}
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: isBar ? 0 : 4 }}>
             {config.showAcceptAll && (
-              <span style={{ backgroundColor: config.primaryColor, color: "#fff", borderRadius: 4, padding: "2px 6px", fontSize: "8px", fontWeight: 600, whiteSpace: "nowrap" }}>
-                {config.acceptAllLabel || "Accept all"}
+              <span style={{ backgroundColor: config.primaryColor, color: "#fff", borderRadius: 4, padding: "2px 6px", fontSize: "8px", fontWeight: 600, whiteSpace: "normal" }}>
+                {preview.acceptAllLabel || "Accept all"}
               </span>
             )}
             {config.showRejectAll && (
-              <span style={{ border: `1px solid ${config.primaryColor}`, color: config.primaryColor, borderRadius: 4, padding: "2px 6px", fontSize: "8px", whiteSpace: "nowrap" }}>
-                {config.rejectAllLabel || "Reject all"}
+              <span style={{ border: `1px solid ${config.primaryColor}`, color: config.primaryColor, borderRadius: 4, padding: "2px 6px", fontSize: "8px", whiteSpace: "normal" }}>
+                {preview.rejectAllLabel || "Reject all"}
               </span>
             )}
             {config.showCustomize && (
-              <span style={{ color: config.primaryColor, fontSize: "8px", textDecoration: "underline", whiteSpace: "nowrap" }}>
-                {config.customizeLabel || "Customize"}
+              <span style={{ color: config.primaryColor, fontSize: "8px", textDecoration: "underline", whiteSpace: "normal" }}>
+                {preview.customizeLabel || "Customize"}
               </span>
             )}
           </div>
@@ -154,19 +162,29 @@ function TranslationSection({
   translation: NoticeTranslation;
   onChange: (t: NoticeTranslation) => void;
 }) {
-  function upd(key: keyof NoticeTranslation, val: string) {
-    onChange({ ...translation, [key]: val || undefined });
-  }
-
-  const fields: { key: keyof NoticeTranslation; label: string; multiline?: boolean; placeholder: string }[] = [
+  const fields: { key: Exclude<keyof NoticeTranslation, "purposes" | "vendors">; label: string; multiline?: boolean; placeholder: string }[] = [
     { key: "title",               label: "Title",                 placeholder: englishConfig.title },
     { key: "description",         label: "Description",           multiline: true, placeholder: englishConfig.description },
     { key: "acceptAllLabel",      label: "Accept all label",      placeholder: englishConfig.acceptAllLabel },
     { key: "rejectAllLabel",      label: "Reject all label",      placeholder: englishConfig.rejectAllLabel },
-    { key: "customizeLabel",      label: "Customize label",       placeholder: englishConfig.customizeLabel },
+    { key: "customizeLabel",      label: "Manage preferences label", placeholder: englishConfig.customizeLabel },
     { key: "savePreferencesLabel",label: "Save preferences label",placeholder: englishConfig.savePreferencesLabel },
     { key: "privacyPolicyText",   label: "Privacy policy link text", placeholder: englishConfig.privacyPolicyText },
+    { key: "closeLabel",          label: "Close label",           placeholder: englishConfig.closeLabel },
+    { key: "preferenceCenterTitle", label: "Preference center title", placeholder: englishConfig.preferenceCenterTitle },
+    { key: "preferenceCenterDescription", label: "Preference center description", multiline: true, placeholder: englishConfig.preferenceCenterDescription },
+    { key: "purposesHeading",     label: "Purposes heading",      placeholder: englishConfig.purposesHeading },
+    { key: "vendorsHeading",      label: "Vendors heading",       placeholder: englishConfig.vendorsHeading },
+    { key: "requiredLabel",       label: "Required label",        placeholder: englishConfig.requiredLabel },
   ];
+
+  function upd(key: (typeof fields)[number]["key"], val: string) {
+    onChange({ ...translation, [key]: val || undefined });
+  }
+
+  const status = translationStatus(translation);
+  const statusLabel =
+    status === "translated" ? "Translated" : status === "partial" ? "Partially translated" : "Using fallback";
 
   // Count filled fields for the badge
   const filledCount = fields.filter((f) => !!translation[f.key]).length;
@@ -181,7 +199,7 @@ function TranslationSection({
         <div className="flex items-center gap-2">
           {filledCount > 0 && (
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-indigo-500/20">
-              {filledCount}/{fields.length} translated
+              {statusLabel} · {filledCount}/{fields.length}
             </span>
           )}
           <svg
@@ -254,9 +272,8 @@ export function BannerConfigForm({
   const router = useRouter();
   const [config, setConfig]   = useState<BannerConfiguration>(initialConfig);
   const [activeTab, setTab]   = useState<TabId>("text");
-  const [saving, setSaving]   = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError]     = useState("");
-  const [success, setSuccess] = useState("");
 
   // Active translation language picker
   const [selectedLang, setSelectedLang] = useState<string>(
@@ -274,20 +291,24 @@ export function BannerConfigForm({
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!latestVersionId) return;
-    setSaving(true); setError(""); setSuccess("");
-    try {
-      const res = await fetch(`/api/policies/${policyId}/banner-config`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to save");
-      setSuccess("Draft saved.");
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        `/api/policies/${policyId}/banner-config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(config),
+        },
+        {
+          successMessage: "Banner saved successfully",
+          errorFallback: "Unable to save banner. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setSaving(false); }
+    });
   }
 
   // Count total translated languages for the tab badge
@@ -349,7 +370,15 @@ export function BannerConfigForm({
                 <Field label="Save preferences"><input value={config.savePreferencesLabel} onChange={(e) => update("savePreferencesLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
                 <Field label="Privacy policy link text"><input value={config.privacyPolicyText} onChange={(e) => update("privacyPolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
                 <Field label="Privacy policy URL"><input type="url" value={config.privacyPolicyUrl} onChange={(e) => update("privacyPolicyUrl", e.target.value)} placeholder="https://example.com/privacy" className={inputCls} /></Field>
+                <Field label="Close"><input value={config.closeLabel} onChange={(e) => update("closeLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
+                <Field label="Preference center title"><input value={config.preferenceCenterTitle} onChange={(e) => update("preferenceCenterTitle", e.target.value)} maxLength={255} className={inputCls} /></Field>
+                <Field label="Purposes heading"><input value={config.purposesHeading} onChange={(e) => update("purposesHeading", e.target.value)} maxLength={100} className={inputCls} /></Field>
+                <Field label="Vendors heading"><input value={config.vendorsHeading} onChange={(e) => update("vendorsHeading", e.target.value)} maxLength={100} className={inputCls} /></Field>
+                <Field label="Required label"><input value={config.requiredLabel} onChange={(e) => update("requiredLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
               </div>
+              <Field label="Preference center description">
+                <textarea value={config.preferenceCenterDescription} onChange={(e) => update("preferenceCenterDescription", e.target.value)} rows={3} maxLength={2000} className={inputCls} />
+              </Field>
             </div>
           )}
 
@@ -399,9 +428,7 @@ export function BannerConfigForm({
                 </Field>
                 <Field label="Default language" hint="Shown when no translation matches.">
                   <select value={config.language} onChange={(e) => update("language", e.target.value)} className={inputCls}>
-                    {SUPPORTED_LANGUAGES.map((l) => (
-                      <option key={l.code} value={l.code}>{l.label}</option>
-                    ))}
+                    <LocaleSelectOptions includeCurrent={config.language} />
                   </select>
                 </Field>
               </div>
@@ -462,14 +489,31 @@ export function BannerConfigForm({
                 </svg>
                 <div className="text-sm text-indigo-800">
                   <strong className="font-semibold">DPDP Rules 2025 Rule 3 — multilingual notice.</strong>{" "}
-                  Add translations for the banner title, description, and button labels. Leave any field blank to fall back to the English default. The SDK selects the best matching language based on the visitor's browser locale.
+                  Add translations for visitor-facing banner and preference-center text. Leave a field blank to use fallback copy. Languages can be published partially. Locale selection does not change regulation or consent decisions.
                 </div>
               </div>
 
               {/* Language picker */}
               <div className="rounded-2xl bg-white card-shadow p-5">
-                <div className="mb-4 flex flex-wrap items-center gap-3">
-                  <label className="text-sm font-semibold text-slate-700 shrink-0">Add translation for:</label>
+                <Field
+                  label="Supported languages"
+                  hint="Optional allowlist for the public banner. Leave empty to accept any registered locale, then fall back as documented."
+                >
+                  <select
+                    multiple
+                    size={8}
+                    value={config.supportedLocales ?? []}
+                    onChange={(e) => {
+                      const next = Array.from(e.target.selectedOptions).map((opt) => opt.value);
+                      update("supportedLocales", next);
+                    }}
+                    className={`${inputCls} h-40`}
+                  >
+                    <LocaleSelectOptions />
+                  </select>
+                </Field>
+                <div className="mb-4 mt-5 flex flex-wrap items-center gap-3">
+                  <label className="text-sm font-semibold text-slate-700 shrink-0">Edit translation for:</label>
                   <select
                     value={selectedLang}
                     onChange={(e) => setSelectedLang(e.target.value)}
@@ -485,7 +529,7 @@ export function BannerConfigForm({
                 <TranslationSection
                   key={selectedLang}
                   langCode={selectedLang}
-                  langLabel={SUPPORTED_LANGUAGES.find((l) => l.code === selectedLang)?.label ?? selectedLang}
+                  langLabel={localeLabel(selectedLang)}
                   englishConfig={config}
                   translation={getTranslation(config, selectedLang)}
                   onChange={(t) => updateTranslation(selectedLang, t)}
@@ -505,7 +549,9 @@ export function BannerConfigForm({
                       .map((code) => {
                         const lang = SUPPORTED_LANGUAGES.find((l) => l.code === code);
                         const t = (config.translations ?? {})[code] ?? {};
-                        const count = Object.values(t).filter(Boolean).length;
+                        const status = translationStatus(t);
+                        const statusText =
+                          status === "translated" ? "Translated" : status === "partial" ? "Partial" : "Fallback";
                         return (
                           <button
                             key={code}
@@ -517,9 +563,9 @@ export function BannerConfigForm({
                                 : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
                             }`}
                           >
-                            {lang?.label ?? code}
+                            {lang?.label ?? localeLabel(code)}
                             <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${selectedLang === code ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-700"}`}>
-                              {count}/7
+                              {statusText}
                             </span>
                           </button>
                         );
@@ -539,21 +585,13 @@ export function BannerConfigForm({
               {error}
             </div>
           )}
-          {success && (
-            <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-              <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-              </svg>
-              {success}
-            </div>
-          )}
 
           <div className="flex flex-wrap items-center gap-3">
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving} aria-busy={saving || undefined}
               className="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-              {saving ? "Saving…" : "Save draft"}
+              {saving ? "Saving..." : "Save draft"}
             </button>
-            <button type="button" onClick={() => { setConfig(parseBannerConfig({})); setSuccess(""); setError(""); }}
+            <button type="button" onClick={() => { setConfig(parseBannerConfig({})); setError(""); }}
               className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
               Reset to defaults
             </button>
@@ -564,8 +602,23 @@ export function BannerConfigForm({
         <div className="xl:sticky xl:top-6 xl:self-start">
           <div className="rounded-2xl bg-white card-shadow p-5">
             <p className="mb-3 text-sm font-semibold text-slate-900">Live preview</p>
-            <p className="mb-4 text-xs text-slate-400">Reflects current text and appearance settings.</p>
-            <BannerPreview config={config} />
+            <p className="mb-4 text-xs text-slate-400">Reflects current text, appearance, and the selected preview language.</p>
+            <label className="mb-2 block text-xs font-semibold text-slate-600">Preview language</label>
+            <select
+              value={activeTab === "translations" ? selectedLang : config.language}
+              onChange={(e) => {
+                setSelectedLang(e.target.value);
+                setTab("translations");
+              }}
+              className={`${inputCls} mb-3 text-xs`}
+            >
+              <option value="en">English (root)</option>
+              <LocaleSelectOptions />
+            </select>
+            <BannerPreview
+              config={config}
+              locale={activeTab === "translations" ? selectedLang : config.language}
+            />
             <dl className="mt-4 space-y-1 text-xs text-slate-500">
               {[
                 ["Layout",    config.layout],

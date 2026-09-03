@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
 
 export type OrgSettingsData = {
   name: string;
@@ -68,9 +71,8 @@ export function OrganizationSettingsForm({
   const [grievanceOfficerName, setGrievanceName]        = useState(initial.grievanceOfficerName ?? "");
   const [grievanceOfficerEmail, setGrievanceEmail]      = useState(initial.grievanceOfficerEmail ?? "");
   const [grievancePortalUrl, setGrievancePortalUrl]     = useState(initial.grievancePortalUrl ?? "");
-  const [saving, setSaving]                     = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError]                       = useState("");
-  const [success, setSuccess]                   = useState("");
 
   const inputCls = [
     "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none",
@@ -81,39 +83,37 @@ export function OrganizationSettingsForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (readOnly) return;
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const res = await fetch("/api/settings/organization", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description: description.trim() || null,
-          logoUrl: logoUrl.trim() || null,
-          timezone,
-          defaultLanguage,
-          defaultRegion: defaultRegion || null,
-          onboardingCompleted,
-          // DPDP Rule 3(1)(d)
-          dpoName:               dpoName.trim()               || "",
-          dpoEmail:              dpoEmail.trim()              || "",
-          grievanceOfficerName:  grievanceOfficerName.trim()  || "",
-          grievanceOfficerEmail: grievanceOfficerEmail.trim() || "",
-          grievancePortalUrl:    grievancePortalUrl.trim()    || "",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to save settings");
-      setSuccess(data.message === "No changes to save" ? "No changes to save." : "Settings saved.");
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/settings/organization",
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            description: description.trim() || null,
+            logoUrl: logoUrl.trim() || null,
+            timezone,
+            defaultLanguage,
+            defaultRegion: defaultRegion || null,
+            onboardingCompleted,
+            dpoName:               dpoName.trim()               || "",
+            dpoEmail:              dpoEmail.trim()              || "",
+            grievanceOfficerName:  grievanceOfficerName.trim()  || "",
+            grievanceOfficerEmail: grievanceOfficerEmail.trim() || "",
+            grievancePortalUrl:    grievancePortalUrl.trim()    || "",
+          }),
+        },
+        {
+          successMessage: "Organization settings saved successfully",
+          errorFallback: "Unable to save organization settings. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   return (
@@ -203,16 +203,7 @@ export function OrganizationSettingsForm({
           <Field label="Default language">
             <select value={defaultLanguage} onChange={(e) => setDefaultLanguage(e.target.value)}
               disabled={readOnly} className={inputCls}>
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="kn">Kannada</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="es">Spanish</option>
-              <option value="pt">Portuguese</option>
-              <option value="nl">Dutch</option>
-              <option value="it">Italian</option>
-              <option value="pl">Polish</option>
+              <LocaleSelectOptions includeCurrent={defaultLanguage} />
             </select>
           </Field>
 
@@ -342,34 +333,13 @@ export function OrganizationSettingsForm({
           {error}
         </div>
       )}
-      {success && (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-          </svg>
-          {success}
-        </div>
-      )}
 
       {/* ── Actions ─────────────────────────────────────────────────────── */}
       {!readOnly && (
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
-          >
-            {saving ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                </svg>
-                Saving…
-              </>
-            ) : "Save changes"}
-          </button>
+          <Button type="submit" loading={saving}>
+            {saving ? "Saving..." : "Save settings"}
+          </Button>
           <button
             type="button"
             onClick={() => router.back()}

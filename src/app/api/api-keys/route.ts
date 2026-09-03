@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { apiKeys } from "@/db/schema/api-keys";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { generateApiKey } from "@/lib/api-key-utils";
+import { logger } from "@/lib/logger";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
@@ -115,7 +116,11 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("API key creation failed:", error);
+    logger.error("API key creation failed", {
+      route: "POST /api/api-keys",
+      operation: "api-keys.create",
+      error,
+    });
     return NextResponse.json({ success: false, message: "Failed to create API key" }, { status: 500 });
   }
 }

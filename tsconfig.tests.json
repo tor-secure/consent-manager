@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": ".tmp/test-libs"
+  },
+  "files": [
+    "src/lib/scanner/scan-schedule.ts",
+    "src/lib/scanner/cron-auth.ts",
+    "src/lib/analytics/consent-metrics.ts",
+    "src/lib/analytics/client-hints.ts",
+    "src/lib/i18n/locale-registry.ts",
+    "src/lib/i18n/resolve-notice.ts",
+    "src/lib/sdk/scroll-lock.ts"
+  ]
+}

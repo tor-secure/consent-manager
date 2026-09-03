@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -77,49 +78,45 @@ export function PolicyPurposesPanel({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState("");
-
-  function flash(msg: string) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(""), 2500);
-  }
 
   async function attach(purposeId: string) {
+    if (busyId) return;
     setBusyId(purposeId);
     setError("");
-    try {
-      const res = await fetch(`/api/policies/${policyId}/purposes`, {
+    const result = await dashboardFetch(
+      `/api/policies/${policyId}/purposes`,
+      {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ purposeId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to attach purpose");
-      flash("Purpose attached.");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+      },
+      {
+        successMessage: "Purpose updated successfully",
+        errorFallback: "Unable to attach purpose. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   async function detach(purposeId: string) {
+    if (busyId) return;
     setBusyId(purposeId);
     setError("");
-    try {
-      const res = await fetch(`/api/policies/${policyId}/purposes/${purposeId}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to detach purpose");
-      flash("Purpose removed.");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setBusyId(null);
-    }
+    const result = await dashboardFetch(
+      `/api/policies/${policyId}/purposes/${purposeId}`,
+      { method: "DELETE" },
+      {
+        successMessage: "Purpose removed successfully",
+        errorFallback: "Unable to remove purpose. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setBusyId(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   const noVersion = !latestVersionId;
@@ -159,12 +156,6 @@ export function PolicyPurposesPanel({
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}><circle cx="8" cy="8" r="6"/><path strokeLinecap="round" d="M8 5v3M8 11h.01"/></svg>
             {error}
             <button onClick={() => setError("")} className="ml-auto shrink-0 text-rose-400 hover:text-rose-600">✕</button>
-          </div>
-        )}
-        {successMsg && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
-            <IconCheck />
-            {successMsg}
           </div>
         )}
 

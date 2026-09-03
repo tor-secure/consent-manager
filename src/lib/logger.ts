@@ -5,8 +5,11 @@ type LogLevel = "debug" | "info" | "warn" | "error";
 type LogContext = Record<string, unknown>;
 
 const SENSITIVE_KEY_RE =
-  /password|secret|token|api[-_]?key|keyHash|keyPrefix|authorization|cookie|signature|visitorId|requesterEmail|requesterPhone|email/i;
+  /password|secret|token|api[-_]?key|fullKey|rawKey|keyHash|keyPrefix|authorization|cookie|signature|visitorId|requesterEmail|requesterPhone|email|database[_-]?url|connectionString|metadata/i;
 const EMAIL_RE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const DB_URL_RE = /postgres(?:ql)?:\/\/[^\s"'`]+/gi;
+const CREDENTIAL_RE =
+  /\b(?:sk|pk)_(?:test|live)_[A-Za-z0-9]+|\bwhsec_[A-Za-z0-9]+|\bcmp_(?:live|test)_[A-Za-z0-9]+/g;
 const MAX_STRING_LENGTH = 500;
 const MAX_DEPTH = 4;
 
@@ -51,7 +54,10 @@ function sanitizeString(value: string): string {
     value.length > MAX_STRING_LENGTH
       ? `${value.slice(0, MAX_STRING_LENGTH)}...`
       : value;
-  return truncated.replace(EMAIL_RE, "[REDACTED_EMAIL]");
+  return truncated
+    .replace(DB_URL_RE, "[REDACTED_DB_URL]")
+    .replace(CREDENTIAL_RE, "[REDACTED_KEY]")
+    .replace(EMAIL_RE, "[REDACTED_EMAIL]");
 }
 
 export function sanitizeLogContext(context: LogContext = {}): LogContext {

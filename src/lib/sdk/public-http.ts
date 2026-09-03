@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { normalizeLocaleTag } from "@/lib/i18n/locale-registry";
 
 // Shared CORS + input guards for public SDK and consent endpoints.
 //
@@ -16,7 +17,6 @@ const SITE_KEY_RE = /^[A-Za-z0-9_-]{8,255}$/;
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONSENT_ID_RE = /^[A-Za-z0-9_-]{8,255}$/;
-const LANG_RE = /^[A-Za-z]{2,8}(?:-[A-Za-z0-9]{1,8}){0,3}$/;
 
 export function publicCorsHeaders(methods: string): Record<string, string> {
   return {
@@ -48,10 +48,7 @@ export function isValidConsentId(value: string): boolean {
 }
 
 export function sanitizeRequestedLang(raw: string | null | undefined): string {
-  if (!raw) return "en";
-  const trimmed = raw.trim().slice(0, 35);
-  if (!LANG_RE.test(trimmed)) return "en";
-  return trimmed.toLowerCase();
+  return normalizeLocaleTag(raw) ?? "en";
 }
 
 export function isSafeApiBase(value: string): boolean {

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 type CreatedKey = { fullKey: string; name: string };
 
@@ -12,28 +14,39 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
   const [name, setName] = useState("");
   const [environment, setEnvironment] = useState<"live" | "test">("live");
   const [expiresAt, setExpiresAt] = useState("");
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-    try {
-      const res = await fetch("/api/api-keys", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, environment, expiresAt: expiresAt || null }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to create key");
-      onCreated({ fullKey: data.fullKey, name });
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/api-keys",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, environment, expiresAt: expiresAt || null }),
+        },
+        {
+          successMessage: "API key created successfully",
+          errorFallback: "Unable to create API key. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
+      const fullKey =
+        typeof result.data === "object" &&
+        result.data !== null &&
+        "fullKey" in result.data &&
+        typeof (result.data as { fullKey?: unknown }).fullKey === "string"
+          ? (result.data as { fullKey: string }).fullKey
+          : "";
+      onCreated({ fullKey, name });
       setName(""); setEnvironment("live"); setExpiresAt(""); setOpen(false);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setSaving(false); }
+    });
   }
 
   if (!open) {
@@ -98,10 +111,9 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={saving}
-          className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-          {saving ? "Creating…" : "Create key"}
-        </button>
+        <Button type="submit" loading={saving}>
+          {saving ? "Generating..." : "Create key"}
+        </Button>
         <button type="button" onClick={() => { setOpen(false); setError(""); }}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
           Cancel

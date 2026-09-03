@@ -1,6 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
@@ -22,7 +23,9 @@ export const metadata: Metadata = {
     "Consent management platform for websites and organizations. Publish notices, govern vendors, and keep audit-ready records.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang="en"
@@ -33,11 +36,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Script
           id="cmp-theme-bootstrap"
           strategy="beforeInteractive"
+          nonce={nonce}
         >
           {THEME_BOOTSTRAP_SCRIPT}
         </Script>
         <ThemeProvider>
-          <ClerkProvider>
+          <ClerkProvider dynamic>
             {children}
           </ClerkProvider>
         </ThemeProvider>

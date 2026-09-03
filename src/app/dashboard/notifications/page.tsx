@@ -40,7 +40,8 @@ function resourceLink(resourceType: string | null, resourceId: string | null): s
     policy: `/dashboard/policies/${resourceId}`,
     consent_policy: `/dashboard/policies/${resourceId}`,
     website: `/dashboard/websites/${resourceId}`,
-    scan: `/dashboard/trackers`,
+    scan: `/dashboard/scanner`,
+    privacy_finding: `/dashboard/monitoring/${resourceId}`,
     vendor: `/dashboard/vendors`,
     purpose: `/dashboard/purposes`,
   };

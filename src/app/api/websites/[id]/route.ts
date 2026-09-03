@@ -13,8 +13,9 @@ import {
 } from "@/lib/api-auth-helpers";
 
 // Allowed environment values — validated server-side, never trusted from body.
+import { parseStoredLocale } from "@/lib/i18n/locale-registry";
+
 const VALID_ENVIRONMENTS = ["production", "staging", "development"] as const;
-const VALID_LANGUAGES = ["en", "hi", "kn", "fr", "de", "es", "pt"] as const;
 const VALID_REGIONS = ["IN", "EU", "US", "UK", "AU", "CA"] as const;
 
 export async function PUT(
@@ -113,15 +114,13 @@ export async function PUT(
       );
     }
 
-    const defaultLanguage = VALID_LANGUAGES.includes(body.defaultLanguage)
-      ? (body.defaultLanguage as (typeof VALID_LANGUAGES)[number])
-      : null;
+    const defaultLanguage = parseStoredLocale(body.defaultLanguage);
 
     if (!defaultLanguage) {
       return NextResponse.json(
         {
           success: false,
-          message: `Language must be one of: ${VALID_LANGUAGES.join(", ")}`,
+          message: "Language must be a supported locale",
         },
         { status: 400 },
       );

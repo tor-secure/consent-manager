@@ -253,6 +253,34 @@
       "when": 1787800000000,
       "tag": "0035_organization_dpo_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1787900000000,
+      "tag": "0036_privacy_findings",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1788000000000,
+      "tag": "0037_scan_results_page_url",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1788100000000,
+      "tag": "0038_global_consent_regulation",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1788200000000,
+      "tag": "0039_continuous_scanner_analytics",
+      "breakpoints": true
     }
   ]
 }

@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { headers } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
-import { eq, and } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
-import { websites } from "@/db/schema/websites";
+import { requireTenantWebsite } from "@/lib/tenant-website";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import {
   CodeBlock,
@@ -22,37 +19,8 @@ export default async function InstallationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { orgId } = await auth();
-  if (!orgId) return null;
+  const website = await requireTenantWebsite(id);
 
-  const [localOrg] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-
-  if (!localOrg) return null;
-
-  const [website] = await db
-    .select({
-      id: websites.id,
-      name: websites.name,
-      domain: websites.domain,
-      siteKey: websites.siteKey,
-      status: websites.status,
-    })
-    .from(websites)
-    .where(
-      and(
-        eq(websites.id, id),
-        eq(websites.organizationId, localOrg.id),
-      ),
-    )
-    .limit(1);
-
-  if (!website) notFound();
-
-  // Check if there is at least one active policy to warn if not.
   const [activePolicy] = await db
     .select({ id: consentPolicies.id, name: consentPolicies.name })
     .from(consentPolicies)

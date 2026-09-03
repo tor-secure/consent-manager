@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 type NavItem = {
@@ -230,6 +231,9 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Discovery & Monitoring",
     items: [
       { label: "Scanner", href: "/dashboard/scanner", icon: <IconScanner />, ariaLabel: "Run website scans" },
+      { label: "Privacy drift", href: "/dashboard/monitoring", icon: <IconAnalytics />, ariaLabel: "Review privacy drift findings" },
+      { label: "Privacy risk", href: "/dashboard/risk", icon: <IconAnalytics />, ariaLabel: "Review privacy risk" },
+      { label: "Consent quality", href: "/dashboard/quality", icon: <IconAnalytics />, ariaLabel: "View consent quality scores" },
       { label: "Analytics", href: "/dashboard/analytics", icon: <IconAnalytics />, ariaLabel: "View consent analytics" },
     ],
   },
@@ -260,24 +264,37 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
+function SidebarItem({
+  item,
+  collapsed,
+  pendingHref,
+  onNavigate,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  pendingHref: string | null;
+  onNavigate: (href: string) => void;
+}) {
   const pathname = usePathname();
 
-  const isActive =
-    item.href === "/dashboard"
-      ? pathname === "/dashboard"
-      : pathname === item.href || pathname.startsWith(item.href + "/");
+  const isActive = isItemActive(item.href, pathname);
+  const isPending = pendingHref === item.href && !isActive;
+  const showActive = isActive || isPending;
 
   return (
     <Link
       href={item.href}
       aria-label={item.ariaLabel}
       title={collapsed ? item.label : undefined}
+      aria-busy={isPending || undefined}
+      onClick={() => {
+        if (!isActive) onNavigate(item.href);
+      }}
       className={[
         "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium",
         "transition-[background-color,color,box-shadow] duration-200 ease-out min-h-11",
         collapsed ? "justify-center px-2" : "",
-        isActive
+        showActive
           ? "sidebar-item-active"
           : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
       ].join(" ")}
@@ -286,7 +303,7 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
       <span
         className={[
           "flex shrink-0 items-center justify-center transition-colors duration-200",
-          isActive ? "text-[var(--primary)]" : "text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]",
+          showActive ? "text-[var(--primary)]" : "text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]",
         ].join(" ")}
       >
         {item.icon}
@@ -301,13 +318,114 @@ function SidebarItem({ item, collapsed }: { item: NavItem; collapsed: boolean })
   );
 }
 
-function SidebarGroupLabel({ label, collapsed }: { label: string; collapsed: boolean }) {
-  if (collapsed) return null;
+const SIDEBAR_GROUPS_KEY = "cmp.sidebar.open-groups";
+
+function isItemActive(href: string, pathname: string) {
+  if (href === "/dashboard") return pathname === "/dashboard";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function groupContainsPath(group: NavGroup, pathname: string) {
+  return group.items.some((item) => isItemActive(item.href, pathname));
+}
+
+function readOpenGroups(): Record<string, boolean> {
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_GROUPS_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object") return {};
+    return parsed as Record<string, boolean>;
+  } catch {
+    return {};
+  }
+}
+
+function writeOpenGroups(next: Record<string, boolean>) {
+  try {
+    window.localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+function IconChevron({ open }: { open: boolean }) {
   return (
-    <div className="mt-6 first:mt-0 mb-2.5 px-2">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
-        {label}
-      </p>
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`shrink-0 text-[var(--muted-foreground)] transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function SidebarGroup({
+  group,
+  collapsed,
+  pendingHref,
+  onNavigate,
+  open,
+  onToggle,
+}: {
+  group: NavGroup;
+  collapsed: boolean;
+  pendingHref: string | null;
+  onNavigate: (href: string) => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const collapsible = group.items.length > 1;
+  const panelId = `sidebar-group-${group.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+  const showItems = collapsed || !collapsible || open;
+
+  return (
+    <div className="mt-2 first:mt-0" role="group" aria-label={group.label}>
+      {collapsed ? null : collapsible ? (
+        <button
+          type="button"
+          className="mb-1 flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-2 py-2 text-left transition-colors duration-200 hover:bg-[var(--muted)]"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={onToggle}
+        >
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
+            {group.label}
+          </span>
+          <IconChevron open={open} />
+        </button>
+      ) : (
+        <div className="mb-1 px-2 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--muted-foreground)]">
+            {group.label}
+          </p>
+        </div>
+      )}
+      <ul
+        id={collapsible && !collapsed ? panelId : undefined}
+        role="list"
+        hidden={!showItems}
+        className={showItems ? "space-y-1" : "hidden"}
+      >
+        {group.items.map((item) => (
+          <li key={`${group.label}:${item.label}`}>
+            <SidebarItem
+              item={item}
+              collapsed={collapsed}
+              pendingHref={pendingHref}
+              onNavigate={onNavigate}
+            />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -364,6 +482,44 @@ function CompliancePromo({ collapsed }: { collapsed: boolean }) {
 }
 
 export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => void }) {
+  const pathname = usePathname();
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const group of NAV_GROUPS) {
+      initial[group.label] = groupContainsPath(group, pathname);
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
+
+  useEffect(() => {
+    const stored = readOpenGroups();
+    setOpenGroups((current) => {
+      const next = { ...current };
+      for (const group of NAV_GROUPS) {
+        if (groupContainsPath(group, pathname)) {
+          next[group.label] = true;
+        } else if (typeof stored[group.label] === "boolean") {
+          next[group.label] = stored[group.label];
+        }
+      }
+      writeOpenGroups(next);
+      return next;
+    });
+  }, [pathname]);
+
+  function toggleGroup(label: string) {
+    setOpenGroups((current) => {
+      const next = { ...current, [label]: !current[label] };
+      writeOpenGroups(next);
+      return next;
+    });
+  }
+
   return (
     <div
       suppressHydrationWarning
@@ -378,16 +534,15 @@ export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => 
         className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pr-1"
       >
         {NAV_GROUPS.map((group) => (
-          <div key={group.label} role="group" aria-label={group.label}>
-            <SidebarGroupLabel label={group.label} collapsed={collapsed} />
-            <ul role="list" className="space-y-1">
-              {group.items.map((item) => (
-                <li key={`${group.label}:${item.label}`}>
-                  <SidebarItem item={item} collapsed={collapsed} />
-                </li>
-              ))}
-            </ul>
-          </div>
+          <SidebarGroup
+            key={group.label}
+            group={group}
+            collapsed={collapsed}
+            pendingHref={pendingHref}
+            onNavigate={setPendingHref}
+            open={Boolean(openGroups[group.label])}
+            onToggle={() => toggleGroup(group.label)}
+          />
         ))}
       </nav>
 

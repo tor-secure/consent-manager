@@ -11,6 +11,7 @@ import {
   publicCorsHeaders,
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/trackers
@@ -114,7 +115,11 @@ export async function GET(
       { headers: corsHeaders },
     );
   } catch (error) {
-    console.error("Tracker rules load failed:", error);
+    logger.error("Tracker rules load failed", {
+      route: "GET /api/sdk/[siteKey]/trackers",
+      operation: "sdk.trackers.load",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to load tracker rules" },
       { status: 500, headers: publicCorsHeaders("GET, OPTIONS") },

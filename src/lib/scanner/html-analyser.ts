@@ -19,6 +19,10 @@ export type DetectedItem = {
   category: string;
   signature: (TrackerSignature & { matchedDomain: string }) | null;
   details: Record<string, unknown>;
+  pageUrl: string;
+  wouldExecuteOnParse: boolean;
+  cmpPurposeValue: string | null;
+  resourceKind: "script" | "pixel" | "iframe" | "beacon" | "cookie" | "other";
 };
 
 export type AnalysisResult = {
@@ -40,6 +44,28 @@ const FETCH_TIMEOUT_MS = 12_000;
 const MAX_HTML_BYTES = 2_000_000;
 const MAX_REDIRECTS = 5;
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+function scriptWouldExecuteOnParse(scriptType: string): boolean {
+  const type = scriptType.trim().toLowerCase();
+  return (
+    type === "" ||
+    type === "text/javascript" ||
+    type === "application/javascript" ||
+    type === "module"
+  );
+}
+
+function parseHtmlAttrs(attrChunk: string): {
+  src: string | null;
+  type: string;
+  cmpPurpose: string | null;
+} {
+  const src = /(?:^|\s)src\s*=\s*["']([^"']+)["']/i.exec(attrChunk)?.[1] ?? null;
+  const type = /(?:^|\s)type\s*=\s*["']([^"']+)["']/i.exec(attrChunk)?.[1] ?? "";
+  const cmpPurpose =
+    /data-cmp-purpose\s*=\s*["']([^"']+)["']/i.exec(attrChunk)?.[1] ?? null;
+  return { src, type, cmpPurpose };
+}
 
 function extractHostname(url: string): string | null {
   try {
@@ -191,11 +217,13 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
   const pageHostname = extractHostname(pageUrl) ?? "";
 
   // ── 1. External <script src="..."> ───────────────────────────────────────
-  const scriptTagRe = /<script[^>]+src\s*=\s*["']([^"']+)["'][^>]*>/gi;
+  const scriptTagRe = /<script\b([^>]*)>/gi;
   let m: RegExpExecArray | null;
 
   while ((m = scriptTagRe.exec(html)) !== null) {
-    const src = m[1];
+    const attrs = parseHtmlAttrs(m[1] ?? "");
+    const src = attrs.src;
+    if (!src) continue;
     const hostname = extractHostname(src);
     if (!hostname || hostname === pageHostname) continue; // skip same-origin
 
@@ -209,7 +237,19 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: sig ? "known" : "unclassified",
       category: sig?.category ?? "unknown",
       signature: sig ?? null,
-      details: { src },
+      pageUrl,
+      wouldExecuteOnParse: scriptWouldExecuteOnParse(attrs.type),
+      cmpPurposeValue: attrs.cmpPurpose,
+      resourceKind: "script",
+      details: {
+        src,
+        scriptType: attrs.type || null,
+        cmpPurpose: attrs.cmpPurpose,
+        evidenceClass: scriptWouldExecuteOnParse(attrs.type)
+          ? "suspected_execution"
+          : "configuration_mismatch",
+        evidenceSource: "static_html",
+      },
     });
   }
 
@@ -244,7 +284,11 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: sig ? "known" : "unclassified",
       category: sig?.category ?? "advertising",
       signature: sig ?? null,
-      details: { src, isPixelSize, isPixelPath },
+      pageUrl,
+      wouldExecuteOnParse: true,
+      cmpPurposeValue: null,
+      resourceKind: "pixel",
+      details: { src, isPixelSize, isPixelPath, evidenceSource: "static_html", evidenceClass: "suspected_execution" },
     });
   }
 
@@ -271,7 +315,11 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: "known",
       category: sig.category,
       signature: sig,
-      details: { rel, href },
+      pageUrl,
+      wouldExecuteOnParse: false,
+      cmpPurposeValue: null,
+      resourceKind: "other",
+      details: { rel, href, evidenceSource: "static_html", evidenceClass: "configuration_mismatch" },
     });
   }
 
@@ -293,7 +341,11 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: "unclassified",
       category: "unknown",
       signature: null,
-      details: { rawValue: cookieStr.slice(0, 200) },
+      pageUrl,
+      wouldExecuteOnParse: false,
+      cmpPurposeValue: null,
+      resourceKind: "cookie",
+      details: { evidenceSource: "static_html", evidenceClass: "configuration_mismatch" },
     });
   }
 
@@ -315,7 +367,11 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: "known",
       category: sig.category,
       signature: sig,
-      details: { iframe: true, src },
+      pageUrl,
+      wouldExecuteOnParse: true,
+      cmpPurposeValue: null,
+      resourceKind: "iframe",
+      details: { iframe: true, src, evidenceSource: "static_html", evidenceClass: "suspected_execution" },
     });
   }
 
@@ -336,7 +392,11 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       classificationStatus: sig ? "known" : "unclassified",
       category: sig?.category ?? "analytics",
       signature: sig ?? null,
-      details: { beaconUrl },
+      pageUrl,
+      wouldExecuteOnParse: false,
+      cmpPurposeValue: null,
+      resourceKind: "beacon",
+      details: { beaconUrl, evidenceSource: "static_html", evidenceClass: "configuration_mismatch" },
     });
   }
 

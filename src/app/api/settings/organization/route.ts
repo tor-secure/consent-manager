@@ -9,9 +9,9 @@ import { memberships } from "@/db/schema/memberships";
 import { roles } from "@/db/schema/roles";
 import { auditLogs } from "@/db/schema/audit-logs";
 
-const AUTHORIZED_ROLES = ["Owner", "Admin"] as const;
+import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 
-const VALID_LANGUAGES  = ["en","hi","kn","fr","de","es","pt","nl","it","pl"] as const;
+const AUTHORIZED_ROLES = ["Owner", "Admin"] as const;
 const VALID_REGIONS    = ["IN","EU","US","UK","AU","CA","SG","AE"] as const;
 const VALID_TIMEZONES  = [
   "UTC","Asia/Kolkata","Europe/London","Europe/Paris","Europe/Berlin",
@@ -95,8 +95,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, message: "Timezone must be one of the supported values" }, { status: 400 });
     }
 
-    const defaultLanguage = (VALID_LANGUAGES as readonly string[]).includes(body.defaultLanguage)
-      ? (body.defaultLanguage as string) : null;
+    const defaultLanguage = parseStoredLocale(body.defaultLanguage);
     if (!defaultLanguage) {
       return NextResponse.json({ success: false, message: "Default language is not supported" }, { status: 400 });
     }

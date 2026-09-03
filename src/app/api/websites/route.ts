@@ -8,6 +8,7 @@ import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
+import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 
 function normalizeDomain(value: string) {
   return value
@@ -47,7 +48,7 @@ export async function POST(request: Request) {
     const name = String(body.name ?? "").trim();
     const rawDomain = String(body.domain ?? "");
     const domain = normalizeDomain(rawDomain);
-    const language = String(body.language ?? "en");
+    const language = parseStoredLocale(body.language ?? "en") ?? "en";
     const region = String(body.region ?? "IN");
 
     if (!name) {

@@ -6,7 +6,9 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { scans } from "@/db/schema/scans";
+import { websiteScanSchedules } from "@/db/schema/website-scan-schedules";
 import { StartScanForm } from "@/components/scanner/start-scan-form";
+import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,6 +116,24 @@ export default async function ScannerPage() {
   const websiteIds = orgWebsites.map((w) => w.id);
   const websiteMap = new Map(orgWebsites.map((w) => [w.id, w]));
 
+  const scheduleRows =
+    websiteIds.length > 0
+      ? await db
+          .select({
+            websiteId: websiteScanSchedules.websiteId,
+            enabled: websiteScanSchedules.enabled,
+            frequency: websiteScanSchedules.frequency,
+            timezone: websiteScanSchedules.timezone,
+            nextScanAt: websiteScanSchedules.nextScanAt,
+            lastScanAt: websiteScanSchedules.lastScanAt,
+            lastScanStatus: websiteScanSchedules.lastScanStatus,
+            lastError: websiteScanSchedules.lastError,
+          })
+          .from(websiteScanSchedules)
+          .where(eq(websiteScanSchedules.organizationId, localOrg.id))
+      : [];
+  const scheduleMap = new Map(scheduleRows.map((row) => [row.websiteId, row]));
+
   const scanHistory =
     websiteIds.length > 0
       ? await db
@@ -122,6 +142,7 @@ export default async function ScannerPage() {
             websiteId: scans.websiteId,
             status: scans.status,
             scanType: scans.scanType,
+            triggeredBy: scans.triggeredBy,
             pagesScanned: scans.pagesScanned,
             itemsDetected: scans.itemsDetected,
             errorMessage: scans.errorMessage,
@@ -176,6 +197,24 @@ export default async function ScannerPage() {
         <>
           {/* ── Start scan form ─────────────────────────────────────────── */}
           <StartScanForm websites={orgWebsites} />
+
+          <ScanSchedulePanel
+            schedules={orgWebsites.map((site) => {
+              const schedule = scheduleMap.get(site.id);
+              return {
+                websiteId: site.id,
+                websiteName: site.name,
+                websiteDomain: site.domain,
+                enabled: schedule?.enabled ?? false,
+                frequency: schedule?.frequency ?? "weekly",
+                timezone: schedule?.timezone ?? "UTC",
+                nextScanAt: schedule?.nextScanAt?.toISOString() ?? null,
+                lastScanAt: schedule?.lastScanAt?.toISOString() ?? null,
+                lastScanStatus: schedule?.lastScanStatus ?? null,
+                lastError: schedule?.lastError ?? null,
+              };
+            })}
+          />
 
           {/* ── Stat cards ──────────────────────────────────────────────── */}
           {totalScans > 0 && (
@@ -238,7 +277,7 @@ export default async function ScannerPage() {
                 <table className="min-w-full text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/60">
-                      {["Website", "Type", "Status", "Items", "Started", "Duration", ""].map((h) => (
+                      {["Website", "Type", "Trigger", "Status", "Items", "Started", "Duration", ""].map((h) => (
                         <th key={h}
                           className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                           {h}
@@ -270,6 +309,12 @@ export default async function ScannerPage() {
                           <td className="px-5 py-4">
                             <Badge variant="neutral" size="sm" className="capitalize">
                               {scan.scanType}
+                            </Badge>
+                          </td>
+
+                          <td className="px-5 py-4">
+                            <Badge variant="neutral" size="sm" className="capitalize">
+                              {scan.triggeredBy}
                             </Badge>
                           </td>
 

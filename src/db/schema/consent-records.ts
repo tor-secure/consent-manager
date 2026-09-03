@@ -108,5 +108,10 @@ export const consentRecords = pgTable(
     index("consent_records_created_at_idx").on(
       table.createdAt,
     ),
+
+    index("consent_records_org_created_idx").on(
+      table.organizationId,
+      table.createdAt,
+    ),
   ],
 );

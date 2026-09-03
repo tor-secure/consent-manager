@@ -49,10 +49,8 @@ export default function NewWebsitePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="rounded-3xl card-shadow border border-slate-100/70 bg-white p-6 md:p-8">
-          <CreateWebsiteForm />
-        </div>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <CreateWebsiteForm />
 
         <aside className="hidden flex-col gap-4 lg:flex">
           <div className="rounded-3xl card-shadow border border-slate-100/70 bg-gradient-to-br from-indigo-50/80 via-white to-slate-50 p-6">

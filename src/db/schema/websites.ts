@@ -6,6 +6,7 @@ import {
   text,
   boolean,
   unique,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 import { organizations } from "./organizations";
@@ -56,6 +57,15 @@ export const websites = pgTable(
     defaultRegion: varchar("default_region", {
       length: 10,
     }),
+
+    defaultRegulationKey: varchar("default_regulation_key", {
+      length: 32,
+    }),
+
+    consentIntegrations: jsonb("consent_integrations")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
 
     verified: boolean("verified")
       .notNull()

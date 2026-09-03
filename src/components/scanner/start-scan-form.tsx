@@ -2,33 +2,46 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 export type WebsiteOption = { id: string; name: string; domain: string };
 
 export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
   const router = useRouter();
   const [websiteId, setWebsiteId] = useState(websites[0]?.id ?? "");
-  const [running, setRunning] = useState(false);
+  const { pending: running, run } = useAsyncAction();
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setRunning(true);
-    setError("");
-    try {
-      const res = await fetch("/api/scanner/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ websiteId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Scan failed");
-      router.push(`/dashboard/scanner/${data.scanId}`);
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/scanner/run",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ websiteId }),
+        },
+        {
+          successMessage: "Scan started successfully",
+          errorFallback: "Unable to start scan. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
+      const scanId =
+        typeof result.data === "object" &&
+        result.data !== null &&
+        "scanId" in result.data &&
+        typeof (result.data as { scanId?: unknown }).scanId === "string"
+          ? (result.data as { scanId: string }).scanId
+          : null;
+      if (scanId) router.push(`/dashboard/scanner/${scanId}`);
+      else router.push("/dashboard/scanner");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setRunning(false);
-    }
+    });
   }
 
   return (
@@ -69,29 +82,9 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={running}
-          className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-60"
-        >
-          {running ? (
-            <>
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Scanning…
-            </>
-          ) : (
-            <>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              Start scan
-            </>
-          )}
-        </button>
+        <Button type="submit" loading={running}>
+          {running ? "Starting scan..." : "Start scan"}
+        </Button>
       </form>
 
       {error && (

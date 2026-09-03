@@ -8,6 +8,7 @@ import {
   type BannerLayout,
   type ConsentDefault,
 } from "@/lib/banner-config";
+import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
 
 // ---------------------------------------------------------------------------
 // Preset definitions
@@ -478,16 +479,7 @@ export function StudioControls({
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Language">
                     <select value={config.language} onChange={(e) => onChange("language", e.target.value)} className={selectCls}>
-                      <option value="en">English</option>
-                      <option value="hi">Hindi</option>
-                      <option value="kn">Kannada</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                      <option value="es">Spanish</option>
-                      <option value="pt">Portuguese</option>
-                      <option value="nl">Dutch</option>
-                      <option value="it">Italian</option>
-                      <option value="pl">Polish</option>
+                      <LocaleSelectOptions includeCurrent={config.language} />
                     </select>
                   </Field>
                   <Field label="Regulation">

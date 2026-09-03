@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+import { redirect } from "next/navigation";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 
@@ -60,7 +62,7 @@ function buildOrgSlug(name: string, clerkId: string): string {
 // Clerk org — the caller (layout) should redirect to /create-organization.
 // ---------------------------------------------------------------------------
 
-export async function bootstrapCurrentContext(): Promise<BootstrapResult> {
+export const bootstrapCurrentContext = cache(async function bootstrapCurrentContext(): Promise<BootstrapResult> {
   // --------------------------------------------------
   // 1. AUTHENTICATE
   // --------------------------------------------------
@@ -148,10 +150,44 @@ export async function bootstrapCurrentContext(): Promise<BootstrapResult> {
   }
 
   // --------------------------------------------------
-  // 4. NO ACTIVE ORGANIZATION
+  // 4. RESOLVE ACTIVE ORGANIZATION
+  //    A fresh login often has a Clerk user but no session orgId yet.
+  //    Fall back to the user's first Clerk membership, then a local membership.
   // --------------------------------------------------
 
-  if (!orgId) {
+  const clerkMemberships =
+    (
+      clerkUser as {
+        organizationMemberships?: Array<{ organization?: { id?: string } }>;
+      }
+    ).organizationMemberships ?? [];
+
+  let resolvedOrgId = orgId ?? clerkMemberships[0]?.organization?.id ?? null;
+
+  if (!resolvedOrgId) {
+    try {
+      const client = await clerkClient();
+      const list = await client.users.getOrganizationMembershipList({
+        userId,
+        limit: 1,
+      });
+      resolvedOrgId = list.data[0]?.organization.id ?? null;
+    } catch {
+      /* User may not belong to any Clerk organization yet. */
+    }
+  }
+
+  if (!resolvedOrgId) {
+    const [linkedOrg] = await db
+      .select({ clerkOrganizationId: organizations.clerkOrganizationId })
+      .from(memberships)
+      .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
+      .where(eq(memberships.userId, localUser.id))
+      .limit(1);
+    resolvedOrgId = linkedOrg?.clerkOrganizationId ?? null;
+  }
+
+  if (!resolvedOrgId) {
     return {
       user: localUser,
       organization: null,
@@ -166,7 +202,7 @@ export async function bootstrapCurrentContext(): Promise<BootstrapResult> {
   const client = await clerkClient();
 
   const clerkOrg = await client.organizations.getOrganization({
-    organizationId: orgId,
+    organizationId: resolvedOrgId,
   });
 
   // --------------------------------------------------
@@ -298,4 +334,12 @@ export async function bootstrapCurrentContext(): Promise<BootstrapResult> {
     organization,
     membership,
   };
+});
+
+export async function requireDashboardContext(): Promise<BootstrapContext> {
+  const context = await bootstrapCurrentContext();
+  if (!context.organization || !context.membership) {
+    redirect("/create-organization");
+  }
+  return context;
 }

@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
-import { websites } from "@/db/schema/websites";
+import { requireTenantWebsite } from "@/lib/tenant-website";
 import { trackers } from "@/db/schema/trackers";
 import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
@@ -165,22 +162,7 @@ export default async function EnforcementPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
-  const [localOrg] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-  if (!localOrg) return null;
-
-  const [website] = await db
-    .select({ id: websites.id, name: websites.name, domain: websites.domain, siteKey: websites.siteKey })
-    .from(websites)
-    .where(and(eq(websites.id, id), eq(websites.organizationId, localOrg.id)))
-    .limit(1);
-  if (!website) notFound();
+  const website = await requireTenantWebsite(id);
 
   const trackerRows = await db
     .select({

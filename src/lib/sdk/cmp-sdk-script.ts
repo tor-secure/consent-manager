@@ -33,6 +33,8 @@
 // proper optimised bundle.
 // ---------------------------------------------------------------------------
 
+import { HOST_SCROLL_LOCK_RUNTIME } from "@/lib/sdk/scroll-lock";
+
 export function buildCmpSdkScript(options: {
   siteKey: string;
   apiBase: string;
@@ -117,9 +119,173 @@ ${apiBaseLine}
   var _decisions   = {};
   var _consentId   = null;
   var _listeners   = [];
+  var _explicitLang = '';
+  var _pcLastFocus = null;
+${HOST_SCROLL_LOCK_RUNTIME}
+  if (window.__CMP_HOST_SCROLL_LOCK__ && typeof window.__CMP_HOST_SCROLL_LOCK__.teardown === 'function') {
+    try { window.__CMP_HOST_SCROLL_LOCK__.teardown(); } catch (eLock) {}
+  }
+  var _hostScroll = createHostScrollLock(window, document);
+  window.__CMP_HOST_SCROLL_LOCK__ = _hostScroll;
 
   function log(msg) {
     if (window.__CMP_DEBUG) console.log('[CMP]', msg);
+  }
+
+  function detectRequestedLang() {
+    if (_explicitLang) return _explicitLang;
+    var scriptLang = '';
+    try {
+      var scripts = document.getElementsByTagName('script');
+      for (var si = 0; si < scripts.length; si++) {
+        var dl = scripts[si].getAttribute('data-lang');
+        if (dl) { scriptLang = dl; break; }
+      }
+    } catch (e1) {}
+    var winLang = '';
+    try { winLang = window.__CMP_LANG || ''; } catch (e2) {}
+    var queryLang = '';
+    try {
+      if (window.location && window.location.search) {
+        queryLang = new URLSearchParams(window.location.search).get('lang') || '';
+      }
+    } catch (e3) {}
+    var navLang = '';
+    try { navLang = navigator.language || ''; } catch (e4) {}
+    var navList = '';
+    try {
+      if (navigator.languages && navigator.languages.length) navList = navigator.languages[0] || '';
+    } catch (e5) {}
+    return scriptLang || winLang || queryLang || navLang || navList || '';
+  }
+
+  function configRequestUrl() {
+    var configUrl = API_BASE + '/api/sdk/' + SITE_KEY + '/config';
+    var qs = [];
+    var lang = detectRequestedLang();
+    if (lang) qs.push('lang=' + encodeURIComponent(String(lang).slice(0, 35)));
+    try {
+      var geo = window.__CMP_GEO;
+      if (geo && typeof geo === 'object') {
+        if (geo.country) qs.push('country=' + encodeURIComponent(String(geo.country).slice(0, 8)));
+        if (geo.region) qs.push('region=' + encodeURIComponent(String(geo.region).slice(0, 16)));
+      }
+    } catch (e) {}
+    if (qs.length) configUrl += '?' + qs.join('&');
+    return configUrl;
+  }
+
+  function noticeDirection() {
+    if (_config && _config.locale && _config.locale.direction) return _config.locale.direction;
+    var lang = (_config && _config.resolvedLanguage) || '';
+    var base = String(lang).split('-')[0].toLowerCase();
+    return (base === 'ar' || base === 'he' || base === 'fa' || base === 'ur') ? 'rtl' : 'ltr';
+  }
+
+  function availableLocales() {
+    var supported = (_config && _config.locale && _config.locale.supported) || [];
+    var translations = (_config && _config.bannerConfig && _config.bannerConfig.translations) || {};
+    var codes = supported.length ? supported.slice() : Object.keys(translations);
+    if (codes.indexOf('en') === -1) codes.unshift('en');
+    return codes;
+  }
+
+  function googleDefaultState() {
+    return {
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      analytics_storage: 'denied',
+      functionality_storage: 'denied',
+      personalization_storage: 'denied',
+      security_storage: 'granted'
+    };
+  }
+
+  function ensureGtag() {
+    window.dataLayer = window.dataLayer || [];
+    if (typeof window.gtag !== 'function') {
+      window.gtag = function(){ window.dataLayer.push(arguments); };
+    }
+  }
+
+  function initExternalSignals() {
+    if (!_config || !_config.signals) return;
+    var google = _config.signals.googleConsentMode;
+    if (google && google.enabled) {
+      ensureGtag();
+      var def = googleDefaultState();
+      def.wait_for_update = google.waitForUpdateMs || 500;
+      window.gtag('consent', 'default', def);
+      if (google.adsDataRedaction) window.gtag('set', 'ads_data_redaction', true);
+      if (google.urlPassthrough) window.gtag('set', 'url_passthrough', true);
+    }
+    if (_config.signals.iabTcf && _config.signals.iabTcf.enabled && typeof window.__tcfapi !== 'function') {
+      window.__tcfapi = function(command, version, callback) {
+        if (typeof callback !== 'function') return;
+        if (command === 'ping') {
+          callback({
+            gdprApplies: true,
+            cmpLoaded: false,
+            cmpStatus: 'stub',
+            displayStatus: 'hidden',
+            apiVersion: '2.2',
+            cmpId: 0,
+            cmpVersion: 0,
+            tcfPolicyVersion: 4
+          }, true);
+          return;
+        }
+        callback({ cmpStatus: 'stub', tcString: null }, false);
+      };
+    }
+    if (_config.signals.iabGpp && _config.signals.iabGpp.enabled && typeof window.__gpp !== 'function') {
+      window.__gpp = function(command, callback) {
+        if (typeof callback !== 'function') return;
+        if (command === 'ping') {
+          callback({
+            gppVersion: '1.1',
+            cmpStatus: 'stub',
+            cmpDisplayStatus: 'hidden',
+            signalStatus: 'not ready',
+            supportedAPIs: [],
+            sectionList: [],
+            applicableSections: [-1],
+            gppString: ''
+          }, true);
+          return;
+        }
+        callback({ cmpStatus: 'stub', gppString: null }, false);
+      };
+    }
+  }
+
+  function publishExternalSignals() {
+    if (!_config || !_config.signals) return;
+    var google = _config.signals.googleConsentMode;
+    if (google && google.enabled) {
+      ensureGtag();
+      var state = googleDefaultState();
+      var map = google.purposeSignals || {};
+      var purposes = _config.purposes || [];
+      purposes.forEach(function(p) {
+        var granted = !!(p.isRequired || (_decisions.purposes && _decisions.purposes[p.id]));
+        if (!granted) return;
+        var signals = map[p.key] || [];
+        signals.forEach(function(signal) { state[signal] = 'granted'; });
+      });
+      state.security_storage = 'granted';
+      window.gtag('consent', 'update', state);
+    }
+    window.dispatchEvent(new CustomEvent('cmp:signals', {
+      detail: {
+        consentId: _consentId,
+        decisions: _decisions,
+        googleConsentMode: google && google.enabled ? true : false,
+        iabTcf: !!( _config.signals.iabTcf && _config.signals.iabTcf.enabled),
+        iabGpp: !!( _config.signals.iabGpp && _config.signals.iabGpp.enabled)
+      }
+    }));
   }
 
   function domainMatches(src, blockedDomain) {
@@ -220,6 +386,7 @@ ${apiBaseLine}
         localStorage.setItem(EXPIRY_KEY, String(new Date(expiresAt).getTime()));
       }
       enforceScriptTags();
+      publishExternalSignals();
       _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
     } catch(e) { log('Failed to save consent: ' + e); }
   }
@@ -228,6 +395,7 @@ ${apiBaseLine}
     var body = {
       websiteId: _config.websiteId,
       consentId: _consentId || undefined,
+      language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
       submission: {
         choice: choice,
         purposeDecisions: purposeDecisions || [],
@@ -263,6 +431,9 @@ ${apiBaseLine}
     var cfg = _config.bannerConfig;
     if (!cfg.showAcceptAll && !cfg.showRejectAll && !cfg.showCustomize) return;
 
+    var existingBanner = document.getElementById('__cmp_banner__');
+    if (existingBanner && existingBanner.parentNode) existingBanner.parentNode.removeChild(existingBanner);
+
     var banner = document.createElement('div');
     banner.id = '__cmp_banner__';
 
@@ -274,6 +445,9 @@ ${apiBaseLine}
       center: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
     }[cfg.position || 'bottom'] || 'position:fixed;bottom:0;left:0;right:0;';
 
+    var dir = noticeDirection();
+    banner.setAttribute('dir', dir);
+    banner.setAttribute('lang', (_config.resolvedLanguage || 'en'));
     banner.setAttribute('style',
       positionStyle
       + 'background:' + (cfg.backgroundColor || '#fff') + ';'
@@ -284,6 +458,7 @@ ${apiBaseLine}
       + 'z-index:2147483647;'
       + 'display:flex;flex-wrap:wrap;align-items:center;gap:12px;'
       + 'font-family:system-ui,sans-serif;font-size:14px;'
+      + 'text-align:start;max-width:100%;'
     );
 
     if (cfg.title || cfg.description) {
@@ -299,10 +474,12 @@ ${apiBaseLine}
       }
       if (cfg.description) {
         var p = document.createElement('span');
-        p.textContent = cfg.description.length > 120
-          ? cfg.description.slice(0, 120) + '...' : cfg.description;
+        p.textContent = cfg.description;
         p.style.opacity = '0.75';
         p.style.fontSize = '12px';
+        p.style.display = 'block';
+        p.style.overflowWrap = 'anywhere';
+        p.style.maxWidth = '72ch';
         text.appendChild(p);
       }
       banner.appendChild(text);
@@ -312,12 +489,13 @@ ${apiBaseLine}
     btns.style.display = 'flex';
     btns.style.gap = '8px';
     btns.style.flexWrap = 'wrap';
+    btns.style.alignItems = 'center';
 
     function btn(label, primary, onclick) {
       var b = document.createElement('button');
       b.textContent = label;
       b.style.cssText = 'cursor:pointer;border-radius:' + (cfg.borderRadius || 4) + 'px;'
-        + 'padding:8px 16px;font-size:13px;font-weight:600;border:none;'
+        + 'padding:8px 16px;font-size:13px;font-weight:600;border:none;white-space:normal;max-width:100%;'
         + (primary
           ? 'background:' + (cfg.primaryColor || '#171717') + ';color:#fff;'
           : 'background:transparent;border:1px solid ' + (cfg.primaryColor || '#171717')
@@ -340,18 +518,40 @@ ${apiBaseLine}
     }
     if (cfg.showCustomize) {
       btns.appendChild(btn(cfg.customizeLabel || 'Customize', false, function() {
+        _hostScroll.beginTransition();
         removeBanner();
         window.CMP.openPreferenceCenter();
+        _hostScroll.endTransition();
       }));
+    }
+
+    var locales = availableLocales();
+    if (locales.length > 1) {
+      var langSelect = document.createElement('select');
+      langSelect.setAttribute('aria-label', 'Language');
+      langSelect.style.cssText = 'font-size:12px;padding:6px 8px;border-radius:8px;border:1px solid rgba(15,23,42,0.15);background:transparent;color:inherit;max-width:11rem;';
+      locales.forEach(function(code) {
+        var opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = code;
+        if (code === (_config.resolvedLanguage || '')) opt.selected = true;
+        langSelect.appendChild(opt);
+      });
+      langSelect.addEventListener('change', function() {
+        window.CMP.setLanguage(langSelect.value);
+      });
+      btns.appendChild(langSelect);
     }
 
     banner.appendChild(btns);
     document.body.appendChild(banner);
+    _hostScroll.sync();
   }
 
   function removeBanner() {
     var el = document.getElementById('__cmp_banner__');
     if (el) el.parentNode.removeChild(el);
+    _hostScroll.sync();
   }
 
   function getConsent() {
@@ -365,11 +565,58 @@ ${apiBaseLine}
   // -------------------------------------------------------------------------
   // Preference Center modal
   // -------------------------------------------------------------------------
-  function removePreferenceCenter() {
+  function pcFocusables(root) {
+    if (!root || !root.querySelectorAll) return [];
+    var nodes = root.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    var out = [];
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].disabled) continue;
+      out.push(nodes[i]);
+    }
+    return out;
+  }
+
+  function onPcKeyDown(e) {
+    if (!e || e.key !== 'Tab') return;
+    var pc = document.getElementById('__cmp_pc__');
+    if (!pc) return;
+    var list = pcFocusables(pc);
+    if (!list.length) {
+      if (e.preventDefault) e.preventDefault();
+      return;
+    }
+    var first = list[0];
+    var last = list[list.length - 1];
+    var active = document.activeElement;
+    if (e.shiftKey && active === first) {
+      if (e.preventDefault) e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      if (e.preventDefault) e.preventDefault();
+      first.focus();
+    }
+  }
+
+  function releasePcFocus() {
+    document.removeEventListener('keydown', onPcKeyDown, true);
+    var restore = _pcLastFocus;
+    _pcLastFocus = null;
+    if (restore && typeof restore.focus === 'function' && document.contains && document.contains(restore)) {
+      try { restore.focus(); } catch (eFocus) {}
+    }
+  }
+
+  function removePreferenceCenterNodes() {
     var el = document.getElementById('__cmp_pc__');
     if (el && el.parentNode) el.parentNode.removeChild(el);
     var overlay = document.getElementById('__cmp_pc_overlay__');
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+  }
+
+  function removePreferenceCenter() {
+    releasePcFocus();
+    removePreferenceCenterNodes();
+    _hostScroll.sync();
   }
 
   function currentPurposeGranted(purposeId) {
@@ -387,7 +634,8 @@ ${apiBaseLine}
   function renderPreferenceCenter() {
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
-    removePreferenceCenter();
+    _hostScroll.beginTransition();
+    removePreferenceCenterNodes();
 
     // Backdrop overlay
     var overlay = document.createElement('div');
@@ -408,6 +656,8 @@ ${apiBaseLine}
     pc.setAttribute('aria-modal', 'true');
     pc.setAttribute('aria-labelledby', '__cmp_pc_title__');
     var radius = (typeof cfg.borderRadius === 'number' ? cfg.borderRadius : 8) + 'px';
+    pc.setAttribute('dir', noticeDirection());
+    pc.setAttribute('lang', (_config.resolvedLanguage || 'en'));
     pc.setAttribute('style',
       'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2147483647;'
       + 'width:min(620px,calc(100vw - 32px));max-height:min(82vh,720px);overflow:hidden;'
@@ -429,13 +679,13 @@ ${apiBaseLine}
     titleBox.style.minWidth = '0';
     var pcTitle = document.createElement('h2');
     pcTitle.id = '__cmp_pc_title__';
-    pcTitle.textContent = 'Manage your preferences';
+    pcTitle.textContent = cfg.preferenceCenterTitle || 'Manage your preferences';
     pcTitle.setAttribute('style',
       'margin:0;font-size:18px;font-weight:700;letter-spacing:-0.01em;color:'
       + (cfg.textColor || '#171717') + ';'
     );
     var pcSub = document.createElement('p');
-    pcSub.textContent =
+    pcSub.textContent = cfg.preferenceCenterDescription ||
       'Customize which purposes and vendors you allow. You can change your choices at any time.';
     pcSub.setAttribute('style',
       'margin:6px 0 0 0;font-size:13px;opacity:0.7;line-height:1.5;'
@@ -445,7 +695,7 @@ ${apiBaseLine}
 
     var closeBtn = document.createElement('button');
     closeBtn.type = 'button';
-    closeBtn.setAttribute('aria-label', 'Close preferences');
+    closeBtn.setAttribute('aria-label', cfg.closeLabel || 'Close');
     closeBtn.innerHTML =
       '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     closeBtn.setAttribute('style',
@@ -463,7 +713,7 @@ ${apiBaseLine}
     // Body (scrollable)
     var body = document.createElement('div');
     body.setAttribute('style',
-      'flex:1 1 auto;overflow-y:auto;padding:10px 24px 20px 24px;scrollbar-width:thin;'
+      'flex:1 1 auto;overflow-y:auto;padding:10px 24px 20px 24px;scrollbar-width:thin;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;'
     );
 
     // Track local toggles independently so we can cancel.
@@ -484,7 +734,7 @@ ${apiBaseLine}
       var sec = document.createElement('section');
       sec.style.padding = '12px 0 4px 0';
       var h3 = document.createElement('h3');
-      h3.textContent = 'Purposes';
+      h3.textContent = cfg.purposesHeading || 'Purposes';
       h3.setAttribute('style',
         'margin:0 0 10px 0;font-size:12px;font-weight:700;letter-spacing:0.08em;'
         + 'text-transform:uppercase;opacity:0.6;'
@@ -517,12 +767,12 @@ ${apiBaseLine}
         );
         var knob = document.createElement('span');
         knob.setAttribute('style',
-          'position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;'
-          + 'background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);transition:left .15s;'
+          'position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:999px;'
+          + 'background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);transition:inset-inline-start .15s;'
         );
         function paintKnob() {
           var on = !!localDecisions.purposes[p.id];
-          knob.style.left = on ? '19px' : '3px';
+          knob.style.insetInlineStart = on ? '19px' : '3px';
         }
         toggle.appendChild(knob);
         paintToggle();
@@ -546,7 +796,7 @@ ${apiBaseLine}
         nameRow.appendChild(n);
         if (p.isRequired) {
           var reqTag = document.createElement('span');
-          reqTag.textContent = 'Required';
+          reqTag.textContent = cfg.requiredLabel || 'Required';
           reqTag.setAttribute('style',
             'font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;'
             + 'background:rgba(99,102,241,0.12);color:#4338ca;'
@@ -579,7 +829,7 @@ ${apiBaseLine}
       var vsec = document.createElement('section');
       vsec.style.padding = '12px 0 4px 0';
       var vh3 = document.createElement('h3');
-      vh3.textContent = 'Vendors (' + _config.vendors.length + ')';
+      vh3.textContent = (cfg.vendorsHeading || 'Vendors') + ' (' + _config.vendors.length + ')';
       vh3.setAttribute('style',
         'margin:0 0 10px 0;font-size:12px;font-weight:700;letter-spacing:0.08em;'
         + 'text-transform:uppercase;opacity:0.6;'
@@ -599,14 +849,14 @@ ${apiBaseLine}
         vtoggle.setAttribute('aria-label', 'Toggle vendor ' + v.name);
         var vknob = document.createElement('span');
         vknob.setAttribute('style',
-          'position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:999px;'
-          + 'background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);transition:left .15s;'
+          'position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:999px;'
+          + 'background:#fff;box-shadow:0 1px 2px rgba(0,0,0,0.25);transition:inset-inline-start .15s;'
         );
         function paintVendorToggle() {
           var on = !!localDecisions.vendors[v.id];
           vtoggle.setAttribute('aria-checked', on ? 'true' : 'false');
           vtoggle.style.background = on ? (cfg.primaryColor || '#171717') : 'rgba(15,23,42,0.18)';
-          vknob.style.left = on ? '19px' : '3px';
+          vknob.style.insetInlineStart = on ? '19px' : '3px';
         }
         vtoggle.setAttribute('style',
           'flex-shrink:0;width:40px;height:24px;border-radius:999px;border:none;cursor:pointer;'
@@ -732,6 +982,14 @@ ${apiBaseLine}
     pc.appendChild(body);
     pc.appendChild(footer);
     document.body.appendChild(pc);
+    _hostScroll.endTransition();
+
+    try { _pcLastFocus = document.activeElement || null; } catch (eAf) { _pcLastFocus = null; }
+    document.addEventListener('keydown', onPcKeyDown, true);
+    var firstFocus = pcFocusables(pc)[0];
+    if (firstFocus && typeof firstFocus.focus === 'function') {
+      try { firstFocus.focus(); } catch (eFf) {}
+    }
 
     window.dispatchEvent(new CustomEvent('cmp:openPreferenceCenter'));
   }
@@ -740,11 +998,10 @@ ${apiBaseLine}
     getConsent: getConsent,
     onConsentChange: function(fn) { _listeners.push(fn); },
     showBanner: function() {
-      // Remove existing banner if any, then render a fresh one.
+      _hostScroll.beginTransition();
       removeBanner();
-      // If a stored consent already exists, still show the banner so the user
-      // can manage it — but this way the demo's "Show banner" button works.
       renderBanner();
+      _hostScroll.endTransition();
     },
     openPreferenceCenter: function() {
       if (!_config) {
@@ -753,12 +1010,37 @@ ${apiBaseLine}
       }
       renderPreferenceCenter();
     },
-    acceptAll: function() { submitConsent('accept-all', [], []); removeBanner(); },
-    rejectAll: function() { submitConsent('reject-all', [], []); removeBanner(); },
+    acceptAll: function() { submitConsent('accept-all', [], []); removeBanner(); removePreferenceCenter(); },
+    rejectAll: function() { submitConsent('reject-all', [], []); removeBanner(); removePreferenceCenter(); },
     saveGranular: function(purposeDecisions, vendorDecisions) {
       submitConsent('granular', purposeDecisions || [], vendorDecisions || []);
+      _hostScroll.beginTransition();
       removePreferenceCenter();
       removeBanner();
+      _hostScroll.endTransition();
+    },
+    setLanguage: function(lang, callback) {
+      _explicitLang = String(lang || '').slice(0, 35);
+      var bannerOpen = !!document.getElementById('__cmp_banner__');
+      var pcOpen = !!document.getElementById('__cmp_pc__');
+      fetch(configRequestUrl())
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) {
+            if (callback) callback(new Error(data.message || 'Config load failed'));
+            return;
+          }
+          _config = data;
+          _hostScroll.beginTransition();
+          if (bannerOpen) { removeBanner(); renderBanner(); }
+          if (pcOpen) renderPreferenceCenter();
+          _hostScroll.endTransition();
+          if (callback) callback(null, data.resolvedLanguage);
+        })
+        .catch(function(err) {
+          log('setLanguage failed: ' + err);
+          if (callback) callback(err);
+        });
     },
     withdrawConsent: function() {
       if (!_consentId || !_config) return;
@@ -775,6 +1057,7 @@ ${apiBaseLine}
         _consentId = null;
         _decisions = { purposes: {}, vendors: {} };
         enforceScriptTags();
+        publishExternalSignals();
         _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
         renderBanner();
       })
@@ -794,17 +1077,19 @@ ${apiBaseLine}
   }
   pauseTaggedScripts();
 
-  fetch(API_BASE + '/api/sdk/' + SITE_KEY + '/config')
+  fetch(configRequestUrl())
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.success) { log('Config load failed: ' + data.message); return; }
       _config = data;
+      initExternalSignals();
 
       var stored = loadStoredConsent();
       if (stored && stored.consentId && stored.decisions) {
         applyDecisions(stored.decisions);
         _consentId = stored.consentId;
         enforceScriptTags();
+        publishExternalSignals();
         log('Loaded stored consent: ' + stored.consentId);
         return;
       }
@@ -816,6 +1101,7 @@ ${apiBaseLine}
         if (data.vendors)  data.vendors.forEach(function(v)  { _decisions.vendors[v.id]   = true; });
         enforceScriptTags();
       }
+      publishExternalSignals();
 
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', renderBanner);

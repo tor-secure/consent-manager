@@ -10,8 +10,9 @@ import {
   parseBannerConfig,
   type BannerConfiguration,
   type NoticeTranslation,
-  SUPPORTED_LANGUAGES,
 } from "@/lib/banner-config";
+import { BANNER_TEXT_FIELDS, PREFERENCE_TEXT_FIELDS } from "@/lib/i18n/resolve-notice";
+import { isRegisteredLocale, normalizeLocaleTag, languageOf } from "@/lib/i18n/locale-registry";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
 const VALID_POSITIONS = ["bottom", "top", "bottom-left", "bottom-right", "center"] as const;
@@ -119,30 +120,67 @@ export async function PUT(
       title: 255, description: 2000,
       acceptAllLabel: 100, rejectAllLabel: 100, customizeLabel: 100,
       savePreferencesLabel: 100, privacyPolicyText: 100,
+      closeLabel: 100, preferenceCenterTitle: 255, preferenceCenterDescription: 2000,
+      purposesHeading: 100, vendorsHeading: 100, requiredLabel: 100,
     };
 
-    // Sanitise and validate translations map.
-    const validLangCodes = new Set(SUPPORTED_LANGUAGES.map((l) => l.code) as string[]);
     const sanitizedTranslations: Record<string, NoticeTranslation> = {};
 
     const rawTranslations = (body as Record<string, unknown>).translations;
     if (rawTranslations && typeof rawTranslations === "object" && !Array.isArray(rawTranslations)) {
       for (const [langCode, translation] of Object.entries(rawTranslations as Record<string, unknown>)) {
-        if (!validLangCodes.has(langCode) || langCode === "en") continue; // skip invalid or english
-        if (!translation || typeof translation !== "object") continue;
+        const normalized = normalizeLocaleTag(langCode);
+        if (!normalized || normalized === "en") continue;
+        if (!isRegisteredLocale(normalized) && !isRegisteredLocale(languageOf(normalized))) continue;
+        if (!translation || typeof translation !== "object" || Array.isArray(translation)) continue;
         const t = translation as Record<string, unknown>;
         const cleaned: NoticeTranslation = {};
-        for (const field of Object.keys(TEXT_MAX) as (keyof NoticeTranslation)[]) {
-          if (field in t && typeof t[field] === "string") {
-            const val = (t[field] as string).trim().slice(0, TEXT_MAX[field]);
+        for (const field of [...BANNER_TEXT_FIELDS, ...PREFERENCE_TEXT_FIELDS]) {
+          if (typeof t[field] === "string") {
+            const val = t[field].trim().slice(0, TEXT_MAX[field] ?? 255);
             if (val) cleaned[field] = val;
           }
         }
+        if (t.purposes && typeof t.purposes === "object" && !Array.isArray(t.purposes)) {
+          const purposes: NonNullable<NoticeTranslation["purposes"]> = {};
+          for (const [key, entry] of Object.entries(t.purposes as Record<string, unknown>)) {
+            if (!key || key.length > 150 || !entry || typeof entry !== "object") continue;
+            const row = entry as Record<string, unknown>;
+            const item: { name?: string; description?: string } = {};
+            if (typeof row.name === "string" && row.name.trim()) item.name = row.name.trim().slice(0, 255);
+            if (typeof row.description === "string" && row.description.trim()) {
+              item.description = row.description.trim().slice(0, 2000);
+            }
+            if (item.name || item.description) purposes[key] = item;
+          }
+          if (Object.keys(purposes).length > 0) cleaned.purposes = purposes;
+        }
+        if (t.vendors && typeof t.vendors === "object" && !Array.isArray(t.vendors)) {
+          const vendors: NonNullable<NoticeTranslation["vendors"]> = {};
+          for (const [key, entry] of Object.entries(t.vendors as Record<string, unknown>)) {
+            if (!key || key.length > 150 || !entry || typeof entry !== "object") continue;
+            const row = entry as Record<string, unknown>;
+            const item: { name?: string; description?: string } = {};
+            if (typeof row.name === "string" && row.name.trim()) item.name = row.name.trim().slice(0, 255);
+            if (typeof row.description === "string" && row.description.trim()) {
+              item.description = row.description.trim().slice(0, 2000);
+            }
+            if (item.name || item.description) vendors[key] = item;
+          }
+          if (Object.keys(vendors).length > 0) cleaned.vendors = vendors;
+        }
         if (Object.keys(cleaned).length > 0) {
-          sanitizedTranslations[langCode] = cleaned;
+          sanitizedTranslations[normalized] = cleaned;
         }
       }
     }
+
+    const rawSupported = (body as Record<string, unknown>).supportedLocales;
+    const supportedLocales = Array.isArray(rawSupported)
+      ? rawSupported
+          .map((code) => normalizeLocaleTag(String(code)))
+          .filter((code): code is string => Boolean(code))
+      : (raw.supportedLocales ?? []);
 
     const config: BannerConfiguration = {
       ...raw,
@@ -157,7 +195,14 @@ export async function PUT(
       privacyPolicyText: String(raw.privacyPolicyText).trim().slice(0, 100),
       privacyPolicyUrl: String(raw.privacyPolicyUrl).trim().slice(0, 500),
       poweredByText: String(raw.poweredByText).trim().slice(0, 100),
+      closeLabel: String(raw.closeLabel ?? "").trim().slice(0, 100),
+      preferenceCenterTitle: String(raw.preferenceCenterTitle ?? "").trim().slice(0, 255),
+      preferenceCenterDescription: String(raw.preferenceCenterDescription ?? "").trim().slice(0, 2000),
+      purposesHeading: String(raw.purposesHeading ?? "").trim().slice(0, 100),
+      vendorsHeading: String(raw.vendorsHeading ?? "").trim().slice(0, 100),
+      requiredLabel: String(raw.requiredLabel ?? "").trim().slice(0, 100),
       translations: sanitizedTranslations,
+      supportedLocales,
     };
 
     await db

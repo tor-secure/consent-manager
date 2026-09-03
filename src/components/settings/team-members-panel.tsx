@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { notify } from "@/components/feedback/notify";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -69,12 +70,10 @@ export function TeamMembersPanel({
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [confirmRemoveMember, setConfirmRemoveMember] = useState<TeamMember | null>(null);
 
   function flash(msg: string) {
-    setSuccessMsg(msg);
-    setTimeout(() => setSuccessMsg(null), 4000);
+    notify.success(msg);
   }
 
   function handleRoleChange(member: TeamMember, newRoleId: string) {
@@ -87,9 +86,9 @@ export function TeamMembersPanel({
           body: JSON.stringify({ targetMembershipId: member.membershipId, newRoleId }),
         });
         const data = (await res.json()) as { success: boolean; message?: string; newRole?: string };
-        if (!data.success) setError(data.message ?? "Failed to change role.");
+        if (!data.success) notify.error(data.message ?? "Unable to change role.");
         else { flash(`${member.name}'s role updated to ${data.newRole ?? "new role"}.`); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
+      } catch { notify.error("Unable to connect. Please try again."); }
       finally { setChangingRoleId(null); }
     });
   }
@@ -100,9 +99,9 @@ export function TeamMembersPanel({
       try {
         const res = await fetch(`/api/settings/team/${member.membershipId}`, { method: "DELETE" });
         const data = (await res.json()) as { success: boolean; message?: string };
-        if (!data.success) setError(data.message ?? "Failed to remove member.");
+        if (!data.success) notify.error(data.message ?? "Unable to remove member.");
         else { flash(`${member.name} has been removed from the organisation.`); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
+      } catch { notify.error("Unable to connect. Please try again."); }
       finally { setRemovingId(null); }
     });
   }
@@ -113,9 +112,9 @@ export function TeamMembersPanel({
       try {
         const res = await fetch(`/api/settings/team/invite/${inv.id}`, { method: "DELETE" });
         const data = (await res.json()) as { success: boolean; message?: string };
-        if (!data.success) setError(data.message ?? "Failed to revoke invitation.");
+        if (!data.success) notify.error(data.message ?? "Unable to revoke invitation.");
         else { flash(`Invitation to ${inv.email} revoked.`); router.refresh(); }
-      } catch { setError("Network error. Please try again."); }
+      } catch { notify.error("Unable to connect. Please try again."); }
       finally { setRevokingId(null); }
     });
   }
@@ -128,15 +127,6 @@ export function TeamMembersPanel({
           <span>{error}</span>
           <button onClick={() => setError(null)} aria-label="Dismiss error"
             className="shrink-0 text-rose-400 transition hover:text-rose-600">✕</button>
-        </div>
-      )}
-      {successMsg && (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-          </svg>
-          {successMsg}
         </div>
       )}
 

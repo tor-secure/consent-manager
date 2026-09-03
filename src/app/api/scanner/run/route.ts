@@ -4,7 +4,8 @@ import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
-import { runScan } from "@/lib/scanner/scan-engine";
+import { runScan, websiteHasRunningScan } from "@/lib/scanner/scan-engine";
+import { touchScheduleAfterScan } from "@/lib/scanner/run-due-scans";
 import {
   assertSafeScanUrl,
   ScannerUrlError,
@@ -110,10 +111,22 @@ export async function POST(request: Request) {
       throw error;
     }
 
-    // Run the scan — synchronous for now (no background queue yet).
-    const scanId = await runScan(website.id, website.domain);
+    if (await websiteHasRunningScan(website.id)) {
+      return NextResponse.json(
+        { success: false, message: "A scan is already running for this website." },
+        { status: 409 },
+      );
+    }
 
-    return NextResponse.json({ success: true, scanId }, { status: 201 });
+    const result = await runScan(website.id, website.domain, { triggeredBy: "manual" });
+    await touchScheduleAfterScan({
+      websiteId: website.id,
+      scanId: result.scanId,
+      status: result.status,
+      errorMessage: result.errorMessage,
+    });
+
+    return NextResponse.json({ success: true, scanId: result.scanId, status: result.status }, { status: 201 });
   } catch (error) {
     logger.error("Scanner run request failed", {
       operation: "scanner.run.request",

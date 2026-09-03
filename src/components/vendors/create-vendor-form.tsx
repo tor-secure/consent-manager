@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
   VENDOR_CATALOG,
   CATALOG_CATEGORIES,
@@ -329,7 +331,7 @@ export function CreateVendorForm() {
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [source, setSource] = useState<"custom" | "iab" | "google">("custom");
 
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
 
   // Whether fields are pre-filled from a catalog entry (can still be edited).
@@ -382,44 +384,41 @@ export function CreateVendorForm() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/vendors", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          key: key.trim() || deriveKey(name),
-          domain: domain.trim() || null,
-          websiteUrl: websiteUrl.trim() || null,
-          privacyPolicyUrl: privacyPolicyUrl.trim() || null,
-          country: country.trim() || null,
-          description: description.trim() || null,
-          status,
-          source,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message ?? "Failed to create vendor");
-      }
-
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/vendors",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            key: key.trim() || deriveKey(name),
+            domain: domain.trim() || null,
+            websiteUrl: websiteUrl.trim() || null,
+            privacyPolicyUrl: privacyPolicyUrl.trim() || null,
+            country: country.trim() || null,
+            description: description.trim() || null,
+            status,
+            source,
+          }),
+        },
+        {
+          successMessage: "Vendor created successfully",
+          errorFallback: "Something went wrong while creating the vendor.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
       router.push("/dashboard/vendors");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setSaving(false);
-    }
+    });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* ── Catalog selector card ──────────────────────────────────────────── */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow p-6">
         <h2 className="mb-1.5 text-base font-semibold text-neutral-900">
           Start from catalog
         </h2>
@@ -448,7 +447,7 @@ export function CreateVendorForm() {
       </div>
 
       {/* ── Identity ──────────────────────────────────────────────────────── */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow p-6">
         <h2 className="mb-5 text-base font-semibold text-neutral-900">
           Vendor identity
         </h2>
@@ -461,7 +460,7 @@ export function CreateVendorForm() {
               required
               maxLength={255}
               placeholder="e.g. Google Analytics 4"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
 
@@ -483,7 +482,7 @@ export function CreateVendorForm() {
               required
               maxLength={150}
               placeholder="google_analytics_4"
-              className="w-full rounded-md border px-3 py-2 font-mono text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input font-mono"
             />
           </Field>
 
@@ -493,7 +492,7 @@ export function CreateVendorForm() {
               onChange={(e) => setDomain(e.target.value)}
               maxLength={255}
               placeholder="google-analytics.com"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
 
@@ -503,14 +502,14 @@ export function CreateVendorForm() {
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               maxLength={1000}
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
         </div>
       </div>
 
       {/* ── Links ─────────────────────────────────────────────────────────── */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow p-6">
         <h2 className="mb-5 text-base font-semibold text-neutral-900">Links</h2>
 
         <div className="space-y-5">
@@ -520,7 +519,7 @@ export function CreateVendorForm() {
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://analytics.google.com"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
 
@@ -530,14 +529,14 @@ export function CreateVendorForm() {
               value={privacyPolicyUrl}
               onChange={(e) => setPrivacyPolicyUrl(e.target.value)}
               placeholder="https://policies.google.com/privacy"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
         </div>
       </div>
 
       {/* ── Classification ────────────────────────────────────────────────── */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow p-6">
         <h2 className="mb-5 text-base font-semibold text-neutral-900">
           Classification
         </h2>
@@ -549,7 +548,7 @@ export function CreateVendorForm() {
               onChange={(e) => setCountry(e.target.value)}
               maxLength={100}
               placeholder="US"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             />
           </Field>
 
@@ -559,7 +558,7 @@ export function CreateVendorForm() {
               onChange={(e) =>
                 setSource(e.target.value as "custom" | "iab" | "google")
               }
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             >
               <option value="custom">Custom</option>
               <option value="iab">IAB</option>
@@ -573,7 +572,7 @@ export function CreateVendorForm() {
               onChange={(e) =>
                 setStatus(e.target.value as "active" | "inactive")
               }
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
+              className="field-input"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
@@ -591,13 +590,9 @@ export function CreateVendorForm() {
 
       {/* ── Actions ───────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-        >
-          {saving ? "Creating…" : "Create vendor"}
-        </button>
+        <Button type="submit" loading={saving}>
+          {saving ? "Creating vendor..." : "Create vendor"}
+        </Button>
 
         <button
           type="button"

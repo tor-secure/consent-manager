@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 
 const ROLE_OPTIONS = [
   { value: "org:member", label: "Member" },
@@ -30,17 +31,23 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
     if (!trimmed) { setError("Email address is required."); return; }
     startTransition(async () => {
       try {
-        const res = await fetch("/api/settings/team/invite", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: trimmed, role }),
-        });
-        const data = (await res.json()) as { success: boolean; message?: string };
-        if (!data.success) setError(data.message ?? "Failed to send invitation.");
-        else {
-          setSuccess(`Invitation sent to ${trimmed}.`);
-          setEmail(""); router.refresh();
-          setTimeout(() => setOpen(false), 2500);
-        }
+        const result = await dashboardFetch(
+          "/api/settings/team/invite",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: trimmed, role }),
+          },
+          {
+            successMessage: "Invitation sent successfully",
+            errorFallback: "Unable to send invitation. Please try again.",
+            onValidation: setError,
+          },
+        );
+        if (!result.ok) return;
+        setEmail("");
+        router.refresh();
+        setOpen(false);
       } catch { setError("Network error. Please try again."); }
     });
   }

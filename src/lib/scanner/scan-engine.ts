@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, and } from "drizzle-orm";
+import { eq, and, gte, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { scans } from "@/db/schema/scans";
@@ -8,25 +8,54 @@ import { trackers } from "@/db/schema/trackers";
 import { logger } from "@/lib/logger";
 import { analyseUrl } from "./html-analyser";
 import { toAbsoluteScanUrl, ScannerUrlError } from "./ssrf-guard";
+import { runDriftForScan } from "@/lib/monitoring/process-scan-drift";
+import { SCAN_LOCK_MS, type ScanTrigger } from "./scan-schedule";
 
 const SCANNER_VERSION = "1.0.0";
+
+export type RunScanResult = {
+  scanId: string;
+  status: "running" | "completed" | "failed";
+  errorMessage: string | null;
+};
+
+export async function websiteHasRunningScan(websiteId: string): Promise<boolean> {
+  const cutoff = new Date(Date.now() - SCAN_LOCK_MS);
+  const [row] = await db
+    .select({ id: scans.id })
+    .from(scans)
+    .where(
+      and(
+        eq(scans.websiteId, websiteId),
+        inArray(scans.status, ["running", "queued"]),
+        gte(scans.startedAt, cutoff),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
 
 // ---------------------------------------------------------------------------
 // runScan
 //
 // Creates a scan record, fetches + analyses the URL, persists results, and
-// upserts tracker records. Runs synchronously in the request (no background
-// queue yet — for large sites a queue would be needed).
+// upserts tracker records. Manual and scheduled scans share this function.
 // ---------------------------------------------------------------------------
 
-export async function runScan(websiteId: string, websiteUrl: string): Promise<string> {
-  // Create the scan record in "running" state.
+export async function runScan(
+  websiteId: string,
+  websiteUrl: string,
+  options: { triggeredBy?: ScanTrigger } = {},
+): Promise<RunScanResult> {
+  const triggeredBy = options.triggeredBy === "scheduled" ? "scheduled" : "manual";
+
   const [scan] = await db
     .insert(scans)
     .values({
       websiteId,
       status: "running",
       scanType: "quick",
+      triggeredBy,
       scannerVersion: SCANNER_VERSION,
       startedAt: new Date(),
     })
@@ -48,7 +77,7 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
         })
         .where(eq(scans.id, scan.id));
 
-      return scan.id;
+      return { scanId: scan.id, status: "failed", errorMessage: result.fetchError };
     }
 
     const now = new Date();
@@ -68,7 +97,12 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
           details: {
             ...item.details,
             category: item.category,
+            pageUrl: result.url,
+            wouldExecuteOnParse: item.wouldExecuteOnParse,
+            cmpPurposeValue: item.cmpPurposeValue,
+            resourceKind: item.resourceKind,
           } as Record<string, unknown>,
+          pageUrl: result.url,
           detectedAt: now,
         })),
       );
@@ -136,7 +170,18 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
       })
       .where(eq(scans.id, scan.id));
 
-    return scan.id;
+    try {
+      await runDriftForScan(scan.id, websiteId);
+    } catch (driftError) {
+      logger.error("Privacy drift processing failed after successful scan", {
+        operation: "monitoring.drift",
+        scanId: scan.id,
+        websiteId,
+        error: driftError,
+      });
+    }
+
+    return { scanId: scan.id, status: "completed", errorMessage: null };
   } catch (error) {
     // Unexpected error — mark scan as failed.
     const msg =
@@ -161,6 +206,6 @@ export async function runScan(websiteId: string, websiteUrl: string): Promise<st
       error,
     });
 
-    return scan.id;
+    return { scanId: scan.id, status: "failed", errorMessage: msg };
   }
 }

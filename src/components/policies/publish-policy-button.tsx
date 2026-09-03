@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { notify } from "@/components/feedback/notify";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -170,9 +171,12 @@ export function PublishPolicyButton({
                   };
 
                   if (!data.success) {
-                    setState({ phase: "error", message: data.message ?? "Publish failed." });
+                    notify.error("Unable to publish policy. Please try again.");
+                    setState({ phase: "error", message: "Unable to publish policy. Please try again." });
                     return;
                   }
+
+                  notify.success("Policy published successfully");
 
                   setState({
                     phase: "success",
@@ -181,14 +185,15 @@ export function PublishPolicyButton({
                   });
                   router.refresh();
                 } catch {
-                  setState({ phase: "error", message: "Network error. Please try again." });
+                  notify.error("Unable to connect. Please try again.");
+                  setState({ phase: "error", message: "Unable to connect. Please try again." });
                 }
               });
             }}
             disabled={isPending}
             className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-60"
           >
-            {isPending ? "Publishing…" : `Yes, publish v${latestVersionNumber}`}
+            {isPending ? "Publishing..." : `Yes, publish v${latestVersionNumber}`}
           </button>
           <button
             onClick={() => setState({ phase: "idle" })}

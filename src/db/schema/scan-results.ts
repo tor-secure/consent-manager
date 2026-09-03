@@ -1,9 +1,9 @@
 import {
+  index,
   pgTable,
   timestamp,
   uuid,
   varchar,
-  text,
   jsonb,
 } from "drizzle-orm/pg-core";
 
@@ -51,6 +51,10 @@ export const scanResults = pgTable("scan_results", {
     length: 500,
   }),
 
+  pageUrl: varchar("page_url", {
+    length: 2048,
+  }),
+
   classificationStatus: varchar("classification_status", {
     length: 50,
   })
@@ -77,4 +81,7 @@ export const scanResults = pgTable("scan_results", {
   })
     .defaultNow()
     .notNull(),
-});
+}, (table) => [
+  index("scan_results_scan_id_idx").on(table.scanId),
+  index("scan_results_scan_page_idx").on(table.scanId, table.pageUrl),
+]);

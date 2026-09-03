@@ -6,6 +6,7 @@ import {
   publicCorsHeaders,
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/script
@@ -63,7 +64,11 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error("SDK script generation failed:", error);
+    logger.error("SDK script generation failed", {
+      route: "GET /api/sdk/script",
+      operation: "sdk.script.generate",
+      error,
+    });
     return new NextResponse(
       "// CMP SDK failed to generate. Please try again later.\n" +
         "console.error('[CMP] Failed to load SDK');\n",

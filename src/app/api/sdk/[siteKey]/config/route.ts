@@ -4,48 +4,33 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
-import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
-import { parseBannerConfig, resolveTranslation, toPublicBannerConfig } from "@/lib/banner-config";
+import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText } from "@/lib/banner-config";
+import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
 import {
   isValidSiteKey,
   publicCorsHeaders,
   publicOptionsResponse,
-  sanitizeRequestedLang,
 } from "@/lib/sdk/public-http";
+import { logger } from "@/lib/logger";
+import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
+import { publicRegulationSummary } from "@/lib/regulations/engine";
+import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
+import { toPublicGoogleConsentConfig } from "@/lib/signals/google-consent-mode";
+import { buildIabSignalSnapshot } from "@/lib/signals/iab-adapter";
 
-// ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/config
 // Public, CORS-enabled endpoint.
-//
-// Optional query param: ?lang=<language-code>
-// If supplied (or inferred from Accept-Language header), the response merges
-// the matching translation over the English root fields so the SDK always
-// receives already-resolved text for the requested language.
-// English root fields remain in the payload as the authoritative fallback.
-// ---------------------------------------------------------------------------
-
-/** Parse the best matching language from Accept-Language header. */
-function parseBestLang(acceptLang: string | null): string {
-  if (!acceptLang) return "en";
-  // e.g. "hi-IN,hi;q=0.9,en;q=0.8" → "hi"
-  const first = acceptLang.slice(0, 128).split(",")[0]?.trim();
-  if (!first) return "en";
-  return sanitizeRequestedLang(first.split(";")[0]);
-}
-
-// ---------------------------------------------------------------------------
-// GET /api/sdk/[siteKey]/config
-// Public, CORS-enabled endpoint.
-// Returns the active banner configuration + purposes + vendors for a website
-// identified by its siteKey. Called by the browser SDK at page load.
-// ---------------------------------------------------------------------------
+// Optional query param: ?lang=<locale>
+// Precedence is implemented in resolveRequestedLocale. Resolved notice text is
+// merged into bannerConfig so the SDK displays visitor-facing copy in that language.
+// English root fields remain the fallback. Locale is independent of jurisdiction.
 
 export async function GET(
   request: Request,
@@ -56,7 +41,8 @@ export async function GET(
 
     const corsHeaders = {
       ...publicCorsHeaders("GET, OPTIONS"),
-      "Cache-Control": "public, max-age=300",
+      "Cache-Control": "private, no-store",
+      Vary: "Accept-Language",
     };
 
     const trimmedKey = siteKey?.trim() ?? "";
@@ -73,13 +59,9 @@ export async function GET(
       );
     }
 
-    // Resolve requested language: ?lang= takes precedence, then Accept-Language.
     const url = new URL(request.url);
-    const langRaw = url.searchParams.get("lang")?.trim();
-    const acceptLang = request.headers.get("accept-language");
-    const requestedLang = langRaw
-      ? sanitizeRequestedLang(langRaw)
-      : parseBestLang(acceptLang);
+    const countryHint = url.searchParams.get("country");
+    const regionHint = url.searchParams.get("region");
 
     // Resolve website by siteKey — siteKey is globally unique.
     const [website] = await db
@@ -89,6 +71,8 @@ export async function GET(
         domain: websites.domain,
         defaultLanguage: websites.defaultLanguage,
         defaultRegion: websites.defaultRegion,
+        defaultRegulationKey: websites.defaultRegulationKey,
+        consentIntegrations: websites.consentIntegrations,
         status: websites.status,
       })
       .from(websites)
@@ -104,25 +88,26 @@ export async function GET(
       );
     }
 
-    // Find the active default policy.
-    const [policy] = await db
-      .select({ id: consentPolicies.id, name: consentPolicies.name })
-      .from(consentPolicies)
-      .where(
-        and(
-          eq(consentPolicies.websiteId, website.id),
-          eq(consentPolicies.status, "active"),
-        ),
-      )
-      .orderBy(consentPolicies.isDefault)
-      .limit(1);
+    const resolved = await resolveWebsiteConsentContext({
+      websiteId: website.id,
+      organizationId: website.organizationId,
+      websiteDefaultRegion: website.defaultRegion,
+      defaultRegulationKey: website.defaultRegulationKey,
+      country: countryHint,
+      region: regionHint,
+    });
 
-    if (!policy) {
+    if (!resolved.selectedPolicy) {
       return NextResponse.json(
         { success: false, message: "No active consent policy found for this website" },
         { status: 404, headers: corsHeaders },
       );
     }
+
+    const policy = {
+      id: resolved.selectedPolicy.id,
+      name: resolved.selectedPolicy.name,
+    };
 
     // Get latest published version (fallback: latest draft).
     const allVersions = await db
@@ -173,21 +158,17 @@ export async function GET(
     const bannerConfig = toPublicBannerConfig(
       parseBannerConfig(latestVersion.configuration as Record<string, unknown>),
     );
-    // The resolved fields are merged into bannerConfig so the SDK receives
-    // ready-to-display text without needing to implement its own fallback.
-    const resolvedText = resolveTranslation(bannerConfig, requestedLang);
-    const localizedConfig = {
-      ...bannerConfig,
-      title:                resolvedText.title,
-      description:          resolvedText.description,
-      acceptAllLabel:       resolvedText.acceptAllLabel,
-      rejectAllLabel:       resolvedText.rejectAllLabel,
-      customizeLabel:       resolvedText.customizeLabel,
-      savePreferencesLabel: resolvedText.savePreferencesLabel,
-      privacyPolicyText:    resolvedText.privacyPolicyText,
-      // Keep the full translations map so clients can implement their own
-      // language switching without re-fetching the config endpoint.
-    };
+
+    const requestedLang = resolveRequestedLocale({
+      queryLang: url.searchParams.get("lang"),
+      acceptLanguage: request.headers.get("accept-language"),
+      websiteDefault: website.defaultLanguage,
+      bannerDefault: bannerConfig.language,
+      supportedLocales: bannerConfig.supportedLocales,
+    });
+
+    const resolvedNotice = resolveTranslation(bannerConfig, requestedLang);
+    const localizedConfig = applyResolvedNotice(bannerConfig, resolvedNotice);
 
     // Purposes attached to this version.
     const versionPurposes = await db
@@ -284,6 +265,9 @@ export async function GET(
       status: t.status,
     }));
 
+    const integrations = parseConsentIntegrations(website.consentIntegrations);
+    const iab = buildIabSignalSnapshot({ tcf: integrations.iabTcf, gpp: integrations.iabGpp });
+
     return NextResponse.json(
       {
         success: true,
@@ -294,23 +278,58 @@ export async function GET(
           versionId: latestVersion.id,
           version: latestVersion.version,
           isPublished: latestVersion.isPublished,
+          selection: resolved.selection.reason,
         },
         bannerConfig: localizedConfig,
-        resolvedLanguage: requestedLang,
-        purposes: versionPurposes,
-        vendors: resolvedVendors,
+        resolvedLanguage: resolvedNotice.resolvedLocale,
+        purposes: versionPurposes.map((purpose) => {
+          const overlay = overlayEntityText(
+            { key: purpose.key, name: purpose.name, description: purpose.description },
+            resolvedNotice.purposes,
+          );
+          return { ...purpose, name: overlay.name, description: overlay.description };
+        }),
+        vendors: resolvedVendors.map((vendor) => {
+          const overlay = overlayEntityText(
+            {
+              key: vendor.domain || vendor.id,
+              name: vendor.name,
+              description: null,
+            },
+            resolvedNotice.vendors,
+          );
+          return { ...vendor, name: overlay.name };
+        }),
         trackerRules,
         locale: {
+          resolved: resolvedNotice.resolvedLocale,
+          direction: resolvedNotice.direction,
+          default: bannerConfig.language || "en",
+          supported: bannerConfig.supportedLocales ?? [],
           language: website.defaultLanguage,
           region: website.defaultRegion ?? "",
         },
-        // DPDP Rule 3(1)(d) — grievance contact for the consent notice
+        jurisdiction: {
+          country: resolved.geo.country,
+          region: resolved.geo.region,
+          source: resolved.geo.source,
+        },
+        regulation: publicRegulationSummary(resolved.regulation),
+        signals: {
+          googleConsentMode: toPublicGoogleConsentConfig(integrations.googleConsentMode),
+          iabTcf: iab.tcf,
+          iabGpp: iab.gpp,
+        },
         grievance,
       },
       { headers: corsHeaders },
     );
   } catch (error) {
-    console.error("SDK config load failed:", error);
+    logger.error("SDK config load failed", {
+      route: "GET /api/sdk/[siteKey]/config",
+      operation: "sdk.config.load",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to load SDK configuration" },
       { status: 500, headers: publicCorsHeaders("GET, OPTIONS") },

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 const ALL_EVENTS = [
   { value: "consent.granted",   label: "Consent granted"   },
@@ -27,7 +29,7 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
   const [url, setUrl] = useState("");
   const [description, setDescription] = useState("");
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
 
   function toggleEvent(value: string) {
@@ -48,25 +50,37 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true); setError("");
-    try {
-      const res = await fetch("/api/webhooks/endpoints", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name, url,
-          description: description.trim() || null,
-          subscribedEvents: [...selectedEvents],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to create endpoint");
-      onCreated({ signingSecret: data.signingSecret, name });
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/webhooks/endpoints",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name, url,
+            description: description.trim() || null,
+            subscribedEvents: [...selectedEvents],
+          }),
+        },
+        {
+          successMessage: "Webhook endpoint created successfully",
+          errorFallback: "Unable to create webhook. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
+      const signingSecret =
+        typeof result.data === "object" &&
+        result.data !== null &&
+        "signingSecret" in result.data &&
+        typeof (result.data as { signingSecret?: unknown }).signingSecret === "string"
+          ? (result.data as { signingSecret: string }).signingSecret
+          : "";
+      onCreated({ signingSecret, name });
       setName(""); setUrl(""); setDescription(""); setSelectedEvents(new Set()); setOpen(false);
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setSaving(false); }
+    });
   }
 
   if (!open) {
@@ -149,10 +163,9 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
       )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={saving}
-          className="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-          {saving ? "Creating…" : "Create endpoint"}
-        </button>
+        <Button type="submit" loading={saving}>
+          {saving ? "Creating endpoint..." : "Create endpoint"}
+        </Button>
         <button type="button" onClick={() => { setOpen(false); setError(""); }}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
           Cancel

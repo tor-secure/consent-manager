@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { notify } from "@/components/feedback/notify";
 import {
   defaultBannerConfig,
   type BannerConfiguration,
@@ -78,14 +79,17 @@ export function BannerStudio({
       });
       const data = (await res.json()) as { success: boolean; message?: string };
       if (!data.success) {
-        setSaveError(data.message ?? "Save failed.");
+        notify.error("Unable to save banner. Please try again.");
+        setSaveError("Unable to save banner. Please try again.");
       } else {
+        notify.success("Banner saved successfully");
         setSaveSuccess(true);
         router.refresh();
         setTimeout(() => setSaveSuccess(false), 3000);
       }
     } catch {
-      setSaveError("Network error. Please try again.");
+      notify.error("Unable to connect. Please try again.");
+      setSaveError("Unable to connect. Please try again.");
     } finally {
       setSaving(false);
     }

@@ -10,7 +10,8 @@ import { consentDecisions } from "@/db/schema/consent-decisions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
-import { parseBannerConfig } from "@/lib/banner-config";
+import { parseBannerConfig, resolveTranslation } from "@/lib/banner-config";
+import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import { logger } from "@/lib/logger";
 import {
   generateConsentId,
@@ -30,6 +31,10 @@ import {
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import {
+  buildAnalyticsHints,
+  mergeAnalyticsMetadata,
+} from "@/lib/analytics/client-hints";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -240,6 +245,7 @@ export async function POST(request: Request) {
         id: websites.id,
         organizationId: websites.organizationId,
         status: websites.status,
+        defaultLanguage: websites.defaultLanguage,
       })
       .from(websites)
       .where(eq(websites.id, websiteId))
@@ -342,12 +348,24 @@ export async function POST(request: Request) {
     const purposeKeys  = versionPurposes.map((p) => p.key).sort();
     const purposeNames = versionPurposes.map((p) => p.name).sort();
 
-    const evidenceMetadata: Record<string, unknown> = {
+    const notice = resolveTranslation(
+      bannerConfig,
+      resolveRequestedLocale({
+        explicit: typeof body.language === "string" ? body.language : null,
+        acceptLanguage: request.headers.get("accept-language"),
+        websiteDefault: website.defaultLanguage,
+        bannerDefault: bannerConfig.language,
+        supportedLocales: bannerConfig.supportedLocales,
+      }),
+    );
+
+    const evidenceMetadata: Record<string, unknown> = mergeAnalyticsMetadata(
+      {
       policyVersionId:     latestVersion.id,
       policyVersionNumber: latestVersion.version,
-      noticeTitle:         bannerConfig.title,
-      noticeDescription:   bannerConfig.description,
-      noticeLanguage:      bannerConfig.language || "en",
+      noticeTitle:         notice.title,
+      noticeDescription:   notice.description,
+      noticeLanguage:      notice.resolvedLocale,
       bannerLayout:        bannerConfig.layout,
       bannerPosition:      bannerConfig.position,
       purposeCount:        versionPurposes.length,
@@ -357,7 +375,15 @@ export async function POST(request: Request) {
       consentExpireDays:   bannerConfig.consentExpireDays,
       defaultConsent:      bannerConfig.defaultConsent,
       capturedAt:          now.toISOString(),
-    };
+      },
+      buildAnalyticsHints({
+        headers: request.headers,
+        userAgent: request.headers.get("user-agent"),
+        jurisdiction: body.jurisdiction
+          ? String(body.jurisdiction).trim().slice(0, 100)
+          : bannerConfig.region || null,
+      }),
+    );
 
     // ── Transaction: save record + decisions ─────────────────────────────
     let wasExpiredRecord = false;

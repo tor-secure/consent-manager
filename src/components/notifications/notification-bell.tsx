@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export function NotificationBell() {
+export function NotificationBell({ className = "" }: { className?: string }) {
   const [count, setCount] = useState<number>(0);
   const [loaded, setLoaded] = useState(false);
 
@@ -41,7 +41,10 @@ export function NotificationBell() {
           ? `Notifications — ${count} unread`
           : "Notifications"
       }
-      className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+      className={[
+        "relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] lg:h-11 lg:w-11",
+        className,
+      ].join(" ")}
     >
       <svg
         width="18"

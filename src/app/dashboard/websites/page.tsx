@@ -1,8 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import {
   WebsiteList,
@@ -11,15 +10,7 @@ import {
 import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
 
 export default async function WebsitesPage() {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
-  const [organization] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-  if (!organization) return null;
+  const { organization } = await requireDashboardContext();
 
   const rows = await db
     .select({

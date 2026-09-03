@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CreateApiKeyForm } from "./create-api-key-form";
@@ -32,15 +33,24 @@ export function ApiKeyManager({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
   const [createdKey, setCreatedKey] = useState<{ fullKey: string; name: string } | null>(null);
 
   async function revokeKey(id: string) {
-    setRevoking(id); setError("");
-    try {
-      const res = await fetch(`/api/api-keys/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to revoke key");
-      startTransition(() => router.refresh());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setRevoking(null); }
+    if (!window.confirm("Revoke this API key? Applications using it will stop working immediately.")) {
+      return;
+    }
+    if (revoking) return;
+    setRevoking(id);
+    setError("");
+    const result = await dashboardFetch(
+      `/api/api-keys/${id}`,
+      { method: "DELETE" },
+      {
+        successMessage: "API key revoked successfully",
+        errorFallback: "Unable to revoke API key. Please try again.",
+        onValidation: setError,
+      },
+    );
+    setRevoking(null);
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   return (
@@ -160,7 +170,7 @@ export function ApiKeyManager({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
                             onClick={() => revokeKey(key.id)}
                             className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                           >
-                            {revoking === key.id ? "Revoking…" : "Revoke"}
+                            {revoking === key.id ? "Deleting..." : "Revoke"}
                           </button>
                         )}
                         {key.status === "revoked" && key.revokedAt && (

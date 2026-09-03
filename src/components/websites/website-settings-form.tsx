@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
 
 export type WebsiteSettingsData = {
   id: string;
@@ -14,7 +17,7 @@ export type WebsiteSettingsData = {
   siteKey: string;
 };
 
-const inputCls = "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition disabled:bg-slate-50 disabled:opacity-60";
+const inputCls = "field-input";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -45,38 +48,41 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
   const [environment, setEnvironment] = useState(website.environment);
   const [defaultLanguage, setDefaultLanguage] = useState(website.defaultLanguage);
   const [defaultRegion, setDefaultRegion] = useState(website.defaultRegion ?? "");
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true); setError(""); setSuccess(false);
-    try {
-      const res = await fetch(`/api/websites/${website.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          description: description.trim() || null,
-          environment,
-          defaultLanguage,
-          defaultRegion: defaultRegion || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to save settings");
-      setSuccess(true);
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        `/api/websites/${website.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            description: description.trim() || null,
+            environment,
+            defaultLanguage,
+            defaultRegion: defaultRegion || null,
+          }),
+        },
+        {
+          successMessage: "Website updated successfully",
+          errorFallback: "Unable to save website settings. Please try again.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally { setSaving(false); }
+    });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* General */}
-      <div className="rounded-2xl bg-white card-shadow">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">General</h2>
         </div>
@@ -98,20 +104,14 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
       </div>
 
       {/* Locale */}
-      <div className="rounded-2xl bg-white card-shadow">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">Locale defaults</h2>
         </div>
         <div className="grid gap-5 p-6 sm:grid-cols-2">
           <Field label="Default language">
             <select value={defaultLanguage} onChange={(e) => setDefaultLanguage(e.target.value)} className={inputCls}>
-              <option value="en">English</option>
-              <option value="hi">Hindi</option>
-              <option value="kn">Kannada</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-              <option value="es">Spanish</option>
-              <option value="pt">Portuguese</option>
+              <LocaleSelectOptions includeCurrent={defaultLanguage} />
             </select>
           </Field>
           <Field label="Default region">
@@ -129,7 +129,7 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
       </div>
 
       {/* Identity (read-only) */}
-      <div className="rounded-2xl bg-white card-shadow">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
         <div className="border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">Identity</h2>
         </div>
@@ -149,22 +149,12 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
           {error}
         </div>
       )}
-      {success && (
-        <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-          </svg>
-          Settings saved successfully.
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={saving}
-          className="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+        <Button type="submit" loading={saving}>
+          {saving ? "Saving..." : "Save changes"}
+        </Button>
         <button type="button" onClick={() => router.back()}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
           Cancel

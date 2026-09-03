@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { notify } from "@/components/feedback/notify";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -142,14 +143,13 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
           body: JSON.stringify(body),
         });
         const data = (await res.json()) as { success: boolean; message?: string; request?: { status: string } };
-        if (!data.success) setError(data.message ?? "Failed to save.");
+        if (!data.success) notify.error("Unable to save rights request. Please try again.");
         else {
           if (nextStatus) setStatus(nextStatus);
-          setSuccess("Saved.");
+          notify.success("Rights request updated successfully");
           router.refresh();
-          setTimeout(() => setSuccess(null), 3000);
         }
-      } catch { setError("Network error. Please try again."); }
+      } catch { notify.error("Unable to connect. Please try again."); }
     });
   }
 

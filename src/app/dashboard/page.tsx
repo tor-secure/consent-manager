@@ -1,8 +1,7 @@
-import { auth } from "@clerk/nextjs/server";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { eq, inArray, sql, desc, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentPolicies } from "@/db/schema/consent-policies";
@@ -359,17 +358,7 @@ function ComplianceCheckItem({ label }: { label: string }) {
 // ---------------------------------------------------------------------------
 
 export default async function DashboardPage() {
-  const { orgId } = await auth();
-
-  if (!orgId) return null;
-
-  const [localOrg] = await db
-    .select({ id: organizations.id, name: organizations.name })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-
-  if (!localOrg) return null;
+  const { organization: localOrg } = await requireDashboardContext();
 
   const orgWebsites = await db
     .select({ id: websites.id })
@@ -469,47 +458,26 @@ export default async function DashboardPage() {
   ];
   const donutTotal = donutSlices.reduce((a, b) => a + b.value, 0) || totalConsents || 1;
 
-  const purposeFallbackNames = ["Rohan Sharma", "Priya Nair", "Aarav Mehta", "Neha Iyer"];
-  const recentRequests: RecentRequest[] = recentRecords.map((r, idx) => {
-    const name = purposeFallbackNames[idx % purposeFallbackNames.length];
+  const recentRequests: RecentRequest[] = recentRecords.map((r) => {
     let status: RecentRequest["status"] = "Pending";
     if (r.status === "accepted" || r.status === "partial") status = "Approved";
-    else if (r.status === "withdrawn") status = "Withdrawn";
-    else if (r.status === "rejected") status = "Withdrawn";
-    else if (r.status === "pending") status = "Pending";
+    else if (r.status === "withdrawn" || r.status === "rejected") status = "Withdrawn";
 
-    const minutes = Math.max(2, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 60000));
+    const minutes = Math.max(1, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 60000));
     let time = `${minutes}m ago`;
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);
       time = `${hours}h ago`;
     }
 
-    const metaEmail =
-      r.metadata && typeof r.metadata === "object" && "email" in r.metadata
-        ? (r.metadata as Record<string, unknown>).email
-        : undefined;
-    const resolvedEmail =
-      typeof metaEmail === "string" && metaEmail.length > 0
-        ? metaEmail
-        : `${name.toLowerCase().replace(/\s+/g, ".")}@email.com`;
+    const meta = r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : {};
+    const metaEmail = typeof meta.email === "string" ? meta.email : "";
+    const metaName = typeof meta.name === "string" ? meta.name : "";
+    const name = metaName || (r.visitorId ? `Visitor ${r.visitorId.slice(0, 8)}` : "Visitor");
+    const resolvedEmail = metaEmail || "No email on record";
 
-    return {
-      name,
-      email: resolvedEmail,
-      status,
-      time,
-    };
+    return { name, email: resolvedEmail, status, time };
   });
-
-  if (recentRequests.length === 0) {
-    recentRequests.push(
-      { name: "Rohan Sharma", email: "rohan.sharma@email.com", status: "Approved", time: "2m ago" },
-      { name: "Priya Nair", email: "priya.nair@email.com", status: "Pending", time: "15m ago" },
-      { name: "Aarav Mehta", email: "aarav.mehta@email.com", status: "Approved", time: "1h ago" },
-      { name: "Neha Iyer", email: "neha.iyer@email.com", status: "Withdrawn", time: "3h ago" },
-    );
-  }
 
   const activePct = 12.5;
   const pendingPct = 3.1;
@@ -532,7 +500,9 @@ export default async function DashboardPage() {
             Dashboard
           </h1>
           <p className="mt-1.5 text-sm text-slate-500 text-balance sm:text-base">
-            Welcome back! Here&apos;s what&apos;s happening with consents.
+            {websiteCount === 0
+              ? "Your workspace is ready. Add a website to start collecting consent."
+              : `Overview for ${localOrg.name}.`}
           </p>
         </div>
       </div>
@@ -618,7 +588,14 @@ export default async function DashboardPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-1">
-            {recentRequests.map((req, idx) => (
+            {recentRequests.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-10 text-center">
+                <p className="text-sm font-medium text-[var(--foreground)]">No consent records yet</p>
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+                  Records appear here after visitors interact with your consent banner.
+                </p>
+              </div>
+            ) : recentRequests.map((req, idx) => (
               <div
                 key={idx}
                 className="flex items-center gap-3 rounded-2xl px-3 -mx-1 py-3 hover:bg-slate-50/80 transition-colors"
@@ -650,9 +627,13 @@ export default async function DashboardPage() {
               <ComplianceShield />
               <div className="flex-1 min-w-0 space-y-3 w-full text-center sm:text-left">
                 <div>
-                  <h4 className="text-base font-bold text-slate-900 sm:text-lg">You&apos;re compliant!</h4>
+                  <h4 className="text-base font-bold text-slate-900 sm:text-lg">
+                    {websiteCount === 0 ? "Get started" : "You\u2019re on track"}
+                  </h4>
                   <p className="mt-1 text-sm text-slate-500 leading-relaxed">
-                    All systems are up to date and running smoothly.
+                    {websiteCount === 0
+                      ? "Add a website and publish a consent policy to start collecting records."
+                      : "Keep policies published and the SDK installed on each site."}
                   </p>
                 </div>
                 <div className="space-y-2.5 pt-1">

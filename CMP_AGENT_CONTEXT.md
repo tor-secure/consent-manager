@@ -3265,6 +3265,8 @@ The next agent must:
 
 # 45. COMPLETED: Multilingual Consent Notice Support
 
+> **Superseded in part by #80 (global locale registry).** Eighth-Schedule language codes remain registered. Visitor-facing resolution, RTL, evidence language, SDK `?lang=`, and fallback rules are documented in section 80. English root fields are still the default/fallback copy. Administrator-provided `translations` in policy JSONB is unchanged in spirit.
+
 ### Completed Work
 
 Added multilingual support for consent banner/notice content covering English plus all 22 Indian Eighth-Schedule languages (DPDP Act 2023 §5(2)). No database migration was required — translations are stored inside the existing `consent_policy_versions.configuration` JSONB column alongside the rest of the banner configuration.
@@ -4995,4 +4997,1057 @@ Redesigned the public homepage and shared application chrome so the CMP reads as
 ### Next Task
 
 Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 71. COMPLETED: Production observability and application health
+
+### Completed Task
+
+Hardened the existing structured logger and health check, added focused tests (including database-failure and secret-redaction cases), and replaced remaining unexpected `console.error` calls on API-key and public SDK routes. No schema, consent, scanner, Clerk, tenant-isolation, or client-facing API contract changes.
+
+### Observability architecture
+
+- `src/lib/logger.ts` — JSON logs to stdout/stderr with `debug` (non-production only), `info`, `warn`, `error`.
+- Fields: `timestamp`, `service: consent-manager`, `level`, `message`, sanitized `context`.
+- `src/lib/health.ts` — `buildHealthResponse` / `runHealthCheck(ping)` used by `GET /api/health`.
+- Health pings PostgreSQL with `select 1`. Unexpected ping failures are logged server-side; the HTTP body stays generic.
+
+### Logger behavior / redaction
+
+Allowed context includes route, operation, organizationId, websiteId, duration, and sanitized error name/message (stack only outside production).
+
+Redacted by key name: passwords, secrets, tokens, API keys, fullKey, hashes/prefixes, authorization, cookies, signatures, visitor IDs, requester emails/phones, generic email fields, DATABASE_URL / connectionString, and `metadata` objects.
+
+Redacted in string values: emails, `postgres://` URLs, Clerk `sk_`/`pk_` keys, `whsec_` secrets, `cmp_live_` / `cmp_test_` keys.
+
+Never log full request bodies or Clerk/database credentials.
+
+### Health endpoint
+
+`GET /api/health`
+
+- 200 `{ status: "ok", checks: { app: "ok", database: "ok" } }`
+- 503 `{ status: "unhealthy", checks: { app: "ok", database: "unhealthy" } }`
+- `Cache-Control: no-store`
+- No credentials, stacks, SQL, or filesystem paths in the response
+
+### Files changed
+
+- `src/lib/logger.ts` — broader redaction
+- `src/lib/logger.test.cjs` — redaction + unexpected-error JSON capture
+- `src/lib/health.ts` — new extractable health evaluator
+- `src/lib/health.test.cjs` — healthy / DB failure / safe body
+- `src/app/api/health/route.ts` — uses `runHealthCheck`
+- `src/app/api/api-keys/route.ts`, `src/app/api/api-keys/[id]/route.ts`
+- `src/app/api/sdk/script/route.ts`, `src/app/api/sdk/[siteKey]/config/route.ts`, `src/app/api/sdk/[siteKey]/trackers/route.ts`
+- `CMP_AGENT_CONTEXT.md`
+
+Existing consent, scanner, webhook, and rights-request unexpected-error logs were already on `logger` and were left behaviorally unchanged.
+
+### Tests executed
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/logger.test.cjs` → passed
+- `node src/lib/health.test.cjs` → passed
+- `node src/lib/rate-limit.test.cjs` → passed
+- `node src/lib/scanner/scanner-security.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `node src/lib/webhooks/delivery.test.cjs` → passed
+- `node src/lib/consent-manager-e2e-regression.test.cjs` → passed
+
+Temporary `.tmp/*` compile outputs were removed after testing.
+
+### Limitations
+
+- Logs still go only to stdout/stderr (no vendor shipping).
+- Health does not check Clerk, migrations, webhook backlog, or outbound network.
+- Many lower-risk dashboard API routes still use `console.error`.
+- In-memory rate limiting is unchanged; it has no unexpected-error path to log.
+- No unified `npm test` script yet.
+
+### Next recommended task
+
+Add a unified `npm test` runner that compiles required TypeScript into `.tmp`, runs the standalone harnesses, and deletes temporary output.
+
+---
+
+# 72. COMPLETED: Dashboard action feedback and route loading UX
+
+### Completed Task
+
+Added consistent mutation feedback (React Hot Toast + loading buttons + duplicate-submit guards) and App Router loading skeletons. Investigated why `/dashboard/websites/[id]` felt slow and reduced blocking work without changing schema, consent logic, tenant isolation, Clerk behavior, SDK, scanner detection, or API contracts.
+
+### Toast architecture
+
+- Library: `react-hot-toast`.
+- Central toaster: `src/components/feedback/app-toaster.tsx`, mounted from `DashboardProviders` in `src/app/dashboard/layout.tsx`.
+- Client helpers: `notify.success` / `notify.error` (`src/components/feedback/notify.ts`) use stable toast ids so one failure does not stack duplicate toasts.
+- Shared fetch: `dashboardFetch` + `useAsyncAction` in `src/components/feedback/use-async-action.ts`. Success toasts fire only after `response.ok`. Validation (400) stays inline when `onValidation` is provided; other errors use friendly toasts.
+- Mapping: `src/lib/dashboard-feedback.ts` classifies 400 / 401-403 / 404 / 409 / 429 / network / generic server. Raw SQL, stacks, connection strings, and `SQLSTATE` strings are not shown.
+
+### Mutation loading behavior
+
+Major create/update/delete forms disable the triggering control, set `aria-busy`, show Button spinner/label copy such as “Adding website…”, “Saving policy…”, “Generating…”, “Deleting…”, and restore the control on success or error. `useAsyncAction` ignores a second submit while pending. Form field values are kept on failure.
+
+Wired surfaces include websites, policies, purposes, vendors, API keys (create + revoke with confirm), webhooks (create/toggle/delete with confirm), integrations, organization settings, team invite/role/remove, rights requests, notifications (errors no longer swallowed; mark-all has a toast, mark-one does not), scanner start, publish policy, banner save/studio, and policy purpose/vendor attach/detach.
+
+Visitor preference-center consent save/withdraw was not changed.
+
+### Routes improved
+
+- `src/app/dashboard/loading.tsx` — generic dashboard skeleton.
+- `src/app/dashboard/websites/loading.tsx`
+- `src/app/dashboard/websites/[id]/loading.tsx` plus settings / enforcement / installation `loading.tsx`
+- `src/app/dashboard/policies/loading.tsx` and `policies/[id]/loading.tsx`
+- `src/app/dashboard/scanner/[scanId]/loading.tsx`
+
+Sidebar nav applies the active style immediately on click (`pendingHref`) until the pathname updates. There is no global spinner on every navigation.
+
+### Route performance findings (code-path inspection, not invented timings)
+
+Before this change, `/dashboard/websites/[id]` waited on:
+
+1. `auth()` again (layout already ran `bootstrapCurrentContext`)
+2. organization lookup by `clerkOrganizationId`
+3. website `select()` of all columns
+4. then `Promise.all` of trackers, policies, and scans
+5. then vendor/purpose name lookups
+6. no `loading.tsx`, so navigation looked frozen until the whole page finished
+
+Settings, enforcement, and installation repeated the same sequential org-then-website lookups. The websites list did org lookup then websites.
+
+Clerk + bootstrap in the dashboard layout still run for every dashboard request; that cost was not removed (authorization must stay). No new caching and no new indexes were added (no query plan evidence).
+
+### Performance optimizations made
+
+- `getTenantWebsite` / `requireTenantWebsite` (`src/lib/tenant-website.ts`): React `cache()`, one inner join of website + organization scoped to the active Clerk org, selected columns only. Used by website detail, settings, enforcement, and installation.
+- Website list: single join query instead of org then websites.
+- Website detail first paint: identity/details/SDK/integrations from the website row; trackers/policies/scans stream behind `Suspense` (`WebsiteDetailRelated`). Tenant checks remain on the website lookup.
+
+### Files changed (representative)
+
+- `package.json` / lockfile — `react-hot-toast`
+- `src/lib/dashboard-feedback.ts`, `src/lib/tenant-website.ts`
+- `src/components/feedback/*`, `src/components/dashboard/dashboard-providers.tsx`, `dashboard-skeletons.tsx`, `sidebar-nav.tsx`
+- `src/app/dashboard/layout.tsx`, website/policy/scanner `loading.tsx` files
+- `src/app/dashboard/websites/page.tsx`, `[id]/page.tsx`, settings/enforcement/installation pages
+- Mutation forms/managers listed above
+- Tests: `src/lib/dashboard-feedback.test.cjs`, `src/lib/dashboard-ux.test.cjs`
+- `CMP_AGENT_CONTEXT.md`
+
+### Tests run
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/dashboard-feedback.test.cjs` → passed
+- `node src/lib/dashboard-ux.test.cjs` → passed (loading files, Suspense split, website form loading/toast copy, Button `aria-busy`)
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `node src/lib/rate-limit.test.cjs` → passed
+- `node src/lib/logger.test.cjs` → passed
+- `node src/lib/health.test.cjs` → passed
+- `node src/lib/scanner/scanner-security.test.cjs` → passed
+- `node src/lib/webhooks/delivery.test.cjs` → passed
+- Browser click-through of toast/loading on a live dashboard session was not run in this pass
+- No synthetic latency numbers were collected
+
+### Verification results
+
+Observed from source structure after the change: website detail can render header/details while related queries are still in flight, and nested `loading.tsx` covers the `[id]` segment during navigation. Layout bootstrap + Clerk `auth()` still occur before any page body. Residual slowness from DB round-trips for trackers/policies/scans, scanner HTML work, and Clerk/org bootstrap remains.
+
+### Limitations
+
+- Some APIs still return `{ success: false }` with HTTP 200; those paths use explicit JSON checks (team, rights, publish) rather than `dashboardFetch`.
+- Mark-as-read on a single notification has error toasts only, to avoid noise.
+- Preference center (public consent) mutations were left unchanged.
+- No database indexes added.
+- `consent-manager-e2e-regression.test.cjs` was not re-run (separate compile of many modules).
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 74. COMPLETED: Responsive dashboard header + working search
+
+### Completed Task
+
+Made the dashboard top bar collapse cleanly on small screens, and replaced the inert Search field with a working command-palette style finder.
+
+### Header
+
+- Shorter bar on small screens (`h-16`, `lg:h-20`), `flex-nowrap`, truncated org switcher (`max-w-[7.5rem]` on phones).
+- User name hidden below `lg`; Help hidden below `sm`.
+- Middle slot grows (`flex-1 min-w-0`). Desktop search is a full-width combobox; below `md` it becomes a search icon plus a full-screen overlay.
+
+### Search
+
+- Local matches against dashboard pages immediately (`src/lib/dashboard-search.ts`).
+- After 2+ characters, `GET /api/search?q=` returns org-scoped websites, policies (via website join), purposes, and vendors. LIKE wildcards are stripped.
+- Keyboard: Arrow keys, Enter, Escape, Ctrl/Cmd+K.
+- Clicking a result navigates; `mousedown` preventDefault so blur does not eat the click.
+
+### Files changed
+
+- `src/app/dashboard/layout.tsx`
+- `src/components/dashboard/dashboard-shell.tsx`
+- `src/components/dashboard/dashboard-search.tsx`
+- `src/lib/dashboard-search.ts`
+- `src/app/api/search/route.ts`
+- `src/lib/dashboard-search.test.cjs`
+- `src/lib/tenant-isolation-regression.test.cjs`
+- `CMP_AGENT_CONTEXT.md`
+
+### Tests run
+
+- `npx tsc --noEmit`
+- `node src/lib/dashboard-search.test.cjs` (after compiling `src/lib/dashboard-search.ts`)
+- `node src/lib/tenant-isolation-regression.test.cjs`
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 73. COMPLETED: Dashboard blank after login + create-form UX
+
+### Completed Task
+
+Fixed `/dashboard` rendering a blank main area after a new login, and restyled the unpolished create/settings forms (starting with Add Website) onto the shared field/card primitives.
+
+### Dashboard blank-page cause
+
+`src/app/dashboard/page.tsx` called `auth()` again and `return null` when Clerk `orgId` was missing or the local org row was not found. After a fresh login the session often has a user but **no active organization id**, so the shell rendered and the page body was empty.
+
+### Fix
+
+- `bootstrapCurrentContext` is wrapped in React `cache()` so layout and pages share one resolution.
+- If `auth().orgId` is absent, resolve the org from Clerk memberships (`organizationMemberships`, then `users.getOrganizationMembershipList`), then an existing local membership.
+- `requireDashboardContext()` redirects to `/create-organization` only when the user truly has no org; it never returns `null`.
+- Dashboard home and websites list use that helper. Empty workspaces show zeros and a real empty consent list (no placeholder people).
+
+Tenant isolation is unchanged: org rows are still matched on `clerkOrganizationId` / `organization.id` after Clerk authentication.
+
+### Form UX
+
+- New `Field` / `FormCard` / `FormActions` in `src/components/ui/field.tsx`.
+- Add Website no longer nests a bordered form inside a second card. Uses `Input`/`Select`, focus rings, language/region grid, Cancel + primary action.
+- Create policy, create purpose, create vendor, and website settings use the same field-input / card treatment.
+- `select.field-input` gets a consistent chevron in `globals.css`.
+
+### Files changed
+
+- `src/lib/bootstrap-current-context.ts`
+- `src/app/dashboard/page.tsx`, `src/app/dashboard/websites/page.tsx`, `src/app/dashboard/websites/new/page.tsx`
+- `src/components/ui/field.tsx` (new)
+- `src/components/websites/create-website-form.tsx`, `website-settings-form.tsx`
+- `src/components/policies/create-policy-form.tsx`
+- `src/components/purposes/create-purpose-form.tsx`
+- `src/components/vendors/create-vendor-form.tsx`
+- `src/app/globals.css`
+- `src/lib/dashboard-ux.test.cjs`
+- `CMP_AGENT_CONTEXT.md`
+
+### Tests run
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/dashboard-ux.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 74. COMPLETED: Responsive dashboard header + working search
+
+### Completed Task
+
+Made the dashboard top bar collapse cleanly on small screens, and replaced the inert Search field with a working command-palette style finder.
+
+### Header
+
+- Shorter bar on small screens (`h-16`, `lg:h-20`), `flex-nowrap`, truncated org switcher (`max-w-[7.5rem]` on phones).
+- User name hidden below `lg`; Help hidden below `sm`.
+- Middle slot grows (`flex-1 min-w-0`). Desktop search is a full-width combobox; below `md` it becomes a search icon plus a full-screen overlay.
+
+### Search
+
+- Local matches against dashboard pages immediately (`src/lib/dashboard-search.ts`).
+- After 2+ characters, `GET /api/search?q=` returns org-scoped websites, policies (via website join), purposes, and vendors. LIKE wildcards are stripped.
+- Keyboard: Arrow keys, Enter, Escape, Ctrl/Cmd+K.
+- Clicking a result navigates; `mousedown` preventDefault so blur does not eat the click.
+
+### Files changed
+
+- `src/app/dashboard/layout.tsx`
+- `src/components/dashboard/dashboard-shell.tsx`
+- `src/components/dashboard/dashboard-search.tsx`
+- `src/lib/dashboard-search.ts`
+- `src/app/api/search/route.ts`
+- `src/lib/dashboard-search.test.cjs`
+- `src/lib/tenant-isolation-regression.test.cjs`
+- `CMP_AGENT_CONTEXT.md`
+
+### Tests run
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/dashboard-search.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 75. COMPLETED: Security headers, CSP, and CSRF review
+
+### Completed Task
+
+Production hardening limited to HTTP security headers, Content-Security-Policy, and CSRF origin checks for cookie-authenticated APIs. Schema, consent engine, scanner, webhooks, tenant isolation, and public SDK behavior were not changed. This is not a security certification.
+
+### Headers implemented
+
+Applied on matched requests in `src/proxy.ts` and on all routes via `next.config.ts` `headers()` (covers static files the Clerk matcher skips):
+
+- `X-Content-Type-Options: nosniff`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `X-Frame-Options: SAMEORIGIN` (legacy complement to CSP `frame-ancestors`)
+- `Permissions-Policy` — camera, microphone, geolocation, payment, USB, and related powerful features disabled; `fullscreen=(self)`
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload` — **only** when `NODE_ENV=production` **and** the request is HTTPS (`https:` or `x-forwarded-proto: https`). Not sent from `next dev`.
+
+Intentionally **not** set:
+
+- `Cross-Origin-Resource-Policy: same-origin` — would block customer sites from loading `/api/sdk/script`
+- `Cross-Origin-Embedder-Policy` — would break Clerk and third-party embeds
+- `Access-Control-Allow-Credentials` on public CORS — session cookies must not be usable cross-origin
+
+Public SDK/consent CORS remains `Access-Control-Allow-Origin: *` with `Content-Type` only (`src/lib/sdk/public-http.ts`).
+
+### CSP policy
+
+Enforced by Clerk `clerkMiddleware({ contentSecurityPolicy: { strict: true, directives: CLERK_CSP_EXTRA_DIRECTIVES } })` in `src/proxy.ts`.
+
+Clerk **strict** mode (production):
+
+- Per-request nonce + `script-src 'strict-dynamic'` (no `http:`/`https:` scheme allowlist on scripts)
+- `unsafe-eval` **only when `NODE_ENV !== production`** (Next.js/React dev). Not in production.
+- Clerk FAPI host from the publishable key, `https://challenges.cloudflare.com`, `https://*.protect.clerk.com` (+ `:*` on `connect-src`), telemetry, `img.clerk.com`, `worker-src 'self' blob:`
+- Clerk default still includes Stripe/Google Maps hosts Clerk ships for its components even though this app does not use Stripe
+- `style-src 'unsafe-inline'` — **required by Clerk CSS-in-JS**; also needed for react-hot-toast / theme `colorScheme` inline styles
+
+Merged extras (`CLERK_CSP_EXTRA_DIRECTIVES`):
+
+- `base-uri 'self'`
+- `object-src 'none'`
+- `font-src 'self' data:` (`next/font` is self-hosted)
+- `media-src 'self'`
+- `img-src data: blob:` (merged with Clerk `self` + `img.clerk.com`)
+- `frame-ancestors 'self'` — dashboard/marketing pages must not be framed by other origins
+- `frame-src http: https:` — banner studio `IframePreview` loads **customer** sites
+
+`ClerkProvider dynamic` and theme bootstrap `next/script` `nonce` from `x-nonce` so strict CSP can run Clerk and the theme inline script.
+
+### CSP exceptions and reasons
+
+| Exception | Why |
+| --- | --- |
+| `style-src 'unsafe-inline'` | Clerk injects runtime CSS; cannot nonce all of it yet |
+| `script-src 'unsafe-eval'` in development only | Next.js/React dev tooling |
+| `frame-src http: https:` | Policy studio preview iframes arbitrary customer origins |
+| Clerk Stripe/Maps hosts | Shipped by Clerk's default CSP generator; not removed (would fight Clerk upgrades) |
+| CSP header may appear on `/api/sdk/*` and `/api/consent/*` responses | Middleware applies to API matcher; **browsers do not apply that response CSP as the customer page's policy**. Customer sites keep their own CSP. No CORP:same-origin. |
+| `type="text/plain"` demo tags on `/sdk-demo` | Not executed as script until the SDK flips type; left as-is |
+
+No `unsafe-eval` in production CSP.
+
+### CSRF findings (threat model)
+
+**Clerk dashboard session:** cookie-based (`__session`). Modern Clerk cookies are typically `SameSite=Lax`, so cross-site POSTs do not attach cookies. Dashboard `fetch()` is same-origin and does not enable CORS credentials for other origins.
+
+**Additional control:** `src/proxy.ts` rejects state-changing `/api/*` requests that are not same-origin when `Sec-Fetch-Site: cross-site` or `Origin`/`Referer` does not match the request origin (optional `CMP_CSRF_ALLOWED_ORIGINS`). Missing Origin + missing Sec-Fetch-Site is allowed (curl/server clients).
+
+**Not CSRF-tokenized (by design):**
+
+- `POST/GET /api/consent/*` — public visitor consent; CORS `*` without credentials; capability is `websiteId` / consent id, not Clerk cookies
+- `GET /api/sdk/*` — public script/config/trackers for customer origins
+- `POST /api/rights-request` — public DPDP intake (no session). `PATCH /api/rights-request/[id]` **is** CSRF-checked (authenticated)
+- `GET /api/health`
+
+Classic CSRF against **consent** would forge a visitor record, not steal a dashboard session. That is an integrity concern already bounded by rate limits and site identifiers, not cookie CSRF.
+
+### Endpoints reviewed
+
+**Public / cross-origin (no origin CSRF gate):**  
+`/api/sdk/script`, `/api/sdk/[siteKey]/config`, `/api/sdk/[siteKey]/trackers`, `/api/consent/record`, `/api/consent/withdraw`, `/api/consent/policy`, `/api/rights-request`, `/api/health`
+
+**Authenticated mutations (origin CSRF gate + existing Clerk `auth()` / membership checks unchanged):**  
+websites, policies, purposes, vendors, scanner, integrations, api-keys, webhooks, notifications (write), settings (org/team/retention/rights), sync-organization, search is GET-only
+
+**Authenticated GET (no CSRF token; not state-changing):** search, me, notifications unread-count, consent evidence, scanner scanId, test-db
+
+### Files changed
+
+- `src/lib/security-headers.ts`
+- `src/proxy.ts`
+- `src/app/layout.tsx`
+- `next.config.ts`
+- `src/app/sdk-demo/page.tsx` (essential demo log uses `next/script` so nonce CSP can allow it)
+- `src/lib/security-headers.test.cjs`
+- `CMP_AGENT_CONTEXT.md`
+
+### Tests run
+
+- `npx tsc --noEmit`
+- `node src/lib/security-headers.test.cjs`
+- `node src/lib/tenant-isolation-regression.test.cjs` (not weakened)
+- `npm test` — **no `test` script** in `package.json`
+
+### Remaining risks
+
+- Strict CSP + `ClerkProvider dynamic` forces dynamic rendering (no static HTML cache / nonce reuse).
+- `style-src 'unsafe-inline'` remains XSS-relevant for style injection.
+- `frame-src http: https:` allows the dashboard to iframe any site (needed for studio); it does **not** allow other sites to iframe us (`frame-ancestors 'self'`).
+- HSTS `preload` should only be used once the production hostname is HTTPS-only.
+- In-memory rate limits and CSRF origin checks are per-instance; they are not a WAF.
+- Public consent POSTs remain callable from any origin without cookies (product requirement).
+- Clerk-generated CSP still lists Stripe/Maps hosts unused by this app.
+- No live browser CSP-violation audit was captured in this pass (requires a signed-in production-like session and browser console).
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 76. COMPLETED: Privacy monitoring + consent drift detection
+
+### Completed Task
+
+Added scan-triggered privacy/consent drift detection. There is **no background worker or scheduler**. Flow is:
+
+SCAN (completed) → COMPARE → DETECT DRIFT → STORE FINDING → NOTIFY (new/reopened only) → REVIEW → RESOLVE
+
+Consent engine, public SDK, scanner signatures, Clerk, webhook, and rights-request behavior were not changed. A drift failure does not mark a successful scan as failed.
+
+### Architecture
+
+- Pure comparison: `src/lib/monitoring/drift-engine.ts`
+- Load CMP snapshot + persist: `src/lib/monitoring/process-scan-drift.ts`
+- After `scans.status = completed` in `runScan`, `runDriftForScan` runs in try/catch
+- Org-scoped APIs under `/api/monitoring/*`
+- Dashboard: `/dashboard/monitoring` and `/dashboard/monitoring/[id]`
+
+CMP path used for comparison:
+
+Organization → Website → published Policy Version → policy purposes → Vendors → vendor purposes → Trackers / scan results
+
+Organization IDs are never taken from the client.
+
+### Finding types
+
+| Type | Meaning |
+| --- | --- |
+| `new_tracker` | Identifier in latest completed scan, not in previous completed scan (third-party only; skipped when there is no previous scan) |
+| `removed_tracker` | Identifier in previous scan, absent from latest |
+| `third_party_domain_changed` | Same identifier, different host between scans |
+| `unmapped_tracker` | Active tracker with no vendor and no purpose, not essential |
+| `unmapped_vendor` | Observed third-party domain matches no active org vendor domain |
+| `vendor_mapping_changed` | Tracker vendor ≠ vendor implied by observed domain |
+| `purpose_mapping_changed` | Tracker purpose is not on the published policy version |
+| `missing_enforcement_rule` | Scan item has no active tracker rule |
+| `enforcement_mismatch` | Vendor–purpose link missing, or consent-controlled tracker has no domain/identifier to match |
+
+Ordinary HTML/text changes without identifier/domain/mapping changes do not emit findings.
+
+### Severity rules
+
+- **CRITICAL**: `new_tracker` / `unmapped_tracker` / `missing_enforcement_rule` when `type=fingerprint` or `riskLevel` is high/critical
+- **HIGH**: other `new_tracker`, `unmapped_tracker`, `missing_enforcement_rule`
+- **MEDIUM**: `vendor_mapping_changed`, `unmapped_vendor`, `third_party_domain_changed`; `purpose_mapping_changed` / `enforcement_mismatch` unless high-risk (then HIGH)
+- **LOW**: `removed_tracker`
+
+### Fingerprint strategy
+
+`sha256("v1|{organizationId}|{websiteId}|{findingType}|{subjectKey}")` where `subjectKey` is the tracker identifier (or normalized domain for `unmapped_vendor`). Unique on `(organization_id, fingerprint)`.
+
+- Unchanged OPEN/REVIEWED: update `lastDetectedAt`, details, severity, mappings — **no notification**
+- RESOLVED + detected again: reopen to OPEN, clear resolved/reviewed fields — **notify**
+- Findings are never deleted. Absence on a later scan does **not** auto-resolve.
+
+### Persistence
+
+New table `privacy_findings` (migration `drizzle/0036_privacy_findings.sql`). Applied with `drizzle-kit migrate`.
+
+### APIs
+
+All Clerk-authenticated, membership-checked, org-scoped:
+
+- `GET /api/monitoring/findings` — filters: `websiteId`, `severity`, `type`, `status`
+- `GET /api/monitoring/findings/[id]`
+- `POST /api/monitoring/findings/[id]/review` — audit `privacy_finding.reviewed`
+- `POST /api/monitoring/findings/[id]/resolve` — audit `privacy_finding.resolved`
+- `POST /api/monitoring/run` — `{ websiteId, scanId? }` re-runs comparison on a completed scan (does not rescan the site)
+
+### Notifications
+
+Org-wide rows (`userId` null), type `scan.privacy_drift`, `resourceType=privacy_finding`. Created only on create or reopen.
+
+### Audit
+
+Admin review/resolve only. No audit row per comparison.
+
+### Tests
+
+- `src/lib/monitoring/drift-engine.test.cjs` — new/removed tracker, vendor/purpose change, unmapped tracker/vendor, missing enforcement, no-change, duplicate fingerprints, reopen/notify decisions, isolation of fingerprint by org/website, API source guards
+- `src/lib/tenant-isolation-regression.test.cjs` — monitoring routes + dashboard list scoped by `organizationId`
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `node src/lib/monitoring/drift-engine.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `npx drizzle-kit migrate` → `0036_privacy_findings` applied
+- Browser click-through of `/dashboard/monitoring` was not run in this pass
+
+### Limitations
+
+- Not continuous/background monitoring; drift runs after a completed scan or a manual `/api/monitoring/run`
+- Single-page scanner still only sees the homepage URL
+- First completed scan does not emit new/removed/domain-change vs an empty previous scan (`previous === null` only when no prior completed scan exists; empty previous array is treated as a scan with zero items)
+- Auto-resolve of stale OPEN findings is not implemented
+- Findings are operational, not legal conclusions
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 77. COMPLETED: Advanced privacy intelligence batch
+
+### Completed Task
+
+Added four operational privacy-intelligence capabilities on top of scan-triggered drift, without changing Clerk, RBAC, tenant isolation, the consent engine, public SDK, scanner signatures, webhooks, rights-request, analytics math, or existing drift comparison rules.
+
+Flow:
+
+Website → Scan (static HTML) → Discover trackers → Compare CMP configuration → Detect drift → Detect shadow behavior where HTML evidence exists → Consent Quality Score → Privacy risk dashboard → Review / resolve / notify
+
+### Evidence model (precise)
+
+The server-side scanner **fetches HTML**. It is **not** browser runtime monitoring and does **not** observe network execution after page parse.
+
+| Term | Meaning in this product |
+| --- | --- |
+| **Configured** | CMP records: tracker, vendor, purpose, published policy, enforcement identifiers |
+| **Observed** | Fields persisted from the HTML fetch (URL, script `src`, `type`, `data-cmp-purpose`, domain) |
+| **Inferred / suspected** | Server infers that a normal script/pixel/iframe **would execute or fetch on HTML parse** (`wouldExecuteOnParse`) |
+| **Confirmed execution** | Reserved. **This scanner never emits `confirmed_execution`.** There is no browser network log. |
+
+Shadow evidence classes:
+
+- `suspected_execution` — HTML resource would load/execute on parse while the tracker is active, non-essential, and consent-mapped
+- `configuration_mismatch` — consent-mapped tracker is present but not on the expected CMP path (`type="text/plain"` + matching `data-cmp-purpose`)
+- `confirmed_execution` — not produced
+
+Gated (no shadow finding): `wouldExecuteOnParse === false` and `data-cmp-purpose` equals the mapped purpose **key**. Essential trackers and first-party hosts are skipped. Unmapped scan items stay in existing drift (`missing_enforcement_rule` / `unmapped_tracker`), not shadow.
+
+### Shadow tracker architecture
+
+- Detector: `src/lib/monitoring/shadow-trackers.ts`
+- Runs after `detectDrift` in `runDriftForScan`
+- Reuses `privacy_findings`, fingerprints, OPEN / REVIEWED / RESOLVED, notify-on-create-or-reopen
+- Types: `shadow_ungated_script`, `shadow_no_cmp_marker`
+- Notifications: `scan.shadow_tracker` (drift remains `scan.privacy_drift`)
+- Cookies are not treated as shadow HTML-tag evidence
+
+### Consent Quality Score
+
+Deterministic weighted 0–100 **operational** score (`src/lib/monitoring/consent-quality.ts`). Not a legal compliance percentage.
+
+Weights:
+
+| Dimension | Weight |
+| --- | --- |
+| Tracker coverage (scanned third-party items with an active tracker rule) | 20 |
+| Vendor mapping (non-essential trackers with vendor) | 15 |
+| Purpose mapping (non-essential trackers with purpose) | 15 |
+| Enforcement (consent-controlled trackers with domain or identifier) | 15 |
+| Privacy drift / shadow (open+reviewed findings) | 15 |
+| Evidence & expiry config (published policy, expire days, consent records) | 10 |
+| Scanner freshness (completed scan age) | 10 |
+
+Open-finding penalty on the drift dimension: `min(100, critical×12 + high×7 + medium×3 + low×1)`.
+
+Categories: excellent ≥90, good ≥75, needs_attention ≥50, else poor.
+
+Each score includes per-dimension values and **why points were lost**.
+
+### Privacy risk model
+
+- Aggregator: `src/lib/monitoring/privacy-risk.ts`
+- Loader: `loadOrgRiskSnapshot` (org-scoped, batched, no N+1 for findings)
+- Overall status from unresolved severity counts (critical > high > medium > low > clear)
+- Surfaces critical/high/medium/low, affected websites, new (7 days), unresolved, recently resolved, top trackers/vendors, consent quality per website
+- Filters: website, severity, type, status, date range (`lastDetectedAt`)
+- Findings reuse drift/shadow rows; they are not duplicated
+
+### Page-level intelligence
+
+- Scanner still fetches **one URL per scan** (no crawler)
+- `scan_results.page_url` stores that URL (migration `0037_scan_results_page_url`)
+- HTML analyser records `pageUrl`, `wouldExecuteOnParse`, `cmpPurposeValue`, `resourceKind`
+- UI groups latest completed scan results by `pageUrl` — typically homepage only; extra pages are not invented
+
+### Schema
+
+- `scan_results.page_url` varchar(2048) + indexes on `scan_id` and `(scan_id, page_url)`
+- No new findings table
+- `privacy_findings.details` may include `expectedState`, `observedState`, `evidenceSource`, `evidenceClass`, `pageUrl`
+
+### APIs (authenticated, membership, never trust client organization IDs)
+
+- `GET /api/monitoring/quality?websiteId=`
+- `GET /api/monitoring/risk` — websiteId, severity, type, status, from, to
+- `GET /api/monitoring/pages?websiteId=` (required)
+- Existing findings list/review/resolve unchanged; `type` filter includes shadow types
+- Not exposed on the public SDK
+
+### Dashboard
+
+Discovery & Monitoring: Scanner, Privacy drift, Privacy risk (`/dashboard/risk`), Consent quality (`/dashboard/quality`), Analytics.
+
+Website detail: consent quality, page intelligence, links to risk / drift / enforcement.
+
+Finding detail: expected vs observed/inferred plus evidence class/source.
+
+### Notifications / audit
+
+- Shadow create/reopen → `scan.shadow_tracker`; unchanged fingerprints do not re-notify
+- Audit still only on review/resolve (not on score calculation)
+
+### Tests
+
+- `src/lib/monitoring/privacy-intelligence.test.cjs`
+- Tenant isolation extended to quality/risk/pages APIs and dashboards
+- Existing drift-engine tests remain required
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `npx drizzle-kit migrate` → `0037_scan_results_page_url` applied
+- `node src/lib/monitoring/privacy-intelligence.test.cjs` → passed
+- `node src/lib/monitoring/drift-engine.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `node src/lib/scanner/scanner-security.test.cjs` → passed
+- `node src/lib/rate-limit.test.cjs` → passed
+- `node src/lib/webhooks/delivery.test.cjs` → passed
+- `node src/lib/consent-manager-e2e-regression.test.cjs` → passed
+- Live dashboard click-through was not completed in this pass (dev server had an unrelated Turbopack crash)
+
+### Limitations
+
+- Not browser RUM / tag-manager runtime
+- One page per scan
+- Quality score is configuration + inventory health, not law
+- Open findings do not auto-resolve when HTML is later gated
+- Org-wide quality still loads a CMP snapshot per website (in parallel)
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 78. COMPLETED: Global consent & regulation batch
+
+### Completed Task
+
+Added a versioned regulation catalog, geo-based policy selection, Google Consent Mode v2 signal publishing, and an IAB TCF/GPP foundation. The internal consent engine remains canonical. Clerk, RBAC, tenant isolation, scanner, webhooks, analytics math, and existing consent record/evidence/withdrawal behavior were not redesigned.
+
+### IMPLEMENTED
+
+- Versioned regulation profiles: DPDP, GDPR/ePrivacy, CCPA/CPRA, LGPD, PIPEDA, UCPA, VCDPA, CPA (`src/lib/regulations/catalog.ts`)
+- `resolveRegulationProfile`, `resolveRegulationVersion`, effective-date selection, geo-inferred profile (`src/lib/regulations/engine.ts`)
+- Pluggable geo hints: `resolveJurisdiction` from optional country/region or website `defaultRegion`. **No IP geolocation provider.**
+- Policy precedence: state/region rule → country rule → `isDefault` active policy → oldest active policy
+- Website jurisdiction rules table (points at existing policies; no duplicated policy copies)
+- Google Consent Mode v2: `default` then `update` for `ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage`, `functionality_storage`, `personalization_storage`, `security_storage`
+- SDK publishes signals on accept, reject, granular save, stored-consent restore, and withdraw
+- Dashboard: `/dashboard/websites/[id]/regulations`
+
+### PARTIALLY IMPLEMENTED / FOUNDATION ONLY
+
+- **IAB TCF 2.2**: `__tcfapi` ping/stub only. `tcString = null`. `cmpId` is not a registered CMP ID.
+- **IAB GPP 1.1**: `__gpp` ping/stub only. No section encoding / GPP string.
+
+### NOT IMPLEMENTED
+
+- Official IAB CMP certification / Google certification
+- Production IP geolocation
+- Full TCF GVL / purpose/vendor bitfields
+- Storing visitor geolocation on consent records
+
+### Policy selection
+
+1. Optional SDK `?country=&region=` or `window.__CMP_GEO` (hint)
+2. Else website `defaultRegion` (coarse IN/EU/US/UK/CA/AU mapped to country or `EU` region)
+3. Match `website_jurisdiction_rules` (unique per website+country+region)
+4. Else active default policy (`isDefault`)
+5. Else oldest active policy
+
+Regulation key: rule override → website `default_regulation_key` → inferred from catalog geo scope → none.
+
+### Schema
+
+Migration `0038_global_consent_regulation`:
+
+- `websites.default_regulation_key`
+- `websites.consent_integrations` jsonb
+- `website_jurisdiction_rules` (org + website scoped)
+
+### APIs
+
+- `GET /api/regulations` — authenticated catalog summary
+- `GET/PUT /api/websites/[id]/consent-integrations` — org-owned website only, rate limited
+- `GET/PUT /api/websites/[id]/jurisdiction-rules` — same
+- Public SDK config adds `jurisdiction`, `regulation`, `signals` (safe fields only)
+
+### Tests
+
+- `src/lib/regulations/regulation-engine.test.cjs`
+- Consent E2E includes Google/IAB signal propagation
+- Tenant isolation for new website APIs and regulation catalog auth
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `npx drizzle-kit migrate` → `0038_global_consent_regulation` applied
+- `node src/lib/regulations/regulation-engine.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `node src/lib/consent-manager-e2e-regression.test.cjs` → passed
+- `node src/lib/monitoring/drift-engine.test.cjs` → passed
+- `node src/lib/monitoring/privacy-intelligence.test.cjs` → passed
+- `node src/lib/scanner/scanner-security.test.cjs` → passed
+- `node src/lib/rate-limit.test.cjs` → passed
+- `node src/lib/webhooks/delivery.test.cjs` → passed
+
+### Next recommended task
+
+Build the Billing page (`/dashboard/billing`) as a display-only org billing overview. Do not add Stripe or payment processing.
+
+---
+
+# 79. COMPLETED: Continuous Privacy Scanner + Advanced Consent Analytics
+
+## CONTINUOUS SCANNER
+
+### IMPLEMENTED
+
+Scheduling architecture:
+- Persistent per-website config in `website_scan_schedules` (org + website scoped).
+- Frequencies: `daily`, `weekly`, `monthly` only. Hourly/arbitrary intervals are rejected.
+- Timezone is stored (org timezone default, validated IANA, else UTC). `next_scan_at` is computed in UTC (`+1 day` / `+7 days` / `+1 calendar month`).
+- Due-scan logic: `enabled`, website `active` and not deleted, `next_scan_at <= now`, lock not held, no in-progress scan (`running`/`queued` within 20 minutes), and a minimum interval (20h / 6d / 25d) to prevent runaway retries.
+- Concurrency: atomic `locked_until` claim. A second tick that fails to claim skips the website. Manual `POST /api/scanner/run` returns 409 if a scan is already running.
+- Execution: `GET|POST /api/cron/scans` authenticates with `CRON_SECRET` or `SCANNER_CRON_SECRET` (Bearer or `x-cron-secret`), never Clerk, never a client org id. It calls `runDueScheduledScans` → existing `runScan`.
+- Manual and scheduled scans share `src/lib/scanner/scan-engine.ts`. `scans.triggered_by` is `manual` or `scheduled`.
+- After a **completed** scan, existing drift + shadow intelligence still runs inside `runScan`. Failed scans do not write `scan_results`, do not upsert empty tracker intelligence, and do not run drift.
+- Failed scheduled scans keep prior successful scan rows. Schedule `last_scan_*` and `last_error` update; `consecutive_failures` increments. Notifications (`scan.schedule_failed`) only at 3, 6, and 12 consecutive failures.
+- Dashboard: `/dashboard/scanner` and website settings show automatic scanning on/off, frequency, last/next scan, last result, Scan now (existing toast + loading), scan history with trigger.
+- SSRF: scheduled path calls `assertSafeScanUrl` / `toAbsoluteScanUrl` before `runScan`.
+- CSRF: `/api/cron/scans` is treated as a non-cookie scheduler path.
+
+### LOCALLY VERIFIED
+
+- `npx tsc --noEmit`
+- `npx drizzle-kit migrate` → `0039_continuous_scanner_analytics`
+- `node src/lib/scanner/scan-schedule.test.cjs`
+- Scheduler source/isolation checks in `tenant-isolation-regression.test.cjs`
+- Existing scanner SSRF harness still passes
+- **No in-process `setInterval`.** Local `npm run dev` does **not** fire scheduled scans by itself.
+
+### REQUIRES DEPLOYMENT SCHEDULER
+
+Background scanning is **not live** until something invokes the job:
+
+1. Set `CRON_SECRET` (or `SCANNER_CRON_SECRET`), ≥ 16 characters. Do not expose it to the browser.
+2. `vercel.json` defines an hourly cron: `0 * * * *` → `/api/cron/scans` (Vercel sends `Authorization: Bearer $CRON_SECRET` when `CRON_SECRET` is configured).
+3. Non-Vercel: external cron/queue/worker `GET` or `POST` the same route with the Bearer secret. The scan engine does not need to be rewritten.
+
+If the secret is missing, the route returns 503 and does not scan.
+
+### NOT A WORKER PLATFORM
+
+There is still no in-app queue worker. Each due website in a tick (max 5) runs `runScan` synchronously in that HTTP invocation (`maxDuration` 60s). Large sites still need a future queue.
+
+---
+
+## ANALYTICS
+
+### Metrics definitions
+
+Record-level (one row per `consent_records.id`, never double-counted):
+- **Total / accepted / rejected / partial (granular) / withdrawn / pending**
+- **Consent rate** = (accepted + partial) / total
+- **Accept / reject / granular / withdrawal rates** from current record status
+
+Event-level (one row per `consent_events.id`):
+- **Interactions** = `consent.created` + `consent.updated` + `consent.expired_and_renewed` + `consent.withdrawn`
+- **Accept-all / reject-all / granular rates** from `event_data.choice` on created/updated/renewed events only
+- **Withdrawal rate (events)** = withdrawn events / interactions
+- Trends: SQL `date_trunc('day', occurred_at)` grouped counts
+
+Purpose acceptance: `consent_decisions` joined to org-scoped records and org-scoped `purposes` (canonical purpose id/key). Unique (record, purpose, vendor) already enforced in schema.
+
+Policy versions: grouped by `consent_records.policy_version_id` + website (policies are per website; versions are not compared across sites as one series).
+
+### Country source
+
+**IMPLEMENTED for new records:** ISO-3166 alpha-2 in `metadata.analytics.country` from `cf-ipcountry` / `x-vercel-ip-country` / `x-country-code`, else a 2-letter `jurisdiction` on the record. Raw IPs are not stored.
+
+**NOT AVAILABLE DUE TO MISSING DATA:** Production IP geolocation; region/state drill-down; historical rows without ISO country (shown as Unknown / empty geography). CDN country is only present when the edge sets those headers.
+
+### Device / browser classification
+
+**IMPLEMENTED for new records:** normalized `metadata.analytics.device` (`desktop|mobile|tablet|other`) and `browser` (`chrome|safari|firefox|edge|other`) from the request User-Agent at write time. Dashboard never shows raw UA.
+
+**NOT AVAILABLE DUE TO MISSING DATA:** classification on records saved before this change (Unknown empty state).
+
+### Privacy / aggregation
+
+- Management `GET /api/analytics/consent` returns aggregates only (no visitorId, IP, UA, fingerprints, full metadata, consentId lists).
+- Dashboard recent-activity table still truncates consent IDs (existing operational view, not the analytics API).
+- Org id is never taken from the client. Website filters must belong to the active org.
+- Scanner results do not overwrite consent analytics.
+
+### APIs
+
+- `GET /api/analytics/consent` — Clerk session, membership, rate limited, `loadConsentAnalytics(organization.id, filters)`
+- Filters: `days` (7/30/90/all), optional `from`/`to`, `websiteId`, `country`, `device`, `browser`, `purposeId`, `policyVersionId`
+- Dashboard `/dashboard/analytics` uses the same query helper (DB-side `GROUP BY`, `Promise.all`)
+
+### Database / indexes
+
+Migration `0039_continuous_scanner_analytics`:
+- `scans.triggered_by`
+- `scans_website_status_idx`
+- `website_scan_schedules` + due/org indexes
+- `consent_records_org_created_idx` `(organization_id, created_at)`
+
+### Tests
+
+- `src/lib/scanner/scan-schedule.test.cjs` — enable/disable, frequencies, due/future/disabled, claim/lock, overlapping running scan, manual/scheduled same engine, failed scan preserves prior success object, SSRF short-circuit, tenant ids on outcome
+- `src/lib/analytics/consent-analytics.test.cjs` — trends, rates, withdrawal, country/device/browser/policy grouping, date parse, empty set, duplicate event ids, no visitor key leakage
+- Tenant isolation + CSRF/cron path updates
+
+### Verification
+
+- `npx tsc --noEmit` → exit 0
+- `npx drizzle-kit migrate` → `0039_continuous_scanner_analytics`
+- `node src/lib/scanner/scan-schedule.test.cjs` → passed
+- `node src/lib/analytics/consent-analytics.test.cjs` → passed
+- `node src/lib/tenant-isolation-regression.test.cjs` → passed
+- `node src/lib/consent-manager-e2e-regression.test.cjs` → passed
+- `node src/lib/monitoring/drift-engine.test.cjs` → passed
+- `node src/lib/monitoring/privacy-intelligence.test.cjs` → passed
+- `node src/lib/scanner/scanner-security.test.cjs` → passed
+- `node src/lib/rate-limit.test.cjs` → passed
+- `node src/lib/webhooks/delivery.test.cjs` → passed
+- `node src/lib/regulations/regulation-engine.test.cjs` → passed
+- `node src/lib/security-headers.test.cjs` → passed
+
+Browser click-through was not run in this session (no browser automation). Exercise `/dashboard/scanner` schedule controls and `/dashboard/analytics` filters in the running app after login.
+
+### Limitations
+
+- Scheduled scans require a deployed cron/worker hitting `/api/cron/scans`.
+- Country/device/browser charts stay empty until new consent POSTs land with hints (and, for country, an edge country header or ISO jurisdiction).
+- Custom `from`/`to` query params are supported in the API/query layer; the dashboard presets remain 7/30/90/all.
+
+---
+
+# 80. COMPLETED: Global locale registry + visitor-facing banner localization
+
+### What this is
+
+Production localization for the **public consent banner and preference center**. Language controls **presentation and notice-language evidence**, not consent decisions, jurisdiction, or regulation selection.
+
+### Status vocabulary (do not collapse these)
+
+| Term | Meaning |
+|---|---|
+| **SUPPORTED** | Locale is in the registry (`src/lib/i18n/locale-registry.ts`) and can be requested/normalized. |
+| **TRANSLATED** | Administrator saved a translation pack covering all banner text fields for that locale. |
+| **FALLBACK / PARTIAL** | Requested locale is supported but missing some or all strings; copy comes from base language, configured default (other language), or English root. |
+| **NOT YET TRANSLATED** | Supported locale with no admin pack. The product does **not** ship a full translation for every registered language. There is **no** automatic/AI translation API. |
+
+English root fields (`title`, `description`, button labels, preference-center strings) remain the default content. `translations.en` is not stored.
+
+### Locale registry
+
+- Base languages include at least: `en es fr de it pt nl pl ru uk tr ar he fa hi bn ur pa gu mr ta te kn ml or as ne id ms th vi zh ja ko el cs sv da fi ro hu`, plus existing Eighth-Schedule extras (`mai ks sd kok mni bodo doi sa sat`).
+- Regional tags include: `en-IN en-US en-GB en-AU fr-FR fr-CA de-DE de-AT de-CH es-ES es-MX es-US es-419 pt-BR pt-PT zh-CN zh-TW zh-HK ar-SA ar-AE ar-EG hi-IN`.
+- Unlisted regionals of a registered language still **normalize** (e.g. `nl-NL`) when the base language is registered.
+- Invalid/unknown tags are rejected (`null`), never passed through as arbitrary strings.
+- Normalization: trim, `_` → `-`, BCP-47 casing (`HI-in` → `hi-IN`, `en_us` → `en-US`).
+
+Adding a language: register it in `locale-registry.ts`. Consent-engine decision code must not import this module.
+
+### Resolution precedence (public experience)
+
+1. Explicit SDK language (`data-lang`, `window.__CMP_LANG`, `CMP.setLanguage`)
+2. Page `?lang=`
+3. `navigator.language`
+4. `navigator.languages[0]`
+5. `Accept-Language` (server)
+6. Website default language
+7. Banner configured default language
+8. English
+
+Only inputs available in that runtime are used. The SDK always fetches `/api/sdk/{siteKey}/config?lang=...` so the server applies the same resolver.
+
+### Translation fallback (notice strings)
+
+Exact locale → **base language** → configured default **only if it is a different language** → English root.
+
+- `pt-BR` with pack `pt` → Portuguese.
+- `fr-CA` with only `fr-FR` (no `fr`) → **not** French-France; English/default instead.
+- `en-*` uses English root (or an exact `en-US` pack). A Hindi default must not overlay English requests.
+- Missing fields in a pack fall back to English root for that field only (partial translation).
+
+Optional `supportedLocales` allowlist on banner JSON: empty means any registered locale.
+
+### Data model (backward compatible)
+
+`consent_policy_versions.configuration` JSONB:
+
+```
+translations?: Record<locale, {
+  title?, description?, acceptAllLabel?, rejectAllLabel?, customizeLabel?,
+  savePreferencesLabel?, privacyPolicyText?, closeLabel?,
+  preferenceCenterTitle?, preferenceCenterDescription?,
+  purposesHeading?, vendorsHeading?, requiredLabel?,
+  purposes?: Record<purposeKey, { name?, description? }>,
+  vendors?: Record<vendorDomainOrId, { name?, description? }>
+}>
+supportedLocales?: string[]
+```
+
+English remains on the root object. Policies are not duplicated per language.
+
+### Banner / preference center
+
+Resolved strings are merged into `bannerConfig` before the SDK renders. Changing language **re-renders** banner/PC text, sets `dir`/`lang`, and does **not** POST consent or change decisions. `CMP.setLanguage` refetches config with `?lang=`. Evidence uses the locale actually resolved at **submission**.
+
+### RTL
+
+`ar`, `he`, `fa`, `ur` → `dir="rtl"` on banner and preference center. Other languages stay LTR. Toggle knobs use `inset-inline-start`. Logos are not mirrored.
+
+### Language vs region vs regulation
+
+`en-IN` is English + India **locale context**. It does **not** select India DPDP by itself. Jurisdiction remains `resolveWebsiteConsentContext` (`country`/`region` query + website defaults). SDK payload keeps `locale` and `jurisdiction` separate.
+
+### Consent evidence
+
+`POST /api/consent/record` resolves notice server-side from `body.language`, then `Accept-Language`, website default, banner default. Snapshot stores `noticeLanguage`, `noticeTitle`, `noticeDescription` from that resolution — not the unsigned English root and not a later UI language change without a new submission.
+
+### Caching
+
+`GET /api/sdk/[siteKey]/config` uses `Cache-Control: private, no-store` and `Vary: Accept-Language`. The SDK includes `lang` on every config URL so Hindi and English are not the same cache key.
+
+### Admin
+
+Languages tab: supported-locale allowlist, translation editor, Translated / Partially translated / Using fallback, preview language (including RTL). Default language selects use the global registry. Org/website default language columns remain `varchar(10)`.
+
+### Tests
+
+- `node src/lib/i18n/localization.test.cjs` — registry, fallback, RTL, resolution, EN/ES/FR/DE/PT/HI/AR/ZH/JA, regionals listed in the product brief.
+- `node src/lib/consent-manager-e2e-regression.test.cjs` — `?lang=hi|fr-FR|pt-BR|ar`, unsupported fallback, evidence locale, `setLanguage` without creating a record.
+
+### Manual verification (no browser automation in this session)
+
+1. In banner Languages, add Hindi/French/Portuguese/Arabic packs; save.
+2. Open the demo/embed with `?lang=hi` / `fr-FR` / `pt-BR` / `ar` and confirm title, description, and buttons change; Arabic is RTL.
+3. Use an unsupported `?lang=` and confirm English/default.
+4. Accept all; inspect consent record metadata `noticeLanguage` matches the banner `lang`.
+5. Change language in the banner `<select>` before accepting; confirm no extra consent row until submit; submitted evidence matches the language shown at click.
+
+### Limitations
+
+- Registry support ≠ shipped translations. Operators must enter copy.
+- Purpose/vendor overlays are optional maps keyed by purpose `key` and vendor `domain` (else id).
+- Website/org default language max length is 10 characters (schema).
+- No machine translation and no CDN language negotiation beyond `?lang=` + `Accept-Language` + `Vary`.
+
+---
+
+# 81. COMPLETED: Host-page scroll lock for banner and preference center
+
+### What this is
+
+When the visitor-facing consent banner or preference center is open, the **host website** cannot scroll or receive pointer/keyboard page-scroll behind the CMP UI. Preference-center content still scrolls internally. Consent decisions, APIs, schema, and SDK security are unchanged.
+
+### Implementation
+
+`src/lib/sdk/scroll-lock.ts` exports `createHostScrollLock` runtime (vanilla JS) plus `installHostScrollLock` for tests. The SDK inlines that runtime once and stores a singleton on `window.__CMP_HOST_SCROLL_LOCK__`.
+
+A second SDK load **teardowns** the previous lock (listeners, attribute, injected stylesheet) before creating a new one.
+
+API: `lock` / `unlock` / `sync` / `beginTransition` / `endTransition` / `teardown` / `isLocked`.
+
+- `sync()` locks if `#__cmp_banner__` or `#__cmp_pc__` is in the DOM (or a transition hold is active); otherwise unlocks.
+- `beginTransition` / `endTransition` keep the lock across banner → preference-center and language re-render so the page does not briefly unlock.
+
+### Page-state preservation
+
+Before locking, the utility stores the current `pageYOffset` and the **inline** `overflow`, `position`, `top`, `left`, `right`, `width`, `padding-right`, and `scrollbar-gutter` values on `html`/`body`. Unlock restores those inline values (empty means the property is removed so host stylesheets apply again) and `scrollTo(0, savedY)`. The page does not jump to the top.
+
+iOS/overflow fallback: `body` is `position: fixed; top: -<scrollY>px; left/right: 0; width: 100%` while locked.
+
+### Layout shift
+
+Injected stylesheet (`#__cmp_host_lock_css`) sets `scrollbar-gutter: stable` on `html[data-cmp-scroll-lock]`. If `scrollbarGutter` is not in the style object, padding-right is increased by the measured scrollbar width (`innerWidth - documentElement.clientWidth`). Widths are not hard-coded.
+
+### Interaction blocking
+
+While locked:
+
+- `html[data-cmp-scroll-lock]` + body `overflow: hidden`, `pointer-events: none`, `touch-action: none`
+- CMP nodes (`#__cmp_banner__`, `#__cmp_pc__`, `#__cmp_pc_overlay__`) re-enable pointer/touch
+- non-passive `wheel` / `touchmove` / page-scroll keys (`PageDown`, arrows, Space, Home/End) `preventDefault` unless the event target is inside a CMP root or an editable field
+
+### Preference center
+
+The dialog body keeps `overflow-y: auto`, `overscroll-behavior: contain`, and `-webkit-overflow-scrolling: touch`. Overlay click / close / save still follow previous dismiss rules (no new Escape-to-dismiss). Tab focus is trapped inside the dialog; previous `document.activeElement` is restored on close when it is still in the document.
+
+### Language change
+
+`CMP.setLanguage` wraps DOM rebuild in `beginTransition`/`endTransition` so the lock is not released.
+
+### Tests
+
+- `node src/lib/sdk/scroll-lock.test.cjs` — nested lock, restore, scrollbar compensation, wheel/touch/keyboard prevent, CMP-internal events allowed, sync/hold, teardown
+- `node src/lib/consent-manager-e2e-regression.test.cjs` — banner lock, accept/reject/granular unlock, preserved scrollY, preference-center lock + internal overflow, language change without unlock, stylesheet not duplicated on reinit, withdraw re-locks
+
+### Verification
+
+- `npx tsc --noEmit`
+- Unit + consent E2E + tenant isolation, regulations, scanner security, drift, privacy intelligence, analytics, webhooks, rate limit, security headers
+
+Browser click-through of an external customer site was **not** run in this session (no browser automation). Manual checks remain: long scrollable host page, wheel/trackpad/PageDown, preference-center inner scroll, save, restore mid-page position, narrow viewport.
+
+### Limitations
+
+- `position: fixed` on `body` can still interact poorly with unusual host layouts (already-fixed body, transform on ancestors). Original inline values are restored on unlock.
+- Keyboard trapping covers Tab inside the preference center; it does not inert the rest of the DOM (`inert` on `body` would also inert the CMP nodes).
+- Scroll lock applies whenever the banner or preference center is in the DOM, including `showBanner()` after consent (demo/manage flow).
+
+
+
+
 

@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert } from "@/components/ui/alert";
+import { Field, FormActions, FormCard } from "@/components/ui/field";
+import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 export type WebsiteOption = {
   id: string;
@@ -25,142 +32,116 @@ export function CreatePolicyForm({
   const [description, setDescription] = useState("");
   const [isDefault, setIsDefault] = useState(false);
 
-  const [saving, setSaving] = useState(false);
+  const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setSaving(true);
-    setError("");
-
-    try {
-      const response = await fetch("/api/policies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          websiteId,
-          name,
-          description: description.trim() || null,
-          isDefault,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message ?? "Failed to create policy");
-      }
-
-      // Navigate to the new policy detail page.
-      router.push(`/dashboard/policies/${data.policy.id}`);
+    await run(async () => {
+      setError("");
+      const result = await dashboardFetch(
+        "/api/policies",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            websiteId,
+            name,
+            description: description.trim() || null,
+            isDefault,
+          }),
+        },
+        {
+          successMessage: "Policy created successfully",
+          errorFallback: "Unable to save policy.",
+          onValidation: setError,
+        },
+      );
+      if (!result.ok) return;
+      const policyId =
+        typeof result.data === "object" &&
+        result.data !== null &&
+        "policy" in result.data &&
+        typeof (result.data as { policy?: { id?: unknown } }).policy?.id === "string"
+          ? (result.data as { policy: { id: string } }).policy.id
+          : null;
+      if (policyId) router.push(`/dashboard/policies/${policyId}`);
+      else router.push("/dashboard/policies");
       router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setSaving(false);
-    }
+    });
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="rounded-lg border bg-white p-6">
-        <h2 className="mb-5 text-base font-semibold text-neutral-900">
-          Policy details
-        </h2>
-
-        <div className="space-y-5">
-          {/* Website */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Website
-            </label>
-            {websites.length === 0 ? (
-              <p className="text-sm text-neutral-500">
-                No websites found. Add a website before creating a policy.
-              </p>
-            ) : (
-              <select
-                value={websiteId}
-                onChange={(e) => setWebsiteId(e.target.value)}
-                required
-                className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
-              >
-                {websites.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} ({w.domain})
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-
-          {/* Name */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Policy name
-            </label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+    <form onSubmit={handleSubmit} className="space-y-5" aria-busy={saving}>
+      <FormCard
+        title="Policy details"
+        description="A new policy starts as a draft. You can attach purposes and publish it later."
+      >
+        <Field label="Website" htmlFor="policy-website">
+          {websites.length === 0 ? (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              No websites found. Add a website before creating a policy.
+            </p>
+          ) : (
+            <Select
+              id="policy-website"
+              value={websiteId}
+              onChange={(e) => setWebsiteId(e.target.value)}
               required
-              maxLength={255}
-              placeholder="Default Consent Policy"
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-neutral-700">
-              Description{" "}
-              <span className="font-normal text-neutral-400">(optional)</span>
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              maxLength={1000}
-              className="w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-neutral-900/10"
-            />
-          </div>
-
-          {/* Default flag */}
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={isDefault}
-              onChange={(e) => setIsDefault(e.target.checked)}
-              className="h-4 w-4 rounded border-neutral-300"
-            />
-            <span className="text-sm text-neutral-700">
-              Set as the default policy for this website
-            </span>
-          </label>
-        </div>
-      </div>
-
-      {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving || websites.length === 0}
-          className="rounded-md bg-neutral-900 px-5 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
-        >
-          {saving ? "Creating…" : "Create policy"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="rounded-md border px-5 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
-        >
-          Cancel
-        </button>
-      </div>
+            >
+              {websites.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} ({w.domain})
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Policy name" htmlFor="policy-name">
+          <Input
+            id="policy-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            maxLength={255}
+            placeholder="Default consent policy"
+          />
+        </Field>
+        <Field label="Description (optional)" htmlFor="policy-description">
+          <Textarea
+            id="policy-description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            maxLength={1000}
+            placeholder="What this policy covers for visitors"
+          />
+        </Field>
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={isDefault}
+            onChange={(e) => setIsDefault(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
+          />
+          <span className="text-sm text-[var(--secondary-foreground)]">
+            Set as the default policy for this website
+          </span>
+        </label>
+        {error ? (
+          <Alert variant="error" role="alert">
+            {error}
+          </Alert>
+        ) : null}
+        <FormActions>
+          <Button type="button" variant="outline" onClick={() => router.back()} disabled={saving}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={websites.length === 0} loading={saving}>
+            {saving ? "Saving policy..." : "Create policy"}
+          </Button>
+        </FormActions>
+      </FormCard>
     </form>
   );
 }

@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { db } from "@/db";
 import { apiKeys } from "@/db/schema/api-keys";
 import { auditLogs } from "@/db/schema/audit-logs";
+import { logger } from "@/lib/logger";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 
@@ -78,7 +79,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("API key revoke failed:", error);
+    logger.error("API key revoke failed", {
+      route: "DELETE /api/api-keys/[id]",
+      operation: "api-keys.revoke",
+      error,
+    });
     return NextResponse.json({ success: false, message: "Failed to revoke API key" }, { status: 500 });
   }
 }

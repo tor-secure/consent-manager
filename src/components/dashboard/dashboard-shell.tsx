@@ -146,17 +146,16 @@ export function DashboardShell({
         {/* Main content area */}
         <div className="flex min-h-screen flex-1 flex-col min-w-0">
           {/* Top header */}
-          <header className="sticky top-0 z-40 h-20 shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] backdrop-blur-md">
-            <div className="flex h-full items-center justify-between px-4 sm:px-6 md:px-8 gap-2 sm:gap-4">
-              <div className="flex items-center gap-2 min-w-0">
-                {/* Mobile sidebar toggle */}
+          <header className="sticky top-0 z-40 shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] backdrop-blur-md">
+            <div className="flex h-16 min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2 sm:px-4 md:gap-3 md:px-6 lg:h-20 lg:px-8 px-3">
+              <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={onMobileToggle}
                   aria-label="Open sidebar"
                   aria-expanded={mobileOpen}
                   aria-controls="dashboard-sidebar"
-                  className="lg:hidden relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] lg:hidden"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="3" y1="6" x2="21" y2="6" />
@@ -164,18 +163,21 @@ export function DashboardShell({
                     <line x1="3" y1="18" x2="21" y2="18" />
                   </svg>
                 </button>
-                {/* Desktop collapse toggle */}
-                <div className="hidden lg:block">
+                <div className="hidden shrink-0 lg:block">
                   <SidebarToggleButton collapsed={collapsed} onToggle={onToggle} />
                 </div>
-                <div className="flex items-center gap-3 min-w-0 ml-1">
+                <div className="min-w-0">
                   {headerLeft}
                 </div>
               </div>
 
-              <div className="flex-1 flex justify-center">{headerCenter}</div>
+              <div className="flex min-w-0 flex-1 items-center">
+                {headerCenter}
+              </div>
 
-              <div className="flex items-center">{headerRight}</div>
+              <div className="flex shrink-0 items-center">
+                {headerRight}
+              </div>
             </div>
           </header>
 

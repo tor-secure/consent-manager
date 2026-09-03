@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { notify } from "@/components/feedback/notify";
+import { dashboardFetch } from "@/components/feedback/use-async-action";
 
 // ---------------------------------------------------------------------------
 // NotificationActions
@@ -27,26 +29,28 @@ export function NotificationActions({
       const res = await fetch(`/api/notifications/${notificationId}/read`, {
         method: "PATCH",
       });
-      if (res.ok) {
-        setDone(true);
-        startTransition(() => router.refresh());
+      if (!res.ok) {
+        notify.error("Unable to update notification. Please try again.");
+        return;
       }
+      setDone(true);
+      startTransition(() => router.refresh());
     } catch {
-      // Silently ignore — UI will refresh on next load.
+      notify.error("Unable to connect. Please try again.");
     }
   }
 
   async function markAll() {
-    try {
-      const res = await fetch("/api/notifications/read-all", {
-        method: "POST",
-      });
-      if (res.ok) {
-        startTransition(() => router.refresh());
-      }
-    } catch {
-      // Silently ignore.
-    }
+    const result = await dashboardFetch(
+      "/api/notifications/read-all",
+      { method: "POST" },
+      {
+        successMessage: "Notifications marked as read",
+        errorFallback: "Unable to update notifications. Please try again.",
+      },
+    );
+    if (!result.ok) return;
+    startTransition(() => router.refresh());
   }
 
   // Mark all button
