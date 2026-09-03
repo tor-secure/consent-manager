@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
 import { loadOrgRiskSnapshot } from "@/lib/monitoring/privacy-intelligence";
 import {
   FINDING_SEVERITIES,
@@ -91,18 +92,14 @@ export default async function PrivacyRiskPage({
   });
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Discovery & Monitoring</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          Privacy risk
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Operational view of open drift and shadow-tracker findings for this organization. This is not a legal compliance score.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Discovery & Monitoring"
+        title="Privacy risk"
+        description="Operational view of open drift and shadow-tracker findings for this organization. This is not a legal compliance score."
+      />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Overall status"
           value={snapshot.overallStatus.replaceAll("_", " ")}

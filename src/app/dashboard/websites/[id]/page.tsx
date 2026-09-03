@@ -69,7 +69,7 @@ export default async function WebsiteDetailPage({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="page-title">
                 {website.name}
               </h1>
               <Badge variant={statusVariant[website.status] ?? "neutral"} size="sm" className="capitalize">
@@ -79,7 +79,7 @@ export default async function WebsiteDetailPage({
                 <Badge variant="success" size="sm">Verified</Badge>
               )}
             </div>
-            <p className="mt-1 text-sm text-slate-500">{website.domain}</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">{website.domain}</p>
           </div>
         </div>
 

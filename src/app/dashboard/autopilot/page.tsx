@@ -9,6 +9,7 @@ import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { buildConsentRecommendations } from "@/lib/intelligence/recommendations";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
 
 function severityVariant(severity: string): "danger" | "warning" | "neutral" {
   if (severity === "high") return "danger";
@@ -70,15 +71,12 @@ export default async function AutopilotPage({
     .slice(0, 2);
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">AI</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">AI consent autopilot</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Generates an ordered configuration plan by combining quality score inputs, consent dependency graph, and the privacy impact simulator.
-          This is an assisted autopilot (no auto-publishing yet).
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="AI"
+        title="AI consent autopilot"
+        description="Generates an ordered configuration plan by combining quality score inputs, consent dependency graph, and the privacy impact simulator. This is an assisted autopilot (no auto-publishing yet)."
+      />
 
       {sites.length === 0 ? (
         <Card>

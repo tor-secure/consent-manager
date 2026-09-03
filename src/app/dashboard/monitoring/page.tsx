@@ -11,6 +11,7 @@ import { purposes } from "@/db/schema/purposes";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   FINDING_SEVERITIES,
   FINDING_STATUSES,
@@ -158,18 +159,14 @@ export default async function MonitoringPage({
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Discovery & Monitoring</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          Privacy drift
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Findings are produced after a website scan by comparing the latest scan, the previous completed scan, and current CMP mappings. This is not a background scheduler and is not a legal determination.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Discovery & Monitoring"
+        title="Privacy drift"
+        description="Findings are produced after a website scan by comparing the latest scan, the previous completed scan, and current CMP mappings. This is not a background scheduler and is not a legal determination."
+      />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Open findings" value={openCount} icon={<IconOpen />} iconColor="rose" />
         <StatCard label="Open critical" value={criticalOpen} icon={<IconOpen />} iconColor="amber" />
         <StatCard label="Open high" value={highOpen} icon={<IconOpen />} iconColor="blue" />

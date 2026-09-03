@@ -452,18 +452,18 @@ function BrandLogo({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       suppressHydrationWarning
-      className={`flex items-center gap-3 px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
+      className={`icon-text-row px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
     >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)]">
+      <div data-icon-tile className="mt-0 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary)]">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
           <path d="M9 12l2 2 4-4" stroke="currentColor" className="text-[var(--primary)]" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </div>
       {!collapsed && (
-        <div className="min-w-0">
-          <p className="text-[17px] font-bold tracking-tight text-[var(--foreground)]">Consent</p>
-          <p className="text-[15px] font-semibold text-[var(--muted-foreground)] leading-none">Manager</p>
+        <div className="icon-text-body self-center">
+          <p className="text-[17px] font-bold leading-snug tracking-tight text-[var(--foreground)]">ConsentFlow</p>
+          <p className="text-[12px] font-medium leading-snug text-[var(--muted-foreground)]">Consent Manager</p>
         </div>
       )}
     </div>

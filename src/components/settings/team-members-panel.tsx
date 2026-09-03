@@ -132,10 +132,10 @@ export function TeamMembersPanel({
 
       {/* Members table */}
       <Card>
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">
+        <div className="card-section-header">
+          <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">
             Members
-            <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-500">
+            <span className="ml-2 rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs font-normal text-[var(--muted-foreground)]">
               {members.filter((m) => m.status === "active").length}
             </span>
           </h2>
@@ -162,14 +162,16 @@ export function TeamMembersPanel({
                   <tr key={member.membershipId}
                     className={`group transition-colors hover:bg-slate-50/80 ${isRemovingThis ? "opacity-50" : ""}`}>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <Avatar name={member.name} avatarUrl={member.avatarUrl} />
-                        <div className="min-w-0">
-                          <p className="truncate font-medium text-slate-900">
+                      <div className="icon-text-row">
+                        <div data-icon-tile>
+                          <Avatar name={member.name} avatarUrl={member.avatarUrl} />
+                        </div>
+                        <div className="icon-text-body">
+                          <p className="truncate font-medium leading-snug text-[var(--foreground)]">
                             {member.name}
-                            {isSelf && <span className="ml-2 text-xs text-slate-400">(you)</span>}
+                            {isSelf && <span className="ml-2 text-xs text-[var(--muted-foreground)]">(you)</span>}
                           </p>
-                          <p className="truncate text-xs text-slate-400">{member.email}</p>
+                          <p className="truncate text-xs text-[var(--muted-foreground)]">{member.email}</p>
                         </div>
                       </div>
                     </td>
@@ -229,8 +231,8 @@ export function TeamMembersPanel({
       {/* Pending invitations */}
       {pendingInvitations.length > 0 && (
         <Card>
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">
+          <div className="card-section-header">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">
               Pending invitations
               <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-700">
                 {pendingInvitations.length}

@@ -175,8 +175,8 @@ export default async function TrackersPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Trackers</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="page-title">Trackers</h1>
+          <p className="page-description">
             Cookies and tracking technologies detected across all your websites.
           </p>
         </div>
@@ -201,9 +201,7 @@ export default async function TrackersPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Add a website and run a scan to detect trackers.
-              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website and run a scan to detect trackers.</p>
             </div>
             <Link href="/dashboard/websites/new"
               className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">

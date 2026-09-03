@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function ConsentGraphPage({
   searchParams,
@@ -21,14 +22,12 @@ export default async function ConsentGraphPage({
   const vendorMap = new Map(snapshot?.vendors.map((row) => [row.id, row]) ?? []);
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Intelligence</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Consent dependency graph</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          How purposes, vendors, and trackers connect for this website. Unmapped trackers stay blocked by default.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Consent dependency graph"
+        description="How purposes, vendors, and trackers connect for this website. Unmapped trackers stay blocked by default."
+      />
 
       {sites.length === 0 ? (
         <Card>

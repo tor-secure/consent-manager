@@ -6,6 +6,7 @@ import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { evaluateFirewall, grantsForScenario, type FirewallScenario } from "@/lib/intelligence/firewall";
 import { graphToTrackerRules, loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { PageHeader } from "@/components/ui/page-header";
 
 const SCENARIOS: FirewallScenario[] = ["reject-all", "essential-only", "accept-all"];
 
@@ -44,14 +45,12 @@ export default async function ConsentFirewallPage({
     : null;
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Intelligence</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Consent firewall</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Preview which trackers the SDK would block or allow for a visitor choice, using the live tracker map.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Consent firewall"
+        description="Preview which trackers the SDK would block or allow for a visitor choice, using the live tracker map."
+      />
 
       {sites.length === 0 ? (
         <Card>

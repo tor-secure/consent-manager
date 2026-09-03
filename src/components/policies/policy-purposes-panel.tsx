@@ -126,14 +126,14 @@ export function PolicyPurposesPanel({
     <div className="rounded-2xl bg-white card-shadow overflow-hidden">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+      <div className="card-section-header border-slate-100">
+        <div className="icon-text-row">
+          <div data-icon-tile className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
             <IconPurpose />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">Purposes</h2>
-            <p className="text-xs text-slate-500">
+          <div className="icon-text-body">
+            <h2 className="icon-text-title">Purposes</h2>
+            <p className="icon-text-desc">
               Select the consent purposes for this policy version.
             </p>
           </div>

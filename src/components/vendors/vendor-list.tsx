@@ -194,9 +194,11 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
 
                     {/* Vendor name + avatar */}
                     <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        <VendorAvatar name={v.name} />
-                        <span className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
+                      <div className="icon-text-row">
+                        <div data-icon-tile>
+                          <VendorAvatar name={v.name} />
+                        </div>
+                        <span className="font-medium leading-snug text-[var(--foreground)] group-hover:text-indigo-600 transition-colors">
                           {v.name}
                         </span>
                       </div>

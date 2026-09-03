@@ -60,12 +60,12 @@ export default async function MonitoringFindingPage({
   const details = row.finding.details;
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
+    <div className="page-wrap space-y-6 sm:space-y-8">
       <Link href="/dashboard/monitoring" className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
         ← Privacy drift
       </Link>
-      <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="capitalize">{row.finding.severity}</Badge>
             <Badge className="capitalize">{row.finding.status}</Badge>
@@ -73,7 +73,7 @@ export default async function MonitoringFindingPage({
               {row.finding.findingType.replaceAll("_", " ")}
             </Badge>
           </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
+          <h1 className="page-title mt-3">
             {row.finding.title}
           </h1>
           <p className="mt-2 text-sm text-[var(--muted-foreground)]">
@@ -83,7 +83,7 @@ export default async function MonitoringFindingPage({
         <FindingActions findingId={row.finding.id} status={row.finding.status} />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>What changed</CardTitle>

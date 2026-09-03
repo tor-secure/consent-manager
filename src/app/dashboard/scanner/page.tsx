@@ -166,8 +166,8 @@ export default async function ScannerPage() {
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Scanner</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">Scanner</h1>
+        <p className="page-description">
           Scan your websites for cookies, scripts, pixels, and tracking technologies.
         </p>
       </div>
@@ -181,9 +181,7 @@ export default async function ScannerPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Add a website before running a scan.
-              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website before running a scan.</p>
             </div>
             <Link href="/dashboard/websites/new"
               className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
@@ -258,17 +256,15 @@ export default async function ScannerPage() {
                 </div>
                 <div>
                   <p className="text-base font-semibold text-slate-700">No scans yet</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Run your first scan to detect cookies and tracking technologies.
-                  </p>
+                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">Run your first scan to detect cookies and tracking technologies.</p>
                 </div>
               </CardContent>
             </Card>
           ) : (
             <Card>
-              <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-                <h2 className="text-base font-semibold text-slate-900">Scan history</h2>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+              <div className="card-section-header">
+                <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Scan history</h2>
+                <span className="mt-0.5 shrink-0 rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
                   {totalScans} scan{totalScans !== 1 ? "s" : ""}
                 </span>
               </div>

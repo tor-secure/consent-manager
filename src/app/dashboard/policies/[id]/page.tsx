@@ -185,7 +185,7 @@ export default async function PolicyDetailPage({
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+              <h1 className="page-title">
                 {policy.name}
               </h1>
               <Badge variant={policyStatusVariant[policy.status] ?? "neutral"} size="sm" className="capitalize">
@@ -199,7 +199,7 @@ export default async function PolicyDetailPage({
               )}
             </div>
             {policy.description && (
-              <p className="mt-1 text-sm text-slate-500">{policy.description}</p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">{policy.description}</p>
             )}
           </div>
         </div>
@@ -284,10 +284,10 @@ export default async function PolicyDetailPage({
 
         {/* Versions + publish */}
         <Card>
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Versions</h2>
+          <div className="card-section-header">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Versions</h2>
             {versions.length > 0 && (
-              <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+              <span className="mt-0.5 shrink-0 rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
                 {versions.length}
               </span>
             )}

@@ -195,10 +195,10 @@ export default async function ConsentRecordsPage() {
       {/* ── Page header ──────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="page-title">
             Consent Records
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="page-description">
             Visitor consent records across all your websites.
           </p>
         </div>
@@ -219,9 +219,7 @@ export default async function ConsentRecordsPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Add a website to start collecting consent records.
-              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website to start collecting consent records.</p>
             </div>
             <Link
               href="/dashboard/websites/new"
@@ -251,9 +249,7 @@ export default async function ConsentRecordsPage() {
               </div>
               <div>
                 <p className="text-base font-semibold text-slate-700">No consent records yet</p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Records appear here as visitors interact with your consent banner.
-                </p>
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">Records appear here as visitors interact with your consent banner.</p>
               </div>
               <Link
                 href="/dashboard/policies"

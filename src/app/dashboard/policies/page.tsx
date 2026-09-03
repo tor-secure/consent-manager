@@ -135,10 +135,10 @@ export default async function PoliciesPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <h1 className="page-title">
             Consent Policies
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="page-description">
             All consent policies across your websites.
           </p>
         </div>
@@ -181,9 +181,7 @@ export default async function PoliciesPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-slate-500">
-                Add a website before creating consent policies.
-              </p>
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website before creating consent policies.</p>
             </div>
             <Link href="/dashboard/websites/new"
               className="btn btn-primary">
@@ -202,7 +200,7 @@ export default async function PoliciesPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No policies yet</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Create your first consent policy to start collecting visitor consent.
               </p>
             </div>
@@ -238,18 +236,18 @@ export default async function PoliciesPage() {
                     <tr key={policy.id} className="group transition-colors hover:bg-slate-50/80">
                       {/* Policy name */}
                       <td className="px-5 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                        <div className="icon-text-row">
+                          <div data-icon-tile className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
                             <IconPolicy />
                           </div>
-                          <div>
+                          <div className="icon-text-body">
                             <Link
                               href={`/dashboard/policies/${policy.id}`}
-                              className="font-medium text-slate-900 transition-colors group-hover:text-indigo-600">
+                              className="font-medium leading-snug text-[var(--foreground)] transition-colors group-hover:text-indigo-600">
                               {policy.name}
                             </Link>
                             {policy.description && (
-                              <p className="mt-0.5 max-w-xs truncate text-xs text-slate-400">
+                              <p className="mt-0.5 max-w-xs truncate text-xs text-[var(--muted-foreground)]">
                                 {policy.description}
                               </p>
                             )}

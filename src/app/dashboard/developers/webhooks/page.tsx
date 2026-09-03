@@ -114,8 +114,8 @@ export default async function WebhooksPage() {
 
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Webhooks</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">Webhooks</h1>
+        <p className="page-description">
           Receive real-time event notifications at your endpoints.
           {endpointRows.length > 0 && (
             <> {activeCount} active endpoint{activeCount !== 1 ? "s" : ""}.</>

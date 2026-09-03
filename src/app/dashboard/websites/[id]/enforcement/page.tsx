@@ -216,8 +216,8 @@ export default async function EnforcementPage({
       {/* Page header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Tracker Enforcement</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="page-title">Tracker Enforcement</h1>
+          <p className="page-description">
             How the CMP SDK enforces consent for trackers on{" "}
             <span className="font-medium text-slate-700">{website.domain}</span>.
           </p>
@@ -250,7 +250,7 @@ export default async function EnforcementPage({
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No trackers configured yet</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Add trackers manually or run a scan to detect them.
               </p>
             </div>

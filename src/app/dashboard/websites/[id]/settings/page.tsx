@@ -59,8 +59,8 @@ export default async function WebsiteSettingsPage({
       </nav>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Website settings</h1>
-        <p className="mt-1 text-sm text-slate-500">Update how this website is identified in the CMP.</p>
+        <h1 className="page-title">Website settings</h1>
+        <p className="page-description">Update how this website is identified in the CMP.</p>
       </div>
 
       <WebsiteSettingsForm website={settingsData} />

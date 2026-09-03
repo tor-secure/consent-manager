@@ -53,8 +53,8 @@ export default async function PurposesPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Purposes</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="page-title">Purposes</h1>
+          <p className="page-description">
             Consent purposes shared across all policies in your organisation.
           </p>
         </div>

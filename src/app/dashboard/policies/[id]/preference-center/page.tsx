@@ -133,10 +133,10 @@ export default async function PreferenceCenterPreviewPage({
 
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="page-title">
           Preference Center Preview
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="page-description">
           How the preference center appears to visitors of{" "}
           <span className="font-medium text-slate-700">
             {website?.name ?? "this website"}

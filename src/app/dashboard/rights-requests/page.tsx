@@ -82,14 +82,14 @@ export default async function RightsRequestsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="page-title">
               Data Principal Rights Requests
             </h1>
             {openCount > 0 && (
               <Badge variant="primary" size="sm">{openCount} open</Badge>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="page-description">
             Manage access, correction, erasure, grievance, and nomination requests under
             DPDP 2023 §11–14 + Rules 2025 Rule 12.
             {" "}Acknowledge within <strong>48 hours</strong> · Respond within <strong>30 days</strong>.

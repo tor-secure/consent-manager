@@ -451,14 +451,14 @@ export function PolicyVendorManagerPanel({
     <div className="rounded-2xl bg-white card-shadow overflow-hidden">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
+      <div className="card-section-header border-slate-100">
+        <div className="icon-text-row">
+          <div data-icon-tile className="flex h-8 w-8 items-center justify-center rounded-xl bg-violet-50 text-violet-600">
             <IconVendor />
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">Vendors</h2>
-            <p className="text-xs text-slate-500">
+          <div className="icon-text-body">
+            <h2 className="icon-text-title">Vendors</h2>
+            <p className="icon-text-desc">
               Third-party vendors operating under this policy&apos;s purposes.
             </p>
           </div>

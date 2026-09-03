@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { db } from "@/db";
@@ -90,14 +91,12 @@ export default async function ExperimentsPage({
   }
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Intelligence</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Consent experiments</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          A/B test banner layout on the live SDK. Visitors are assigned a sticky variant; accept/reject rates come from recorded consent, not estimates.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Consent experiments"
+        description="A/B test banner layout on the live SDK. Visitors are assigned a sticky variant; accept/reject rates come from recorded consent, not estimates."
+      />
 
       {sites.length === 0 ? (
         <Card>

@@ -43,8 +43,8 @@ export default async function DevelopersPage() {
     <div className="page-wrap space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">API Keys</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">API Keys</h1>
+        <p className="page-description">
           Manage API keys for programmatic access to the CMP API.{" "}
           {activeCount > 0 && (
             <span className="font-medium text-slate-700">

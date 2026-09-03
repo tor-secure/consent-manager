@@ -154,8 +154,8 @@ export default async function AuditLogsPage({
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Audit Logs</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">Audit Logs</h1>
+        <p className="page-description">
           A read-only record of all actions performed in your organisation.
         </p>
       </div>
@@ -181,7 +181,7 @@ export default async function AuditLogsPage({
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No audit events found</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 {trimmedQ || days !== "all"
                   ? "Try adjusting your search or date range."
                   : "Audit events will appear here as actions are performed."}

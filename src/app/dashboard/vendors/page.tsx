@@ -56,8 +56,8 @@ export default async function VendorsPage() {
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Vendors</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h1 className="page-title">Vendors</h1>
+          <p className="page-description">
             Third-party vendors and the purposes they serve in your organisation.
           </p>
         </div>

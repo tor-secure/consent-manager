@@ -125,8 +125,8 @@ function ConsentProvider() {
 
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">SDK Installation</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">SDK Installation</h1>
+        <p className="page-description">
           Add the CMP banner to{" "}
           <span className="font-medium text-slate-700">{website.domain}</span>{" "}
           using the snippet below.

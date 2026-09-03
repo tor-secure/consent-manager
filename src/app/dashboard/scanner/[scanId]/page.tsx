@@ -200,13 +200,13 @@ export default async function ScanDetailPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="page-title">
               Scan results
             </h1>
             <ScanStatusBadge status={scan.status} />
             {duration && <Badge variant="neutral" size="sm">{duration}</Badge>}
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="page-description">
             {website?.name}
             {website?.domain && <span className="text-slate-400"> · {website.domain}</span>}
             {scan.startedAt && <span> · {fmt(scan.startedAt)}</span>}
@@ -292,7 +292,7 @@ export default async function ScanDetailPage({
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No trackers detected</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 No third-party scripts, pixels, or tracking patterns were found.
               </p>
             </div>
@@ -303,9 +303,9 @@ export default async function ScanDetailPage({
       {/* ── Results table ────────────────────────────────────────────────── */}
       {results.length > 0 && (
         <Card>
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Detected items</h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+          <div className="card-section-header">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Detected items</h2>
+            <span className="mt-0.5 shrink-0 rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
               {results.length} item{results.length !== 1 ? "s" : ""}
             </span>
           </div>

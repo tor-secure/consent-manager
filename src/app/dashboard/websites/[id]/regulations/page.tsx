@@ -54,8 +54,8 @@ export default async function WebsiteRegulationsPage({
       </nav>
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Consent regulations</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="page-title">Consent regulations</h1>
+        <p className="page-description">
           Configure jurisdiction-aware policy selection and optional Google / IAB signals. These settings do not make the organization legally compliant.
         </p>
       </div>

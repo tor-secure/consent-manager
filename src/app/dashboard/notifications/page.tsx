@@ -91,7 +91,7 @@ export default async function NotificationsPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+            <h1 className="page-title">
               Notifications
             </h1>
             {unreadCount > 0 && (
@@ -100,7 +100,7 @@ export default async function NotificationsPage() {
               </Badge>
             )}
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="page-description">
             Updates and alerts for your organisation.
           </p>
         </div>
@@ -126,7 +126,7 @@ export default async function NotificationsPage() {
             </div>
             <div>
               <p className="text-base font-semibold text-slate-700">No notifications yet</p>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Updates will appear here as actions are performed in your organisation.
               </p>
             </div>
@@ -175,7 +175,7 @@ export default async function NotificationsPage() {
                       )}
                     </div>
 
-                    <p className="mt-1 text-sm text-slate-500">{n.message}</p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">{n.message}</p>
 
                     <div className="mt-2 flex flex-wrap items-center gap-3">
                       <time dateTime={n.createdAt.toISOString()} className="text-xs text-slate-400">

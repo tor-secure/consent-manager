@@ -18,9 +18,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Consent Manager",
+  title: "ConsentFlow — Consent Management Platform",
   description:
-    "Consent management platform for websites and organizations. Publish notices, govern vendors, and keep audit-ready records.",
+    "ConsentFlow helps you manage user consent transparently across web, mobile and apps — GDPR, CCPA, LGPD and more.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

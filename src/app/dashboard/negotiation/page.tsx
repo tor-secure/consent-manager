@@ -7,6 +7,7 @@ import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { buildConsentNegotiationPlan } from "@/lib/intelligence/negotiation-engine";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/page-header";
 
 function scenarioToActionHref(id: string): string {
   switch (id) {
@@ -53,14 +54,12 @@ export default async function NegotiationPage({
       : null;
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">AI</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Consent negotiation engine</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Builds an ordered negotiation plan to reach a target consent quality score by applying the highest-impact configuration steps.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="AI"
+        title="Consent negotiation engine"
+        description="Builds an ordered negotiation plan to reach a target consent quality score by applying the highest-impact configuration steps."
+      />
 
       {sites.length === 0 ? (
         <Card>

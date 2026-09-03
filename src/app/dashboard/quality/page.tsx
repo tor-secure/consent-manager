@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 import { computeWebsiteQualityScore } from "@/lib/monitoring/privacy-intelligence";
 import { qualityCategoryLabel } from "@/lib/monitoring/consent-quality";
 
@@ -31,16 +32,12 @@ export default async function ConsentQualityPage() {
   ).filter((row): row is NonNullable<typeof row> => Boolean(row));
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Discovery & Monitoring</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-[var(--foreground)]">
-          Consent quality
-        </h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Operational product score from CMP configuration, scan inventory, and open findings. It is not a legal compliance percentage.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Discovery & Monitoring"
+        title="Consent quality"
+        description="Operational product score from CMP configuration, scan inventory, and open findings. It is not a legal compliance percentage."
+      />
 
       {scores.length === 0 ? (
         <Card>

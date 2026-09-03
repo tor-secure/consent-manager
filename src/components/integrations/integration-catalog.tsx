@@ -127,9 +127,9 @@ function IntegrationCard({
   }
 
   return (
-    <div className="flex flex-col rounded-2xl bg-white card-shadow p-5">
+    <div className="flex flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow p-5">
       {/* Header */}
-      <div className="flex items-start gap-3">
+      <div className="icon-text-row">
         {integration.iconUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -137,24 +137,25 @@ function IntegrationCard({
             alt={integration.name}
             width={36}
             height={36}
-            className="h-9 w-9 rounded-xl object-contain"
+            data-icon-tile
+            className="h-9 w-9 shrink-0 rounded-xl object-contain"
           />
         ) : (
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-base font-bold text-slate-400">
+          <div
+            data-icon-tile
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-base font-bold text-[var(--muted-foreground)]"
+          >
             {integration.name.charAt(0)}
           </div>
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className="icon-text-body">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-900">{integration.name}</p>
+            <p className="font-semibold leading-snug text-[var(--foreground)]">{integration.name}</p>
             {integration.isOfficial && <OfficialBadge />}
+            <CategoryBadge category={integration.category} />
           </div>
-          <p className="text-xs text-slate-400">{integration.provider}</p>
-        </div>
-
-        <div className="shrink-0">
-          <CategoryBadge category={integration.category} />
+          <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{integration.provider}</p>
         </div>
       </div>
 

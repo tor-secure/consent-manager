@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Consent Manager Feature Audit</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #111827;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      font-size: 20pt;
+      letter-spacing: -0.02em;
+      margin: 0 0 6pt;
+      color: #0f172a;
+      border-bottom: 3px solid #4f46e5;
+      padding-bottom: 8pt;
+    }
+    h2 {
+      font-size: 13pt;
+      margin: 18pt 0 8pt;
+      color: #312e81;
+      page-break-after: avoid;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4pt;
+    }
+    h3 {
+      font-size: 11pt;
+      margin: 12pt 0 6pt;
+      color: #1e293b;
+      page-break-after: avoid;
+    }
+    p, li { margin: 0 0 6pt; }
+    ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+    .meta {
+      color: #64748b;
+      font-size: 9.5pt;
+      margin-bottom: 14pt;
+    }
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: #3730a3;
+      border-radius: 999px;
+      padding: 2pt 8pt;
+      font-size: 8.5pt;
+      font-weight: 600;
+      margin-right: 4pt;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8pt 0 12pt;
+      font-size: 8.5pt;
+      page-break-inside: auto;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 4pt 5pt;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #f1f5f9;
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .score { font-weight: 700; color: #4f46e5; }
+    .full { color: #047857; font-weight: 600; }
+    .partial { color: #b45309; font-weight: 600; }
+    .missing { color: #b91c1c; font-weight: 600; }
+    .ui-only { color: #7c3aed; font-weight: 600; }
+    .callout {
+      background: #f8fafc;
+      border-left: 4px solid #4f46e5;
+      padding: 8pt 10pt;
+      margin: 10pt 0;
+    }
+    .footer-note {
+      margin-top: 20pt;
+      padding-top: 10pt;
+      border-top: 1px solid #e5e7eb;
+      font-size: 9pt;
+      color: #64748b;
+    }
+    code, .path {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8pt;
+      background: #f1f5f9;
+      padding: 0 2pt;
+      border-radius: 2pt;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Consent Manager Feature Audit</h1>
+  <p class="meta">
+    Repository audit (read-only) · ConsentFlow / consent-manager<br />
+    Generated: 4 September 2026 · Scope: routes, components, APIs, Drizzle schemas, SDK, auth/RBAC<br />
+    <span class="badge">NO CODE CHANGES</span>
+    <span class="badge">AUDIT ONLY</span>
+  </p>
+
+  <div class="callout">
+    <strong>Overall completion: ~58%</strong> of a full commercial CMP surface.
+    Core consent loop (SDK → store → analytics/logs) is strong; reporting, enterprise RBAC, and vendor OAuth integrations are the main gaps.
+  </div>
+
+  <h2>1. Executive Summary</h2>
+  <table>
+    <thead><tr><th>Metric</th><th>Estimate</th></tr></thead>
+    <tbody>
+      <tr><td>Overall completion</td><td class="score">~58%</td></tr>
+      <tr><td>Fully implemented (E2E) major areas</td><td>~9</td></tr>
+      <tr><td>Partial areas</td><td>~12</td></tr>
+      <tr><td>UI-only / stub</td><td>~4</td></tr>
+      <tr><td>Missing product areas</td><td>~8</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Biggest strengths</h3>
+  <ul>
+    <li>Real multi-tenant model (<span class="path">organizationId</span> / website ownership) with Clerk + local org/membership bootstrap.</li>
+    <li>Live JS SDK (<span class="path">/api/sdk/script</span>, <span class="path">/api/sdk/[siteKey]/config</span>) with banner + preference center and <span class="path">/api/consent/record</span>.</li>
+    <li>Consent records / decisions / events, cryptographic evidence, DB-backed analytics.</li>
+    <li>Banner Studio persists into policy version <span class="path">configuration</span> and feeds the SDK.</li>
+    <li>HTML scanner (not mocked), scheduled scans via cron, drift/risk/quality from real findings.</li>
+    <li>Developer primitives: hashed API keys at rest, webhooks with delivery attempts.</li>
+  </ul>
+
+  <h3>Biggest gaps</h3>
+  <ul>
+    <li>No product report exports (CSV/PDF/Excel) or scheduled report delivery.</li>
+    <li>RBAC permissions table is display-only; most APIs allow any org member.</li>
+    <li>Integrations catalog = local DB association, not OAuth/vendor APIs (GCM/IAB signals are more real).</li>
+    <li>API keys are created but not used to authenticate API calls.</li>
+    <li>DSAR: intake + status + erasure automation; no access data package / portability / CCPA-style opt-out suite.</li>
+    <li>Overview lacks consent rate card, date-range UI, exports, and quick-action hub.</li>
+    <li>Script enforcement depends on <span class="path">data-cmp-purpose</span> tagging; cookies/untagged third parties not fully blocked.</li>
+  </ul>
+
+  <h2>2. Module Score</h2>
+  <table>
+    <thead><tr><th>Module</th><th>Score</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard / Overview</td><td class="score">68%</td><td>Real metrics &amp; charts; no date UI, exports, quick actions, DSAR widget</td></tr>
+      <tr><td>Websites</td><td class="score">72%</td><td>Strong CRUD+verify+install+regs; no delete; verify optional for SDK</td></tr>
+      <tr><td>Cookie / Tracker Management</td><td class="score">62%</td><td>Real scan→inventory→purpose map; weak cookie lifecycle/history</td></tr>
+      <tr><td>Consent Categories (Purposes)</td><td class="score">70%</td><td>Create/list/required/associations; weak edit/delete/ordering</td></tr>
+      <tr><td>Consent Banner</td><td class="score">82%</td><td>Studio → DB → SDK real; custom HTML/logo polish incomplete</td></tr>
+      <tr><td>Preference Center</td><td class="score">76%</td><td>Live prefs + withdraw; enforcement incomplete for untagged assets</td></tr>
+      <tr><td>Consent Logs</td><td class="score">86%</td><td>Strong auditability + proof; export/pagination gaps</td></tr>
+      <tr><td>Cookie Scanner</td><td class="score">68%</td><td>Real HTML scanner + schedule + drift; not full browser crawl</td></tr>
+      <tr><td>Data Discovery</td><td class="score">38%</td><td>Graph/data-flow only; no PII inventory product</td></tr>
+      <tr><td>Analytics</td><td class="score">78%</td><td>Broad real aggregations + filters</td></tr>
+      <tr><td>Reports</td><td class="score">8%</td><td>Effectively absent as a product</td></tr>
+      <tr><td>Privacy / DSAR</td><td class="score">52%</td><td>Intake+workflow+erasure; missing access package &amp; CCPA suite</td></tr>
+      <tr><td>Vendors</td><td class="score">68%</td><td>Solid inventory; risk/automation partial</td></tr>
+      <tr><td>Compliance</td><td class="score">42%</td><td>Geo/config + quality/risk ≠ certified compliance</td></tr>
+      <tr><td>Integrations</td><td class="score">38%</td><td>GCM/IAB useful; catalog stub</td></tr>
+      <tr><td>Developer Platform</td><td class="score">60%</td><td>SDK+webhooks strong; keys unused; no mobile SDKs</td></tr>
+      <tr><td>Notifications &amp; Alerts</td><td class="score">55%</td><td>In-app OK; no email channel</td></tr>
+      <tr><td>Team &amp; RBAC</td><td class="score">35%</td><td>Invite works; fine-grained RBAC not enforced</td></tr>
+      <tr><td>Organization Management</td><td class="score">50%</td><td>Profile/retention; billing schema dormant</td></tr>
+      <tr><td>Settings</td><td class="score">48%</td><td>Org/team/retention; security/SSO left to Clerk</td></tr>
+      <tr><td>Multi-tenancy / Security</td><td class="score">70%</td><td>Solid org scoping; Owner bootstrap + unused permissions + API keys</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Feature Matrix (condensed)</h2>
+  <p>Statuses: <span class="full">FULL</span> · <span class="partial">PARTIAL</span> · <span class="ui-only">UI ONLY</span> · <span class="missing">MISSING</span></p>
+  <table>
+    <thead>
+      <tr><th>Module</th><th>Feature</th><th>Status</th><th>Evidence</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Overview</td><td>Total / Active / Pending / Withdrawn</td><td class="full">FULL</td><td><span class="path">src/app/dashboard/page.tsx</span> → <span class="path">consent_records</span></td></tr>
+      <tr><td>Overview</td><td>Trends (30d) + purpose donut</td><td class="full">FULL</td><td><span class="path">src/lib/analytics/queries.ts</span></td></tr>
+      <tr><td>Overview</td><td>Date range / export / quick actions</td><td class="missing">MISSING</td><td>Home hardcodes <span class="path">days: "30"</span>; no CSV/PDF</td></tr>
+      <tr><td>Websites</td><td>Add / list / edit / org association</td><td class="full">FULL</td><td><span class="path">/dashboard/websites*</span>, <span class="path">/api/websites*</span></td></tr>
+      <tr><td>Websites</td><td>Domain verification</td><td class="partial">PARTIAL</td><td>Real checks; does not gate SDK</td></tr>
+      <tr><td>Websites</td><td>Delete website</td><td class="missing">MISSING</td><td>No DELETE on <span class="path">/api/websites/[id]</span></td></tr>
+      <tr><td>Trackers</td><td>Scan discovery + inventory</td><td class="full">FULL</td><td><span class="path">scan-engine.ts</span>, <span class="path">html-analyser.ts</span>, <span class="path">trackers</span></td></tr>
+      <tr><td>Trackers</td><td>Fixed Necessary/Prefs/… taxonomy</td><td class="partial">PARTIAL</td><td>Free-form <span class="path">purposes</span>, not fixed 7 categories</td></tr>
+      <tr><td>Purposes</td><td>Create / list / required / associations</td><td class="full">FULL</td><td><span class="path">/api/purposes</span>, policy panels</td></tr>
+      <tr><td>Purposes</td><td>Edit / delete APIs</td><td class="missing">MISSING</td><td>Only POST under purposes API</td></tr>
+      <tr><td>Banner</td><td>Studio → DB → live SDK</td><td class="full">FULL</td><td>Banner Studio + <span class="path">banner-config</span> + SDK</td></tr>
+      <tr><td>Preference center</td><td>Toggles / save / withdraw</td><td class="full">FULL</td><td>SDK + preview + consent APIs</td></tr>
+      <tr><td>Preference center</td><td>Affects all tracking</td><td class="partial">PARTIAL</td><td>Tagged scripts only (<span class="path">data-cmp-purpose</span>)</td></tr>
+      <tr><td>Consent logs</td><td>List / detail / crypto proof</td><td class="full">FULL</td><td><span class="path">/dashboard/consent*</span>, evidence API</td></tr>
+      <tr><td>Consent logs</td><td>CSV/JSON export UI</td><td class="missing">MISSING</td><td>Footer points to API only</td></tr>
+      <tr><td>Scanner</td><td>Manual + scheduled scans</td><td class="full">FULL</td><td>Cron <span class="path">/api/cron/scans</span>, schedules table</td></tr>
+      <tr><td>Scanner</td><td>Full browser / SPA crawl</td><td class="partial">PARTIAL</td><td>HTML fetch analyser, no headless browser</td></tr>
+      <tr><td>Analytics</td><td>Rates, geo, device, browser, purpose, site</td><td class="full">FULL</td><td><span class="path">loadConsentAnalytics</span>, analytics page</td></tr>
+      <tr><td>Reports</td><td>PDF/CSV/Excel/scheduled email</td><td class="missing">MISSING</td><td>No export generators found</td></tr>
+      <tr><td>DSAR</td><td>Intake + status + admin + erasure</td><td class="full">FULL</td><td><span class="path">data_principal_requests</span> + rights APIs</td></tr>
+      <tr><td>DSAR</td><td>Access package / portability / CCPA opt-out</td><td class="missing">MISSING</td><td>DPDP-oriented types; no access export</td></tr>
+      <tr><td>Compliance</td><td>Geo regs / quality / risk</td><td class="partial">PARTIAL</td><td>Product scores, not legal attestation</td></tr>
+      <tr><td>Integrations</td><td>GCM / IAB signals</td><td class="partial">PARTIAL</td><td><span class="path">consent-integrations.ts</span></td></tr>
+      <tr><td>Integrations</td><td>GA/Meta/HubSpot OAuth</td><td class="ui-only">UI ONLY</td><td>Connect writes empty configuration</td></tr>
+      <tr><td>Developer</td><td>JS SDK + webhooks</td><td class="full">FULL</td><td>SDK routes + webhook delivery</td></tr>
+      <tr><td>Developer</td><td>API key request auth</td><td class="partial">PARTIAL</td><td>Keys hashed but unused for auth</td></tr>
+      <tr><td>Notifications</td><td>In-app list/read</td><td class="full">FULL</td><td><span class="path">notifications</span> table + APIs</td></tr>
+      <tr><td>Notifications</td><td>Email alerts</td><td class="missing">MISSING</td><td>In-app only</td></tr>
+      <tr><td>RBAC</td><td>Invite / Owner-Admin role ops</td><td class="partial">PARTIAL</td><td>Team APIs role-gated</td></tr>
+      <tr><td>RBAC</td><td>Permission key enforcement</td><td class="ui-only">UI ONLY</td><td>No <span class="path">requirePermission</span></td></tr>
+      <tr><td>Billing</td><td>Subscription product</td><td class="ui-only">UI ONLY</td><td>Schema exists; nav duplicates org settings</td></tr>
+      <tr><td>Security</td><td>Org isolation on APIs</td><td class="full">FULL</td><td>Org filters + tenant website helpers</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Implemented Features (working E2E)</h2>
+  <ul>
+    <li>Auth + org workspace (Clerk, bootstrap, dashboard gate).</li>
+    <li>Websites: create/list/detail/settings, environments field, domain verification, jurisdiction rules, scan schedule, installation snippet.</li>
+    <li>Purposes &amp; vendors: create/list, policy associations.</li>
+    <li>Policies: version, publish, Banner Studio, preference preview writing real consent.</li>
+    <li>Live SDK: banner, preference center, consent record/withdraw, Consent Mode / IAB signals when configured.</li>
+    <li>Consent logs + cryptographic evidence API.</li>
+    <li>Analytics with filters from DB aggregates.</li>
+    <li>Scanner (HTML) + scheduled scans + drift/risk/quality + intelligence previews on live graph.</li>
+    <li>Portable consent export/import.</li>
+    <li>Rights requests intake/status/processing + erasure path.</li>
+    <li>API key storage, webhooks + deliveries, in-app notifications, audit logs, team invite/role/remove.</li>
+  </ul>
+
+  <h2>5. Partially Implemented</h2>
+  <table>
+    <thead><tr><th>Area</th><th>Exists</th><th>Missing / incomplete</th></tr></thead>
+    <tbody>
+      <tr><td>Overview</td><td>Counts, trends, purpose donut, recent, checklist</td><td>Consent rate KPI, accept/reject cards, by-website, DSAR feed, date picker, exports, quick actions</td></tr>
+      <tr><td>Domain verification</td><td>Real TXT/meta/well-known</td><td>Does not block unverified sites from SDK</td></tr>
+      <tr><td>Environments</td><td>Stored labels</td><td>No separate runtime isolation</td></tr>
+      <tr><td>Trackers/cookies</td><td>Scan → inventory → purpose map</td><td>Rich cookie CMS, history, approve queue</td></tr>
+      <tr><td>Purposes</td><td>Create + required + associations</td><td>Edit/delete APIs; ordering UX</td></tr>
+      <tr><td>Enforcement</td><td>Tagged script pause/restore</td><td>Cookies / untagged third parties</td></tr>
+      <tr><td>Consent logs</td><td>Storage + evidence</td><td>CSV export UI; full pagination</td></tr>
+      <tr><td>Scanner</td><td>Fetch + signatures + schedule</td><td>Headless SPA crawl</td></tr>
+      <tr><td>DSAR</td><td>Intake, SLA fields, erasure</td><td>Access package, correction apply, portability, restrict, CCPA opt-out</td></tr>
+      <tr><td>Compliance</td><td>Regulations + quality/risk</td><td>True compliance engine / attestations</td></tr>
+      <tr><td>Integrations</td><td>Connect row + GCM/IAB</td><td>Provider OAuth</td></tr>
+      <tr><td>API keys</td><td>Create/hash/revoke UI</td><td>Authenticate requests</td></tr>
+      <tr><td>RBAC</td><td>Roles + permission catalog UI</td><td>Enforce keys on product APIs</td></tr>
+      <tr><td>Billing</td><td>DB tables</td><td>Product UI / metering</td></tr>
+      <tr><td>AI Autopilot</td><td>Assisted recommendations</td><td>No auto-publishing (explicit in code)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. UI-Only / Stub Features</h2>
+  <ul>
+    <li><strong>Integrations catalog Connect</strong> — empty <span class="path">configuration</span>; no OAuth.</li>
+    <li><strong>Sidebar Billing</strong> — navigates to Organization Settings; billing schemas unused.</li>
+    <li><strong>Sidebar SDK / Installation</strong> — points to API Keys, not website installation.</li>
+    <li><strong>Permissions matrix</strong> — display only; not checked in handlers.</li>
+    <li><strong>Firewall scenarios</strong> — preview simulator on real graph (not a fake table, but not a live appliance).</li>
+    <li>Overview date locked to 30 days (real data, non-functional filter).</li>
+  </ul>
+  <p>Core consent/analytics/scanner pages were <strong>not</strong> found to use mock visitor tables.</p>
+
+  <h2>7. Missing Features (Prioritized)</h2>
+  <h3>P0 — Critical</h3>
+  <ul>
+    <li>Enforce fine-grained RBAC (or document all members as operators).</li>
+    <li>Fix membership bootstrap so non-owners are not minted as Owner.</li>
+    <li>API key authentication for machine APIs <em>or</em> remove misleading API Keys claim.</li>
+    <li>Consent/log export (CSV/JSON) for audits.</li>
+    <li>Website delete (or soft-delete) with cascading safety.</li>
+  </ul>
+  <h3>P1 — High</h3>
+  <ul>
+    <li>Report center (CSV first; PDF later); DSAR access package; purpose/vendor edit-delete; email alerts; domain-verify gating; stronger enforcement + docs.</li>
+  </ul>
+  <h3>P2 — Medium</h3>
+  <ul>
+    <li>Overview quick actions + date-range + consent rate; cookie classify/history; preference history / re-consent UX; real integrations or shrink catalog; pagination.</li>
+  </ul>
+  <h3>P3 — Nice to have</h3>
+  <ul>
+    <li>React/Next packages; mobile SDKs; scheduled email reports; Excel; headless scanner; SSO/SCIM UI; billing productization.</li>
+  </ul>
+
+  <h2>8. Security Gaps</h2>
+  <table>
+    <thead><tr><th>Risk</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Fine-grained RBAC not enforced</td><td>Any active member can mutate most product APIs</td></tr>
+      <tr><td>Owner bootstrap for missing membership</td><td><span class="path">bootstrap-current-context</span> can assign Owner</td></tr>
+      <tr><td>API keys unused for auth</td><td>Hashed secrets without request verification</td></tr>
+      <tr><td>Consent proof secret default</td><td>Dev fallback if env unset — prod misconfig risk</td></tr>
+      <tr><td>Rate limits process-local</td><td>In-memory Map — weak under multi-instance</td></tr>
+      <tr><td>Domain verification optional</td><td>Unverified domains still get SDK config</td></tr>
+      <tr><td>Selective audit logging</td><td>Not all mutations audited</td></tr>
+      <tr><td>Policies/scans lack direct organizationId</td><td>Isolation via website join — IDOR if a route forgets the join</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Positives:</strong> Clerk session on dashboard; org filters common; SSRF guards on scanner; CSRF origin checks; tenant website helper; rights erasure audited.</p>
+
+  <h2>9. Data Model Gaps</h2>
+  <p><strong>Present &amp; used:</strong> organizations, users, memberships, roles/permissions (underused), websites, jurisdiction rules, policies/versions, purposes, vendors, trackers, consent records/decisions/events, scans/results/schedules, privacy findings, DSAR requests, integrations + website links, API keys, webhooks, notifications, audit logs, billing tables (unused).</p>
+  <p><strong>Missing / insufficient:</strong> dedicated cookies entity + change log; reports/report_runs; email outbox; DSAR artifacts; API key scopes + last-used + auth binding; permission enforcement helpers; billing usage wired to limits.</p>
+  <p><strong>Stack note:</strong> 34 Drizzle schema files · 66 API routes · 0 server actions · 1 cron entry (<span class="path">/api/cron/scans</span>).</p>
+
+  <h2>10. Navigation Recommendation</h2>
+  <ol>
+    <li><strong>Home</strong> — /dashboard</li>
+    <li><strong>Properties</strong> — Websites (+ install, regulations, enforcement as site tabs)</li>
+    <li><strong>Consent</strong> — Policies, Purposes, Vendors, Trackers, Consent logs</li>
+    <li><strong>Discovery</strong> — Scanner, Privacy drift, Risk, Quality</li>
+    <li><strong>Insights</strong> — Analytics, Experiments, Graph, Firewall, Simulator, Recommendations, Data flow (fold Autopilot/Twin/ROI/Negotiation under Labs)</li>
+    <li><strong>Privacy ops</strong> — Rights requests, Audit logs, Notifications</li>
+    <li><strong>Developers</strong> — API keys, Webhooks, SDK install deep-link, Integrations</li>
+    <li><strong>Admin</strong> — Organization, Team &amp; roles, Retention/security, Billing (when real)</li>
+  </ol>
+
+  <h2>11. Implementation Roadmap</h2>
+  <ol>
+    <li><strong>Phase 1 — Critical foundation:</strong> RBAC baseline; Owner bootstrap fix; website delete; API key auth or UI honesty; consent CSV export; audit coverage; secret hardening.</li>
+    <li><strong>Phase 2 — Core Consent Management:</strong> Purpose/vendor edit-delete; cookie classify workflow; enforcement hardening; domain-verify policy; overview date filter + quick actions + consent rate.</li>
+    <li><strong>Phase 3 — Analytics &amp; Reporting:</strong> Report builder (CSV→PDF); consent/cookie/scan/DSAR reports; scheduled exports; pagination.</li>
+    <li><strong>Phase 4 — Privacy / DSAR:</strong> Identity verification; access package; correction apply; portability; CCPA opt-out/restrict; SLA email nudges.</li>
+    <li><strong>Phase 5 — Compliance:</strong> Regulation packs tied to real controls; geo banner tests; compliance report from control evidence.</li>
+    <li><strong>Phase 6 — Developer / API:</strong> Documented public API with key scopes; Next helper package; webhook catalog polish; sandbox keys.</li>
+    <li><strong>Phase 7 — Enterprise:</strong> SSO/SCIM; website-level roles; billing/usage limits; email alert center; headless scanner; vendor OAuth.</li>
+  </ol>
+
+  <h2>12. Route Audit (discovered)</h2>
+  <table>
+    <thead><tr><th>Route</th><th>Purpose</th><th>Status</th><th>Backend/DB</th></tr></thead>
+    <tbody>
+      <tr><td>/dashboard</td><td>Overview</td><td class="partial">PARTIAL completeness</td><td>Real DB</td></tr>
+      <tr><td>/dashboard/websites*</td><td>Sites CRUD / install / enforcement / regs</td><td class="full">Strong</td><td>Real</td></tr>
+      <tr><td>/dashboard/consent*</td><td>Logs + evidence</td><td class="full">Strong</td><td>Real</td></tr>
+      <tr><td>/dashboard/policies*</td><td>Policies, studio, preference preview</td><td class="full">Strong</td><td>Real</td></tr>
+      <tr><td>/dashboard/purposes*, /vendors*, /trackers</td><td>Catalogs</td><td class="partial">Strong (edit gaps)</td><td>Real</td></tr>
+      <tr><td>/dashboard/scanner*</td><td>Scans</td><td class="full">Strong MVP</td><td>Real</td></tr>
+      <tr><td>/dashboard/analytics</td><td>Analytics</td><td class="full">Strong</td><td>Real</td></tr>
+      <tr><td>/dashboard/monitoring*, /risk, /quality</td><td>Drift / risk / quality</td><td class="full">Strong computed</td><td>Real</td></tr>
+      <tr><td>/dashboard/firewall … /data-redaction</td><td>Intelligence suite</td><td class="partial">Advanced MVP</td><td>Real inputs</td></tr>
+      <tr><td>/dashboard/rights-requests</td><td>DSAR ops</td><td class="partial">Partial</td><td>Real</td></tr>
+      <tr><td>/dashboard/integrations</td><td>Catalog</td><td class="ui-only">Stub connect</td><td>DB stub</td></tr>
+      <tr><td>/dashboard/developers*</td><td>Keys / webhooks</td><td class="partial">Partial keys</td><td>Real storage</td></tr>
+      <tr><td>/dashboard/notifications, /audit-logs</td><td>Ops</td><td class="full">Strong</td><td>Real</td></tr>
+      <tr><td>/dashboard/settings/organization, /team</td><td>Admin</td><td class="partial">Partial</td><td>Real</td></tr>
+    </tbody>
+  </table>
+
+  <div class="footer-note">
+    <strong>READY FOR IMPLEMENTATION</strong> — This document is an audit-only snapshot. No repository files were modified to produce the findings;<br />
+    this PDF is a generated deliverable of the audit report for sharing and planning.
+  </div>
+
+</body>
+</html>

@@ -71,10 +71,10 @@ export default async function OrganizationSettingsPage() {
     <div className="page-wrap space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="page-title">
           Organization settings
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="page-description">
           Manage the configuration for{" "}
           <span className="font-medium text-slate-700">{organization.name}</span>.
         </p>

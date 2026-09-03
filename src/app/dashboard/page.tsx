@@ -467,12 +467,12 @@ export default async function DashboardPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8 animate-fade-in">
       {/* Page header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-[28px]">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="page-title">
             Dashboard
           </h1>
-          <p className="mt-1.5 text-sm text-slate-500 text-balance sm:text-base">
+          <p className="page-description">
             {websiteCount === 0
               ? "Your workspace is ready. Add a website to start collecting consent."
               : `Overview for ${localOrg.name}.`}
@@ -530,7 +530,7 @@ export default async function DashboardPage() {
         <Card className="lg:col-span-2 min-w-0">
           <CardHeader className="pb-3">
             <CardTitle className="text-base sm:text-lg">Consent by Purpose</CardTitle>
-            <p className="mt-1 text-sm text-slate-500">Granted decisions · last 30 days</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">Granted decisions · last 30 days</p>
           </CardHeader>
           <CardContent>
             <DonutChart slices={donutSlices} total={donutTotal} />
@@ -564,17 +564,18 @@ export default async function DashboardPage() {
             ) : recentRequests.map((req, idx) => (
               <div
                 key={idx}
-                className="flex items-center gap-3 rounded-2xl px-3 -mx-1 py-3 hover:bg-slate-50/80 transition-colors"
+                className="dashboard-list-row rounded-2xl px-3 -mx-1 py-3 hover:bg-[var(--muted)]/60 transition-colors"
               >
-                <AvatarFallback name={req.name} idx={idx} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900 truncate">{req.name}</p>
-                  <p className="text-xs text-slate-500 truncate mt-0.5">{req.email}</p>
+                <div data-icon-tile>
+                  <AvatarFallback name={req.name} idx={idx} />
                 </div>
-                {/* On very small screens hide the time, show status only */}
-                <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-[var(--foreground)] truncate leading-snug">{req.name}</p>
+                  <p className="text-xs text-[var(--muted-foreground)] truncate mt-0.5">{req.email}</p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2 self-center sm:gap-4">
                   <RequestStatusBadge status={req.status} />
-                  <span className="hidden sm:block text-xs text-slate-400 tabular-nums w-12 text-right">
+                  <span className="hidden sm:block text-xs text-[var(--muted-foreground)] tabular-nums w-12 text-right">
                     {req.time}
                   </span>
                 </div>
@@ -649,18 +650,18 @@ export default async function DashboardPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardContent className="py-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-teal text-white">
+              <div className="icon-text-row">
+                <div data-icon-tile className="flex h-11 w-11 items-center justify-center rounded-2xl stat-icon-teal text-white">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="10" />
                     <line x1="2" y1="12" x2="22" y2="12" />
                     <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
                   </svg>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-500">Websites</p>
-                  <p className="text-2xl font-bold text-slate-900">{websiteCount}</p>
-                  <p className="text-xs text-slate-400">Registered websites</p>
+                <div className="icon-text-body">
+                  <p className="text-sm font-medium text-[var(--muted-foreground)]">Websites</p>
+                  <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--foreground)] tabular-nums">{websiteCount}</p>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">Registered websites</p>
                 </div>
               </div>
             </CardContent>
@@ -668,8 +669,8 @@ export default async function DashboardPage() {
 
           <Card>
             <CardContent className="py-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-purple text-white">
+              <div className="icon-text-row">
+                <div data-icon-tile className="flex h-11 w-11 items-center justify-center rounded-2xl stat-icon-purple text-white">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                     <polyline points="14 2 14 8 20 8" />
@@ -677,10 +678,10 @@ export default async function DashboardPage() {
                     <line x1="16" y1="17" x2="8" y2="17" />
                   </svg>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-500">Policies</p>
-                  <p className="text-2xl font-bold text-slate-900">{policyCount}</p>
-                  <p className="text-xs text-slate-400">Across all websites</p>
+                <div className="icon-text-body">
+                  <p className="text-sm font-medium text-[var(--muted-foreground)]">Policies</p>
+                  <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--foreground)] tabular-nums">{policyCount}</p>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">Across all websites</p>
                 </div>
               </div>
             </CardContent>
@@ -688,16 +689,16 @@ export default async function DashboardPage() {
 
           <Card>
             <CardContent className="py-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl stat-icon-amber text-white">
+              <div className="icon-text-row">
+                <div data-icon-tile className="flex h-11 w-11 items-center justify-center rounded-2xl stat-icon-amber text-white">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                   </svg>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-500">Trackers</p>
-                  <p className="text-2xl font-bold text-slate-900">{trackerCount}</p>
-                  <p className="text-xs text-slate-400">Detected across all websites</p>
+                <div className="icon-text-body">
+                  <p className="text-sm font-medium text-[var(--muted-foreground)]">Trackers</p>
+                  <p className="mt-0.5 text-2xl font-bold leading-none text-[var(--foreground)] tabular-nums">{trackerCount}</p>
+                  <p className="mt-1 text-xs text-[var(--muted-foreground)]">Detected across all websites</p>
                 </div>
               </div>
             </CardContent>

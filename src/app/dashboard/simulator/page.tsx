@@ -6,6 +6,7 @@ import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites"
 import { simulatePrivacyImpact } from "@/lib/intelligence/simulator";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
+import { PageHeader } from "@/components/ui/page-header";
 
 function IconSim() {
   return (
@@ -29,14 +30,12 @@ export default async function PrivacyImpactSimulatorPage({
   const scenarios = loaded ? simulatePrivacyImpact(loaded.input) : [];
 
   return (
-    <div className="px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <p className="text-sm font-medium text-[var(--muted-foreground)]">Intelligence</p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Privacy impact simulator</h1>
-        <p className="mt-2 max-w-3xl text-sm text-[var(--muted-foreground)]">
-          Estimates how the operational quality score would change if you mapped trackers, resolved findings, published a policy, or covered scan items. This is not a legal assessment.
-        </p>
-      </div>
+    <div className="page-wrap space-y-6 sm:space-y-8">
+      <PageHeader
+        eyebrow="Intelligence"
+        title="Privacy impact simulator"
+        description="Estimates how the operational quality score would change if you mapped trackers, resolved findings, published a policy, or covered scan items. This is not a legal assessment."
+      />
 
       {sites.length === 0 ? (
         <Card>

@@ -140,15 +140,15 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
 
       <div className="grid gap-6 lg:grid-cols-2">
       <Card>
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Consent Policies</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+        <div className="card-section-header">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Consent Policies</h2>
+            <p className="mt-0.5 text-sm leading-5 text-[var(--muted-foreground)]">
               Policies define what visitors are asked to accept.
             </p>
           </div>
           {policyRows.length > 0 && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+            <span className="mt-0.5 shrink-0 rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
               {policyRows.length}
             </span>
           )}
@@ -199,15 +199,15 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
       </Card>
 
       <Card>
-        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <div>
-            <h2 className="text-base font-semibold text-slate-900">Trackers</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+        <div className="card-section-header">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Trackers</h2>
+            <p className="mt-0.5 text-sm leading-5 text-[var(--muted-foreground)]">
               Cookies and tracking technologies detected on this website.
             </p>
           </div>
           {trackerCount > 0 && (
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+            <span className="mt-0.5 shrink-0 rounded-full bg-[var(--muted)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
               {trackerCount}
             </span>
           )}
@@ -218,11 +218,13 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
       </Card>
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Scanner</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
-            Automatically scan your website for cookies and trackers.
-          </p>
+        <div className="card-section-header">
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">Scanner</h2>
+            <p className="mt-0.5 text-sm leading-5 text-[var(--muted-foreground)]">
+              Automatically scan your website for cookies and trackers.
+            </p>
+          </div>
         </div>
         <CardContent>
           {scanCount === 0 ? (
