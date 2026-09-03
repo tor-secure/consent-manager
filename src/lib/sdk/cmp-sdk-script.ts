@@ -1417,6 +1417,45 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       removeBanner();
       _hostScroll.endTransition();
     },
+    // Import consent exported from a different website/domain.
+    //
+    // portableBundle: { claims, proof }
+    // targetWebsiteId: UUID of the site that will receive enforcement.
+    importPortableConsent: function(portableBundle, targetWebsiteId) {
+      return new Promise(function(resolve, reject) {
+        try {
+          var payload = portableBundle || {};
+          var claims = payload.claims || null;
+          var proof = payload.proof || null;
+          var tid = targetWebsiteId || '';
+
+          if (!claims || !proof || !tid) {
+            reject(new Error('portableBundle.claims/proof and targetWebsiteId are required'));
+            return;
+          }
+
+          fetch(API_BASE + '/api/consent/portable/import', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              claims: claims,
+              proof: proof,
+              targetWebsiteId: tid
+            })
+          })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (!data || !data.success) throw new Error((data && data.message) || 'Portable import failed');
+              // Save imported decisions into local storage so enforcement runs immediately.
+              saveConsent(data.consentId, data.decisions || [], data.expiresAt, data.choice || 'granular');
+              resolve(data);
+            })
+            .catch(function(err) { reject(err); });
+        } catch (e) {
+          reject(e);
+        }
+      });
+    },
     setLanguage: function(lang, callback) {
       _explicitLang = String(lang || '').slice(0, 35);
       var bannerOpen = !!document.getElementById('__cmp_banner__');

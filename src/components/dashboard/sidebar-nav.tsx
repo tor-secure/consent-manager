@@ -246,6 +246,13 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "Dependency graph", href: "/dashboard/graph", icon: <IconAnalytics />, ariaLabel: "Consent dependency graph" },
       { label: "Recommendations", href: "/dashboard/recommendations", icon: <IconAnalytics />, ariaLabel: "Consent recommendations" },
       { label: "Data flow map", href: "/dashboard/data-flow", icon: <IconAnalytics />, ariaLabel: "Data flow consent map" },
+      { label: "Cross-domain consent", href: "/dashboard/cross-domain", icon: <IconAnalytics />, ariaLabel: "Cross-domain & cross-device consent exchange" },
+      { label: "AI consent autopilot", href: "/dashboard/autopilot", icon: <IconAnalytics />, ariaLabel: "AI consent autopilot" },
+      { label: "Consent digital twin", href: "/dashboard/digital-twin", icon: <IconAnalytics />, ariaLabel: "Consent digital twin" },
+      { label: "Consent ROI engine", href: "/dashboard/roi", icon: <IconAnalytics />, ariaLabel: "Consent ROI engine" },
+      { label: "Consent negotiation engine", href: "/dashboard/negotiation", icon: <IconAnalytics />, ariaLabel: "Consent negotiation engine" },
+      { label: "AI-agent permissioning", href: "/dashboard/agent-permissioning", icon: <IconAnalytics />, ariaLabel: "AI-agent permissioning" },
+      { label: "Data redaction", href: "/dashboard/data-redaction", icon: <IconAnalytics />, ariaLabel: "Real-time consent-based data redaction" },
     ],
   },
   {
@@ -504,11 +511,13 @@ export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => 
   });
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPendingHref(null);
   }, [pathname]);
 
   useEffect(() => {
     const stored = readOpenGroups();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenGroups((current) => {
       const next = { ...current };
       for (const group of NAV_GROUPS) {

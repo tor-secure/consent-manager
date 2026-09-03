@@ -1,10 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { db } from "@/db";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { loadConsentAnalytics } from "@/lib/analytics/queries";
+import { consentRecords } from "@/db/schema/consent-records";
+import { consentDecisions } from "@/db/schema/consent-decisions";
+import { purposes } from "@/db/schema/purposes";
+import { and, eq } from "drizzle-orm";
+import { isValidConsentId } from "@/lib/sdk/public-http";
 
 export async function GET(request: Request) {
   try {
@@ -37,6 +43,8 @@ export async function GET(request: Request) {
     }
 
     const url = new URL(request.url);
+    const redactConsentId = url.searchParams.get("redactConsentId")?.trim() ?? null;
+
     const data = await loadConsentAnalytics(organization.id, {
       websiteId: url.searchParams.get("websiteId"),
       days: url.searchParams.get("days"),
@@ -51,10 +59,78 @@ export async function GET(request: Request) {
 
     const { websites: _websites, ...aggregated } = data;
     void _websites;
+    let analytics = aggregated;
+
+    // Real-time consent-based redaction (MVP):
+    // when a consentId is provided, only expose purposes that were granted
+    // (or are required by the purpose's essential flag).
+    if (redactConsentId) {
+      if (!isValidConsentId(redactConsentId)) {
+        return NextResponse.json(
+          { success: false, message: "Invalid redactConsentId format" },
+          { status: 400 },
+        );
+      }
+
+      const consentWebsiteId = url.searchParams.get("websiteId")?.trim() ?? null;
+      const consentRecord = await db
+        .select({ id: consentRecords.id })
+        .from(consentRecords)
+        .where(
+          and(
+            eq(consentRecords.organizationId, organization.id),
+            eq(consentRecords.consentId, redactConsentId),
+            consentWebsiteId ? eq(consentRecords.websiteId, consentWebsiteId) : undefined,
+          ),
+        )
+        .limit(1);
+
+      if (consentRecord.length) {
+        const consentRecordId = consentRecord[0].id;
+
+        const purposeDecisionRows = await db
+          .select({
+            purposeId: consentDecisions.purposeId,
+            granted: consentDecisions.granted,
+            isRequired: purposes.isRequired,
+          })
+          .from(consentDecisions)
+          .innerJoin(purposes, eq(consentDecisions.purposeId, purposes.id))
+          .where(eq(consentDecisions.consentRecordId, consentRecordId));
+
+        const allowedPurposeIds = new Set(
+          purposeDecisionRows
+            .filter((r) => r.purposeId && (r.granted || r.isRequired))
+            .map((r) => r.purposeId as string),
+        );
+
+        analytics = {
+          ...analytics,
+          purposes: analytics.purposes.filter((p) => allowedPurposeIds.has(p.purposeId)),
+          filterOptions: {
+            ...analytics.filterOptions,
+            purposes: analytics.filterOptions.purposes.filter((p) => allowedPurposeIds.has(p.id)),
+          },
+          redacted: true,
+          redactionScope: { consentId: redactConsentId },
+        };
+      } else {
+        analytics = {
+          ...analytics,
+          purposes: [],
+          filterOptions: {
+            ...analytics.filterOptions,
+            purposes: [],
+          },
+          redacted: true,
+          redactionScope: { consentId: redactConsentId, notFound: true },
+        };
+      }
+    }
 
     return NextResponse.json({
       success: true,
-      analytics: aggregated,
+      analytics,
     });
   } catch (error) {
     logger.error("Consent analytics request failed", {
