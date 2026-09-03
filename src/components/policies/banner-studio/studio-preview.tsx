@@ -172,7 +172,8 @@ export function StudioPreview({
     setIframeBlocked(false);
   }
 
-  const previewWidth = viewport === "mobile" ? "390px" : "100%";
+  const previewWidth = viewport === "mobile" ? "360px" : "720px";
+  const previewHeight = viewport === "mobile" ? "580px" : "400px";
 
   return (
     <div className="flex h-full flex-col">
@@ -250,12 +251,18 @@ export function StudioPreview({
 
       {/* ── Canvas ──────────────────────────────────────────────────────── */}
       <div
-        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-4"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-6"
         style={{ background: "repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 10px,#e2e8f0 10px,#e2e8f0 11px)" }}
       >
         <div
-          className="relative h-full max-h-full overflow-hidden rounded-2xl shadow-2xl ring-2 ring-white/60 transition-[width] duration-300"
-          style={{ width: previewWidth, maxWidth: "100%", background: "white" }}
+          className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-slate-200/80 transition-[width,height] duration-300"
+          style={{
+            width: previewWidth,
+            height: previewHeight,
+            maxWidth: "100%",
+            maxHeight: "100%",
+            background: "white",
+          }}
         >
           {/* Mobile notch decoration */}
           {viewport === "mobile" && (

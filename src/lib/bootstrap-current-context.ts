@@ -10,6 +10,11 @@ import { users } from "@/db/schema/users";
 import { organizations } from "@/db/schema/organizations";
 import { memberships } from "@/db/schema/memberships";
 import { roles } from "@/db/schema/roles";
+import {
+  organizationCoreSelect,
+  toOrganizationRow,
+  userCoreSelect,
+} from "@/lib/schema-selects";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -109,7 +114,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
   // --------------------------------------------------
 
   let [localUser] = await db
-    .select()
+    .select(userCoreSelect)
     .from(users)
     .where(eq(users.clerkUserId, userId))
     .limit(1);
@@ -129,7 +134,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
         lastLoginAt: new Date(),
         emailVerifiedAt: isEmailVerified ? new Date() : null,
       })
-      .returning();
+      .returning(userCoreSelect);
   } else {
     [localUser] = await db
       .update(users)
@@ -146,7 +151,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
         updatedAt: new Date(),
       })
       .where(eq(users.clerkUserId, userId))
-      .returning();
+      .returning(userCoreSelect);
   }
 
   // --------------------------------------------------
@@ -212,7 +217,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
   // --------------------------------------------------
 
   const [existingOrg] = await db
-    .select()
+    .select(organizationCoreSelect)
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, clerkOrg.id))
     .limit(1);
@@ -233,7 +238,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
     if (existingMembership) {
       return {
         user: localUser,
-        organization: existingOrg,
+        organization: toOrganizationRow(existingOrg),
         membership: existingMembership,
       };
     }
@@ -273,7 +278,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
 
     return {
       user: localUser,
-      organization: existingOrg,
+      organization: toOrganizationRow(existingOrg),
       membership,
     };
   }
@@ -297,7 +302,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
         settings: {},
         onboardingCompleted: false,
       })
-      .returning();
+      .returning(organizationCoreSelect);
 
     let [ownerRole] = await tx
       .select()
@@ -331,7 +336,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
 
   return {
     user: localUser,
-    organization,
+    organization: toOrganizationRow(organization),
     membership,
   };
 });

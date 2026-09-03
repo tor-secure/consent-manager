@@ -13,7 +13,7 @@ import {
 } from "@/lib/banner-config";
 import { BANNER_TEXT_FIELDS, PREFERENCE_TEXT_FIELDS } from "@/lib/i18n/resolve-notice";
 import { isRegisteredLocale, normalizeLocaleTag, languageOf } from "@/lib/i18n/locale-registry";
-import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership, resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
 
 const VALID_POSITIONS = ["bottom", "top", "bottom-left", "bottom-right", "center"] as const;
 const VALID_LAYOUTS = ["bar", "box", "dialog"] as const;
@@ -29,9 +29,15 @@ export async function PUT(
 ) {
   try {
     const { id: policyId } = await params;
-    const { isAuthenticated, userId, orgId } = await auth();
+    const { isAuthenticated, userId, orgId: sessionOrgId } = await auth();
 
-    if (!isAuthenticated || !userId || !orgId) {
+    if (!isAuthenticated || !userId) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+
+    const orgId = await resolveActiveClerkOrgId(userId, sessionOrgId);
+
+    if (!orgId) {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
@@ -76,9 +82,15 @@ export async function PUT(
       return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
     }
 
-    // Get latest version.
+    // Get versions. The live SDK prefers a published version, so studio
+    // changes must land on that row — not only the latest draft.
     const allVersions = await db
-      .select({ id: consentPolicyVersions.id, version: consentPolicyVersions.version })
+      .select({
+        id: consentPolicyVersions.id,
+        version: consentPolicyVersions.version,
+        isPublished: consentPolicyVersions.isPublished,
+        configuration: consentPolicyVersions.configuration,
+      })
       .from(consentPolicyVersions)
       .where(eq(consentPolicyVersions.policyId, policy.id))
       .orderBy(consentPolicyVersions.version);
@@ -86,6 +98,11 @@ export async function PUT(
     const latestVersion = allVersions[allVersions.length - 1] ?? null;
     if (!latestVersion) {
       return NextResponse.json({ success: false, message: "No policy version found" }, { status: 404 });
+    }
+
+    const saveIds = new Set<string>([latestVersion.id]);
+    for (const version of allVersions) {
+      if (version.isPublished) saveIds.add(version.id);
     }
 
     const body = await request.json();
@@ -182,6 +199,13 @@ export async function PUT(
           .filter((code): code is string => Boolean(code))
       : (raw.supportedLocales ?? []);
 
+    const existingRaw =
+      latestVersion.configuration &&
+      typeof latestVersion.configuration === "object" &&
+      !Array.isArray(latestVersion.configuration)
+        ? (latestVersion.configuration as Record<string, unknown>)
+        : {};
+
     const config: BannerConfiguration = {
       ...raw,
       consentExpireDays,
@@ -205,10 +229,15 @@ export async function PUT(
       supportedLocales,
     };
 
+    const payload = {
+      ...existingRaw,
+      ...(config as unknown as Record<string, unknown>),
+    };
+
     await db
       .update(consentPolicyVersions)
-      .set({ configuration: config as unknown as Record<string, unknown>, updatedAt: new Date() })
-      .where(eq(consentPolicyVersions.id, latestVersion.id));
+      .set({ configuration: payload, updatedAt: new Date() })
+      .where(inArray(consentPolicyVersions.id, [...saveIds]));
 
     return NextResponse.json({ success: true, configuration: config });
   } catch (error) {

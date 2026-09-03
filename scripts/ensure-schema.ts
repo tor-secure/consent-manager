@@ -24,6 +24,10 @@ async function main() {
     "websites extra columns:",
     websiteCols.map((row) => row.column_name).join(",") || "(none)",
   );
+  console.log(
+    "To fully match this codebase (recommended for Neon production):",
+    "set DATABASE_URL to the Neon connection string, then run npm run db:push",
+  );
   await sql.end();
 }
 

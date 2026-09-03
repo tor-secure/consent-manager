@@ -429,10 +429,32 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function renderBanner() {
     if (!_config || !_config.bannerConfig) return;
     var cfg = _config.bannerConfig;
-    if (!cfg.showAcceptAll && !cfg.showRejectAll && !cfg.showCustomize) return;
+    if (!cfg.showAcceptAll && !cfg.showRejectAll && !cfg.showCustomize && !cfg.showCloseButton) return;
 
     var existingBanner = document.getElementById('__cmp_banner__');
     if (existingBanner && existingBanner.parentNode) existingBanner.parentNode.removeChild(existingBanner);
+    var existingOverlay = document.getElementById('__cmp_banner_overlay__');
+    if (existingOverlay && existingOverlay.parentNode) existingOverlay.parentNode.removeChild(existingOverlay);
+
+    var layout = cfg.layout || 'bar';
+    var position = cfg.position || 'bottom';
+    var overlayOn = !!(cfg.overlayEnabled || cfg.blockPageUntilConsent || layout === 'dialog');
+
+    if (overlayOn) {
+      var overlay = document.createElement('div');
+      overlay.id = '__cmp_banner_overlay__';
+      overlay.setAttribute(
+        'style',
+        'position:fixed;inset:0;background:' + (cfg.overlayEnabled ? 'rgba(15,23,42,0.45)' : 'transparent') + ';'
+        + 'z-index:2147483646;pointer-events:auto;'
+      );
+      overlay.addEventListener('click', function() {
+        if (cfg.closeOnOverlayClick) {
+          removeBanner();
+        }
+      });
+      document.body.appendChild(overlay);
+    }
 
     var banner = document.createElement('div');
     banner.id = '__cmp_banner__';
@@ -440,49 +462,90 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var positionStyle = {
       bottom: 'position:fixed;bottom:0;left:0;right:0;',
       top:    'position:fixed;top:0;left:0;right:0;',
-      'bottom-left':  'position:fixed;bottom:16px;left:16px;',
-      'bottom-right': 'position:fixed;bottom:16px;right:16px;',
-      center: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'
-    }[cfg.position || 'bottom'] || 'position:fixed;bottom:0;left:0;right:0;';
+      'bottom-left':  'position:fixed;bottom:16px;left:16px;max-width:min(400px,calc(100vw - 32px));',
+      'bottom-right': 'position:fixed;bottom:16px;right:16px;max-width:min(400px,calc(100vw - 32px));',
+      center: 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 32px));'
+    }[position] || 'position:fixed;bottom:0;left:0;right:0;';
 
+    if (layout === 'dialog' && position !== 'center') {
+      positionStyle = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(480px,calc(100vw - 32px));';
+    }
+    if (layout === 'box' && (position === 'bottom' || position === 'top')) {
+      positionStyle = position === 'top'
+        ? 'position:fixed;top:16px;left:50%;transform:translateX(-50%);max-width:min(420px,calc(100vw - 32px));width:100%;'
+        : 'position:fixed;bottom:16px;left:50%;transform:translateX(-50%);max-width:min(420px,calc(100vw - 32px));width:100%;';
+    }
+
+    var pad = layout === 'bar' ? '16px 24px' : layout === 'dialog' ? '28px' : '20px';
     var dir = noticeDirection();
     banner.setAttribute('dir', dir);
     banner.setAttribute('lang', (_config.resolvedLanguage || 'en'));
+    banner.setAttribute('role', 'dialog');
+    banner.setAttribute('aria-label', cfg.title || 'Consent');
     banner.setAttribute('style',
       positionStyle
       + 'background:' + (cfg.backgroundColor || '#fff') + ';'
       + 'color:' + (cfg.textColor || '#171717') + ';'
-      + 'border-radius:' + (cfg.borderRadius || 0) + 'px;'
-      + 'padding:16px 24px;'
-      + 'box-shadow:0 -2px 12px rgba(0,0,0,0.1);'
+      + 'border-radius:' + (typeof cfg.borderRadius === 'number' ? cfg.borderRadius : 8) + 'px;'
+      + 'padding:' + pad + ';'
+      + 'box-shadow:0 8px 32px rgba(15,23,42,0.18);'
       + 'z-index:2147483647;'
-      + 'display:flex;flex-wrap:wrap;align-items:center;gap:12px;'
       + 'font-family:system-ui,sans-serif;font-size:14px;'
-      + 'text-align:start;max-width:100%;'
+      + 'text-align:start;box-sizing:border-box;'
     );
+
+    if (cfg.showCloseButton) {
+      var closeBtn = document.createElement('button');
+      closeBtn.type = 'button';
+      closeBtn.setAttribute('aria-label', cfg.closeLabel || 'Close');
+      closeBtn.textContent = '×';
+      closeBtn.style.cssText = 'position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;opacity:0.5;color:inherit;';
+      closeBtn.addEventListener('click', function() { removeBanner(); });
+      banner.style.position = banner.style.position || 'fixed';
+      banner.appendChild(closeBtn);
+    }
+
+    if (layout === 'bar') {
+      banner.style.display = 'flex';
+      banner.style.flexWrap = 'wrap';
+      banner.style.alignItems = 'center';
+      banner.style.gap = '12px';
+    }
 
     if (cfg.title || cfg.description) {
       var text = document.createElement('div');
-      text.style.flex = '1';
-      text.style.minWidth = '200px';
+      text.style.flex = layout === 'bar' ? '1' : 'unset';
+      text.style.minWidth = layout === 'bar' ? '200px' : '0';
       if (cfg.title) {
-        var h = document.createElement('strong');
+        var h = document.createElement(layout === 'bar' ? 'strong' : 'p');
         h.textContent = cfg.title;
         h.style.display = 'block';
-        h.style.marginBottom = '4px';
+        h.style.margin = '0 0 6px 0';
+        h.style.fontWeight = '700';
+        h.style.fontSize = layout === 'dialog' ? '18px' : '15px';
         text.appendChild(h);
       }
       if (cfg.description) {
         var p = document.createElement('span');
         p.textContent = cfg.description;
         p.style.opacity = '0.75';
-        p.style.fontSize = '12px';
+        p.style.fontSize = '13px';
         p.style.display = 'block';
+        p.style.lineHeight = '1.55';
         p.style.overflowWrap = 'anywhere';
-        p.style.maxWidth = '72ch';
         text.appendChild(p);
       }
       banner.appendChild(text);
+    }
+
+    if (cfg.privacyPolicyUrl && cfg.privacyPolicyText) {
+      var pol = document.createElement('a');
+      pol.href = cfg.privacyPolicyUrl;
+      pol.target = '_blank';
+      pol.rel = 'noopener noreferrer';
+      pol.textContent = cfg.privacyPolicyText;
+      pol.style.cssText = 'display:block;margin:8px 0;font-size:12px;color:' + (cfg.primaryColor || '#171717') + ';';
+      banner.appendChild(pol);
     }
 
     var btns = document.createElement('div');
@@ -490,11 +553,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     btns.style.gap = '8px';
     btns.style.flexWrap = 'wrap';
     btns.style.alignItems = 'center';
+    if (layout !== 'bar') btns.style.marginTop = '12px';
 
     function btn(label, primary, onclick) {
       var b = document.createElement('button');
+      b.type = 'button';
       b.textContent = label;
-      b.style.cssText = 'cursor:pointer;border-radius:' + (cfg.borderRadius || 4) + 'px;'
+      b.style.cssText = 'cursor:pointer;border-radius:' + Math.max(4, (cfg.borderRadius || 8) - 2) + 'px;'
         + 'padding:8px 16px;font-size:13px;font-weight:600;border:none;white-space:normal;max-width:100%;'
         + (primary
           ? 'background:' + (cfg.primaryColor || '#171717') + ';color:#fff;'
@@ -544,13 +609,23 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
 
     banner.appendChild(btns);
+
+    if (cfg.showPoweredBy && cfg.poweredByText) {
+      var powered = document.createElement('div');
+      powered.textContent = cfg.poweredByText;
+      powered.style.cssText = 'margin-top:8px;font-size:11px;opacity:0.4;text-align:end;';
+      banner.appendChild(powered);
+    }
+
     document.body.appendChild(banner);
     _hostScroll.sync();
   }
 
   function removeBanner() {
     var el = document.getElementById('__cmp_banner__');
-    if (el) el.parentNode.removeChild(el);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    var overlay = document.getElementById('__cmp_banner_overlay__');
+    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     _hostScroll.sync();
   }
 
@@ -1023,7 +1098,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _explicitLang = String(lang || '').slice(0, 35);
       var bannerOpen = !!document.getElementById('__cmp_banner__');
       var pcOpen = !!document.getElementById('__cmp_pc__');
-      fetch(configRequestUrl())
+      fetch(configRequestUrl(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.success) {
@@ -1077,7 +1152,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
   pauseTaggedScripts();
 
-  fetch(configRequestUrl())
+  fetch(configRequestUrl(), { cache: 'no-store' })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (!data.success) { log('Config load failed: ' + data.message); return; }

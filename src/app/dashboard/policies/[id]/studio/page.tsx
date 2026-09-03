@@ -70,6 +70,7 @@ export default async function BannerStudioPage({
     .select({
       id: consentPolicyVersions.id,
       version: consentPolicyVersions.version,
+      isPublished: consentPolicyVersions.isPublished,
       configuration: consentPolicyVersions.configuration,
     })
     .from(consentPolicyVersions)
@@ -77,9 +78,11 @@ export default async function BannerStudioPage({
     .orderBy(consentPolicyVersions.version);
 
   const latestVersion = allVersions[allVersions.length - 1] ?? null;
+  const liveVersion =
+    [...allVersions].reverse().find((version) => version.isPublished) ?? latestVersion;
 
   const initialConfig = parseBannerConfig(
-    (latestVersion?.configuration ?? {}) as Record<string, unknown>,
+    (liveVersion?.configuration ?? latestVersion?.configuration ?? {}) as Record<string, unknown>,
   );
 
   return (

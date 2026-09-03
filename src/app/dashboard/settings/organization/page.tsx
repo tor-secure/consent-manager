@@ -20,7 +20,7 @@ export default async function OrganizationSettingsPage() {
   if (!orgId || !clerkUserId) return null;
 
   const [organization] = await db
-    .select()
+    .select(organizationCoreSelect)
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
@@ -59,11 +59,11 @@ export default async function OrganizationSettingsPage() {
     defaultLanguage: organization.defaultLanguage,
     defaultRegion: organization.defaultRegion,
     onboardingCompleted: organization.onboardingCompleted,
-    dpoName: organization.dpoName ?? null,
-    dpoEmail: organization.dpoEmail ?? null,
-    grievanceOfficerName: organization.grievanceOfficerName ?? null,
-    grievanceOfficerEmail: organization.grievanceOfficerEmail ?? null,
-    grievancePortalUrl: organization.grievancePortalUrl ?? null,
+    dpoName: null,
+    dpoEmail: null,
+    grievanceOfficerName: null,
+    grievanceOfficerEmail: null,
+    grievancePortalUrl: null,
   };
 
   return (

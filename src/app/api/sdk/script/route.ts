@@ -22,8 +22,6 @@ import { logger } from "@/lib/logger";
 // so it can be used directly as a <script src="..."> from any website.
 // ---------------------------------------------------------------------------
 
-const CACHE_SECONDS = 300; // 5 minutes
-
 export async function GET(request: Request) {
   try {
     const js = buildGenericCmpSdkScript();
@@ -60,7 +58,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "application/javascript; charset=utf-8",
         ...publicCorsHeaders("GET, OPTIONS"),
-        "Cache-Control": `public, max-age=${CACHE_SECONDS}, stale-while-revalidate=86400`,
+        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
       },
     });
   } catch (error) {

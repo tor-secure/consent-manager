@@ -75,6 +75,7 @@ export function BannerStudio({
       const res = await fetch(`/api/policies/${policyId}/banner-config`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify(config),
       });
       const data = (await res.json()) as { success: boolean; message?: string };

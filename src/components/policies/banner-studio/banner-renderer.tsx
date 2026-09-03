@@ -146,21 +146,7 @@ export function BannerRenderer({
 
   return (
     <div style={scaledWrapper} aria-label="Consent banner preview">
-      {/* Overlay (rendered outside the banner box so it covers the whole frame) */}
-      {config.overlayEnabled && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0,0,0,0.45)",
-            zIndex: -1,
-            pointerEvents: "none",
-          }}
-          aria-hidden="true"
-        />
-      )}
-
-      <div style={bannerStyle}>
+      <div style={{ ...bannerStyle, position: "relative" }}>
         {/* Close button */}
         {config.showCloseButton && (
           <button
