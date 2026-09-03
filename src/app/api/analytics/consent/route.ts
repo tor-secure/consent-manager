@@ -59,7 +59,13 @@ export async function GET(request: Request) {
 
     const { websites: _websites, ...aggregated } = data;
     void _websites;
-    let analytics = aggregated;
+
+    type AnalyticsPayload = typeof aggregated & {
+      redacted?: boolean;
+      redactionScope?: { consentId: string; notFound?: boolean };
+    };
+
+    let analytics: AnalyticsPayload = aggregated;
 
     // Real-time consent-based redaction (MVP):
     // when a consentId is provided, only expose purposes that were granted
@@ -100,16 +106,22 @@ export async function GET(request: Request) {
 
         const allowedPurposeIds = new Set(
           purposeDecisionRows
-            .filter((r) => r.purposeId && (r.granted || r.isRequired))
-            .map((r) => r.purposeId as string),
+            .filter((r): r is typeof r & { purposeId: string } =>
+              Boolean(r.purposeId) && (r.granted || r.isRequired),
+            )
+            .map((r) => r.purposeId),
         );
 
         analytics = {
           ...analytics,
-          purposes: analytics.purposes.filter((p) => allowedPurposeIds.has(p.purposeId)),
+          purposes: analytics.purposes.filter(
+            (p) => typeof p.purposeId === "string" && allowedPurposeIds.has(p.purposeId),
+          ),
           filterOptions: {
             ...analytics.filterOptions,
-            purposes: analytics.filterOptions.purposes.filter((p) => allowedPurposeIds.has(p.id)),
+            purposes: analytics.filterOptions.purposes.filter(
+              (p) => typeof p.id === "string" && allowedPurposeIds.has(p.id),
+            ),
           },
           redacted: true,
           redactionScope: { consentId: redactConsentId },

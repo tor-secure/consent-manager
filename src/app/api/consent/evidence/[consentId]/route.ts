@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentDecisions } from "@/db/schema/consent-decisions";
@@ -12,6 +11,11 @@ import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
+import {
+  resolveActiveMembership,
+  resolveLocalOrganization,
+  resolveLocalUser,
+} from "@/lib/api-auth-helpers";
 import {
   createConsentCryptoProof,
   readStoredCryptoProof,
