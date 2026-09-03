@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
+import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
 
 export type TenantWebsite = {
   id: string;
@@ -27,9 +28,14 @@ export type TenantWebsite = {
 export const getTenantWebsite = cache(async function getTenantWebsite(
   websiteId: string,
 ): Promise<TenantWebsite | null> {
-  const { orgId } = await auth();
+  const { userId, orgId: sessionOrgId } = await auth();
+  if (!userId) return null;
+
+  const orgId = await resolveActiveClerkOrgId(userId, sessionOrgId);
   if (!orgId) return null;
 
+  // Only columns that exist on older Neon databases. Newer regulation fields
+  // are filled in below when present.
   const [row] = await db
     .select({
       id: websites.id,
@@ -42,8 +48,6 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
       siteKey: websites.siteKey,
       defaultLanguage: websites.defaultLanguage,
       defaultRegion: websites.defaultRegion,
-      defaultRegulationKey: websites.defaultRegulationKey,
-      consentIntegrations: websites.consentIntegrations,
       verified: websites.verified,
       createdAt: websites.createdAt,
     })
@@ -59,9 +63,28 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
 
   if (!row) return null;
 
+  let defaultRegulationKey: string | null = null;
+  let consentIntegrations: Record<string, unknown> = {};
+
+  try {
+    const [extra] = await db
+      .select({
+        defaultRegulationKey: websites.defaultRegulationKey,
+        consentIntegrations: websites.consentIntegrations,
+      })
+      .from(websites)
+      .where(eq(websites.id, row.id))
+      .limit(1);
+    defaultRegulationKey = extra?.defaultRegulationKey ?? null;
+    consentIntegrations = extra?.consentIntegrations ?? {};
+  } catch {
+    /* Production DBs that have not been migrated yet omit these columns. */
+  }
+
   return {
     ...row,
-    consentIntegrations: row.consentIntegrations ?? {},
+    defaultRegulationKey,
+    consentIntegrations,
   };
 });
 

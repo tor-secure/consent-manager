@@ -15,8 +15,23 @@ import { calculateConsentQualityScore, type ConsentQualityScore } from "@/lib/mo
 import { buildPageIntelligence, type PageIntelligence } from "@/lib/monitoring/page-intelligence";
 import { isFirstPartyDomain, itemKey, type FindingSeverity, type ScanItemSnapshot } from "@/lib/monitoring/drift-engine";
 import { aggregatePrivacyRisk } from "@/lib/monitoring/privacy-risk";
+import { isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 export async function computeWebsiteQualityScore(websiteId: string): Promise<{
+  websiteId: string;
+  websiteName: string;
+  websiteDomain: string;
+  score: ConsentQualityScore;
+} | null> {
+  try {
+    return await computeWebsiteQualityScoreUnsafe(websiteId);
+  } catch (error) {
+    if (isSchemaMismatchError(error)) return null;
+    throw error;
+  }
+}
+
+async function computeWebsiteQualityScoreUnsafe(websiteId: string): Promise<{
   websiteId: string;
   websiteName: string;
   websiteDomain: string;
@@ -103,6 +118,15 @@ export async function computeWebsiteQualityScore(websiteId: string): Promise<{
 }
 
 export async function loadPageIntelligence(websiteId: string): Promise<PageIntelligence[] | null> {
+  try {
+    return await loadPageIntelligenceUnsafe(websiteId);
+  } catch (error) {
+    if (isSchemaMismatchError(error)) return [];
+    throw error;
+  }
+}
+
+async function loadPageIntelligenceUnsafe(websiteId: string): Promise<PageIntelligence[] | null> {
   const cmp = await loadCmpSnapshot(websiteId);
   if (!cmp) return null;
 

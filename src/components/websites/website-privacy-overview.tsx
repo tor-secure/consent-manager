@@ -21,10 +21,17 @@ function riskVariant(risk: string): "success" | "primary" | "warning" | "danger"
 }
 
 export async function WebsitePrivacyOverview({ websiteId }: { websiteId: string }) {
-  const [quality, pages] = await Promise.all([
-    computeWebsiteQualityScore(websiteId),
-    loadPageIntelligence(websiteId),
-  ]);
+  let quality: Awaited<ReturnType<typeof computeWebsiteQualityScore>> = null;
+  let pages: Awaited<ReturnType<typeof loadPageIntelligence>> = [];
+  try {
+    [quality, pages] = await Promise.all([
+      computeWebsiteQualityScore(websiteId),
+      loadPageIntelligence(websiteId),
+    ]);
+  } catch {
+    quality = null;
+    pages = [];
+  }
 
   return (
     <div className="space-y-4">

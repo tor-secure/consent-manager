@@ -9,24 +9,10 @@ import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
-
-function postgresErrorCode(error: unknown): string | undefined {
-  let current: unknown = error;
-  for (let i = 0; i < 5 && current && typeof current === "object"; i += 1) {
-    const code = (current as { code?: unknown }).code;
-    if (typeof code === "string" && /^\w{5}$/.test(code)) return code;
-    current = (current as { cause?: unknown }).cause;
-  }
-  return undefined;
-}
+import { isSchemaMismatchError, postgresErrorCode } from "@/lib/schema-mismatch";
 
 function isUniqueConstraintError(error: unknown): boolean {
   return postgresErrorCode(error) === "23505";
-}
-
-function isMissingSchemaError(error: unknown): boolean {
-  const code = postgresErrorCode(error);
-  return code === "42703" || code === "42P01";
 }
 
 function normalizeDomain(value: string) {
@@ -232,7 +218,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (isMissingSchemaError(error)) {
+    if (isSchemaMismatchError(error)) {
       return NextResponse.json(
         {
           success: false,
