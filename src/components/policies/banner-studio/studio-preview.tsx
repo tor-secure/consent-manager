@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { BannerConfiguration } from "@/lib/banner-config";
-import { BannerRenderer } from "./banner-renderer";
+import { BannerRenderer, PreferenceWidgetPreview } from "./banner-renderer";
 
 type Viewport = "desktop" | "mobile";
 
@@ -80,6 +80,7 @@ function FallbackMockPage({
 
       {/* Banner */}
       <BannerRenderer config={config} />
+      <PreferenceWidgetPreview config={config} />
     </div>
   );
 }
@@ -144,6 +145,7 @@ function IframePreview({
           <div className="pointer-events-auto">
             <BannerRenderer config={config} />
           </div>
+          <PreferenceWidgetPreview config={config} />
         </div>
       )}
     </div>

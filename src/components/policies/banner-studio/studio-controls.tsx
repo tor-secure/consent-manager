@@ -342,7 +342,15 @@ export function StudioControls({
                     const active = config.layout === lay.value;
                     return (
                       <button key={lay.value} type="button"
-                        onClick={() => onChange("layout", lay.value)}
+                        onClick={() => {
+                          if (lay.value === "dialog") {
+                            onApplyPreset({ layout: "dialog", position: "center", overlayEnabled: true });
+                          } else if (lay.value === "bar" && config.position === "center") {
+                            onApplyPreset({ layout: "bar", position: "bottom" });
+                          } else {
+                            onChange("layout", lay.value);
+                          }
+                        }}
                         className={`flex flex-col items-center gap-0.5 rounded-xl border py-2.5 text-xs transition-all ${
                           active
                             ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
@@ -471,8 +479,42 @@ export function StudioControls({
                   <Toggle checked={config.closeOnOverlayClick}  onChange={(v) => onChange("closeOnOverlayClick", v)}  label="Close on overlay click"     />
                   <Toggle checked={config.blockPageUntilConsent} onChange={(v) => onChange("blockPageUntilConsent", v)} label="Block page until consent"  />
                   <Toggle checked={config.showOnEveryVisit}     onChange={(v) => onChange("showOnEveryVisit", v)}     label="Show on every visit"        />
+                  <Toggle checked={config.showPreferenceWidget !== false} onChange={(v) => onChange("showPreferenceWidget", v)} label="Show preferences icon" />
                 </div>
               </div>
+
+              {config.showPreferenceWidget !== false && (
+                <div>
+                  <SectionLabel>Preferences icon position</SectionLabel>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(
+                      [
+                        { value: "bottom-left", label: "Bottom left" },
+                        { value: "bottom-right", label: "Bottom right" },
+                      ] as const
+                    ).map((pos) => {
+                      const active = (config.preferenceWidgetPosition || "bottom-left") === pos.value;
+                      return (
+                        <button
+                          key={pos.value}
+                          type="button"
+                          onClick={() => onChange("preferenceWidgetPosition", pos.value)}
+                          className={`rounded-xl border py-2 text-xs font-medium transition-all ${
+                            active
+                              ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
+                              : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                          }`}
+                        >
+                          {pos.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+                    After someone chooses, a small icon stays on the site so they can change purposes later.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <SectionLabel>Locale</SectionLabel>

@@ -131,7 +131,8 @@ export async function PUT(
     }
 
     const consentExpireDays = Math.max(1, Math.min(3650, Number(raw.consentExpireDays) || 365));
-    const borderRadius = Math.max(0, Math.min(24, Number(raw.borderRadius) || 8));
+    const radiusRaw = Number(raw.borderRadius);
+    const borderRadius = Number.isFinite(radiusRaw) ? Math.max(0, Math.min(24, radiusRaw)) : 8;
 
     const TEXT_MAX: Record<string, number> = {
       title: 255, description: 2000,
@@ -227,6 +228,9 @@ export async function PUT(
       requiredLabel: String(raw.requiredLabel ?? "").trim().slice(0, 100),
       translations: sanitizedTranslations,
       supportedLocales,
+      showPreferenceWidget: raw.showPreferenceWidget !== false,
+      preferenceWidgetPosition:
+        raw.preferenceWidgetPosition === "bottom-right" ? "bottom-right" : "bottom-left",
     };
 
     const payload = {

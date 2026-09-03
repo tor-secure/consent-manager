@@ -63,6 +63,36 @@ const POSITION_STYLES: Record<BannerPosition, React.CSSProperties> = {
   },
 };
 
+function resolvedPositionStyle(config: BannerConfiguration): React.CSSProperties {
+  if (config.layout === "dialog") {
+    return POSITION_STYLES.center;
+  }
+  if (config.layout === "box") {
+    if (config.position === "top") {
+      return {
+        position: "absolute",
+        top: 16,
+        left: "50%",
+        transform: "translateX(-50%)",
+        maxWidth: 420,
+        width: "90%",
+      };
+    }
+    if (config.position === "center") return POSITION_STYLES.center;
+    if (config.position === "bottom-left") return POSITION_STYLES["bottom-left"];
+    if (config.position === "bottom-right") return POSITION_STYLES["bottom-right"];
+    return {
+      position: "absolute",
+      bottom: 16,
+      left: "50%",
+      transform: "translateX(-50%)",
+      maxWidth: 420,
+      width: "90%",
+    };
+  }
+  return POSITION_STYLES[config.position] ?? POSITION_STYLES.bottom;
+}
+
 export function BannerRenderer({
   config,
   scale = 1,
@@ -74,7 +104,7 @@ export function BannerRenderer({
   const isDialog = config.layout === "dialog";
   const isBox = config.layout === "box";
 
-  const posStyle = POSITION_STYLES[config.position] ?? POSITION_STYLES.bottom;
+  const posStyle = resolvedPositionStyle(config);
 
   const bannerStyle: React.CSSProperties = {
     backgroundColor: config.backgroundColor,
@@ -283,6 +313,40 @@ export function BannerRenderer({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+export function PreferenceWidgetPreview({ config }: { config: BannerConfiguration }) {
+  if (config.showPreferenceWidget === false) return null;
+  const right = (config.preferenceWidgetPosition || "bottom-left") === "bottom-right";
+  return (
+    <div
+      aria-hidden="true"
+      title="Cookie preferences"
+      style={{
+        position: "absolute",
+        bottom: 16,
+        [right ? "right" : "left"]: 16,
+        zIndex: 40,
+        width: 44,
+        height: 44,
+        borderRadius: 999,
+        background: config.primaryColor,
+        color: "#fff",
+        boxShadow: "0 8px 24px rgba(15,23,42,0.25)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        pointerEvents: "none",
+      }}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 1 0 10 10" />
+        <circle cx="8" cy="10" r="1.1" fill="currentColor" />
+        <circle cx="15" cy="9" r="1.3" fill="currentColor" />
+        <circle cx="12" cy="15" r="1.1" fill="currentColor" />
+      </svg>
     </div>
   );
 }

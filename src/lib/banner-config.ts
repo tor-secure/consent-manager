@@ -73,6 +73,9 @@ export type BannerConfiguration = {
   textColor: string;
   borderRadius: number;
   overlayEnabled: boolean;
+
+  showPreferenceWidget: boolean;
+  preferenceWidgetPosition: "bottom-left" | "bottom-right";
 };
 
 export function defaultBannerConfig(): BannerConfiguration {
@@ -123,6 +126,9 @@ export function defaultBannerConfig(): BannerConfiguration {
     textColor: "#171717",
     borderRadius: 8,
     overlayEnabled: false,
+
+    showPreferenceWidget: true,
+    preferenceWidgetPosition: "bottom-left",
   };
 }
 
@@ -139,6 +145,20 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   merged.language = isRegisteredLocale(language) || isRegisteredLocale(languageOf(language))
     ? language
     : "en";
+
+  const layouts: BannerLayout[] = ["bar", "box", "dialog"];
+  const positions: BannerPosition[] = ["bottom", "top", "bottom-left", "bottom-right", "center"];
+  if (!layouts.includes(merged.layout)) merged.layout = "bar";
+  if (!positions.includes(merged.position)) merged.position = "bottom";
+  if (merged.layout === "dialog") merged.position = "center";
+
+  const radius = Number(merged.borderRadius);
+  merged.borderRadius = Number.isFinite(radius) ? Math.max(0, Math.min(24, radius)) : 8;
+
+  if (typeof merged.showPreferenceWidget !== "boolean") merged.showPreferenceWidget = true;
+  merged.preferenceWidgetPosition =
+    merged.preferenceWidgetPosition === "bottom-right" ? "bottom-right" : "bottom-left";
+
   return merged;
 }
 
