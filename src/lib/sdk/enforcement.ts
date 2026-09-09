@@ -11,6 +11,7 @@ export type TrackerType =
   | "cookie"
   | "pixel"
   | "script"
+  | "iframe"
   | "beacon"
   | "fingerprint"
   | "storage"
@@ -36,6 +37,18 @@ export type TrackerRule = {
   isEssential: boolean;
   // Whether this tracker is currently active / should be enforced.
   status: string;
+  category?: string | null;
+  cookieNames?: string[];
+  storageTypes?: string[];
+  localStorageKeys?: string[];
+  sessionStorageKeys?: string[];
+  indexedDbNames?: string[];
+  scriptUrlPatterns?: string[];
+  iframeUrlPatterns?: string[];
+  pixelUrlPatterns?: string[];
+  party?: "first-party" | "third-party" | "unknown";
+  duration?: string | null;
+  deletionBehavior?: string | null;
 };
 
 // The per-purpose / per-vendor grant map provided by the consent engine.
@@ -44,6 +57,7 @@ export type ConsentGrants = {
   purposes: Record<string, boolean>;
   // vendorId → granted
   vendors: Record<string, boolean>;
+  childRestrictedPurposeIds?: string[];
 };
 
 // ---------------------------------------------------------------------------
@@ -59,6 +73,10 @@ export function shouldBlock(rule: TrackerRule, grants: ConsentGrants): boolean {
 
   // Inactive / deleted trackers — don't block (they shouldn't appear anyway).
   if (rule.status !== "active") return false;
+
+  if (rule.purposeId && (grants.childRestrictedPurposeIds ?? []).includes(rule.purposeId)) {
+    return true;
+  }
 
   // If the tracker has a purpose, check purpose consent.
   if (rule.purposeId !== null) {

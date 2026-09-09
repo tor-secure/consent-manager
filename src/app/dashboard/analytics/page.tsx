@@ -5,7 +5,6 @@ import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
-import { websites } from "@/db/schema/websites";
 import { trackers } from "@/db/schema/trackers";
 import { scans } from "@/db/schema/scans";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
@@ -75,11 +74,6 @@ function SectionHeader({ title, description, action }: { title: string; descript
       {action}
     </div>
   );
-}
-
-function pct(num: number, den: number): string {
-  if (den === 0) return "0%";
-  return `${Math.round((num / den) * 100)}%`;
 }
 
 function fmt(date: Date | null) {

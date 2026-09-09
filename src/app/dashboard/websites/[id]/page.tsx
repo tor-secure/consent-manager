@@ -85,6 +85,12 @@ export default async function WebsiteDetailPage({
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Link
+            href={`/dashboard/websites/${website.id}/child-protection`}
+            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            Child protection
+          </Link>
+          <Link
             href={`/dashboard/websites/${website.id}/enforcement`}
             className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
           >

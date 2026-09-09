@@ -1,0 +1,2 @@
+ALTER TABLE "purposes" ADD CONSTRAINT "purposes_iab_tcf_id_range" CHECK ("purposes"."iab_tcf_purpose_id" is null or ("purposes"."iab_tcf_purpose_id" between 1 and 24));--> statement-breakpoint
+ALTER TABLE "vendors" ADD CONSTRAINT "vendors_iab_vendor_id_range" CHECK ("vendors"."iab_vendor_id" is null or ("vendors"."iab_vendor_id" between 1 and 65535));

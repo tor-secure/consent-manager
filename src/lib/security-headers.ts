@@ -60,7 +60,9 @@ export function shouldSendHsts(protocol: string, forwardedProto: string | null):
 
 export function isPublicCrossOriginApiPath(pathname: string): boolean {
   if (pathname === "/api/health") return true;
-  if (pathname === "/api/rights-request") return true;
+  if (pathname === "/api/rights-request" || pathname.startsWith("/api/rights-request/")) return true;
+  if (pathname === "/api/age-assurance" || pathname.startsWith("/api/age-assurance/")) return true;
+  if (pathname === "/api/guardian-consent" || pathname.startsWith("/api/guardian-consent/")) return true;
   if (pathname === "/api/cron/scans") return true;
   return pathname.startsWith("/api/consent/") || pathname.startsWith("/api/sdk/");
 }

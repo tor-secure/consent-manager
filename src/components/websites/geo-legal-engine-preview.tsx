@@ -10,7 +10,10 @@ type LegalEnginePayload = {
   confidence: number;
   regulationSource: string;
   policyReason: string;
-  selected: { key: string; label: string; version: string } | null;
+  selected: {
+    key: string; label: string; version: string; effectiveFrom: string;
+    reviewStatus: string; lastReviewedAt: string; sourceUrls: string[];
+  } | null;
   reasoning: { code: string; detail: string }[];
   alternatives: { key: string; label: string; score: number }[];
   ux: {
@@ -90,31 +93,41 @@ export function GeoLegalEnginePreview({ websiteId }: { websiteId: string }) {
 
         {result ? (
           <div className="space-y-4 text-sm">
-            <p className="font-medium text-slate-800">
+            <p className="font-medium text-[var(--foreground)]">
               {result.selected
                 ? `${result.selected.label} ${result.selected.version}`
                 : "No catalog match"}
-              <span className="ml-2 font-normal text-slate-500">
+              <span className="ml-2 font-normal text-[var(--muted-foreground)]">
                 confidence {result.confidence}% · {result.regulationSource} · policy {result.policyReason}
               </span>
             </p>
-            <p className="text-slate-500">
+            <p className="text-[var(--muted-foreground)]">
               Geo {result.geo.country ?? "—"}
               {result.geo.region ? ` / ${result.geo.region}` : ""} ({result.geo.source}). Model: {result.ux.consentModel}.
             </p>
+            {result.selected ? (
+              <p className="text-xs text-[var(--muted-foreground)]">
+                Effective {result.selected.effectiveFrom} · review {result.selected.reviewStatus} ({result.selected.lastReviewedAt}) ·{" "}
+                {result.selected.sourceUrls.map((url, index) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer" className="underline">
+                    source {index + 1}
+                  </a>
+                ))}
+              </p>
+            ) : null}
             <ul className="space-y-2">
               {result.reasoning.map((step) => (
-                <li key={step.code} className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">
+                <li key={step.code} className="rounded-xl bg-[var(--muted)] px-3 py-2 text-[var(--secondary-foreground)]">
                   {step.detail}
                 </li>
               ))}
             </ul>
             {result.alternatives.length > 0 ? (
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--muted-foreground)]">
                 Alternatives: {result.alternatives.map((row) => `${row.label} (${row.score})`).join(", ")}
               </p>
             ) : null}
-            <p className="text-xs text-slate-400">{result.disclaimer}</p>
+            <p className="text-xs text-[var(--muted-foreground)]">{result.disclaimer}</p>
           </div>
         ) : null}
       </div>

@@ -44,7 +44,6 @@ export default async function InstallationPage({
   const appOrigin = host ? `${proto}://${host}` : "";
 
   const sdkScriptUrl = `${appOrigin}/api/sdk/script`;
-  const configUrl = `/api/sdk/${website.siteKey}/config`;
   const configUrlAbsolute = `${appOrigin}/api/sdk/${website.siteKey}/config`;
 
   // ---------------------------------------------------------------------------
@@ -75,21 +74,10 @@ export default function RootLayout({ children }) {
   );
 }`;
 
-  const reactSnippet = `// Add to your index.html <head>, or load via useEffect:
-import { useEffect } from 'react';
+  const reactSnippet = `<!-- public/index.html — place first in <head>, before the React bundle and trackers -->
+<script src="${sdkScriptUrl}" data-site-key="${website.siteKey}"></script>
 
-function ConsentProvider() {
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = '${sdkScriptUrl}';
-    script.async = true;
-    script.setAttribute('data-site-key', '${website.siteKey}');
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, []);
-  return null;
-}
-// Render <ConsentProvider /> at the top of your component tree.`;
+<!-- Do not inject the CMP from useEffect; that runs after page scripts may execute. -->`;
 
   const configEndpointNote = `GET ${configUrlAbsolute}
 # Returns: banner config, purposes, vendors, trackerRules for site key ${website.siteKey}
@@ -105,8 +93,14 @@ function ConsentProvider() {
   // Your marketing pixel code here
 </script>
 
-<!-- Essential scripts — no data-cmp-purpose attribute, never blocked -->
-<script src="/your-essential-app.js"></script>`;
+<!-- Same-origin application code is not treated as an unknown tracker -->
+<script src="/your-essential-app.js"></script>
+
+<!-- Third-party resources must be registered and reviewed before marking their tracker record essential. -->
+
+<!-- Optional iframe remains blank until marketing is confirmed -->
+<iframe data-cmp-purpose="marketing" data-cmp-tracker="Video embed"
+  src="https://www.youtube.com/embed/example"></iframe>`;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -207,7 +201,7 @@ function ConsentProvider() {
         <section>
           <h2 className="mb-3 text-base font-semibold text-slate-900">Step 3 — How the SDK works</h2>
           <ol className="list-inside list-decimal space-y-2 text-sm text-slate-600">
-            <li>Loads asynchronously and fetches the active banner configuration from <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">{configUrlAbsolute}</code>.</li>
+            <li>Loads synchronously before optional trackers, establishes blocked state, then fetches configuration from <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">{configUrlAbsolute}</code>.</li>
             <li>Shows the banner if no stored consent is found.</li>
             <li>On visitor choice, calls <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">POST /api/consent/record</code> and stores the <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">consentId</code> in <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">localStorage</code>.</li>
             <li>On subsequent visits, stored consent is respected until it expires.</li>
@@ -241,9 +235,10 @@ function ConsentProvider() {
               <li>Scripts with <code className="rounded-md bg-slate-100 px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK restores them.</li>
               <li>Tracker rules come from the config endpoint, including domain, identifier, and required purposeKey.</li>
               <li>When consent changes, the SDK re-evaluates all tagged scripts via <code className="rounded-md bg-slate-100 px-1 font-mono">window.CMP.onConsentChange(fn)</code>.</li>
-              <li>Untagged scripts are not blocked — add them to your{" "}
+              <li>Known registry domains and dynamically inserted third-party scripts/iframes are evaluated even without attributes. Add discovered resources to{" "}
                 <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-slate-900">Trackers</Link>{" "}
-                list and tag them to enable enforcement.</li>
+                and keep static parser-loaded optional scripts inert with CMP attributes.</li>
+              <li>JavaScript cannot undo requests that occurred before this SDK loaded or remove HttpOnly/third-party cookies. Use CSP, GTM consent checks, and server-side tagging for stronger coverage.</li>
             </ul>
           </div>
         </section>

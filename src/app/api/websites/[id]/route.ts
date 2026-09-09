@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
-import { users } from "@/db/schema/users";
 import {
   resolveLocalOrganization,
   resolveLocalUser,

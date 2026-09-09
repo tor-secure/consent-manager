@@ -4,6 +4,7 @@ const path = require("node:path");
 
 const root = path.resolve(__dirname, "../..");
 const compiledCandidates = [
+  path.join(root, ".tmp/compiled/src/lib/dashboard-search.js"),
   path.join(root, ".tmp/dashboard-search/dashboard-search.js"),
   path.join(root, ".tmp/dashboard-search/src/lib/dashboard-search.js"),
 ];
@@ -27,5 +28,18 @@ assert.ok(websites.some((hit) => hit.href === "/dashboard/websites/new"));
 
 const none = matchDashboardPages("zzzz-not-a-page");
 assert.equal(none.length, 0);
+
+for (const [query, href] of [
+  ["autopilot", "/dashboard/autopilot"],
+  ["digital twin", "/dashboard/digital-twin"],
+  ["portable", "/dashboard/cross-domain"],
+  ["redaction", "/dashboard/data-redaction"],
+  ["agent permission", "/dashboard/agent-permissioning"],
+]) {
+  assert.ok(matchDashboardPages(query, 20).some((hit) => hit.href === href), `${query} should find ${href}`);
+}
+
+const all = matchDashboardPages("dashboard", 100);
+assert.equal(new Set(all.map((hit) => hit.id)).size, all.length, "search result ids must be unique");
 
 console.log("dashboard-search.test.cjs passed");

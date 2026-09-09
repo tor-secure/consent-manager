@@ -1,7 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
+
+const SIDEBAR_STORAGE_KEY = "cmp:sidebar:collapsed";
+const SIDEBAR_EVENT = "cmp-sidebar-change";
+
+function readCollapsed() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function subscribeToCollapsed(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(SIDEBAR_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(SIDEBAR_EVENT, onStoreChange);
+  };
+}
 
 function IconSidebarOpen() {
   return (
@@ -53,29 +73,22 @@ export function DashboardShell({
   headerRight: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const [collapsed, setCollapsed] = useState<boolean>(false);
+  const collapsed = useSyncExternalStore(
+    subscribeToCollapsed,
+    readCollapsed,
+    () => false,
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
+  const onToggle = () => {
+    const next = !collapsed;
     try {
-      const saved = window.localStorage.getItem("cmp:sidebar:collapsed");
-      if (saved === "true") setCollapsed(true);
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
     } catch {
-      /* ignore */
+      return;
     }
-  }, []);
-
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(
-        "cmp:sidebar:collapsed",
-        String(collapsed)
-      );
-    } catch {
-    }
-  }, [collapsed]);
-
-  const onToggle = () => setCollapsed((v) => !v);
+    window.dispatchEvent(new Event(SIDEBAR_EVENT));
+  };
   const onMobileToggle = () => setMobileOpen((v) => !v);
 
   return (

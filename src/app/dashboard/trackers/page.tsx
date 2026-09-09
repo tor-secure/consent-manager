@@ -8,7 +8,8 @@ import { websites } from "@/db/schema/websites";
 import { trackers } from "@/db/schema/trackers";
 import { vendors } from "@/db/schema/vendors";
 import { purposes } from "@/db/schema/purposes";
-import { TrackerList, type TrackerRow } from "@/components/trackers/tracker-list";
+import { TrackerManager, type ManagedTracker, type UnmappedTracker } from "@/components/trackers/tracker-manager";
+import { isUnmappedForReview } from "@/lib/trackers/management";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -73,6 +74,7 @@ const TYPE_DOTS: Record<string, string> = {
   cookie:      "bg-amber-500",
   pixel:       "bg-sky-500",
   script:      "bg-violet-500",
+  iframe:      "bg-indigo-500",
   beacon:      "bg-pink-500",
   fingerprint: "bg-rose-500",
   storage:     "bg-teal-500",
@@ -120,50 +122,94 @@ export default async function TrackersPage() {
             detectionMethod: trackers.detectionMethod,
             lastSeenAt: trackers.lastSeenAt,
             firstSeenAt: trackers.firstSeenAt,
+            category: trackers.category,
+            party: trackers.party,
+            description: trackers.description,
+            cookieNames: trackers.cookieNames,
+            storageTypes: trackers.storageTypes,
+            localStorageKeys: trackers.localStorageKeys,
+            sessionStorageKeys: trackers.sessionStorageKeys,
+            scriptUrlPatterns: trackers.scriptUrlPatterns,
+            iframeUrlPatterns: trackers.iframeUrlPatterns,
+            pixelUrlPatterns: trackers.pixelUrlPatterns,
+            duration: trackers.duration,
+            deletionBehavior: trackers.deletionBehavior,
+            scannerClassification: trackers.scannerClassification,
+            updatedAt: trackers.updatedAt,
           })
           .from(trackers)
           .where(inArray(trackers.websiteId, websiteIds))
           .orderBy(trackers.name)
       : [];
 
-  const vendorIds  = [...new Set(trackerRows.map((t) => t.vendorId).filter(Boolean)  as string[])];
-  const purposeIds = [...new Set(trackerRows.map((t) => t.purposeId).filter(Boolean) as string[])];
-
   const [vendorRows, purposeRows] = await Promise.all([
-    vendorIds.length > 0
-      ? db.select({ id: vendors.id, name: vendors.name }).from(vendors).where(inArray(vendors.id, vendorIds))
-      : Promise.resolve([]),
-    purposeIds.length > 0
-      ? db.select({ id: purposes.id, name: purposes.name }).from(purposes).where(inArray(purposes.id, purposeIds))
-      : Promise.resolve([]),
+    db.select({ id: vendors.id, name: vendors.name }).from(vendors).where(eq(vendors.organizationId, localOrg.id)),
+    db.select({ id: purposes.id, name: purposes.name }).from(purposes).where(eq(purposes.organizationId, localOrg.id)),
   ]);
 
   const vendorMap  = new Map(vendorRows.map((v) => [v.id, v.name]));
   const purposeMap = new Map(purposeRows.map((p) => [p.id, p.name]));
 
-  const rows: TrackerRow[] = trackerRows.map((t) => {
+  const rows: ManagedTracker[] = trackerRows.map((t) => {
     const site = websiteMap.get(t.websiteId);
     return {
       id: t.id,
+      websiteId: t.websiteId,
       name: t.name,
       type: t.type,
       domain: t.domain,
       identifier: t.identifier,
       status: t.status,
       isEssential: t.isEssential,
-      detectionMethod: t.detectionMethod,
-      lastSeenAt: t.lastSeenAt,
-      firstSeenAt: t.firstSeenAt,
-      websiteName: site?.name,
-      websiteDomain: site?.domain,
+      category: t.category,
+      party: t.party,
+      description: t.description,
+      vendorId: t.vendorId,
+      purposeId: t.purposeId,
       vendorName:  t.vendorId  ? (vendorMap.get(t.vendorId)   ?? null) : null,
       purposeName: t.purposeId ? (purposeMap.get(t.purposeId) ?? null) : null,
+      cookieNames: t.cookieNames ?? [],
+      storageTypes: t.storageTypes ?? [],
+      localStorageKeys: t.localStorageKeys ?? [],
+      sessionStorageKeys: t.sessionStorageKeys ?? [],
+      scriptUrlPatterns: t.scriptUrlPatterns ?? [],
+      iframeUrlPatterns: t.iframeUrlPatterns ?? [],
+      pixelUrlPatterns: t.pixelUrlPatterns ?? [],
+      duration: t.duration,
+      deletionBehavior: t.deletionBehavior,
+      scannerClassification: t.scannerClassification,
+      updatedAt: t.updatedAt,
+      websiteName: site?.name,
+      websiteDomain: site?.domain,
     };
   });
 
-  const total     = rows.length;
-  const essential = rows.filter((r) => r.isEssential).length;
-  const blocked   = rows.filter((r) => r.status === "blocked").length;
+  const unmapped: UnmappedTracker[] = rows
+    .filter((row) => isUnmappedForReview({
+      purposeId: row.purposeId,
+      vendorId: row.vendorId,
+      isEssential: row.isEssential,
+      status: row.status,
+      scannerClassification: row.scannerClassification,
+    }))
+    .map((row) => ({
+      id: row.id,
+      name: row.name,
+      type: row.type,
+      domain: row.domain,
+      identifier: row.identifier,
+      websiteId: row.websiteId,
+      websiteName: row.websiteName ?? "Website",
+      recommendedAction: "Assign vendor + purpose + classification",
+      detectionCount: 1,
+      firstDetected: trackerRows.find((item) => item.id === row.id)?.firstSeenAt ?? null,
+      lastDetected: trackerRows.find((item) => item.id === row.id)?.lastSeenAt ?? null,
+      pages: [],
+    }));
+
+  const total     = rows.filter((r) => r.status !== "archived").length;
+  const essential = rows.filter((r) => r.isEssential && r.status === "active").length;
+  const blocked   = unmapped.length;
   const byType    = rows.reduce<Record<string, number>>((acc, r) => {
     acc[r.type] = (acc[r.type] ?? 0) + 1;
     return acc;
@@ -177,7 +223,7 @@ export default async function TrackersPage() {
         <div>
           <h1 className="page-title">Trackers</h1>
           <p className="page-description">
-            Cookies and tracking technologies detected across all your websites.
+            Map cookies and tracking technologies to vendors and purposes. Changes update the live SDK configuration without a rebuild.
           </p>
         </div>
         <Link
@@ -238,11 +284,11 @@ export default async function TrackersPage() {
               description="always allowed"
             />
             <StatCard
-              label="Blocked"
+              label="Unmapped"
               value={blocked}
               icon={<IconBlocked />}
               iconColor="rose"
-              description={total > 0 ? `${Math.round(blocked / total * 100)}% of total` : undefined}
+              description="need vendor and purpose"
             />
           </div>
 
@@ -262,8 +308,13 @@ export default async function TrackersPage() {
             </div>
           )}
 
-          {/* Tracker list */}
-          <TrackerList trackers={rows} showWebsite={true} />
+          <TrackerManager
+            trackers={rows}
+            unmapped={unmapped}
+            websites={orgWebsites.map((site) => ({ id: site.id, name: site.name }))}
+            vendors={vendorRows}
+            purposes={purposeRows}
+          />
         </>
       )}
     </div>

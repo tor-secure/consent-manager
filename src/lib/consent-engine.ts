@@ -173,15 +173,6 @@ export async function appendConsentEvent({
   eventData: Record<string, unknown>;
   source?: string;
 }): Promise<void> {
-  const [event] = await db.insert(consentEvents).values({
-    consentRecordId,
-    policyVersionId,
-    eventType,
-    eventData,
-    source,
-    occurredAt: new Date(),
-  }).returning({ id: consentEvents.id, eventType: consentEvents.eventType });
-
   const [record] = await db
     .select({
       id: consentRecords.id,
@@ -195,6 +186,18 @@ export async function appendConsentEvent({
     .limit(1);
 
   if (!record) return;
+
+  const [event] = await db.insert(consentEvents).values({
+    organizationId: record.organizationId,
+    websiteId: record.websiteId,
+    consentId: record.consentId,
+    consentRecordId,
+    policyVersionId,
+    eventType,
+    eventData,
+    source,
+    occurredAt: new Date(),
+  }).returning({ id: consentEvents.id, eventType: consentEvents.eventType });
 
   const webhookEventType = resolveConsentWebhookEventType(eventType, eventData, record.status);
   if (!webhookEventType) return;

@@ -29,6 +29,13 @@ type PublishState =
 // to re-run the server page so the version table and policy status badge update.
 // ---------------------------------------------------------------------------
 
+type ValidationIssue = {
+  code: string;
+  message: string;
+  jurisdiction: string;
+  remediation?: string;
+};
+
 export function PublishPolicyButton({
   policyId,
   latestVersionId,
@@ -36,6 +43,8 @@ export function PublishPolicyButton({
   isPublished,
   publishedAt,
   hasPurposes,
+  complianceBlocked = false,
+  validation = null,
 }: {
   policyId: string;
   latestVersionId: string | null;
@@ -43,6 +52,8 @@ export function PublishPolicyButton({
   isPublished: boolean;
   publishedAt: Date | null;
   hasPurposes: boolean;
+  complianceBlocked?: boolean;
+  validation?: { errors: ValidationIssue[] } | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -79,13 +90,17 @@ export function PublishPolicyButton({
             </span>
           )}
         </div>
-        {hasPurposes ? (
+        {hasPurposes && !complianceBlocked ? (
           <button
             onClick={() => setState({ phase: "confirm" })}
             className="self-start rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700"
           >
             Publish new version
           </button>
+        ) : complianceBlocked ? (
+          <p className="text-xs text-rose-700">
+            Publishing is blocked until configured compliance errors are fixed.
+          </p>
         ) : (
           <p className="text-xs text-neutral-400">
             Attach at least one purpose to publish a new version.
@@ -184,11 +199,16 @@ export function PublishPolicyButton({
                     alreadyPublished?: boolean;
                     missingPurposes?: boolean;
                     version?: { version: number; publishedAt: string };
+                    validation?: { errors: ValidationIssue[] };
                   };
 
                   if (!data.success) {
-                    notify.error("Unable to publish policy. Please try again.");
-                    setState({ phase: "error", message: "Unable to publish policy. Please try again." });
+                    const first = data.validation?.errors[0];
+                    const message = data.message
+                      ?? first?.message
+                      ?? "Unable to publish policy. Please try again.";
+                    notify.error(message);
+                    setState({ phase: "error", message });
                     return;
                   }
 
@@ -276,6 +296,22 @@ export function PublishPolicyButton({
   }
 
   // ── Idle: ready to publish ────────────────────────────────────────────────
+
+  if (complianceBlocked) {
+    return (
+      <div className="space-y-2">
+        <button
+          disabled
+          className="rounded-md bg-neutral-100 px-4 py-2 text-sm font-medium text-neutral-400 cursor-not-allowed"
+        >
+          Publishing blocked
+        </button>
+        <p className="text-xs text-rose-700">
+          {validation?.errors.length ?? 0} compliance error{(validation?.errors.length ?? 0) === 1 ? "" : "s"} must be fixed. The server will reject publish even if this button is forced.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <button

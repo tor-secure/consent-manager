@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  defaultBannerConfig,
   type BannerConfiguration,
   type BannerPosition,
   type BannerLayout,

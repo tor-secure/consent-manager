@@ -152,7 +152,7 @@ export function isRegisteredLocale(code: string | null | undefined): boolean {
   return REGISTERED.has(code);
 }
 
-export function parseStoredLocale(raw: unknown, fallback = "en"): string | null {
+export function parseStoredLocale(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const normalized = normalizeLocaleTag(raw);
   if (!normalized || normalized.length > 10) return null;

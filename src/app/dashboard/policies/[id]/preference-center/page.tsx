@@ -14,6 +14,10 @@ import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { parseBannerConfig } from "@/lib/banner-config";
 import {
+  buildPolicyNoticeSnapshot,
+  issuePolicyContext,
+} from "@/lib/policy-context";
+import {
   PreferenceCenter,
   type PCPurpose,
   type PCVendor,
@@ -31,7 +35,14 @@ export default async function PreferenceCenterPreviewPage({
   if (!orgId) return null;
 
   const [localOrg] = await db
-    .select({ id: organizations.id })
+    .select({
+      id: organizations.id,
+      grievanceOfficerName: organizations.grievanceOfficerName,
+      grievanceOfficerEmail: organizations.grievanceOfficerEmail,
+      grievancePortalUrl: organizations.grievancePortalUrl,
+      dpoName: organizations.dpoName,
+      dpoEmail: organizations.dpoEmail,
+    })
     .from(organizations)
     .where(eq(organizations.clerkOrganizationId, orgId))
     .limit(1);
@@ -40,7 +51,13 @@ export default async function PreferenceCenterPreviewPage({
 
   // Verify policy belongs to this org (through websites).
   const orgWebsites = await db
-    .select({ id: websites.id, name: websites.name })
+    .select({
+      id: websites.id,
+      name: websites.name,
+      siteKey: websites.siteKey,
+      defaultLanguage: websites.defaultLanguage,
+      defaultRegulationKey: websites.defaultRegulationKey,
+    })
     .from(websites)
     .where(eq(websites.organizationId, localOrg.id));
 
@@ -117,6 +134,43 @@ export default async function PreferenceCenterPreviewPage({
   const pcVendors: PCVendor[] = versionVendors;
 
   const website = orgWebsites.find((w) => w.id === policy.websiteId);
+  if (!website) notFound();
+  const grievance = {
+    grievanceOfficerName: localOrg.grievanceOfficerName,
+    grievanceOfficerEmail: localOrg.grievanceOfficerEmail,
+    grievancePortalUrl: localOrg.grievancePortalUrl,
+    dpoName: localOrg.dpoName,
+    dpoEmail: localOrg.dpoEmail,
+  };
+  const locale = bannerConfig.language || website.defaultLanguage || "en";
+  const jurisdiction = website.defaultRegulationKey || "unknown";
+  const noticeSnapshot = buildPolicyNoticeSnapshot({
+    policy: {
+      id: policy.id,
+      name: policy.name,
+      versionId: latestVersion.id,
+      version: latestVersion.version,
+    },
+    jurisdiction,
+    locale,
+    variantId: null,
+    bannerConfig: bannerConfig as unknown as Record<string, unknown>,
+    purposes: pcPurposes,
+    vendors: pcVendors,
+    grievance,
+  });
+  const policyContext = issuePolicyContext({
+    organizationId: localOrg.id,
+    websiteId: website.id,
+    siteKey: website.siteKey,
+    policyId: policy.id,
+    policyVersionId: latestVersion.id,
+    policyVersionNumber: latestVersion.version,
+    jurisdiction,
+    locale,
+    variantId: null,
+    noticeSnapshot,
+  });
 
   return (
     <div className="page-wrap space-y-6">
@@ -163,6 +217,7 @@ export default async function PreferenceCenterPreviewPage({
       <PreferenceCenter
         websiteId={policy.websiteId}
         policyVersionId={latestVersion.id}
+        policyContext={policyContext}
         bannerConfig={bannerConfig}
         purposes={pcPurposes}
         vendors={pcVendors}

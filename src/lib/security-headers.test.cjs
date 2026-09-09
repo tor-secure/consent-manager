@@ -58,7 +58,13 @@ assert.equal(isPublicCrossOriginApiPath("/api/rights-request"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/health"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/cron/scans"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/websites"), false);
-assert.equal(isPublicCrossOriginApiPath("/api/rights-request/uuid"), false);
+assert.equal(isPublicCrossOriginApiPath("/api/rights-request/verify"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/rights-request/status"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/age-assurance"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/age-assurance/abc"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/guardian-consent/verify"), true);
+assert.equal(shouldEnforceCsrfOrigin("POST", "/api/age-assurance"), false);
+assert.equal(shouldEnforceCsrfOrigin("POST", "/api/guardian-consent/verify"), false);
 
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/websites"), true);
 assert.equal(shouldEnforceCsrfOrigin("DELETE", "/api/api-keys/1"), true);
@@ -67,6 +73,7 @@ assert.equal(shouldEnforceCsrfOrigin("OPTIONS", "/api/websites"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/consent/record"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/sdk/script"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/rights-request"), false);
+assert.equal(shouldEnforceCsrfOrigin("POST", "/api/rights-request/verify"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/cron/scans"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/dashboard"), false);
 

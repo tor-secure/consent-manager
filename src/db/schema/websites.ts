@@ -65,6 +65,17 @@ export const websites = pgTable(
     consentIntegrations: jsonb("consent_integrations")
       .$type<Record<string, unknown>>(),
 
+    iabRegistration: jsonb("iab_registration")
+      .$type<Record<string, unknown>>(),
+
+    iabMapping: jsonb("iab_mapping")
+      .$type<Record<string, unknown>>(),
+
+    childProtection: jsonb("child_protection")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+
     verified: boolean("verified")
       .notNull()
       .default(false),

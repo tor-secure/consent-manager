@@ -11,6 +11,11 @@ export type ResolvedRegulation = {
   label: string;
   version: string;
   effectiveFrom: string;
+  effectiveTo?: string;
+  precedence: number;
+  sourceUrls: readonly string[];
+  lastReviewedAt: string;
+  reviewStatus: RegulationVersion["reviewStatus"];
   rules: RegulationVersion["rules"];
   jurisdictionScope: RegulationVersion["jurisdictionScope"];
 };
@@ -29,8 +34,12 @@ export function resolveRegulationVersion(
   at: Date = new Date(),
 ): RegulationVersion | null {
   const eligible = profile.versions
-    .filter((version) => parseIsoDate(version.effectiveFrom).getTime() <= at.getTime())
-    .sort((a, b) => parseIsoDate(b.effectiveFrom).getTime() - parseIsoDate(a.effectiveFrom).getTime());
+    .filter((version) =>
+      parseIsoDate(version.effectiveFrom).getTime() <= at.getTime() &&
+      (!version.effectiveTo || parseIsoDate(version.effectiveTo).getTime() >= at.getTime()))
+    .sort((a, b) =>
+      b.precedence - a.precedence ||
+      parseIsoDate(b.effectiveFrom).getTime() - parseIsoDate(a.effectiveFrom).getTime());
   return eligible[0] ?? null;
 }
 
@@ -48,6 +57,11 @@ export function resolveRegulationProfile(input: {
     label: profile.label,
     version: version.version,
     effectiveFrom: version.effectiveFrom,
+    effectiveTo: version.effectiveTo,
+    precedence: version.precedence,
+    sourceUrls: version.sourceUrls,
+    lastReviewedAt: version.lastReviewedAt,
+    reviewStatus: version.reviewStatus,
     rules: version.rules,
     jurisdictionScope: version.jurisdictionScope,
   };
@@ -104,7 +118,12 @@ export function rankRegulationsFromGeo(input: {
     }
   }
 
-  return ranked.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+  return ranked.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const ap = resolveRegulationProfile({ key: a.key, at })?.precedence ?? 0;
+    const bp = resolveRegulationProfile({ key: b.key, at })?.precedence ?? 0;
+    return bp - ap || a.key.localeCompare(b.key);
+  });
 }
 
 export function matchRegulationFromGeo(input: {
@@ -123,6 +142,12 @@ export function publicRegulationSummary(resolved: ResolvedRegulation | null) {
     key: resolved.key,
     label: resolved.label,
     version: resolved.version,
+    effectiveFrom: resolved.effectiveFrom,
+    effectiveTo: resolved.effectiveTo ?? null,
+    precedence: resolved.precedence,
+    sourceUrls: resolved.sourceUrls,
+    lastReviewedAt: resolved.lastReviewedAt,
+    reviewStatus: resolved.reviewStatus,
     capabilities: {
       consentRequired: resolved.rules.consentRequired,
       noticeRequired: resolved.rules.noticeRequired,

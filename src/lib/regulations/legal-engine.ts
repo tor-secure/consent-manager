@@ -32,7 +32,9 @@ export type LegalEngineResult = {
 };
 
 function consentModel(rules: ResolvedRegulation["rules"] | undefined): LegalEngineResult["ux"]["consentModel"] {
-  if (!rules) return "notice_only";
+  // Unknown location never guesses a law. The operational fallback is the
+  // privacy-preserving UX (deny optional processing until an explicit choice).
+  if (!rules) return "opt_in";
   if (rules.consentRequired) return "opt_in";
   if (rules.optOutRequired) return "opt_out";
   return "notice_only";
@@ -135,16 +137,16 @@ export function runGeoLegalEngine(input: {
     });
   } else {
     reasoning.push({
-      code: "regulation_none",
-      detail: "No catalog profile matched this location.",
+      code: "regulation_safe_fallback",
+      detail: "No catalog profile matched. No law was guessed; optional processing remains denied until an explicit choice.",
     });
   }
 
   const rules = selected?.rules;
   const ux: LegalEngineResult["ux"] = {
     consentModel: consentModel(rules),
-    rejectAllRecommended: Boolean(rules?.consentRequired),
-    preferenceCenterRequired: Boolean(rules?.preferenceCenterRequired),
+    rejectAllRecommended: rules ? Boolean(rules.consentRequired) : true,
+    preferenceCenterRequired: rules ? Boolean(rules.preferenceCenterRequired) : true,
     googleConsentMode: Boolean(rules?.signalRequirements.googleConsentMode),
     iabTcf: Boolean(rules?.signalRequirements.iabTcf),
     iabGpp: Boolean(rules?.signalRequirements.iabGpp),

@@ -75,27 +75,6 @@ function extractHostname(url: string): string | null {
   }
 }
 
-// Extremely lightweight HTML attribute parser — avoids bringing in an HTML
-// parser library. Extracts values of a specific attribute from matching tags.
-function extractAttributeValues(
-  html: string,
-  tagPattern: RegExp,
-  attribute: string,
-): string[] {
-  const results: string[] = [];
-  const attrRe = new RegExp(`${attribute}\\s*=\\s*["']([^"']+)["']`, "gi");
-  let tagMatch: RegExpExecArray | null;
-
-  while ((tagMatch = tagPattern.exec(html)) !== null) {
-    const tagText = tagMatch[0];
-    const attrMatch = attrRe.exec(tagText);
-    if (attrMatch) results.push(attrMatch[1]);
-    attrRe.lastIndex = 0; // reset for next tag
-  }
-
-  return results;
-}
-
 async function readLimitedText(response: Response): Promise<string | null> {
   const declared = response.headers.get("content-length");
   if (declared) {

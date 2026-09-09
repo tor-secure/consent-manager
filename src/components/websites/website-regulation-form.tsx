@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { Alert } from "@/components/ui/alert";
+import { Field } from "@/components/ui/field";
+import { Select } from "@/components/ui/select";
 import type { RegulationKey } from "@/lib/regulations/catalog";
 import { REGULATION_CATALOG } from "@/lib/regulations/catalog";
 import type { ConsentIntegrations } from "@/lib/signals/consent-integrations";
@@ -26,12 +29,16 @@ export function WebsiteRegulationForm({
   defaultRegulationKey,
   integrations,
   rules,
+  iabReadiness,
+  iabRegistration,
 }: {
   websiteId: string;
   policies: PolicyOption[];
   defaultRegulationKey: string | null;
   integrations: ConsentIntegrations;
   rules: JurisdictionRuleRow[];
+  iabReadiness: { registered: boolean; gvlVersion: number | null };
+  iabRegistration: { cmpId?: number | null; cmpVersion?: number | null } | null;
 }) {
   const router = useRouter();
   const { pending, run } = useAsyncAction();
@@ -40,6 +47,17 @@ export function WebsiteRegulationForm({
   const [googleEnabled, setGoogleEnabled] = useState(integrations.googleConsentMode.enabled);
   const [tcfEnabled, setTcfEnabled] = useState(integrations.iabTcf.enabled);
   const [gppEnabled, setGppEnabled] = useState(integrations.iabGpp.enabled);
+  const [purposeMappings, setPurposeMappings] = useState(JSON.stringify(integrations.iabTcf.purposeMappings, null, 2));
+  const [vendorMappings, setVendorMappings] = useState(JSON.stringify(integrations.iabTcf.vendorMappings, null, 2));
+  const [gppSections, setGppSections] = useState(integrations.iabGpp.sectionIds.join(","));
+  const [cmpId, setCmpId] = useState(iabRegistration?.cmpId?.toString() ?? "");
+  const [cmpVersion, setCmpVersion] = useState(iabRegistration?.cmpVersion?.toString() ?? "");
+  const [unknownTrackerBehavior, setUnknownTrackerBehavior] = useState(
+    integrations.trackerEnforcement.unknownTrackerBehavior,
+  );
+  const [enforcementDebug, setEnforcementDebug] = useState(
+    integrations.trackerEnforcement.debugMode,
+  );
   const [rows, setRows] = useState<JurisdictionRuleRow[]>(
     rules.length
       ? rules
@@ -60,6 +78,16 @@ export function WebsiteRegulationForm({
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    let parsedPurposeMappings: Record<string, number>;
+    let parsedVendorMappings: Record<string, number>;
+    try {
+      parsedPurposeMappings = JSON.parse(purposeMappings || "{}");
+      parsedVendorMappings = JSON.parse(vendorMappings || "{}");
+    } catch {
+      setError("IAB mappings must be valid JSON objects.");
+      return;
+    }
+    const sectionIds = gppSections.split(",").map((value) => Number(value.trim())).filter(Number.isInteger);
     await run(async () => {
       setError("");
       const integrationsResult = await dashboardFetch(
@@ -71,9 +99,16 @@ export function WebsiteRegulationForm({
             defaultRegulationKey: regulation || null,
             integrations: {
               googleConsentMode: { ...integrations.googleConsentMode, enabled: googleEnabled },
-              iabTcf: { enabled: tcfEnabled },
-              iabGpp: { enabled: gppEnabled },
+              iabTcf: { enabled: tcfEnabled, purposeMappings: parsedPurposeMappings, vendorMappings: parsedVendorMappings },
+              iabGpp: { enabled: gppEnabled, sectionIds },
+              trackerEnforcement: {
+                unknownTrackerBehavior,
+                debugMode: enforcementDebug,
+              },
             },
+            iabRegistration: cmpId || cmpVersion
+              ? { cmpId: Number(cmpId), cmpVersion: Number(cmpVersion) }
+              : null,
           }),
         },
         { successMessage: "Regulation and signals saved", errorFallback: "Unable to save regulation settings.", onValidation: setError },
@@ -95,40 +130,85 @@ export function WebsiteRegulationForm({
 
   return (
     <form onSubmit={save} className="space-y-6">
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      {error ? <Alert variant="error" role="alert">{error}</Alert> : null}
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Default regulation</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Default regulation</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Operational profile used when no more specific jurisdiction rule matches. This is not a legal certification.
           </p>
         </div>
         <CardContent className="space-y-3">
-          <select className="field-input" value={regulation} onChange={(event) => setRegulation(event.target.value)}>
+          <Field label="Fallback legal profile" htmlFor="default-regulation" hint="Used only when no country or region override matches.">
+          <Select id="default-regulation" value={regulation} onChange={(event) => setRegulation(event.target.value)}>
             <option value="">Not configured</option>
             {REGULATION_CATALOG.map((profile) => (
               <option key={profile.key} value={profile.key}>
                 {profile.label}
               </option>
             ))}
-          </select>
-          <p className="text-xs text-slate-500">
+          </Select>
+          </Field>
+          <p className="text-xs text-[var(--muted-foreground)]">
             Status: {regulation ? <Badge variant="success">Configured</Badge> : <Badge variant="neutral">Not configured</Badge>}
           </p>
         </CardContent>
       </Card>
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Jurisdiction rules</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Tracker enforcement</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+            Controls dynamically inserted third-party resources that do not match the tracker registry.
+          </p>
+        </div>
+        <CardContent className="space-y-4">
+          <Field
+            label="Unknown tracker behavior"
+            htmlFor="unknown-tracker-behavior"
+            hint="BLOCK is recommended for strict configurations. Same-origin application resources are not treated as trackers without a registry match."
+          >
+            <Select
+              id="unknown-tracker-behavior"
+              value={unknownTrackerBehavior}
+              onChange={(event) =>
+                setUnknownTrackerBehavior(
+                  event.target.value as "BLOCK" | "ALLOW" | "WARN",
+                )
+              }
+            >
+              <option value="BLOCK">Block unknown third-party resources</option>
+              <option value="WARN">Allow and record a warning</option>
+              <option value="ALLOW">Allow unknown third-party resources</option>
+            </Select>
+          </Field>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>
+              Developer diagnostics
+              <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
+                Keeps a capped in-browser enforcement log without query strings or payloads.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              checked={enforcementDebug}
+              onChange={(event) => setEnforcementDebug(event.target.checked)}
+            />
+          </label>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Jurisdiction rules</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Precedence: matching state/region, then country, then the website default policy. Country codes are ISO 3166-1 alpha-2.
           </p>
         </div>
         <CardContent className="space-y-3">
           {rows.length === 0 ? (
-            <p className="text-sm text-slate-500">No overrides. The default active policy is used.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No jurisdiction overrides. Visitors use the default active policy and fallback legal profile.</p>
           ) : (
             <div className="space-y-2">
               {rows.map((row, index) => (
@@ -198,9 +278,9 @@ export function WebsiteRegulationForm({
       </Card>
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">External consent signals</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">External consent signals</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Internal consent remains the source of truth. Signals are published after visitor choices.
           </p>
         </div>
@@ -218,9 +298,16 @@ export function WebsiteRegulationForm({
             <span>
               IAB TCF
               <span className="ml-2">
-                {tcfEnabled ? <Badge variant="warning">Foundation</Badge> : <Badge variant="neutral">Disabled</Badge>}
+                {tcfEnabled
+                  ? iabReadiness.registered && iabReadiness.gvlVersion
+                    ? <Badge variant="warning">Mapping required</Badge>
+                    : <Badge variant="warning">Blocked</Badge>
+                  : <Badge variant="neutral">Disabled</Badge>}
               </span>
-              <span className="mt-1 block text-xs text-slate-500">Ping/stub only. No TC string and no CMP ID.</span>
+              <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
+                CMP registration {iabReadiness.registered ? "configured" : "missing"} · GVL {iabReadiness.gvlVersion ?? "not synced"}.
+                Production strings are blocked until registration, GVL, and complete mappings exist.
+              </span>
             </span>
             <input type="checkbox" checked={tcfEnabled} onChange={(event) => setTcfEnabled(event.target.checked)} />
           </label>
@@ -230,9 +317,33 @@ export function WebsiteRegulationForm({
               <span className="ml-2">
                 {gppEnabled ? <Badge variant="warning">Foundation</Badge> : <Badge variant="neutral">Disabled</Badge>}
               </span>
-              <span className="mt-1 block text-xs text-slate-500">Ping/stub only. No GPP string encoding.</span>
+              <span className="mt-1 block text-xs text-[var(--muted-foreground)]">GPP 1.1 sections are encoded only when applicable to the resolved legal profile.</span>
             </span>
             <input type="checkbox" checked={gppEnabled} onChange={(event) => setGppEnabled(event.target.checked)} />
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm text-[var(--secondary-foreground)]">
+              Registered CMP ID (or use IAB_CMP_ID)
+              <input className="field-input mt-1" inputMode="numeric" value={cmpId} onChange={(event) => setCmpId(event.target.value)} />
+            </label>
+            <label className="text-sm text-[var(--secondary-foreground)]">
+              CMP implementation version (or use IAB_CMP_VERSION)
+              <input className="field-input mt-1" inputMode="numeric" value={cmpVersion} onChange={(event) => setCmpVersion(event.target.value)} />
+            </label>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <label className="text-sm text-[var(--secondary-foreground)]">
+              TCF purpose mappings (entity ID → IAB purpose ID)
+              <textarea className="field-input mt-1 min-h-28 font-mono text-xs" value={purposeMappings} onChange={(event) => setPurposeMappings(event.target.value)} />
+            </label>
+            <label className="text-sm text-[var(--secondary-foreground)]">
+              TCF vendor mappings (entity ID → GVL vendor ID)
+              <textarea className="field-input mt-1 min-h-28 font-mono text-xs" value={vendorMappings} onChange={(event) => setVendorMappings(event.target.value)} />
+            </label>
+          </div>
+          <label className="block text-sm text-[var(--secondary-foreground)]">
+            Allowed GPP section IDs (comma-separated; blank means all legally applicable)
+            <input className="field-input mt-1" value={gppSections} onChange={(event) => setGppSections(event.target.value)} placeholder="2, 7, 8" />
           </label>
         </CardContent>
       </Card>

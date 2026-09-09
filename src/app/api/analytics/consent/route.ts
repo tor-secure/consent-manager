@@ -6,11 +6,11 @@ import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { loadConsentAnalytics } from "@/lib/analytics/queries";
-import { consentRecords } from "@/db/schema/consent-records";
-import { consentDecisions } from "@/db/schema/consent-decisions";
 import { purposes } from "@/db/schema/purposes";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { isValidConsentId } from "@/lib/sdk/public-http";
+import { evaluateConsentForTenant, logConsentEvaluation } from "@/lib/consent-evaluation";
+import { randomUUID } from "node:crypto";
 
 export async function GET(request: Request) {
   try {
@@ -78,39 +78,39 @@ export async function GET(request: Request) {
         );
       }
 
-      const consentWebsiteId = url.searchParams.get("websiteId")?.trim() ?? null;
-      const consentRecord = await db
-        .select({ id: consentRecords.id })
-        .from(consentRecords)
-        .where(
-          and(
-            eq(consentRecords.organizationId, organization.id),
-            eq(consentRecords.consentId, redactConsentId),
-            consentWebsiteId ? eq(consentRecords.websiteId, consentWebsiteId) : undefined,
-          ),
-        )
-        .limit(1);
-
-      if (consentRecord.length) {
-        const consentRecordId = consentRecord[0].id;
-
-        const purposeDecisionRows = await db
-          .select({
-            purposeId: consentDecisions.purposeId,
-            granted: consentDecisions.granted,
-            isRequired: purposes.isRequired,
-          })
-          .from(consentDecisions)
-          .innerJoin(purposes, eq(consentDecisions.purposeId, purposes.id))
-          .where(eq(consentDecisions.consentRecordId, consentRecordId));
-
-        const allowedPurposeIds = new Set(
-          purposeDecisionRows
-            .filter((r): r is typeof r & { purposeId: string } =>
-              Boolean(r.purposeId) && (r.granted || r.isRequired),
-            )
-            .map((r) => r.purposeId),
+      const consentWebsiteId = url.searchParams.get("websiteId")?.trim() ?? "";
+      if (!consentWebsiteId) {
+        return NextResponse.json(
+          { success: false, message: "websiteId is required when redacting analytics" },
+          { status: 400 },
         );
+      }
+      const purposeIds = analytics.purposes.map((item) => item.purposeId).filter((id): id is string => typeof id === "string");
+      const purposeRows = purposeIds.length ? await db.select({ id: purposes.id, key: purposes.key })
+        .from(purposes).where(and(
+          eq(purposes.organizationId, organization.id),
+          inArray(purposes.id, purposeIds),
+          isNull(purposes.deletedAt),
+        )) : [];
+      const evaluation = await evaluateConsentForTenant(
+        { organizationId: organization.id, websiteId: consentWebsiteId, consentId: redactConsentId },
+        { purposeKeys: purposeRows.map((item) => item.key), vendorDomains: [], trackerIds: [], dataCategories: [] },
+      );
+
+      if (evaluation) {
+        const keyToId = new Map(purposeRows.map((item) => [item.key.toLowerCase(), item.id]));
+        const allowedPurposeIds = new Set(evaluation.result.results.purposes
+          .filter((item) => item.allowed)
+          .map((item) => keyToId.get(item.requested.toLowerCase()))
+          .filter((id): id is string => Boolean(id)));
+        await logConsentEvaluation({
+          organizationId: organization.id,
+          userId: localUser.id,
+          requestId: randomUUID(),
+          source: "dashboard",
+          evaluation,
+          request: { purposeKeys: purposeRows.map((item) => item.key), vendorDomains: [], trackerIds: [], dataCategories: [] },
+        });
 
         analytics = {
           ...analytics,

@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 // Portable consent proof is a signed, integrity-checked bundle that can be
 // exchanged across domains/devices.
@@ -17,14 +17,19 @@ export type PortableConsentDecision = {
 };
 
 export type PortableConsentClaims = {
-  v: 1;
+  v: 2;
+  jti: string;
   consentId: string;
   originWebsiteId: string;
+  targetWebsiteId: string;
+  audience: "portable-consent-import";
   status: string;
   choice: string | null;
   jurisdiction: string | null;
   consentedAt: string;
   expiresAt: string | null;
+  issuedAt: string;
+  exchangeExpiresAt: string;
   // Decisions use purposeKey/vendorDomain for cross-domain portability.
   decisions: PortableConsentDecision[];
 };
@@ -37,9 +42,24 @@ export type PortableConsentCryptoProof = {
   signedAt: string;
 };
 
+export const PORTABLE_EXCHANGE_TTL_MS = 10 * 60 * 1000;
+
+export function createPortableExchangeCode(): string {
+  const value = randomBytes(6).toString("base64url").toUpperCase();
+  return `${value.slice(0, 4)}-${value.slice(4, 8)}-${value.slice(8)}`;
+}
+
+export function hashPortableExchangeSecret(value: string): string {
+  return createHash("sha256").update(value.trim(), "utf8").digest("hex");
+}
+
 function proofKey(): Buffer {
+  const configuredSecret = process.env.CONSENT_PROOF_SECRET?.trim();
+  if (!configuredSecret && process.env.NODE_ENV === "production") {
+    throw new Error("CONSENT_PROOF_SECRET is required in production");
+  }
   const material =
-    process.env.CONSENT_PROOF_SECRET?.trim() ||
+    configuredSecret ||
     process.env.DATABASE_URL?.trim() ||
     "cmp-dev-consent-proof";
   return createHash("sha256").update(material).digest();
@@ -70,14 +90,19 @@ export function canonicalizePortableConsentClaims(claims: PortableConsentClaims)
     });
 
   return JSON.stringify({
-    v: 1,
+    v: 2,
+    jti: claims.jti,
     consentId: claims.consentId,
     originWebsiteId: claims.originWebsiteId,
+    targetWebsiteId: claims.targetWebsiteId,
+    audience: claims.audience,
     status: claims.status,
     choice: claims.choice,
     jurisdiction: claims.jurisdiction,
     consentedAt: claims.consentedAt,
     expiresAt: claims.expiresAt,
+    issuedAt: claims.issuedAt,
+    exchangeExpiresAt: claims.exchangeExpiresAt,
     decisions,
   });
 }

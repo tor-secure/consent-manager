@@ -43,6 +43,10 @@ export function isValidWebsiteId(value: string): boolean {
   return value.length === 36 && UUID_RE.test(value);
 }
 
+export function isValidSubmissionId(value: string): boolean {
+  return value.length === 36 && UUID_RE.test(value);
+}
+
 export function isValidConsentId(value: string): boolean {
   return CONSENT_ID_RE.test(value);
 }

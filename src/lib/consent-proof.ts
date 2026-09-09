@@ -1,4 +1,5 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { canonicalizePolicyNoticeSnapshot } from "./policy-context";
 
 export const CONSENT_PROOF_ALG = "HMAC-SHA256";
 export const CONSENT_PROOF_HASH_ALG = "SHA-256";
@@ -30,8 +31,12 @@ export type ConsentCryptoProof = {
 };
 
 function proofKey(): Buffer {
+  const configuredSecret = process.env.CONSENT_PROOF_SECRET?.trim();
+  if (!configuredSecret && process.env.NODE_ENV === "production") {
+    throw new Error("CONSENT_PROOF_SECRET is required in production");
+  }
   const material =
-    process.env.CONSENT_PROOF_SECRET?.trim() ||
+    configuredSecret ||
     process.env.DATABASE_URL?.trim() ||
     "cmp-dev-consent-proof";
   return createHash("sha256").update(material).digest();
@@ -120,5 +125,35 @@ export function readStoredCryptoProof(metadata: unknown): ConsentCryptoProof | n
     hash: row.hash,
     signature: row.signature,
     signedAt: typeof row.signedAt === "string" ? row.signedAt : "",
+  };
+}
+
+export function createHistoricalConsentEvidenceProof(
+  evidence: unknown,
+): { hash: string; signature: string } {
+  const hash = createHash("sha256")
+    .update(canonicalizePolicyNoticeSnapshot(evidence), "utf8")
+    .digest("hex");
+  return {
+    hash,
+    signature: signConsentProofHash(hash),
+  };
+}
+
+export function verifyHistoricalConsentEvidenceProof(input: {
+  evidence: unknown;
+  hash: string;
+  signature: string;
+}): { hashMatches: boolean; signatureValid: boolean; intact: boolean } {
+  const expected = createHistoricalConsentEvidenceProof(input.evidence);
+  const hashMatches = hexEqual(expected.hash, input.hash);
+  const signatureValid = hexEqual(
+    signConsentProofHash(input.hash),
+    input.signature,
+  );
+  return {
+    hashMatches,
+    signatureValid,
+    intact: hashMatches && signatureValid,
   };
 }

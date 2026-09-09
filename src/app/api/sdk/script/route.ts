@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       headers: {
         "Content-Type": "application/javascript; charset=utf-8",
         ...publicCorsHeaders("GET, OPTIONS"),
-        "Cache-Control": "public, max-age=60, stale-while-revalidate=300",
+        "Cache-Control": "public, max-age=60, must-revalidate",
       },
     });
   } catch (error) {

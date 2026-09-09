@@ -40,6 +40,9 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.equal(before.version, "1.0");
   assert.equal(after.version, "2.0");
   assert.equal(resolveRegulationProfile({ key: "gdpr" }).key, "gdpr");
+  const uk = resolveRegulationProfile({ key: "uk_gdpr" });
+  assert.equal(uk.reviewStatus, "reviewed");
+  assert.ok(uk.sourceUrls.every((url) => url.startsWith("https://")));
   assert.equal(resolveRegulationProfile({ key: "unknown" }), null);
   const tooEarly = resolveRegulationProfile({ key: "ucpa", at: new Date("2020-01-01T00:00:00Z") });
   assert.equal(tooEarly, null);
@@ -141,7 +144,7 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.equal(disabled.tcf.status, "disabled");
   assert.equal(disabled.tcf.tcString, null);
   const enabled = buildIabSignalSnapshot({ tcf: { enabled: true }, gpp: { enabled: true } });
-  assert.equal(enabled.gpp.status, "foundation");
+  assert.equal(enabled.gpp.status, "blocked");
   assert.equal(enabled.gpp.gppString, null);
   assert.equal(tcfPingResponse(true).cmpStatus, "stub");
   assert.equal(gppPingResponse(true).gppString, "");
@@ -185,6 +188,24 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.equal(verifyConsentCryptoProof({ claims, proof }).intact, true);
   const tampered = { ...claims, status: "rejected" };
   assert.equal(verifyConsentCryptoProof({ claims: tampered, proof }).hashMatches, false);
+
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousProofSecret = process.env.CONSENT_PROOF_SECRET;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+  process.env.NODE_ENV = "production";
+  delete process.env.CONSENT_PROOF_SECRET;
+  delete process.env.DATABASE_URL;
+  assert.throws(
+    () => createConsentCryptoProof(claims),
+    /CONSENT_PROOF_SECRET is required/,
+    "production consent proofs must never use a development fallback key",
+  );
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
+  if (previousProofSecret === undefined) delete process.env.CONSENT_PROOF_SECRET;
+  else process.env.CONSENT_PROOF_SECRET = previousProofSecret;
+  if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = previousDatabaseUrl;
 }
 
 {

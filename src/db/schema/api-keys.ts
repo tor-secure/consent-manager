@@ -4,7 +4,6 @@ import {
   uuid,
   varchar,
   text,
-  boolean,
   index,
 } from "drizzle-orm/pg-core";
 
@@ -38,6 +37,11 @@ export const apiKeys = pgTable(
     }).notNull(),
 
     keyHash: text("key_hash").notNull(),
+
+    scopes: text("scopes")
+      .array()
+      .notNull()
+      .default(["consent:evaluate", "data:redact"]),
 
     environment: varchar("environment", {
       length: 20,

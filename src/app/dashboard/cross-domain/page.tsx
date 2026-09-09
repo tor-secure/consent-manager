@@ -1,8 +1,8 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadOrgWebsites } from "@/lib/intelligence/org-websites";
 import PortableConsentTool from "@/components/cross-domain/portable-consent-tool";
-import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function CrossDomainPage() {
   const context = await requireDashboardContext();
@@ -17,11 +17,7 @@ export default async function CrossDomainPage() {
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-            No websites yet. Add a website to start exchanging consent.
-          </CardContent>
-        </Card>
+        <EmptyState title="Add two websites to exchange consent" description="Portable consent needs an active source website and a distinct target in this organization." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <PortableConsentTool websites={sites} />
       )}

@@ -5,7 +5,10 @@ import {
   varchar,
   text,
   unique,
+  integer,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { organizations } from "./organizations";
 
@@ -54,6 +57,8 @@ export const vendors = pgTable(
       .notNull()
       .default("custom"),
 
+    iabVendorId: integer("iab_vendor_id"),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })
@@ -75,5 +80,6 @@ export const vendors = pgTable(
       table.organizationId,
       table.key,
     ),
+    check("vendors_iab_vendor_id_range", sql`${table.iabVendorId} is null or (${table.iabVendorId} between 1 and 65535)`),
   ],
 );

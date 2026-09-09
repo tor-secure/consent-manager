@@ -1,6 +1,25 @@
 const SITE_KEY = "site_327f98c3148c1c208c12fe2e2c7b1d5f4300a633f37be78d";
 const BASE = "http://localhost:3000";
 
+type Purpose = {
+  id: string;
+  key: string;
+  name: string;
+  isRequired: boolean;
+};
+
+type Vendor = {
+  id: string;
+  name: string;
+  domain?: string;
+};
+
+type Decision = {
+  purposeId?: string;
+  vendorId?: string;
+  granted: boolean;
+};
+
 async function test() {
   console.log("=== Test 1: Config endpoint ===");
   const r1 = await fetch(BASE + "/api/sdk/" + SITE_KEY + "/config", {
@@ -8,7 +27,27 @@ async function test() {
   });
   console.log("Status:", r1.status);
   console.log("ACAO header:", r1.headers.get("Access-Control-Allow-Origin"));
-  const d1 = await r1.json();
+  const d1 = await r1.json() as {
+    success: boolean;
+    websiteId: string;
+    policy?: { name: string; version: number; isPublished: boolean };
+    purposes: Purpose[];
+    vendors: Vendor[];
+    policyContext: {
+      token: string;
+      claims: Record<string, unknown>;
+      noticeSnapshot: Record<string, unknown>;
+    };
+    trackerRules?: unknown[];
+    bannerConfig?: {
+      title?: string;
+      position?: string;
+      showAcceptAll?: boolean;
+      showRejectAll?: boolean;
+      showCustomize?: boolean;
+    };
+    message?: string;
+  };
   console.log("Success:", d1.success);
   if (d1.success) {
     console.log("Website ID:", d1.websiteId);
@@ -22,11 +61,11 @@ async function test() {
       "Purposes:",
       d1.purposes?.length,
     );
-    d1.purposes?.forEach((p: any) => {
+    d1.purposes?.forEach((p) => {
       console.log("   - " + p.key + ": " + p.name + " required=" + p.isRequired);
     });
     console.log("Vendors:", d1.vendors?.length);
-    d1.vendors?.forEach((v: any) => {
+    d1.vendors?.forEach((v) => {
       console.log("   - " + v.name + " (" + v.domain + ")");
     });
     console.log("Trackers:", d1.trackerRules?.length);
@@ -82,6 +121,9 @@ async function test() {
     headers: { "Content-Type": "application/json", Origin: "http://example.com" },
     body: JSON.stringify({
       websiteId,
+      expectedStateVersion: 0,
+      submissionId: crypto.randomUUID(),
+      policyContext: d1.policyContext,
       submission: { choice: "accept-all", purposeDecisions: [], vendorDecisions: [] },
     }),
   });
@@ -104,15 +146,19 @@ async function test() {
     BASE + "/api/consent/record?consentId=" + encodeURIComponent(cid1) +
       "&websiteId=" + encodeURIComponent(websiteId),
   );
-  const d6 = await r6.json();
+  const d6 = await r6.json() as {
+    success: boolean;
+    record: { status: string; stateVersion: number };
+    decisions: Decision[];
+  };
   console.log("Status:", r6.status, "Success:", d6.success);
   if (d6.success) {
     console.log("Record status:", d6.record.status);
     console.log("Decisions count:", d6.decisions.length);
-    const allGranted = d6.decisions.every((d: any) => d.granted);
+    const allGranted = d6.decisions.every((d) => d.granted);
     console.log("All granted (accept-all):", allGranted);
-    const purposesWithGrant = d6.decisions.filter((d: any) => d.purposeId && d.granted).length;
-    const vendorsWithGrant = d6.decisions.filter((d: any) => d.vendorId && d.granted).length;
+    const purposesWithGrant = d6.decisions.filter((d) => d.purposeId && d.granted).length;
+    const vendorsWithGrant = d6.decisions.filter((d) => d.vendorId && d.granted).length;
     console.log("Purposes granted:", purposesWithGrant, "/", d1.purposes.length);
     console.log("Vendors granted:", vendorsWithGrant, "/", d1.vendors.length);
   }
@@ -122,7 +168,11 @@ async function test() {
   const r7 = await fetch(BASE + "/api/consent/withdraw", {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: "http://example.com" },
-    body: JSON.stringify({ consentId: cid1, websiteId }),
+    body: JSON.stringify({
+      consentId: cid1,
+      websiteId,
+      expectedStateVersion: d6.record.stateVersion,
+    }),
   });
   const d7 = await r7.json();
   console.log("Status:", r7.status, "Success:", d7.success);
@@ -134,7 +184,11 @@ async function test() {
   const r8 = await fetch(BASE + "/api/consent/withdraw", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ consentId: cid1, websiteId }),
+    body: JSON.stringify({
+      consentId: cid1,
+      websiteId,
+      expectedStateVersion: d7.stateVersion,
+    }),
   });
   console.log("Status:", r8.status, "(expected 409)");
   const d8 = await r8.json();
@@ -147,6 +201,9 @@ async function test() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       websiteId,
+      expectedStateVersion: 0,
+      submissionId: crypto.randomUUID(),
+      policyContext: d1.policyContext,
       submission: { choice: "reject-all", purposeDecisions: [], vendorDecisions: [] },
     }),
   });
@@ -158,8 +215,11 @@ async function test() {
       BASE + "/api/consent/record?consentId=" + encodeURIComponent(cid2) +
         "&websiteId=" + encodeURIComponent(websiteId),
     );
-    const d9b = await r9b.json();
-    const nGranted = d9b.decisions.filter((d: any) => d.granted).length;
+    const d9b = await r9b.json() as {
+      record: { status: string };
+      decisions: Decision[];
+    };
+    const nGranted = d9b.decisions.filter((d) => d.granted).length;
     console.log(
       "Reject-all decisions:",
       nGranted,
@@ -168,7 +228,7 @@ async function test() {
       "total",
     );
     const requiredPurposeIds = new Set(
-      d1.purposes.filter((p: any) => p.isRequired).map((p: any) => p.id),
+      d1.purposes.filter((p) => p.isRequired).map((p) => p.id),
     );
     let ok = true;
     for (const d of d9b.decisions) {
@@ -205,13 +265,13 @@ async function test() {
   console.log("");
 
   console.log("=== Test 12: Granular submission (partial) ===");
-  const firstPurposeId = d1.purposes.find((p: any) => !p.isRequired)?.id;
+  const firstPurposeId = d1.purposes.find((p) => !p.isRequired)?.id;
   const firstVendorId = d1.vendors[0]?.id;
-  const granularPurposes = d1.purposes.map((p: any) => ({
+  const granularPurposes = d1.purposes.map((p) => ({
     purposeId: p.id,
     granted: p.isRequired ? true : (p.id === firstPurposeId ? true : false),
   }));
-  const granularVendors = d1.vendors.map((v: any) => ({
+  const granularVendors = d1.vendors.map((v) => ({
     vendorId: v.id,
     granted: v.id === firstVendorId ? true : false,
   }));
@@ -220,6 +280,9 @@ async function test() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       websiteId,
+      expectedStateVersion: 0,
+      submissionId: crypto.randomUUID(),
+      policyContext: d1.policyContext,
       submission: {
         choice: "granular",
         purposeDecisions: granularPurposes,
@@ -235,14 +298,17 @@ async function test() {
       BASE + "/api/consent/record?consentId=" + encodeURIComponent(cid3) +
         "&websiteId=" + encodeURIComponent(websiteId),
     );
-    const d12b = await r12b.json();
+    const d12b = await r12b.json() as {
+      record: { status: string };
+      decisions: Decision[];
+    };
     console.log("Overall record status:", d12b.record.status, "(expected: partial)");
     if (firstPurposeId) {
-      const firstPurposeDecision = d12b.decisions.find((d: any) => d.purposeId === firstPurposeId);
+      const firstPurposeDecision = d12b.decisions.find((d) => d.purposeId === firstPurposeId);
       console.log("First non-required purpose granted:", firstPurposeDecision?.granted, "(expected true)");
     }
     if (firstVendorId) {
-      const firstVendorDecision = d12b.decisions.find((d: any) => d.vendorId === firstVendorId);
+      const firstVendorDecision = d12b.decisions.find((d) => d.vendorId === firstVendorId);
       console.log("First vendor granted:", firstVendorDecision?.granted, "(expected true)");
     }
   }
@@ -268,8 +334,8 @@ async function test() {
         BASE + "/api/consent/record?consentId=" + encodeURIComponent(existingId) +
           "&websiteId=" + encodeURIComponent(websiteId),
       );
-      const d13b = await r13b.json();
-      const nowAllGranted = d13b.decisions.every((d: any) => d.granted);
+      const d13b = await r13b.json() as { decisions: Decision[] };
+      const nowAllGranted = d13b.decisions.every((d) => d.granted);
       console.log("Updated record: all granted now?", nowAllGranted ? "PASS" : "FAIL");
     }
   }

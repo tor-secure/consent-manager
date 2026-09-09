@@ -1,0 +1,2 @@
+ALTER TABLE "trackers" ADD COLUMN "pixel_url_patterns" jsonb DEFAULT '[]'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "trackers" ADD COLUMN "scanner_classification" varchar(30) DEFAULT 'unmapped' NOT NULL;

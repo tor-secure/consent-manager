@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -7,12 +7,13 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentDecisions } from "@/db/schema/consent-decisions";
+import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
-import { parseBannerConfig, resolveTranslation } from "@/lib/banner-config";
+import { vendors } from "@/db/schema/vendors";
+import { parseBannerConfig } from "@/lib/banner-config";
 import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
-import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import { logger } from "@/lib/logger";
 import {
   generateConsentId,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/consent-engine";
 import {
   isValidConsentId,
+  isValidSubmissionId,
   isValidWebsiteId,
   MAX_DECISION_ITEMS,
   publicCorsHeaders,
@@ -36,7 +38,24 @@ import {
   buildAnalyticsHints,
   mergeAnalyticsMetadata,
 } from "@/lib/analytics/client-hints";
-import { createConsentCryptoProof } from "@/lib/consent-proof";
+import {
+  createConsentCryptoProof,
+  createHistoricalConsentEvidenceProof,
+} from "@/lib/consent-proof";
+import {
+  canonicalizePolicyNoticeSnapshot,
+  policyContextMatchesScope,
+  verifyPolicyContextEnvelope,
+} from "@/lib/policy-context";
+import { createHash } from "node:crypto";
+import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
+import { decodeGppSections, encodeGppString, encodeTcString, getIabRegistration } from "@/lib/signals/iab-adapter";
+import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
+import { resolveRegulationProfile } from "@/lib/regulations/engine";
+import { parseChildProtectionConfig } from "@/lib/children/config";
+import { denyRestrictedDecisions } from "@/lib/children/evaluate";
+import { loadLatestSession, rowToState } from "@/lib/children/service";
+import { publicAgeView } from "@/lib/children/state";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -71,6 +90,7 @@ export async function GET(request: Request) {
         id: consentRecords.id,
         consentId: consentRecords.consentId,
         status: consentRecords.status,
+        stateVersion: consentRecords.stateVersion,
         consentedAt: consentRecords.consentedAt,
         expiresAt: consentRecords.expiresAt,
         withdrawnAt: consentRecords.withdrawnAt,
@@ -119,6 +139,7 @@ export async function GET(request: Request) {
           id: record.id,
           consentId: record.consentId,
           status: expired ? "expired" : record.status,
+          stateVersion: record.stateVersion,
           consentedAt: record.consentedAt,
           expiresAt: record.expiresAt,
           withdrawnAt: record.withdrawnAt,
@@ -177,6 +198,36 @@ export async function POST(request: Request) {
       );
     }
 
+    const verifiedContext = verifyPolicyContextEnvelope(body.policyContext);
+    if (!verifiedContext.ok) {
+      const expired = verifiedContext.reason === "expired";
+      return NextResponse.json(
+        {
+          success: false,
+          code: expired ? "POLICY_CONTEXT_EXPIRED" : "INVALID_POLICY_CONTEXT",
+          message: expired
+            ? "Policy context expired; reload the consent notice and try again"
+            : "A valid, unmodified policy context is required",
+        },
+        { status: expired ? 409 : 400, headers: CORS_HEADERS },
+      );
+    }
+    const { claims: policyContext, noticeSnapshot } = verifiedContext;
+    const submittedVariant =
+      typeof body.abVariant === "string" && body.abVariant.trim()
+        ? body.abVariant.trim().slice(0, 40)
+        : null;
+    if (submittedVariant !== policyContext.variantId) {
+      return NextResponse.json(
+        {
+          success: false,
+          code: "POLICY_CONTEXT_VARIANT_MISMATCH",
+          message: "A/B variant does not match the notice context shown",
+        },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+
     const limit = rateLimit({
       key: `consent-record:${websiteId}:${getClientIp(request)}`,
       limit: 120,
@@ -192,6 +243,23 @@ export async function POST(request: Request) {
     if (!isNew && !isValidConsentId(String(rawConsentId).trim())) {
       return NextResponse.json(
         { success: false, message: "Invalid consentId" },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+    const expectedStateVersion = Number(body.expectedStateVersion);
+    if (
+      !Number.isInteger(expectedStateVersion) ||
+      (isNew ? expectedStateVersion !== 0 : expectedStateVersion < 1)
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Invalid expectedStateVersion" },
+        { status: 400, headers: CORS_HEADERS },
+      );
+    }
+    const submissionId = String(body.submissionId ?? "").trim();
+    if (!isValidSubmissionId(submissionId)) {
+      return NextResponse.json(
+        { success: false, message: "A valid submissionId is required" },
         { status: 400, headers: CORS_HEADERS },
       );
     }
@@ -240,14 +308,32 @@ export async function POST(request: Request) {
           )
         : undefined,
     };
+    const requestHash = createHash("sha256")
+      .update(
+        canonicalizePolicyNoticeSnapshot({
+          websiteId,
+          consentId: isNew ? null : String(rawConsentId).trim(),
+          expectedStateVersion,
+          policyContextId: policyContext.contextId,
+          variantId: submittedVariant,
+          submission,
+        }),
+        "utf8",
+      )
+      .digest("hex");
 
     // Verify website exists and is active.
     const [website] = await db
       .select({
         id: websites.id,
+        siteKey: websites.siteKey,
         organizationId: websites.organizationId,
         status: websites.status,
         defaultLanguage: websites.defaultLanguage,
+        defaultRegulationKey: websites.defaultRegulationKey,
+        consentIntegrations: websites.consentIntegrations,
+        iabRegistration: websites.iabRegistration,
+        childProtection: websites.childProtection,
       })
       .from(websites)
       .where(eq(websites.id, websiteId))
@@ -260,28 +346,26 @@ export async function POST(request: Request) {
       );
     }
 
-    // Find the active default policy.
-    const [policy] = await db
-      .select({ id: consentPolicies.id })
-      .from(consentPolicies)
-      .where(
-        and(
-          eq(consentPolicies.websiteId, website.id),
-          eq(consentPolicies.status, "active"),
-        ),
-      )
-      .orderBy(consentPolicies.isDefault)
-      .limit(1);
-
-    if (!policy) {
+    if (
+      !policyContextMatchesScope(policyContext, {
+        organizationId: website.organizationId,
+        websiteId: website.id,
+        siteKey: website.siteKey,
+      })
+    ) {
       return NextResponse.json(
-        { success: false, message: "No active policy found for this website" },
-        { status: 404, headers: CORS_HEADERS },
+        {
+          success: false,
+          code: "POLICY_CONTEXT_SCOPE_MISMATCH",
+          message: "Policy context does not belong to this website and tenant",
+        },
+        { status: 403, headers: CORS_HEADERS },
       );
     }
 
-    // Get the latest published version (or latest draft).
-    const allVersions = await db
+    // Resolve only the policy/version that the signed context says was shown.
+    // Never switch to a newer active/default version during consent recording.
+    const [contextVersion] = await db
       .select({
         id: consentPolicyVersions.id,
         version: consentPolicyVersions.version,
@@ -289,23 +373,34 @@ export async function POST(request: Request) {
         configuration: consentPolicyVersions.configuration,
       })
       .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
+      .innerJoin(
+        consentPolicies,
+        eq(consentPolicyVersions.policyId, consentPolicies.id),
+      )
+      .where(
+        and(
+          eq(consentPolicyVersions.id, policyContext.policyVersionId),
+          eq(consentPolicyVersions.policyId, policyContext.policyId),
+          eq(consentPolicyVersions.version, policyContext.policyVersionNumber),
+          eq(consentPolicies.id, policyContext.policyId),
+          eq(consentPolicies.websiteId, website.id),
+        ),
+      )
+      .limit(1);
 
-    const latestVersion =
-      allVersions.findLast((v) => v.isPublished) ??
-      allVersions[allVersions.length - 1] ??
-      null;
-
-    if (!latestVersion) {
+    if (!contextVersion) {
       return NextResponse.json(
-        { success: false, message: "No policy version found" },
-        { status: 404, headers: CORS_HEADERS },
+        {
+          success: false,
+          code: "POLICY_CONTEXT_POLICY_MISMATCH",
+          message: "The policy context does not match a policy version for this website",
+        },
+        { status: 409, headers: CORS_HEADERS },
       );
     }
 
     const bannerConfig = parseBannerConfig(
-      latestVersion.configuration as Record<string, unknown>,
+      contextVersion.configuration as Record<string, unknown>,
     );
 
     // Load purposes and vendors attached to this version.
@@ -315,10 +410,11 @@ export async function POST(request: Request) {
         key: purposes.key,
         name: purposes.name,
         isRequired: purposes.isRequired,
+        iabTcfPurposeId: purposes.iabTcfPurposeId,
       })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
-      .where(eq(policyPurposes.policyVersionId, latestVersion.id));
+      .where(eq(policyPurposes.policyVersionId, contextVersion.id));
 
     const purposeIds = versionPurposes.map((p) => p.id);
     const requiredPurposeIds = new Set(
@@ -334,43 +430,117 @@ export async function POST(request: Request) {
         : [];
 
     const vendorIds = [...new Set(vpLinks.map((v) => v.vendorId))];
+    const mappedVendors = vendorIds.length
+      ? await db.select({ id: vendors.id, iabVendorId: vendors.iabVendorId })
+          .from(vendors).where(inArray(vendors.id, vendorIds))
+      : [];
 
-    const decisionRows = buildDecisionRows(
+    const childConfig = parseChildProtectionConfig(website.childProtection);
+    const ageRow = await loadLatestSession({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      consentId: isNew ? null : String(rawConsentId).trim(),
+    });
+    let decisionRows = buildDecisionRows(
       submission,
       purposeIds,
       vendorIds,
       requiredPurposeIds,
     );
+    decisionRows = denyRestrictedDecisions(
+      decisionRows,
+      versionPurposes,
+      childConfig,
+      ageRow ? rowToState(ageRow) : null,
+    );
+    const childView = publicAgeView({
+      config: childConfig,
+      state: ageRow ? rowToState(ageRow) : null,
+    });
 
     const overallStatus = deriveOverallStatus(decisionRows);
     const now = new Date();
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
     const consentId = isNew ? generateConsentId() : String(rawConsentId).trim();
+    const integrations = parseConsentIntegrations(website.consentIntegrations);
+    const registration = getIabRegistration(process.env, website.iabRegistration);
+    const currentGvl = await getCurrentGvl();
+    const mappedPurposeIds = versionPurposes.map((purpose) =>
+      purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter((id): id is number => Number.isInteger(id));
+    const mappedVendorIds = vendorIds.map((id) =>
+      mappedVendors.find((vendor) => vendor.id === id)?.iabVendorId ?? integrations.iabTcf.vendorMappings[id])
+      .filter((id): id is number => Number.isInteger(id));
+    const grantedPurposeIds = decisionRows.flatMap((row) => {
+      if (!row.granted || !row.purposeId) return [];
+      const purpose = versionPurposes.find((item) => item.id === row.purposeId);
+      const id = purpose?.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[row.purposeId];
+      return Number.isInteger(id) ? [id] : [];
+    });
+    const grantedVendorIds = decisionRows.flatMap((row) => {
+      const id = row.vendorId
+        ? mappedVendors.find((vendor) => vendor.id === row.vendorId)?.iabVendorId ?? integrations.iabTcf.vendorMappings[row.vendorId]
+        : null;
+      return row.granted && Number.isInteger(id) ? [id as number] : [];
+    });
+    const regulation =
+      resolveRegulationProfile({ key: policyContext.jurisdiction }) ??
+      resolveRegulationProfile({ key: website.defaultRegulationKey });
+    const sectionMap: Record<string, number[]> = {
+      gdpr: [2], uk_gdpr: [2], ccpa: [7, 8], vcdpa: [7, 9], cpa: [7, 10], ucpa: [7, 11],
+    };
+    const applicableSections = regulation?.rules.signalRequirements.iabGpp
+      ? (sectionMap[regulation.key] ?? []).filter((id) =>
+          integrations.iabGpp.sectionIds.length === 0 || integrations.iabGpp.sectionIds.includes(id))
+      : [];
+    const mappingComplete = mappedPurposeIds.length === versionPurposes.length && mappedVendorIds.length === vendorIds.length;
+    const tcString = integrations.iabTcf.enabled && regulation?.rules.signalRequirements.iabTcf &&
+      registration.valid && currentGvl && mappingComplete
+      ? encodeTcString({
+          cmpId: registration.cmpId!, cmpVersion: registration.cmpVersion!, gvl: currentGvl.payload,
+          purposeIds: mappedPurposeIds, vendorIds: mappedVendorIds,
+          grantedPurposeIds, grantedVendorIds, language: website.defaultLanguage, now,
+        })
+      : null;
+    const gppString = integrations.iabGpp.enabled && registration.valid && applicableSections.length
+      ? encodeGppString({ sectionIds: applicableSections, optedOut: submission.choice === "reject-all" })
+      : null;
+    const iabEvidence = {
+      tcString,
+      gppString,
+      parsedSections: gppString ? decodeGppSections(gppString) : {},
+      hash: createHash("sha256").update(`${tcString ?? ""}\n${gppString ?? ""}`).digest("hex"),
+      gvlVersion: currentGvl?.version ?? null,
+      applicableSections,
+      generatedByServer: true,
+      childProtection: {
+        ageStatus: childView.ageStatus,
+        guardianStatus: childView.guardianStatus,
+        assuranceMethod: childView.assuranceMethod,
+        restrictedProcessingAllowed: childView.restrictedProcessingAllowed,
+        selfDeclarationIsNotVerified: true,
+      },
+    };
 
     // ── Consent evidence snapshot ────────────────────────────────────────
     const purposeKeys  = versionPurposes.map((p) => p.key).sort();
     const purposeNames = versionPurposes.map((p) => p.name).sort();
 
-    const notice = resolveTranslation(
-      bannerConfig,
-      resolveRequestedLocale({
-        explicit: typeof body.language === "string" ? body.language : null,
-        acceptLanguage: request.headers.get("accept-language"),
-        websiteDefault: website.defaultLanguage,
-        bannerDefault: bannerConfig.language,
-        supportedLocales: bannerConfig.supportedLocales,
-      }),
-    );
+    const presentedBanner = noticeSnapshot.bannerConfig;
+    const presentedText = (key: string) =>
+      typeof presentedBanner[key] === "string" ? presentedBanner[key] : "";
 
     const evidenceMetadata: Record<string, unknown> = mergeAnalyticsMetadata(
       {
-      policyVersionId:     latestVersion.id,
-      policyVersionNumber: latestVersion.version,
-      noticeTitle:         notice.title,
-      noticeDescription:   notice.description,
-      noticeLanguage:      notice.resolvedLocale,
-      bannerLayout:        bannerConfig.layout,
-      bannerPosition:      bannerConfig.position,
+      policyId:            policyContext.policyId,
+      policyVersionId:     contextVersion.id,
+      policyVersionNumber: contextVersion.version,
+      policyContextId:     policyContext.contextId,
+      noticeHash:          policyContext.noticeHash,
+      noticeTitle:         presentedText("title"),
+      noticeDescription:   presentedText("description"),
+      noticeLanguage:      policyContext.locale,
+      bannerLayout:        presentedBanner.layout ?? bannerConfig.layout,
+      bannerPosition:      presentedBanner.position ?? bannerConfig.position,
       purposeCount:        versionPurposes.length,
       vendorCount:         vendorIds.length,
       purposeKeys,
@@ -378,17 +548,16 @@ export async function POST(request: Request) {
       consentExpireDays:   bannerConfig.consentExpireDays,
       defaultConsent:      bannerConfig.defaultConsent,
       choice:              submission.choice,
+      iab:                 iabEvidence,
       capturedAt:          now.toISOString(),
       cryptoProof: createConsentCryptoProof({
         v: 1,
         consentId,
         websiteId: website.id,
-        policyVersionId: latestVersion.id,
+        policyVersionId: contextVersion.id,
         status: overallStatus,
         choice: submission.choice,
-        jurisdiction: body.jurisdiction
-          ? String(body.jurisdiction).trim().slice(0, 100)
-          : bannerConfig.region || null,
+        jurisdiction: policyContext.jurisdiction,
         decisions: decisionRows.map((row) => ({
           purposeId: row.purposeId,
           vendorId: row.vendorId,
@@ -400,24 +569,49 @@ export async function POST(request: Request) {
       buildAnalyticsHints({
         headers: request.headers,
         userAgent: request.headers.get("user-agent"),
-        jurisdiction: body.jurisdiction
-          ? String(body.jurisdiction).trim().slice(0, 100)
-          : bannerConfig.region || null,
+        jurisdiction: policyContext.jurisdiction,
       }),
     );
 
     const abConfigured = parseBannerAbTest(
-      latestVersion.configuration &&
-        typeof latestVersion.configuration === "object" &&
-        !Array.isArray(latestVersion.configuration)
-        ? (latestVersion.configuration as Record<string, unknown>).abTest
+      contextVersion.configuration &&
+        typeof contextVersion.configuration === "object" &&
+        !Array.isArray(contextVersion.configuration)
+        ? (contextVersion.configuration as Record<string, unknown>).abTest
         : null,
     );
-    const abVariant =
-      typeof body.abVariant === "string" ? body.abVariant.trim().slice(0, 40) : "";
+    const abVariant = submittedVariant ?? "";
     if (abConfigured && abVariant && abConfigured.variants.some((row) => row.id === abVariant)) {
       evidenceMetadata.abTest = { variantId: abVariant };
     }
+    const evidenceDecisions = decisionRows.map((row) => ({
+      purposeId: row.purposeId,
+      vendorId: row.vendorId,
+      granted: row.granted,
+      decision: row.decision,
+      decidedAt: row.decidedAt.toISOString(),
+    }));
+    const historicalEvidencePayload = {
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      consentId,
+      policyId: policyContext.policyId,
+      policyVersionId: contextVersion.id,
+      policyVersionNumber: contextVersion.version,
+      policyContextId: policyContext.contextId,
+      jurisdiction: policyContext.jurisdiction,
+      locale: policyContext.locale,
+      noticeHash: policyContext.noticeHash,
+      noticeSnapshot,
+      choice: submission.choice,
+      status: overallStatus,
+      source: "web",
+      decisions: evidenceDecisions,
+      consentedAt: now.toISOString(),
+    };
+    const historicalEvidenceProof = createHistoricalConsentEvidenceProof(
+      historicalEvidencePayload,
+    );
 
     // ── Transaction: save record + decisions ─────────────────────────────
     let wasExpiredRecord = false;
@@ -427,22 +621,40 @@ export async function POST(request: Request) {
     // throws on any DB error and we never reach the code after it.
     let savedRecord: typeof consentRecords.$inferSelect =
       null as unknown as typeof consentRecords.$inferSelect;
+    let evidenceSnapshotId = "";
+    let idempotentEvidence:
+      | typeof consentEvidenceSnapshots.$inferSelect
+      | null = null;
 
     await db.transaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(hashtextextended(${submissionId}, 0))`,
+      );
+      const [existingSubmission] = await tx
+        .select()
+        .from(consentEvidenceSnapshots)
+        .where(eq(consentEvidenceSnapshots.submissionId, submissionId))
+        .limit(1);
+      if (existingSubmission) {
+        if (existingSubmission.requestHash !== requestHash) {
+          throw new Error("Submission id already used for different consent data");
+        }
+        idempotentEvidence = existingSubmission;
+        return;
+      }
+
       if (isNew) {
         const [inserted] = await tx
           .insert(consentRecords)
           .values({
             organizationId: website.organizationId,
             websiteId: website.id,
-            policyVersionId: latestVersion.id,
+            policyVersionId: contextVersion.id,
             consentId,
             visitorId: body.visitorId
               ? String(body.visitorId).trim().slice(0, 255)
               : null,
-            jurisdiction: body.jurisdiction
-              ? String(body.jurisdiction).trim().slice(0, 100)
-              : bannerConfig.region || null,
+            jurisdiction: policyContext.jurisdiction,
             status: overallStatus,
             source: "web",
             consentedAt: now,
@@ -470,6 +682,9 @@ export async function POST(request: Request) {
         if (existing.status === "withdrawn") {
           throw new Error("Consent record already withdrawn");
         }
+        if (existing.stateVersion !== expectedStateVersion) {
+          throw new Error("Consent state changed; refresh and retry");
+        }
 
         wasExpiredRecord = isConsentExpired(existing);
 
@@ -477,7 +692,8 @@ export async function POST(request: Request) {
           .update(consentRecords)
           .set({
             status: overallStatus,
-            policyVersionId: latestVersion.id,
+            policyVersionId: contextVersion.id,
+            stateVersion: sql`${consentRecords.stateVersion} + 1`,
             consentedAt: now,
             expiresAt,
             metadata: evidenceMetadata,
@@ -487,9 +703,13 @@ export async function POST(request: Request) {
             and(
               eq(consentRecords.consentId, String(rawConsentId).trim()),
               eq(consentRecords.websiteId, website.id),
+              eq(consentRecords.stateVersion, expectedStateVersion),
             ),
           )
           .returning();
+        if (!updated) {
+          throw new Error("Consent state changed; refresh and retry");
+        }
         savedRecord = updated;
 
         await tx
@@ -509,7 +729,83 @@ export async function POST(request: Request) {
           })),
         );
       }
+
+      const [insertedEvidence] = await tx
+        .insert(consentEvidenceSnapshots)
+        .values({
+          organizationId: website.organizationId,
+          websiteId: website.id,
+          policyId: policyContext.policyId,
+          policyVersionId: contextVersion.id,
+          policyVersionNumber: contextVersion.version,
+          consentRecordId: savedRecord.id,
+          consentId,
+          submissionId,
+          requestHash,
+          policyContextId: policyContext.contextId,
+          jurisdiction: policyContext.jurisdiction,
+          locale: policyContext.locale,
+          variantId: policyContext.variantId,
+          noticeHash: policyContext.noticeHash,
+          choice: submission.choice,
+          status: overallStatus,
+          stateVersion: savedRecord.stateVersion,
+          source: "web",
+          policyContext,
+          noticeSnapshot,
+          decisions: evidenceDecisions,
+          signals: iabEvidence,
+          evidenceHash: historicalEvidenceProof.hash,
+          evidenceSignature: historicalEvidenceProof.signature,
+          consentedAt: now,
+        })
+        .returning({ id: consentEvidenceSnapshots.id });
+      evidenceSnapshotId = insertedEvidence.id;
     });
+
+    if (idempotentEvidence) {
+      const prior = idempotentEvidence as typeof consentEvidenceSnapshots.$inferSelect;
+      const [priorRecord] = prior.consentRecordId
+        ? await db
+            .select({ expiresAt: consentRecords.expiresAt })
+            .from(consentRecords)
+            .where(
+              and(
+                eq(consentRecords.id, prior.consentRecordId),
+                eq(consentRecords.websiteId, website.id),
+              ),
+            )
+            .limit(1)
+        : [];
+      return NextResponse.json(
+        {
+          success: true,
+          confirmed: true,
+          idempotent: true,
+          consentId: prior.consentId,
+          status: prior.status,
+          stateVersion: prior.stateVersion,
+          choice: prior.choice,
+          policyId: prior.policyId,
+          policyVersionId: prior.policyVersionId,
+          policyVersionNumber: prior.policyVersionNumber,
+          policyContextId: prior.policyContextId,
+          jurisdiction: prior.jurisdiction,
+          noticeHash: prior.noticeHash,
+          evidenceSnapshotId: prior.id,
+          confirmedAt: prior.consentedAt,
+          expiresAt: priorRecord?.expiresAt ?? null,
+          decisions: prior.decisions,
+          signals: prior.signals,
+          confirmation: {
+            policyContextValidated: true,
+            persisted: true,
+            evidenceSnapshotCreated: true,
+          },
+        },
+        { status: 200, headers: CORS_HEADERS },
+      );
+    }
 
     // ── Append consent event (best-effort — must not fail the response) ──
     // The consent record is already committed at this point. An event-append
@@ -523,13 +819,15 @@ export async function POST(request: Request) {
     try {
       await appendConsentEvent({
         consentRecordId: savedRecord.id,
-        policyVersionId: latestVersion.id,
+        policyVersionId: contextVersion.id,
         eventType,
         eventData: {
           choice: submission.choice,
           status: overallStatus,
           decisionCount: decisionRows.length,
-          policyVersionNumber: latestVersion.version,
+          policyVersionNumber: contextVersion.version,
+          policyContextId: policyContext.contextId,
+          noticeHash: policyContext.noticeHash,
           purposeKeys,
           ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
         },
@@ -539,7 +837,7 @@ export async function POST(request: Request) {
       logger.error("Append consent event failed", {
         operation: "consent.event.append",
         consentRecordId: savedRecord.id,
-        policyVersionId: latestVersion.id,
+        policyVersionId: contextVersion.id,
         eventType,
         error: eventError,
       });
@@ -548,10 +846,19 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
+        confirmed: true,
         consentId: savedRecord.consentId,
         status: overallStatus,
+        stateVersion: savedRecord.stateVersion,
         choice: submission.choice,
-        policyVersionId: latestVersion.id,
+        policyVersionId: contextVersion.id,
+        policyId: policyContext.policyId,
+        policyVersionNumber: contextVersion.version,
+        policyContextId: policyContext.contextId,
+        jurisdiction: policyContext.jurisdiction,
+        noticeHash: policyContext.noticeHash,
+        evidenceSnapshotId,
+        confirmedAt: now,
         expiresAt: savedRecord.expiresAt,
         decisions: decisionRows.map((d) => ({
           purposeId: d.purposeId,
@@ -567,6 +874,12 @@ export async function POST(request: Request) {
               signedAt: (evidenceMetadata.cryptoProof as { signedAt: string }).signedAt,
             }
           : null,
+        signals: iabEvidence,
+        confirmation: {
+          policyContextValidated: true,
+          persisted: true,
+          evidenceSnapshotCreated: true,
+        },
       },
       { status: isNew ? 201 : 200, headers: CORS_HEADERS },
     );
@@ -575,7 +888,9 @@ export async function POST(request: Request) {
     const msg =
       error instanceof Error &&
       (error.message === "Consent record not found" ||
-        error.message === "Consent record already withdrawn")
+        error.message === "Consent record already withdrawn" ||
+        error.message === "Consent state changed; refresh and retry" ||
+        error.message === "Submission id already used for different consent data")
         ? error.message
         : "Failed to submit consent";
 
@@ -585,6 +900,12 @@ export async function POST(request: Request) {
         : error instanceof Error &&
             error.message === "Consent record already withdrawn"
           ? 409
+          : error instanceof Error &&
+              error.message === "Consent state changed; refresh and retry"
+            ? 409
+          : error instanceof Error &&
+              error.message === "Submission id already used for different consent data"
+            ? 409
           : 500;
 
     if (status === 500) {

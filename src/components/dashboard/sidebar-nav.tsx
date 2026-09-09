@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { dashboardNavigationGroups } from "@/config/navigation";
 
 type NavItem = {
   label: string;
@@ -165,15 +166,6 @@ function IconWebhooks() {
   );
 }
 
-function IconSDK() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="16 18 22 12 16 6" />
-      <polyline points="8 6 2 12 8 18" />
-    </svg>
-  );
-}
-
 function IconOrganization() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -195,92 +187,35 @@ function IconTeam() {
   );
 }
 
-function IconBilling() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <line x1="2" y1="10" x2="22" y2="10" />
-    </svg>
-  );
+function iconForHref(href: string) {
+  if (href === "/dashboard") return <IconOverview />;
+  if (href === "/dashboard/websites") return <IconWebsites />;
+  if (href === "/dashboard/consent") return <IconConsent />;
+  if (href === "/dashboard/policies") return <IconPolicies />;
+  if (href === "/dashboard/purposes") return <IconPurposes />;
+  if (href === "/dashboard/vendors") return <IconVendors />;
+  if (href === "/dashboard/trackers") return <IconTrackers />;
+  if (href === "/dashboard/scanner") return <IconScanner />;
+  if (href === "/dashboard/audit-logs") return <IconAuditLogs />;
+  if (href === "/dashboard/notifications") return <IconNotifications />;
+  if (href === "/dashboard/rights-requests") return <IconRightsRequests />;
+  if (href === "/dashboard/developers") return <IconApiKeys />;
+  if (href === "/dashboard/integrations") return <IconIntegrations />;
+  if (href === "/dashboard/developers/webhooks") return <IconWebhooks />;
+  if (href === "/dashboard/settings/organization") return <IconOrganization />;
+  if (href === "/dashboard/settings/team") return <IconTeam />;
+  return <IconAnalytics />;
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Overview",
-    items: [
-      { label: "Dashboard", href: "/dashboard", icon: <IconOverview />, ariaLabel: "Go to Dashboard overview" },
-    ],
-  },
-  {
-    label: "Websites",
-    items: [
-      { label: "Websites", href: "/dashboard/websites", icon: <IconWebsites />, ariaLabel: "Manage your websites" },
-    ],
-  },
-  {
-    label: "Consent Management",
-    items: [
-      { label: "Consent", href: "/dashboard/consent", icon: <IconConsent />, ariaLabel: "View consent records" },
-      { label: "Policies", href: "/dashboard/policies", icon: <IconPolicies />, ariaLabel: "Manage consent policies" },
-      { label: "Purposes", href: "/dashboard/purposes", icon: <IconPurposes />, ariaLabel: "Manage consent purposes" },
-      { label: "Vendors", href: "/dashboard/vendors", icon: <IconVendors />, ariaLabel: "Manage third-party vendors" },
-      { label: "Trackers", href: "/dashboard/trackers", icon: <IconTrackers />, ariaLabel: "Manage detected trackers" },
-    ],
-  },
-  {
-    label: "Discovery & Monitoring",
-    items: [
-      { label: "Scanner", href: "/dashboard/scanner", icon: <IconScanner />, ariaLabel: "Run website scans" },
-      { label: "Privacy drift", href: "/dashboard/monitoring", icon: <IconAnalytics />, ariaLabel: "Review privacy drift findings" },
-      { label: "Privacy risk", href: "/dashboard/risk", icon: <IconAnalytics />, ariaLabel: "Review privacy risk" },
-      { label: "Consent quality", href: "/dashboard/quality", icon: <IconAnalytics />, ariaLabel: "View consent quality scores" },
-      { label: "Analytics", href: "/dashboard/analytics", icon: <IconAnalytics />, ariaLabel: "View consent analytics" },
-    ],
-  },
-  {
-    label: "Intelligence",
-    items: [
-      { label: "Consent firewall", href: "/dashboard/firewall", icon: <IconAnalytics />, ariaLabel: "Preview tracker blocking" },
-      { label: "Impact simulator", href: "/dashboard/simulator", icon: <IconAnalytics />, ariaLabel: "Simulate privacy impact" },
-      { label: "Experiments", href: "/dashboard/experiments", icon: <IconAnalytics />, ariaLabel: "Banner A/B tests" },
-      { label: "Dependency graph", href: "/dashboard/graph", icon: <IconAnalytics />, ariaLabel: "Consent dependency graph" },
-      { label: "Recommendations", href: "/dashboard/recommendations", icon: <IconAnalytics />, ariaLabel: "Consent recommendations" },
-      { label: "Data flow map", href: "/dashboard/data-flow", icon: <IconAnalytics />, ariaLabel: "Data flow consent map" },
-      { label: "Cross-domain consent", href: "/dashboard/cross-domain", icon: <IconAnalytics />, ariaLabel: "Cross-domain & cross-device consent exchange" },
-      { label: "AI consent autopilot", href: "/dashboard/autopilot", icon: <IconAnalytics />, ariaLabel: "AI consent autopilot" },
-      { label: "Consent digital twin", href: "/dashboard/digital-twin", icon: <IconAnalytics />, ariaLabel: "Consent digital twin" },
-      { label: "Consent ROI engine", href: "/dashboard/roi", icon: <IconAnalytics />, ariaLabel: "Consent ROI engine" },
-      { label: "Consent negotiation engine", href: "/dashboard/negotiation", icon: <IconAnalytics />, ariaLabel: "Consent negotiation engine" },
-      { label: "AI-agent permissioning", href: "/dashboard/agent-permissioning", icon: <IconAnalytics />, ariaLabel: "AI-agent permissioning" },
-      { label: "Data redaction", href: "/dashboard/data-redaction", icon: <IconAnalytics />, ariaLabel: "Real-time consent-based data redaction" },
-    ],
-  },
-  {
-    label: "Security & Governance",
-    items: [
-      { label: "Audit Logs",       href: "/dashboard/audit-logs",       icon: <IconAuditLogs />,       ariaLabel: "Review audit logs" },
-      { label: "Notifications",    href: "/dashboard/notifications",    icon: <IconNotifications />,   ariaLabel: "View notifications" },
-      { label: "Rights Requests",  href: "/dashboard/rights-requests",  icon: <IconRightsRequests />,  ariaLabel: "Manage DPDP rights requests" },
-    ],
-  },
-  {
-    label: "Developer",
-    items: [
-      { label: "API Keys", href: "/dashboard/developers", icon: <IconApiKeys />, ariaLabel: "Manage API keys" },
-      { label: "Integrations", href: "/dashboard/integrations", icon: <IconIntegrations />, ariaLabel: "Manage integrations" },
-      { label: "Webhooks", href: "/dashboard/developers/webhooks", icon: <IconWebhooks />, ariaLabel: "Configure webhooks" },
-      { label: "SDK / Installation", href: "/dashboard/developers", icon: <IconSDK />, ariaLabel: "SDK installation guide" },
-    ],
-  },
-  {
-    label: "Administration",
-    items: [
-      { label: "Organization Settings", href: "/dashboard/settings/organization", icon: <IconOrganization />, ariaLabel: "Organization settings" },
-      { label: "Team / Roles", href: "/dashboard/settings/team", icon: <IconTeam />, ariaLabel: "Manage team members and roles" },
-      { label: "Billing", href: "/dashboard/settings/organization", icon: <IconBilling />, ariaLabel: "Billing and subscription" },
-    ],
-  },
-];
+const NAV_GROUPS: NavGroup[] = dashboardNavigationGroups.map((group) => ({
+  label: group.title,
+  items: group.items.map((item) => ({
+    label: item.title,
+    href: item.href,
+    icon: iconForHref(item.href),
+    ariaLabel: item.ariaLabel ?? item.description,
+  })),
+}));
 
 function SidebarItem({
   item,

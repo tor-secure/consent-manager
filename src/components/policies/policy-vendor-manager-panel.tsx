@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { notify } from "@/components/feedback/notify";
@@ -132,6 +132,7 @@ type VendorComboboxProps = {
 };
 
 function VendorCombobox({ available, disabled, onAttach, onCreateAndAttach, addingId, isPending }: VendorComboboxProps) {
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -197,6 +198,7 @@ function VendorCombobox({ available, disabled, onAttach, onCreateAndAttach, addi
       <div
         role="combobox"
         aria-expanded={open}
+        aria-controls={listboxId}
         aria-haspopup="listbox"
         aria-label="Search and add vendor"
         onClick={handleOpen}
@@ -228,7 +230,7 @@ function VendorCombobox({ available, disabled, onAttach, onCreateAndAttach, addi
             <>
               {/* Results */}
               {filtered.length > 0 && (
-                <ul role="listbox" className="max-h-56 divide-y divide-slate-100 overflow-y-auto">
+                <ul id={listboxId} role="listbox" className="max-h-56 divide-y divide-slate-100 overflow-y-auto">
                   {filtered.map((v) => (
                     <li key={v.id} role="option" aria-selected={false}>
                       <button

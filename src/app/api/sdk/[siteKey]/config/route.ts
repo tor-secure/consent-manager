@@ -11,7 +11,7 @@ import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
 import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText } from "@/lib/banner-config";
-import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
+import { applyAbOverrides, parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
 import {
@@ -26,7 +26,16 @@ import { countryFromRequestHeaders } from "@/lib/analytics/client-hints";
 import { regionFromRequestHeaders } from "@/lib/regulations/geo";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { toPublicGoogleConsentConfig } from "@/lib/signals/google-consent-mode";
-import { buildIabSignalSnapshot } from "@/lib/signals/iab-adapter";
+import { buildIabSignalSnapshot, getIabRegistration } from "@/lib/signals/iab-adapter";
+import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
+import { negotiationConfigurations } from "@/db/schema/intelligence";
+import { publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
+import {
+  buildPolicyNoticeSnapshot,
+  issuePolicyContext,
+} from "@/lib/policy-context";
+import { parseChildProtectionConfig } from "@/lib/children/config";
+import { publicChildSnapshot } from "@/lib/children/service";
 
 // GET /api/sdk/[siteKey]/config
 // Public, CORS-enabled endpoint.
@@ -44,7 +53,9 @@ export async function GET(
 
     const corsHeaders = {
       ...publicCorsHeaders("GET, OPTIONS"),
-      "Cache-Control": "private, no-store",
+      "Cache-Control": "private, no-store, no-cache, must-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
       Vary: "Accept-Language",
     };
 
@@ -76,6 +87,8 @@ export async function GET(
         defaultRegion: websites.defaultRegion,
         defaultRegulationKey: websites.defaultRegulationKey,
         consentIntegrations: websites.consentIntegrations,
+        iabRegistration: websites.iabRegistration,
+        childProtection: websites.childProtection,
         status: websites.status,
       })
       .from(websites)
@@ -112,7 +125,7 @@ export async function GET(
       name: resolved.selectedPolicy.name,
     };
 
-    // Get latest published version (fallback: latest draft).
+    // Only published versions may be shown to external visitors.
     const allVersions = await db
       .select({
         id: consentPolicyVersions.id,
@@ -124,14 +137,11 @@ export async function GET(
       .where(eq(consentPolicyVersions.policyId, policy.id))
       .orderBy(consentPolicyVersions.version);
 
-    const latestVersion =
-      allVersions.findLast((v) => v.isPublished) ??
-      allVersions[allVersions.length - 1] ??
-      null;
+    const latestVersion = allVersions.findLast((v) => v.isPublished) ?? null;
 
     if (!latestVersion) {
       return NextResponse.json(
-        { success: false, message: "No policy version found" },
+        { success: false, message: "No published policy version found" },
         { status: 404, headers: corsHeaders },
       );
     }
@@ -193,6 +203,8 @@ export async function GET(
         dataCategories:  purposes.dataCategories,
         retentionPeriod: purposes.retentionPeriod,
         legalBasis:      purposes.legalBasis,
+        iabTcfPurposeId: purposes.iabTcfPurposeId,
+        iabGppPurposeId: purposes.iabGppPurposeId,
       })
       .from(policyPurposes)
       .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
@@ -220,6 +232,7 @@ export async function GET(
               name: vendors.name,
               domain: vendors.domain,
               privacyPolicyUrl: vendors.privacyPolicyUrl,
+              iabVendorId: vendors.iabVendorId,
             })
             .from(vendors)
             .where(inArray(vendors.id, vendorIds))
@@ -239,6 +252,18 @@ export async function GET(
         vendorId: trackers.vendorId,
         isEssential: trackers.isEssential,
         status: trackers.status,
+        category: trackers.category,
+        cookieNames: trackers.cookieNames,
+        storageTypes: trackers.storageTypes,
+        localStorageKeys: trackers.localStorageKeys,
+        sessionStorageKeys: trackers.sessionStorageKeys,
+        indexedDbNames: trackers.indexedDbNames,
+        scriptUrlPatterns: trackers.scriptUrlPatterns,
+        iframeUrlPatterns: trackers.iframeUrlPatterns,
+        pixelUrlPatterns: trackers.pixelUrlPatterns,
+        party: trackers.party,
+        duration: trackers.duration,
+        deletionBehavior: trackers.deletionBehavior,
       })
       .from(trackers)
       .where(
@@ -273,10 +298,169 @@ export async function GET(
       vendorId: t.vendorId,
       isEssential: t.isEssential,
       status: t.status,
+      category: t.category,
+      cookieNames: t.cookieNames,
+      storageTypes: t.storageTypes,
+      localStorageKeys: t.localStorageKeys,
+      sessionStorageKeys: t.sessionStorageKeys,
+      indexedDbNames: t.indexedDbNames,
+      scriptUrlPatterns: t.scriptUrlPatterns,
+      iframeUrlPatterns: t.iframeUrlPatterns,
+      pixelUrlPatterns: t.pixelUrlPatterns,
+      party: t.party as TrackerRule["party"],
+      duration: t.duration,
+      deletionBehavior: t.deletionBehavior,
     }));
 
     const integrations = parseConsentIntegrations(website.consentIntegrations);
-    const iab = buildIabSignalSnapshot({ tcf: integrations.iabTcf, gpp: integrations.iabGpp });
+    const currentGvl = await getCurrentGvl();
+    const purposeMappings = versionPurposes.map((purpose) =>
+      purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter(Number.isInteger);
+    const vendorMappings = resolvedVendors.map((vendor) =>
+      vendor.iabVendorId ?? integrations.iabTcf.vendorMappings[vendor.id]).filter(Number.isInteger);
+    const mappingComplete =
+      purposeMappings.length === versionPurposes.length &&
+      vendorMappings.length === resolvedVendors.length;
+    const legalSections: Record<string, number[]> = {
+      gdpr: [2], uk_gdpr: [2], ccpa: [7, 8], vcdpa: [7, 9], cpa: [7, 10], ucpa: [7, 11],
+    };
+    const applicableSections = resolved.legalEngine.ux.iabGpp
+      ? (legalSections[resolved.regulation?.key ?? ""] ?? []).filter((id) =>
+          integrations.iabGpp.sectionIds.length === 0 || integrations.iabGpp.sectionIds.includes(id))
+      : [];
+    const iab = buildIabSignalSnapshot({
+      tcf: integrations.iabTcf,
+      gpp: integrations.iabGpp,
+      gvlVersion: currentGvl?.version ?? null,
+      mappingComplete,
+      applicableSections,
+      registration: getIabRegistration(process.env, website.iabRegistration),
+    });
+    const legalBannerConfig = {
+      ...localizedConfig,
+      showRejectAll: resolved.legalEngine.ux.rejectAllRecommended || localizedConfig.showRejectAll,
+      showCustomize: resolved.legalEngine.ux.preferenceCenterRequired && localizedConfig.showCustomize,
+      consentModel: resolved.legalEngine.ux.consentModel,
+    };
+    const [negotiation] = await db
+      .select({
+        enabled: negotiationConfigurations.enabled,
+        offers: negotiationConfigurations.offers,
+      })
+      .from(negotiationConfigurations)
+      .where(eq(negotiationConfigurations.websiteId, website.id))
+      .limit(1);
+    const negotiationOffers = publicNegotiationOffers({
+      enabled: negotiation?.enabled ?? false,
+      offers: negotiation?.offers ?? [],
+      requiredPurposeKeys: versionPurposes.filter((purpose) => purpose.isRequired).map((purpose) => purpose.key),
+    });
+    const publicPurposes = versionPurposes.map((purpose) => {
+      const overlay = overlayEntityText(
+        { key: purpose.key, name: purpose.name, description: purpose.description },
+        resolvedNotice.purposes,
+      );
+      return {
+        ...purpose,
+        iabTcfPurposeId:
+          purpose.iabTcfPurposeId ??
+          integrations.iabTcf.purposeMappings[purpose.id] ??
+          null,
+        name: overlay.name,
+        description: overlay.description,
+      };
+    });
+    const publicVendors = resolvedVendors.map((vendor) => {
+      const overlay = overlayEntityText(
+        {
+          key: vendor.domain || vendor.id,
+          name: vendor.name,
+          description: null,
+        },
+        resolvedNotice.vendors,
+      );
+      return {
+        ...vendor,
+        iabVendorId:
+          vendor.iabVendorId ??
+          integrations.iabTcf.vendorMappings[vendor.id] ??
+          null,
+        name: overlay.name,
+      };
+    });
+    const jurisdiction = resolved.regulation?.key ?? "unknown";
+    const noticeSnapshot = buildPolicyNoticeSnapshot({
+      policy: {
+        id: policy.id,
+        name: policy.name,
+        versionId: latestVersion.id,
+        version: latestVersion.version,
+      },
+      jurisdiction,
+      locale: resolvedNotice.resolvedLocale,
+      variantId: null,
+      bannerConfig: legalBannerConfig as unknown as Record<string, unknown>,
+      purposes: publicPurposes,
+      vendors: publicVendors,
+      grievance,
+    });
+    const policyContext = issuePolicyContext({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      siteKey: trimmedKey,
+      policyId: policy.id,
+      policyVersionId: latestVersion.id,
+      policyVersionNumber: latestVersion.version,
+      jurisdiction,
+      locale: resolvedNotice.resolvedLocale,
+      variantId: null,
+      noticeSnapshot,
+    });
+    const policyContexts = Object.fromEntries(
+      abTest?.enabled
+        ? abTest.variants.map((variant) => {
+            const variantSnapshot = buildPolicyNoticeSnapshot({
+              ...noticeSnapshot,
+              variantId: variant.id,
+              bannerConfig: applyAbOverrides(
+                legalBannerConfig as unknown as Record<string, unknown>,
+                variant.overrides,
+              ),
+            });
+            return [
+              variant.id,
+              issuePolicyContext({
+                organizationId: website.organizationId,
+                websiteId: website.id,
+                siteKey: trimmedKey,
+                policyId: policy.id,
+                policyVersionId: latestVersion.id,
+                policyVersionNumber: latestVersion.version,
+                jurisdiction,
+                locale: resolvedNotice.resolvedLocale,
+                variantId: variant.id,
+                noticeSnapshot: variantSnapshot,
+              }),
+            ];
+          })
+        : [],
+    );
+
+    const childSnapshot = await publicChildSnapshot({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+    });
+    const childConfig = parseChildProtectionConfig(website.childProtection);
+    const childView = childSnapshot?.view;
+    const childNotice = !childView?.enabled
+      ? null
+      : childView.ageStatus === "unknown" || childView.ageStatus === "expired"
+        ? "Some optional features require age verification."
+        : childView.guardianRequired && childView.guardianStatus !== "verified"
+          ? "A parent or guardian must approve these optional features."
+          : childView.restrictedProcessingAllowed
+            ? "Age was recorded. A self-declaration is not verified assurance."
+            : "Some optional features remain restricted.";
 
     return NextResponse.json(
       {
@@ -290,28 +474,15 @@ export async function GET(
           isPublished: latestVersion.isPublished,
           selection: resolved.selection.reason,
         },
-        bannerConfig: localizedConfig,
+        bannerConfig: legalBannerConfig,
         abTest,
         resolvedLanguage: resolvedNotice.resolvedLocale,
-        purposes: versionPurposes.map((purpose) => {
-          const overlay = overlayEntityText(
-            { key: purpose.key, name: purpose.name, description: purpose.description },
-            resolvedNotice.purposes,
-          );
-          return { ...purpose, name: overlay.name, description: overlay.description };
-        }),
-        vendors: resolvedVendors.map((vendor) => {
-          const overlay = overlayEntityText(
-            {
-              key: vendor.domain || vendor.id,
-              name: vendor.name,
-              description: null,
-            },
-            resolvedNotice.vendors,
-          );
-          return { ...vendor, name: overlay.name };
-        }),
+        policyContext,
+        policyContexts,
+        purposes: publicPurposes,
+        vendors: publicVendors,
         trackerRules,
+        trackerEnforcement: integrations.trackerEnforcement,
         locale: {
           resolved: resolvedNotice.resolvedLocale,
           direction: resolvedNotice.direction,
@@ -344,7 +515,28 @@ export async function GET(
           iabTcf: iab.tcf,
           iabGpp: iab.gpp,
         },
+        negotiation: {
+          enabled: negotiationOffers.length > 0,
+          offers: negotiationOffers,
+          disclosure: "Optional alternatives. Declining keeps the standard preference choices available.",
+        },
         grievance,
+        childProtection: {
+          enabled: childConfig.enabled || childConfig.childDirected || childConfig.ageAssuranceRequired,
+          childDirected: childConfig.childDirected,
+          ageAssuranceRequired: childConfig.ageAssuranceRequired,
+          minimumAge: childConfig.minimumAge,
+          guardianConsentRequired: childConfig.guardianConsentRequired,
+          restrictedPurposeKeys: childConfig.restrictedPurposeKeys,
+          minimumAssurance: childConfig.minimumAssurance,
+          ageStatus: childView?.ageStatus ?? "unknown",
+          guardianStatus: childView?.guardianStatus ?? "none",
+          guardianRequired: childView?.guardianRequired ?? childConfig.guardianConsentRequired,
+          restrictedProcessingAllowed: childView?.restrictedProcessingAllowed ?? false,
+          selfDeclarationIsNotVerified: true,
+          notice: childNotice,
+        },
+        ageContext: childSnapshot?.ageContext ?? null,
       },
       { headers: corsHeaders },
     );

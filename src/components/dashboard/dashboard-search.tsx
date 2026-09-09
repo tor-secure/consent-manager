@@ -51,16 +51,15 @@ export function DashboardSearch() {
   const pages = useMemo(() => matchDashboardPages(query), [query]);
   const results = useMemo(() => {
     const seen = new Set(pages.map((item) => item.href + item.title));
-    const extra = remote.filter((item) => !seen.has(item.href + item.title));
+    const extra = query.trim().length < 2
+      ? []
+      : remote.filter((item) => !seen.has(item.href + item.title));
     return [...pages, ...extra].slice(0, 12);
-  }, [pages, remote]);
+  }, [pages, query, remote]);
 
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) {
-      setRemote([]);
-      return;
-    }
+    if (q.length < 2) return;
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       try {
@@ -79,10 +78,6 @@ export function DashboardSearch() {
       window.clearTimeout(timer);
     };
   }, [query]);
-
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [results]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -193,6 +188,7 @@ export function DashboardSearch() {
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
+            setActiveIndex(0);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
@@ -236,7 +232,10 @@ export function DashboardSearch() {
                 aria-label="Search dashboard"
                 placeholder="Search…"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setActiveIndex(0);
+                }}
                 onKeyDown={onInputKeyDown}
                 className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-11 pr-12 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
               />

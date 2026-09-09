@@ -1,8 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field, FormCard } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 type WebsiteRow = { id: string; name: string };
+type EvaluationDetail = { requested?: string; key?: string; domain?: string; allowed: boolean; reason?: string; reasonCode?: string };
+type PermissionResult = {
+  allowed: boolean;
+  reasonCode: string;
+  consentState: string;
+  requestId: string;
+  purposeDetails?: Array<{ key: string; allowed: boolean; reason: string }>;
+  vendorDetails?: Array<{ domain: string; allowed: boolean; reason: string }>;
+  reasons?: string[];
+  results?: { purposes?: EvaluationDetail[]; vendors?: EvaluationDetail[] };
+};
 
 export default function AgentPermissionTool({ websites }: { websites: WebsiteRow[] }) {
   const [consentId, setConsentId] = useState("");
@@ -13,7 +31,7 @@ export default function AgentPermissionTool({ websites }: { websites: WebsiteRow
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<unknown>(null);
+  const [result, setResult] = useState<PermissionResult | null>(null);
 
   const purposeKeyList = useMemo(
     () =>
@@ -47,7 +65,7 @@ export default function AgentPermissionTool({ websites }: { websites: WebsiteRow
           requestedVendorDomains: vendorDomainList,
         }),
       });
-      const data = await r.json();
+      const data = (await r.json()) as PermissionResult & { success?: boolean; message?: string };
       if (!data.success) throw new Error(data.message || "Permission evaluation failed");
       setResult(data);
     } catch (e) {
@@ -59,69 +77,63 @@ export default function AgentPermissionTool({ websites }: { websites: WebsiteRow
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-medium text-slate-900">AI-agent permissioning</p>
-        <p className="mt-1 text-sm text-slate-500">
-          Evaluate whether an “agent” request (by purpose keys / vendor domains) would be allowed under the current consent decisions.
-        </p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">Consent ID</label>
-          <input className="input w-full" value={consentId} onChange={(e) => setConsentId(e.target.value)} placeholder="Consent consent_id" />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">Website</label>
-          <select className="select w-full" value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
+      <FormCard
+        title="Permission request"
+        description="Test the exact purpose and vendor access an agent needs. The evaluator reads the current consent record and does not modify it."
+      >
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Field label="Consent ID" htmlFor="agent-consent-id" hint="Use the public consent_id returned by the CMP.">
+            <Input id="agent-consent-id" value={consentId} onChange={(e) => setConsentId(e.target.value)} placeholder="consent_id" autoComplete="off" />
+          </Field>
+          <Field label="Website" htmlFor="agent-website">
+            <Select id="agent-website" value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
             {websites.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}
               </option>
             ))}
-          </select>
+            </Select>
+          </Field>
+          <Field label="Requested purpose keys" htmlFor="agent-purposes" hint="Comma-separated keys, for example analytics, personalization.">
+            <Input id="agent-purposes" value={purposeKeys} onChange={(e) => setPurposeKeys(e.target.value)} placeholder="analytics, personalization" />
+          </Field>
+          <Field label="Requested vendor domains" htmlFor="agent-vendors" hint="Comma-separated domains, for example analytics.example.com.">
+            <Input id="agent-vendors" value={vendorDomains} onChange={(e) => setVendorDomains(e.target.value)} placeholder="analytics.example.com" />
+          </Field>
         </div>
-
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700">Requested purpose keys</label>
-          <input
-            className="input w-full"
-            value={purposeKeys}
-            onChange={(e) => setPurposeKeys(e.target.value)}
-            placeholder="e.g. analytics, personalization"
-          />
-          <p className="text-xs text-[var(--muted-foreground)]">Comma-separated. Matches purposes.key.</p>
-        </div>
-
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700">Requested vendor domains</label>
-          <input
-            className="input w-full"
-            value={vendorDomains}
-            onChange={(e) => setVendorDomains(e.target.value)}
-            placeholder="e.g. google-analytics.com, facebook.com"
-          />
-          <p className="text-xs text-[var(--muted-foreground)]">Comma-separated. Matches vendors.domain.</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <button className="btn btn-primary" disabled={busy || !consentId.trim()} onClick={evaluate}>
+        <Button disabled={!consentId.trim() || (!purposeKeyList.length && !vendorDomainList.length)} loading={busy} onClick={evaluate}>
           {busy ? "Evaluating..." : "Evaluate agent permission"}
-        </button>
-      </div>
+        </Button>
+      </FormCard>
 
-      {error ? <div className="text-sm text-rose-700">{error}</div> : null}
+      {error ? <Alert variant="error" role="alert">{error}</Alert> : null}
 
       {result ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-medium text-slate-900">Result</p>
-          <pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-xs text-slate-800">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
-      ) : null}
+        <FormCard
+          title="Evaluation result"
+          titleExtra={<Badge variant={result.allowed ? "success" : "danger"}>{result.allowed ? "Allowed" : "Denied"}</Badge>}
+          description={`Consent is ${result.consentState.replaceAll("_", " ")} · ${result.reasonCode.replaceAll("_", " ")}`}
+        >
+          <div className="table-scroll rounded-xl border border-[var(--border)]">
+            <table className="data-table">
+              <caption className="sr-only">Permission decisions by requested purpose and vendor</caption>
+              <thead><tr><th scope="col">Request</th><th scope="col">Type</th><th scope="col">Decision</th><th scope="col">Reason</th></tr></thead>
+              <tbody>
+                {(result.purposeDetails ?? []).map((item) => (
+                  <tr key={`purpose:${item.key}`}><th scope="row" className="text-left font-medium">{item.key}</th><td>Purpose</td><td><Badge variant={item.allowed ? "success" : "danger"}>{item.allowed ? "Allowed" : "Denied"}</Badge></td><td>{item.reason.replaceAll("_", " ")}</td></tr>
+                ))}
+                {(result.vendorDetails ?? []).map((item) => (
+                  <tr key={`vendor:${item.domain}`}><th scope="row" className="text-left font-medium">{item.domain}</th><td>Vendor</td><td><Badge variant={item.allowed ? "success" : "danger"}>{item.allowed ? "Allowed" : "Denied"}</Badge></td><td>{item.reason.replaceAll("_", " ")}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {result.reasons?.length ? <Alert variant="warning">{result.reasons.join(" · ")}</Alert> : null}
+          <p className="text-xs text-[var(--muted-foreground)]">Audit request ID: <span className="font-mono">{result.requestId}</span></p>
+        </FormCard>
+      ) : (
+        <EmptyState title="No evaluation yet" description="Enter a consent ID and at least one purpose or vendor, then run the permission check." />
+      )}
     </div>
   );
 }

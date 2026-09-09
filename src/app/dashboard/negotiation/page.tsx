@@ -8,6 +8,11 @@ import { buildConsentNegotiationPlan } from "@/lib/intelligence/negotiation-engi
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
+import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
+import { NegotiationSettingsForm } from "@/components/intelligence/negotiation-settings-form";
+import { Field, FormCard } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/ui/empty-state";
 
 function scenarioToActionHref(id: string): string {
   switch (id) {
@@ -50,6 +55,7 @@ export default async function NegotiationPage({
           baselineScore: baseline.overall,
           targetScore,
           scenarios,
+          qualityInput: loaded!.input,
         })
       : null;
 
@@ -58,16 +64,26 @@ export default async function NegotiationPage({
       <PageHeader
         eyebrow="AI"
         title="Consent negotiation engine"
-        description="Builds an ordered negotiation plan to reach a target consent quality score by applying the highest-impact configuration steps."
+        description="Operator remediation planning with cumulative recomputation. Visitor offers are separate, optional, transparent, and never change required purposes."
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <EmptyState title="No website available for negotiation" description="Add a website and generate quality inputs before building a target-based remediation plan." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/negotiation" websites={sites.map((s) => ({ id: s.id, name: s.name }))} selected={websiteId} />
+          {websiteId ? <RunIntelligenceButton websiteId={websiteId} engine="negotiation" /> : null}
+          <FormCard title="Planning target" description="Set the quality score the cumulative remediation plan should aim for.">
+            <form action="/dashboard/negotiation" className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <input type="hidden" name="website" value={websiteId ?? ""} />
+              <div className="w-full sm:max-w-xs">
+                <Field label="Target quality score" htmlFor="negotiation-target" hint="Allowed range: 50–100.">
+                  <Input id="negotiation-target" name="target" type="number" min="50" max="100" defaultValue={targetScore} />
+                </Field>
+              </div>
+              <button className="btn btn-secondary" type="submit">Update plan</button>
+            </form>
+          </FormCard>
 
           {!loaded || !baseline || !plan ? (
             <Card>
@@ -77,19 +93,26 @@ export default async function NegotiationPage({
             </Card>
           ) : (
             <div className="space-y-6">
+              <Card>
+                <CardContent className="p-5">
+                  <h2 className="text-base font-semibold">Visitor-safe alternatives</h2>
+                  <p className="mb-3 mt-1 text-sm text-[var(--muted-foreground)]">Optional offers never replace reject/customize controls and required purposes are excluded at delivery.</p>
+                  <NegotiationSettingsForm websiteId={websiteId!} />
+                </CardContent>
+              </Card>
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardContent className="p-5">
                     <h2 className="text-base font-semibold">Goal</h2>
                     <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                      Target quality: <span className="font-semibold text-slate-900">{plan.targetScore}/100</span>
+                      Target quality: <span className="font-semibold text-[var(--foreground)]">{plan.targetScore}/100</span>
                     </p>
                     <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                      Baseline: <span className="font-semibold text-slate-900">{plan.baselineScore}/100</span>
+                      Baseline: <span className="font-semibold text-[var(--foreground)]">{plan.baselineScore}/100</span>
                     </p>
                     <p className="mt-4 text-sm text-[var(--muted-foreground)]">
                       Predicted after plan:{" "}
-                      <span className="font-semibold text-slate-900">{plan.predictedScoreAfter}/100</span>
+                      <span className="font-semibold text-[var(--foreground)]">{plan.predictedScoreAfter}/100</span>
                     </p>
                   </CardContent>
                 </Card>
@@ -100,7 +123,7 @@ export default async function NegotiationPage({
                     {plan.steps.length ? (
                       <div className="mt-3 space-y-2">
                         {plan.steps.map((step) => (
-                          <div key={step.scenario.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div key={step.scenario.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
                             <p className="font-semibold">{step.scenario.title}</p>
                             <p className="mt-1 text-sm text-[var(--muted-foreground)]">{step.scenario.description}</p>
                             <p className="mt-2 text-xs text-[var(--muted-foreground)]">
@@ -127,11 +150,11 @@ export default async function NegotiationPage({
                 <CardContent className="p-5">
                   <h2 className="text-base font-semibold">Scenario inventory</h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                    All single-step what-if scenarios available from the simulator.
+                    Independent inputs; plan deltas above are recomputed after every prior step to avoid overlap.
                   </p>
                   <div className="mt-4 space-y-3">
                     {scenarios.map((row) => (
-                      <div key={row.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                      <div key={row.id} className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
                         <div>
                           <p className="font-semibold">{row.title}</p>
                           <p className="mt-1 text-sm text-[var(--muted-foreground)]">{row.description}</p>

@@ -8,7 +8,6 @@ import {
   integer,
   numeric,
   jsonb,
-  unique,
 } from "drizzle-orm/pg-core";
 
 export const plans = pgTable(

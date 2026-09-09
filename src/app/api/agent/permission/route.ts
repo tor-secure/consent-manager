@@ -1,207 +1,210 @@
+import { auth } from "@clerk/nextjs/server";
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
-import { consentRecords } from "@/db/schema/consent-records";
-import { consentDecisions } from "@/db/schema/consent-decisions";
-import { purposes } from "@/db/schema/purposes";
-import { vendors } from "@/db/schema/vendors";
-import { vendorPurposes } from "@/db/schema/vendor-purposes";
-import { publicCorsHeaders, readPublicJsonObject, isValidConsentId, isValidWebsiteId } from "@/lib/sdk/public-http";
+import { authenticateApiKey } from "@/lib/api-key-auth";
+import {
+  resolveActiveMembership,
+  resolveLocalOrganization,
+  resolveLocalUser,
+} from "@/lib/api-auth-helpers";
+import {
+  evaluateConsentForTenant,
+  logConsentEvaluation,
+} from "@/lib/consent-evaluation";
+import { parseConsentEvaluationBody } from "@/lib/consent-evaluation-http";
+import { logger } from "@/lib/logger";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { readPublicJsonObject } from "@/lib/sdk/public-http";
+import { redactValue, validateRedactionPolicy } from "@/lib/redaction-core";
 
-const CORS_HEADERS = publicCorsHeaders("POST, OPTIONS");
-
-type AgentPermissionRequestBody = {
-  consentId: string;
-  websiteId: string;
-  requestedPurposeKeys?: string[]; // purpose.key values
-  requestedVendorDomains?: string[]; // vendors.domain values
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Request-Id",
+  "Access-Control-Max-Age": "86400",
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
 };
 
 export async function POST(request: Request) {
+  const requestId = randomUUID();
   try {
-    const parsed = await readPublicJsonObject(request);
+    const identity = await resolveCaller(request);
+    if (!identity.ok) {
+      return NextResponse.json(
+        { success: false, message: identity.message, requestId },
+        { status: identity.status, headers: CORS_HEADERS },
+      );
+    }
+
+    const limit = rateLimit({
+      key: `agent-permission:${identity.organizationId}:${getClientIp(request)}`,
+      limit: 300,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit, CORS_HEADERS);
+
+    const json = await readPublicJsonObject(request);
+    if (!json.ok) {
+      return NextResponse.json(
+        { success: false, message: json.message, requestId },
+        { status: json.status, headers: CORS_HEADERS },
+      );
+    }
+    const parsed = parseConsentEvaluationBody(json.body, {
+      legacyAgentFields: true,
+    });
     if (!parsed.ok) {
       return NextResponse.json(
-        { success: false, message: parsed.message },
-        { status: parsed.status, headers: CORS_HEADERS },
-      );
-    }
-
-    const body = parsed.body as Partial<AgentPermissionRequestBody>;
-    const consentId = String(body.consentId ?? "").trim();
-    const websiteId = String(body.websiteId ?? "").trim();
-    const requestedPurposeKeys = Array.isArray(body.requestedPurposeKeys)
-      ? body.requestedPurposeKeys.map((x) => String(x).trim()).filter(Boolean)
-      : [];
-    const requestedVendorDomains = Array.isArray(body.requestedVendorDomains)
-      ? body.requestedVendorDomains.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
-      : [];
-
-    if (!consentId || !websiteId || !isValidConsentId(consentId) || !isValidWebsiteId(websiteId)) {
-      return NextResponse.json(
-        { success: false, message: "Invalid consentId/websiteId" },
+        { success: false, message: parsed.error.message, requestId },
         { status: 400, headers: CORS_HEADERS },
       );
     }
-
-    if (!requestedPurposeKeys.length && !requestedVendorDomains.length) {
+    const hasContext = Object.prototype.hasOwnProperty.call(json.body, "context");
+    const redactionPolicy = hasContext
+      ? validateRedactionPolicy(json.body.redactionPolicy)
+      : null;
+    if (hasContext && (!redactionPolicy || !redactionPolicy.ok)) {
       return NextResponse.json(
-        { success: false, message: "Provide requestedPurposeKeys and/or requestedVendorDomains" },
+        { success: false, message: redactionPolicy && !redactionPolicy.ok ? redactionPolicy.message : "redactionPolicy is required for agent context", requestId },
         { status: 400, headers: CORS_HEADERS },
       );
     }
+    const evaluationRequest = redactionPolicy?.ok ? {
+      ...parsed.value.request,
+      purposeKeys: [...new Set([...parsed.value.request.purposeKeys, ...redactionPolicy.policy.fields.flatMap((rule) => rule.purposeKeys ?? [])])],
+      dataCategories: [...new Set([...parsed.value.request.dataCategories, ...redactionPolicy.policy.fields.flatMap((rule) => rule.dataCategories ?? [])])],
+    } : parsed.value.request;
 
-    const [record] = await db
-      .select({
-        id: consentRecords.id,
-        organizationId: consentRecords.organizationId,
-        status: consentRecords.status,
-      })
-      .from(consentRecords)
-      .where(and(eq(consentRecords.consentId, consentId), eq(consentRecords.websiteId, websiteId)))
-      .limit(1);
-
-    if (!record) {
+    const evaluation = await evaluateConsentForTenant(
+      {
+        organizationId: identity.organizationId,
+        websiteId: parsed.value.websiteId,
+        consentId: parsed.value.consentId,
+      },
+      evaluationRequest,
+    );
+    if (!evaluation) {
       return NextResponse.json(
-        { success: false, message: "Consent record not found" },
+        { success: false, message: "Consent record not found", requestId },
         { status: 404, headers: CORS_HEADERS },
       );
     }
 
-    const decisionRows = await db
-      .select({
-        purposeId: consentDecisions.purposeId,
-        vendorId: consentDecisions.vendorId,
-        granted: consentDecisions.granted,
-      })
-      .from(consentDecisions)
-      .where(eq(consentDecisions.consentRecordId, record.id));
-
-    const purposeGranted = new Map<string, boolean>();
-    const vendorGranted = new Map<string, boolean>();
-    for (const r of decisionRows) {
-      if (r.purposeId) purposeGranted.set(r.purposeId, r.granted);
-      if (r.vendorId) vendorGranted.set(r.vendorId, r.granted);
-    }
-
-    // Resolve requested purposes/vendords to IDs within the org.
-    const normalizedPurposeKeys = requestedPurposeKeys.map((k) => k.toLowerCase());
-
-    const purposeRows = normalizedPurposeKeys.length
-      ? await db
-          .select({
-            id: purposes.id,
-            key: purposes.key,
-            isRequired: purposes.isRequired,
-          })
-          .from(purposes)
-          .where(and(eq(purposes.organizationId, record.organizationId), inArray(purposes.key, normalizedPurposeKeys)))
-      : [];
-
-    const purposeByKey = new Map(purposeRows.map((p) => [p.key.toLowerCase(), p]));
-
-    const vendorDomains = requestedVendorDomains;
-    const vendorRows = vendorDomains.length
-      ? await db
-          .select({
-            id: vendors.id,
-            domain: vendors.domain,
-          })
-          .from(vendors)
-          .where(
-            and(
-              eq(vendors.organizationId, record.organizationId),
-              inArray(vendors.domain, vendorDomains),
-            ),
-          )
-      : [];
-
-    const vendorByDomain = new Map(
-      vendorRows
-        .map((v) => ({ id: v.id, domain: v.domain ? v.domain.toLowerCase() : null }))
-        .filter((v) => v.domain)
-        .map((v) => [v.domain as string, { id: v.id }]),
-    );
-
-    // Compute "essential-like" vendor allowances via required purposes.
-    const vendorIds = vendorRows.map((v) => v.id);
-    const requiredVendorPurposes =
-      vendorIds.length > 0
-        ? await db
-            .select({
-              vendorId: vendorPurposes.vendorId,
-              purposeId: vendorPurposes.purposeId,
-            })
-            .from(vendorPurposes)
-            .innerJoin(purposes, eq(vendorPurposes.purposeId, purposes.id))
-            .where(and(inArray(vendorPurposes.vendorId, vendorIds), eq(purposes.isRequired, true)))
-        : [];
-
-    const requiredPurposesByVendor = new Map<string, string[]>();
-    for (const r of requiredVendorPurposes) {
-      const arr = requiredPurposesByVendor.get(r.vendorId) ?? [];
-      arr.push(r.purposeId);
-      requiredPurposesByVendor.set(r.vendorId, arr);
-    }
-
-    const reasons: string[] = [];
-
-    let allowed = true;
-    const purposeDetails = normalizedPurposeKeys.map((key) => {
-      const p = purposeByKey.get(key);
-      if (!p) {
-        allowed = false;
-        return { key, allowed: false, reason: "Unknown purpose key" };
-      }
-      if (p.isRequired) return { key, allowed: true, reason: "Essential purpose" };
-      const granted = purposeGranted.get(p.id) === true;
-      if (!granted) {
-        allowed = false;
-        reasons.push(`Purpose ${p.key} not granted`);
-      }
-      return { key, allowed: granted, reason: granted ? "Granted" : "Denied by consent decisions" };
+    await logConsentEvaluation({
+      organizationId: identity.organizationId,
+      apiKeyId: identity.apiKeyId,
+      userId: identity.userId,
+      requestId,
+      source: identity.apiKeyId ? "api" : "dashboard",
+      evaluation,
+      request: evaluationRequest,
     });
 
-    const vendorDetails = vendorDomains.map((domain) => {
-      const v = vendorByDomain.get(domain);
-      if (!v) {
-        allowed = false;
-        return { domain, allowed: false, reason: "Unknown vendor domain" };
-      }
-
-      const direct = vendorGranted.get(v.id) === true;
-      if (direct) return { domain, allowed: true, reason: "Vendor granted" };
-
-      // Allow if any required purpose linked to this vendor is granted.
-      const requiredPurposeIds = requiredPurposesByVendor.get(v.id) ?? [];
-      const requiredGranted = requiredPurposeIds.some((pid) => purposeGranted.get(pid) === true);
-      if (requiredGranted) return { domain, allowed: true, reason: "Allowed via required purpose" };
-
-      allowed = false;
-      reasons.push(`Vendor ${domain} not granted`);
-      return { domain, allowed: false, reason: "Denied by consent decisions" };
-    });
+    const redactedContext = redactionPolicy?.ok
+      ? redactValue(json.body.context, redactionPolicy.policy, {
+          allowedPurposeKeys: new Set(evaluation.result.results.purposes.filter((item) => item.allowed).map((item) => item.requested.toLowerCase())),
+          allowedDataCategories: new Set(evaluation.result.results.dataCategories.filter((item) => item.allowed).map((item) => item.requested.toLowerCase())),
+        })
+      : null;
 
     return NextResponse.json(
       {
         success: true,
-        allowed,
-        reasons,
-        purposeDetails,
-        vendorDetails,
+        requestId,
+        allowed: evaluation.result.allowed,
+        reasonCode: evaluation.result.reasonCode,
+        consentState: evaluation.result.consentState,
+        results: evaluation.result.results,
+        reasons: [
+          ...evaluation.result.results.purposes,
+          ...evaluation.result.results.vendors,
+        ]
+          .filter((item) => !item.allowed)
+          .map((item) => `${item.requested}: ${item.reasonCode}`),
+        purposeDetails: evaluation.result.results.purposes.map((item) => ({
+          key: item.requested,
+          allowed: item.allowed,
+          reason: item.reasonCode,
+        })),
+        vendorDetails: evaluation.result.results.vendors.map((item) => ({
+          domain: item.requested,
+          allowed: item.allowed,
+          reason: item.reasonCode,
+        })),
+        ...(redactedContext ? {
+          context: redactedContext.value,
+          redaction: { removedPaths: redactedContext.removedPaths },
+        } : {}),
       },
       { headers: CORS_HEADERS },
     );
-  } catch {
+  } catch (error) {
+    logger.error("Agent permission evaluation failed", {
+      route: "POST /api/agent/permission",
+      operation: "agent.permission.evaluate",
+      requestId,
+      error,
+    });
     return NextResponse.json(
-      { success: false, message: "Failed to evaluate agent permissioning" },
+      { success: false, message: "Failed to evaluate agent permissioning", requestId },
       { status: 500, headers: CORS_HEADERS },
     );
   }
 }
 
+async function resolveCaller(request: Request): Promise<
+  | {
+      ok: true;
+      organizationId: string;
+      apiKeyId?: string;
+      userId?: string;
+    }
+  | { ok: false; status: 401 | 403; message: string }
+> {
+  if (request.headers.has("authorization")) {
+    const apiKey = await authenticateApiKey(request, "consent:evaluate");
+    if (!apiKey.ok) {
+      return {
+        ok: false,
+        status: apiKey.reason === "insufficient_scope" ? 403 : 401,
+        message:
+          apiKey.reason === "insufficient_scope"
+            ? "API key lacks the required scope"
+            : "A valid bearer API key is required",
+      };
+    }
+    return {
+      ok: true,
+      organizationId: apiKey.context.organizationId,
+      apiKeyId: apiKey.context.apiKeyId,
+    };
+  }
+
+  const session = await auth();
+  if (!session.isAuthenticated || !session.userId || !session.orgId) {
+    return { ok: false, status: 401, message: "Unauthorized" };
+  }
+  const [user, organization] = await Promise.all([
+    resolveLocalUser(session.userId),
+    resolveLocalOrganization(session.orgId),
+  ]);
+  if (!user || !organization) {
+    return { ok: false, status: 403, message: "Organization access denied" };
+  }
+  const membership = await resolveActiveMembership(organization.id, user.id);
+  if (!membership) {
+    return { ok: false, status: 403, message: "Organization access denied" };
+  }
+  return {
+    ok: true,
+    organizationId: organization.id,
+    userId: user.id,
+  };
+}
+
 export async function OPTIONS() {
-  return NextResponse.json(null, { status: 204, headers: CORS_HEADERS });
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
 }
 

@@ -20,6 +20,7 @@ function TypeBadge({ type }: { type: string }) {
     cookie:      "warning",
     pixel:       "primary",
     script:      "purple",
+    iframe:      "purple",
     beacon:      "neutral",
     fingerprint: "danger",
     storage:     "neutral",

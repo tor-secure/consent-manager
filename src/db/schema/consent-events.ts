@@ -7,6 +7,8 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
+import { organizations } from "./organizations";
+import { websites } from "./websites";
 import { consentRecords } from "./consent-records";
 import { consentPolicyVersions } from "./consent-policy-versions";
 
@@ -15,11 +17,25 @@ export const consentEvents = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    consentRecordId: uuid("consent_record_id")
+    organizationId: uuid("organization_id")
       .notNull()
-      .references(() => consentRecords.id, {
-        onDelete: "cascade",
+      .references(() => organizations.id, {
+        onDelete: "restrict",
       }),
+
+    websiteId: uuid("website_id")
+      .notNull()
+      .references(() => websites.id, {
+        onDelete: "restrict",
+      }),
+
+    consentId: varchar("consent_id", {
+      length: 255,
+    }).notNull(),
+
+    consentRecordId: uuid("consent_record_id").references(() => consentRecords.id, {
+      onDelete: "set null",
+    }),
 
     policyVersionId: uuid("policy_version_id")
       .notNull()
@@ -57,6 +73,16 @@ export const consentEvents = pgTable(
   (table) => [
     index("consent_events_record_idx").on(
       table.consentRecordId,
+    ),
+
+    index("consent_events_org_consent_idx").on(
+      table.organizationId,
+      table.consentId,
+      table.occurredAt,
+    ),
+
+    index("consent_events_website_idx").on(
+      table.websiteId,
     ),
 
     index("consent_events_policy_version_idx").on(

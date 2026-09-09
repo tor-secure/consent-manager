@@ -3,9 +3,9 @@ import {
   timestamp,
   uuid,
   varchar,
-  text,
   jsonb,
   index,
+  integer,
 } from "drizzle-orm/pg-core";
 
 import { organizations } from "./organizations";
@@ -52,6 +52,8 @@ export const consentRecords = pgTable(
     })
       .notNull()
       .default("active"),
+
+    stateVersion: integer("state_version").notNull().default(1),
 
     source: varchar("source", {
       length: 50,

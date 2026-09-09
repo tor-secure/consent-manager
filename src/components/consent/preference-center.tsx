@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { BannerConfiguration } from "@/lib/banner-config";
+import type { SignedPolicyContext } from "@/lib/policy-context";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -25,11 +26,13 @@ export type PCVendor = {
 export type PCProps = {
   websiteId: string;
   policyVersionId: string;
+  policyContext: SignedPolicyContext;
   bannerConfig: BannerConfiguration;
   purposes: PCPurpose[];
   vendors: PCVendor[];
   // If a consentId is supplied the component is in "update" mode.
   consentId?: string;
+  initialStateVersion?: number;
   // Initial per-purpose granted state (for update mode).
   initialPurposeGrants?: Record<string, boolean>;
   initialVendorGrants?: Record<string, boolean>;
@@ -54,6 +57,7 @@ function ConsentToggle({
 }) {
   return (
     <button
+      id={id}
       type="button"
       role="switch"
       aria-checked={checked}
@@ -83,11 +87,12 @@ function ConsentToggle({
 
 export function PreferenceCenter({
   websiteId,
-  policyVersionId,
+  policyContext,
   bannerConfig,
   purposes,
   vendors,
   consentId: initialConsentId,
+  initialStateVersion = 0,
   initialPurposeGrants = {},
   initialVendorGrants = {},
   onSaved,
@@ -120,13 +125,18 @@ export function PreferenceCenter({
   const [saving, setSaving] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
   const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState("");
+  const retrySubmission = useRef<{ signature: string; id: string } | null>(null);
   const [savedConsentId, setSavedConsentId] = useState<string | undefined>(
     initialConsentId,
   );
+  const [savedStateVersion, setSavedStateVersion] = useState(initialStateVersion);
 
   async function submitConsent(choice: "accept-all" | "reject-all" | "granular") {
+    if (saving) return;
     setSaving(true);
     setError("");
+    setConfirmation("");
 
     // Build the local grants to send depending on the choice.
     let updatedPurposeGrants = { ...purposeGrants };
@@ -146,35 +156,66 @@ export function PreferenceCenter({
       setVendorGrants(updatedVendorGrants);
     }
 
+    const submission = {
+      choice,
+      purposeDecisions: purposes.map((p) => ({
+        purposeId: p.id,
+        granted: updatedPurposeGrants[p.id] ?? false,
+      })),
+      vendorDecisions: vendors.map((v) => ({
+        vendorId: v.id,
+        granted: updatedVendorGrants[v.id] ?? false,
+      })),
+    };
+    const signature = JSON.stringify(submission);
+    const submissionId =
+      retrySubmission.current?.signature === signature
+        ? retrySubmission.current.id
+        : crypto.randomUUID();
+    retrySubmission.current = { signature, id: submissionId };
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
+
     try {
       const res = await fetch("/api/consent/record", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           websiteId,
           consentId: savedConsentId,
-          submission: {
-            choice,
-            purposeDecisions: purposes.map((p) => ({
-              purposeId: p.id,
-              granted: updatedPurposeGrants[p.id] ?? false,
-            })),
-            vendorDecisions: vendors.map((v) => ({
-              vendorId: v.id,
-              granted: updatedVendorGrants[v.id] ?? false,
-            })),
-          },
+          expectedStateVersion: savedConsentId ? savedStateVersion : 0,
+          submissionId,
+          policyContext,
+          submission,
         }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed to save consent");
+      if (
+        !res.ok ||
+        data.success !== true ||
+        data.confirmed !== true ||
+        !Array.isArray(data.decisions) ||
+        !Number.isInteger(data.stateVersion) ||
+        data.stateVersion < 1 ||
+        !data.evidenceSnapshotId ||
+        data.confirmation?.policyContextValidated !== true ||
+        data.confirmation?.persisted !== true ||
+        data.confirmation?.evidenceSnapshotCreated !== true
+      ) {
+        throw new Error("Consent confirmation failed");
+      }
 
+      retrySubmission.current = null;
       setSavedConsentId(data.consentId);
+      setSavedStateVersion(data.stateVersion);
+      setConfirmation("Your consent preferences were confirmed and saved.");
       onSaved?.(data.consentId, data.status);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+    } catch {
+      setError("We couldn’t confirm your preferences. Nothing was enabled. Please retry.");
     } finally {
+      window.clearTimeout(timeout);
       setSaving(false);
     }
   }
@@ -187,7 +228,11 @@ export function PreferenceCenter({
       const res = await fetch("/api/consent/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ consentId: savedConsentId, websiteId }),
+        body: JSON.stringify({
+          consentId: savedConsentId,
+          websiteId,
+          expectedStateVersion: savedStateVersion,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Failed to withdraw consent");
@@ -334,6 +379,11 @@ export function PreferenceCenter({
       {error && (
         <div className="mx-6 mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {error}
+        </div>
+      )}
+      {confirmation && (
+        <div className="mx-6 mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+          {confirmation}
         </div>
       )}
 

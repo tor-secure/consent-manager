@@ -6,7 +6,10 @@ import {
   varchar,
   text,
   unique,
+  integer,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { organizations } from "./organizations";
 
@@ -61,6 +64,9 @@ export const purposes = pgTable(
 
     legalBasis: varchar("legal_basis", { length: 50 }),
 
+    iabTcfPurposeId: integer("iab_tcf_purpose_id"),
+    iabGppPurposeId: integer("iab_gpp_purpose_id"),
+
     // ─────────────────────────────────────────────────────────────────────
 
     createdAt: timestamp("created_at", {
@@ -84,5 +90,6 @@ export const purposes = pgTable(
       table.organizationId,
       table.key,
     ),
+    check("purposes_iab_tcf_id_range", sql`${table.iabTcfPurposeId} is null or (${table.iabTcfPurposeId} between 1 and 24)`),
   ],
 );

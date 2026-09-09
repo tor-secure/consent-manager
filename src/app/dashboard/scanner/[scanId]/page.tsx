@@ -8,6 +8,8 @@ import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
 import { scans } from "@/db/schema/scans";
 import { scanResults } from "@/db/schema/scan-results";
+import { vendors } from "@/db/schema/vendors";
+import { purposes } from "@/db/schema/purposes";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -167,8 +169,12 @@ export default async function ScanDetailPage({
       riskLevel: scanResults.riskLevel,
       details: scanResults.details,
       detectedAt: scanResults.detectedAt,
+      vendorName: vendors.name,
+      purposeName: purposes.name,
     })
     .from(scanResults)
+    .leftJoin(vendors, eq(scanResults.vendorId, vendors.id))
+    .leftJoin(purposes, eq(scanResults.purposeId, purposes.id))
     .where(eq(scanResults.scanId, scan.id))
     .orderBy(scanResults.riskLevel, scanResults.name);
 
@@ -177,7 +183,7 @@ export default async function ScanDetailPage({
     return acc;
   }, {});
 
-  const known   = results.filter((r) => r.classificationStatus === "known").length;
+  const known   = results.filter((r) => r.classificationStatus === "known" || r.classificationStatus === "mapped").length;
   const highRisk = results.filter((r) => r.riskLevel === "high").length;
 
   const duration =
@@ -314,7 +320,7 @@ export default async function ScanDetailPage({
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">
-                  {["Name", "Type", "Domain", "Identifier", "Risk", "Classification", "Category"].map((h) => (
+                  {["Name", "Type", "Domain", "Matched tracker", "Purpose", "Vendor", "Status"].map((h) => (
                     <th key={h}
                       className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                       {h}
@@ -337,7 +343,10 @@ export default async function ScanDetailPage({
                     </td>
 
                     {/* Type */}
-                    <td className="px-5 py-4"><TypeBadge type={r.type} /></td>
+                    <td className="px-5 py-4">
+                      <TypeBadge type={r.type} />
+                      <div className="mt-1"><RiskBadge risk={r.riskLevel} /></div>
+                    </td>
 
                     {/* Domain */}
                     <td className="px-5 py-4">
@@ -357,30 +366,22 @@ export default async function ScanDetailPage({
                       ) : <span className="text-slate-400">—</span>}
                     </td>
 
-                    {/* Risk */}
                     <td className="px-5 py-4">
-                      <RiskBadge risk={r.riskLevel} />
+                      {((r.details as Record<string, unknown>)?.matchedTrackerName as string | undefined) || r.name}
                     </td>
-
-                    {/* Classification */}
+                    <td className="px-5 py-4">{r.purposeName ?? <span className="text-slate-400">—</span>}</td>
+                    <td className="px-5 py-4">{r.vendorName ?? <span className="text-slate-400">—</span>}</td>
                     <td className="px-5 py-4">
                       <Badge
-                        variant={r.classificationStatus === "known" ? "success" : "neutral"}
+                        variant={r.purposeName || r.vendorName || r.classificationStatus === "mapped" ? "success" : "warning"}
                         size="sm"
-                        className="capitalize"
                       >
-                        {r.classificationStatus}
+                        {r.purposeName || r.vendorName || r.classificationStatus === "mapped" ? "Configured" : "Unmapped"}
                       </Badge>
-                    </td>
-
-                    {/* Category */}
-                    <td className="px-5 py-4">
-                      {(r.details as Record<string, unknown>)?.category ? (
-                        <Badge variant="neutral" size="sm" className="capitalize">
-                          {(r.details as Record<string, unknown>).category as string}
-                        </Badge>
-                      ) : (
-                        <span className="text-slate-400">—</span>
+                      {!(r.purposeName || r.vendorName) && (
+                        <Link href="/dashboard/trackers" className="mt-1 block text-xs font-medium text-indigo-600">
+                          Assign vendor + purpose
+                        </Link>
                       )}
                     </td>
                   </tr>

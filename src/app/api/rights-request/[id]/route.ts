@@ -1,56 +1,50 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
 
-import { db } from "@/db";
-import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
-import { logger } from "@/lib/logger";
-
-// ---------------------------------------------------------------------------
-// GET /api/rights-request/[id]
-//
-// Public status-check endpoint — returns only non-PII fields so that the
-// Data Principal can verify their request was received and track progress
-// without leaking personal information in URL parameters.
-// ---------------------------------------------------------------------------
+import { publicStatusPayload } from "@/lib/privacy-rights/public-status";
+import { lookupStatusToken } from "@/lib/privacy-rights/service";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  try {
-    const { id } = await params;
+  const limit = rateLimit({
+    key: `rights-status:${getClientIp(request)}`,
+    limit: 30,
+    windowMs: 15 * 60_000,
+  });
+  if (!limit.allowed) return rateLimitResponse(limit);
 
-    const [row] = await db
-      .select({
-        id:            dataPrincipalRequests.id,
-        requestType:   dataPrincipalRequests.requestType,
-        status:        dataPrincipalRequests.status,
-        receivedAt:    dataPrincipalRequests.receivedAt,
-        acknowledgeBy: dataPrincipalRequests.acknowledgeBy,
-        acknowledgedAt:dataPrincipalRequests.acknowledgedAt,
-        dueAt:         dataPrincipalRequests.dueAt,
-        completedAt:   dataPrincipalRequests.completedAt,
-      })
-      .from(dataPrincipalRequests)
-      .where(eq(dataPrincipalRequests.id, id))
-      .limit(1);
-
-    if (!row) {
-      return NextResponse.json(
-        { success: false, message: "Request not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json({ success: true, request: row });
-  } catch (error) {
-    logger.error("Rights request status fetch failed", {
-      operation: "rights_request.status",
-      error,
-    });
-    return NextResponse.json(
-      { success: false, message: "Failed to fetch request status" },
-      { status: 500 },
-    );
+  const { id } = await params;
+  const token = new URL(request.url).searchParams.get("token")?.trim() ?? "";
+  if (!token) {
+    return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
   }
+
+  const row = await lookupStatusToken(token);
+  if (!row || row.id !== id) {
+    return NextResponse.json({ success: false, message: "Request not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    success: true,
+    request: {
+      id: row.requesterReference,
+      requestType: row.requestType,
+      status: publicStatusPayload({
+        requesterReference: row.requesterReference,
+        requestType: row.requestType,
+        status: row.status,
+        verificationStatus: row.verificationStatus,
+        receivedAt: row.receivedAt,
+        dueAt: row.dueAt,
+        completedAt: row.completedAt,
+      }).status,
+      receivedAt: row.receivedAt,
+      acknowledgeBy: row.acknowledgeBy,
+      acknowledgedAt: row.acknowledgedAt,
+      dueAt: row.dueAt,
+      completedAt: row.completedAt,
+    },
+  });
 }

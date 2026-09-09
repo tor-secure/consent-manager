@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentDecisions } from "@/db/schema/consent-decisions";
 import { consentEvents } from "@/db/schema/consent-events";
+import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { purposes } from "@/db/schema/purposes";
@@ -20,25 +21,50 @@ import {
   createConsentCryptoProof,
   readStoredCryptoProof,
   verifyConsentCryptoProof,
+  verifyHistoricalConsentEvidenceProof,
 } from "@/lib/consent-proof";
 
-// ---------------------------------------------------------------------------
-// GET /api/consent/evidence/[consentId]
-//
-// Returns the full consent evidence bundle for one consent record.
-// Accessible only to authenticated members of the organization that owns the
-// website the consent was collected for.
-//
-// The response includes:
-//  - consent record metadata (status, timestamps, policy version, jurisdiction)
-//  - per-purpose and per-vendor decisions with human-readable names/keys
-//  - all consent events (audit trail) with event data
-//  - the notice snapshot stored in metadata at consent time
-//
-// PII minimisation: visitorId is included (it is a system-generated opaque ID,
-// not a name or email) but is kept to the level already stored. No additional
-// PII is exposed beyond what the record already contains.
-// ---------------------------------------------------------------------------
+function serializeSnapshot(snapshot: typeof consentEvidenceSnapshots.$inferSelect) {
+  const evidence = {
+    organizationId: snapshot.organizationId,
+    websiteId: snapshot.websiteId,
+    consentId: snapshot.consentId,
+    policyId: snapshot.policyId,
+    policyVersionId: snapshot.policyVersionId,
+    policyVersionNumber: snapshot.policyVersionNumber,
+    policyContextId: snapshot.policyContextId,
+    jurisdiction: snapshot.jurisdiction,
+    locale: snapshot.locale,
+    noticeHash: snapshot.noticeHash,
+    noticeSnapshot: snapshot.noticeSnapshot,
+    choice: snapshot.choice,
+    status: snapshot.status,
+    source: snapshot.source,
+    decisions: snapshot.decisions,
+    consentedAt: snapshot.consentedAt.toISOString(),
+  };
+  return {
+    id: snapshot.id,
+    ...evidence,
+    variantId: snapshot.variantId ?? snapshot.policyContext.variantId ?? null,
+    consentRecordId: snapshot.consentRecordId,
+    stateVersion: snapshot.stateVersion,
+    submissionId: snapshot.submissionId,
+    policyContext: snapshot.policyContext,
+    requestHash: snapshot.requestHash,
+    signals: snapshot.signals,
+    createdAt: snapshot.createdAt,
+    proof: {
+      hash: snapshot.evidenceHash,
+      signature: snapshot.evidenceSignature,
+      verification: verifyHistoricalConsentEvidenceProof({
+        evidence,
+        hash: snapshot.evidenceHash,
+        signature: snapshot.evidenceSignature,
+      }),
+    },
+  };
+}
 
 export async function GET(
   _request: Request,
@@ -52,7 +78,6 @@ export async function GET(
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    // ── Resolve local org and verify membership ──────────────────────────
     const localUser = await resolveLocalUser(userId);
     if (!localUser) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
@@ -68,7 +93,6 @@ export async function GET(
       return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
     }
 
-    // ── Load the consent record scoped to this org ───────────────────────
     const [record] = await db
       .select()
       .from(consentRecords)
@@ -80,18 +104,102 @@ export async function GET(
       )
       .limit(1);
 
-    if (!record) {
-      return NextResponse.json({ success: false, message: "Consent record not found" }, { status: 404 });
+    const history = await db
+      .select()
+      .from(consentEvidenceSnapshots)
+      .where(
+        and(
+          eq(consentEvidenceSnapshots.organizationId, organization.id),
+          eq(consentEvidenceSnapshots.consentId, consentId),
+        ),
+      )
+      .orderBy(consentEvidenceSnapshots.consentedAt);
+
+    if (!record && history.length === 0) {
+      return NextResponse.json({ success: false, message: "Consent evidence not found" }, { status: 404 });
     }
 
-    // ── Load website info ────────────────────────────────────────────────
-    const [website] = await db
-      .select({ id: websites.id, name: websites.name, domain: websites.domain, siteKey: websites.siteKey })
-      .from(websites)
-      .where(eq(websites.id, record.websiteId))
-      .limit(1);
+    const websiteId = record?.websiteId ?? history[0]?.websiteId;
+    const [website] = websiteId
+      ? await db
+          .select({ id: websites.id, name: websites.name, domain: websites.domain, siteKey: websites.siteKey })
+          .from(websites)
+          .where(and(eq(websites.id, websiteId), eq(websites.organizationId, organization.id)))
+          .limit(1)
+      : [];
 
-    // ── Load policy version ──────────────────────────────────────────────
+    const events = record
+      ? await db
+          .select({
+            id: consentEvents.id,
+            eventType: consentEvents.eventType,
+            eventData: consentEvents.eventData,
+            source: consentEvents.source,
+            occurredAt: consentEvents.occurredAt,
+          })
+          .from(consentEvents)
+          .where(eq(consentEvents.consentRecordId, record.id))
+          .orderBy(consentEvents.occurredAt)
+      : await db
+          .select({
+            id: consentEvents.id,
+            eventType: consentEvents.eventType,
+            eventData: consentEvents.eventData,
+            source: consentEvents.source,
+            occurredAt: consentEvents.occurredAt,
+          })
+          .from(consentEvents)
+          .where(
+            and(
+              eq(consentEvents.organizationId, organization.id),
+              eq(consentEvents.consentId, consentId),
+            ),
+          )
+          .orderBy(consentEvents.occurredAt);
+
+    if (!record) {
+      const latest = history[history.length - 1];
+      return NextResponse.json({
+        success: true,
+        currentStateDeleted: true,
+        evidence: {
+          consentId,
+          visitorId: null,
+          status: latest?.status ?? "deleted",
+          source: latest?.source ?? "web",
+          jurisdiction: latest?.jurisdiction ?? null,
+          consentedAt: latest?.consentedAt ?? null,
+          expiresAt: null,
+          withdrawnAt: null,
+          createdAt: latest?.createdAt ?? null,
+          updatedAt: null,
+          website: website
+            ? { id: website.id, name: website.name, domain: website.domain, siteKey: website.siteKey }
+            : null,
+          policyVersion: latest
+            ? {
+                id: latest.policyVersionId,
+                version: latest.policyVersionNumber,
+                policyName: latest.noticeSnapshot.policy.name,
+                isPublished: null,
+                publishedAt: null,
+              }
+            : null,
+          noticeSnapshot: latest?.noticeSnapshot ?? null,
+          decisions: latest?.decisions ?? [],
+          events: events.map((e) => ({
+            id: e.id,
+            eventType: e.eventType,
+            eventData: e.eventData,
+            source: e.source,
+            occurredAt: e.occurredAt,
+          })),
+          proof: null,
+          history: history.map(serializeSnapshot),
+        },
+      });
+    }
+
     const [policyVersion] = await db
       .select({
         id: consentPolicyVersions.id,
@@ -114,7 +222,6 @@ export async function GET(
       policyName = policy?.name ?? null;
     }
 
-    // ── Load decisions with resolved names ───────────────────────────────
     const decisions = await db
       .select({
         id: consentDecisions.id,
@@ -127,9 +234,8 @@ export async function GET(
       .from(consentDecisions)
       .where(eq(consentDecisions.consentRecordId, record.id));
 
-    // Bulk-resolve purpose and vendor names for human-readable evidence.
     const purposeIds = [...new Set(decisions.map((d) => d.purposeId).filter(Boolean) as string[])];
-    const vendorIds  = [...new Set(decisions.map((d) => d.vendorId).filter(Boolean)  as string[])];
+    const vendorIds = [...new Set(decisions.map((d) => d.vendorId).filter(Boolean) as string[])];
 
     const [purposeRows, vendorRows] = await Promise.all([
       purposeIds.length > 0
@@ -145,20 +251,7 @@ export async function GET(
     ]);
 
     const purposeMap = new Map(purposeRows.map((p) => [p.id, p]));
-    const vendorMap  = new Map(vendorRows.map((v) => [v.id, v]));
-
-    // ── Load consent events (immutable audit trail) ───────────────────────
-    const events = await db
-      .select({
-        id: consentEvents.id,
-        eventType: consentEvents.eventType,
-        eventData: consentEvents.eventData,
-        source: consentEvents.source,
-        occurredAt: consentEvents.occurredAt,
-      })
-      .from(consentEvents)
-      .where(eq(consentEvents.consentRecordId, record.id))
-      .orderBy(consentEvents.occurredAt);
+    const vendorMap = new Map(vendorRows.map((v) => [v.id, v]));
 
     const metadata =
       record.metadata && typeof record.metadata === "object"
@@ -188,75 +281,60 @@ export async function GET(
       ? verifyConsentCryptoProof({ claims, proof: storedProof })
       : { hashMatches: false, signatureValid: false, intact: false };
 
-    // ── Assemble the evidence bundle ──────────────────────────────────────
     return NextResponse.json({
       success: true,
+      currentStateDeleted: false,
       evidence: {
-        // ── Record identity ────────────────────────────────────────────
         consentId: record.consentId,
         visitorId: record.visitorId,
-        status:    record.status,
-        source:    record.source,
+        status: record.status,
+        source: record.source,
         jurisdiction: record.jurisdiction,
-
-        // ── Timestamps ───────────────────────────────────────────────
         consentedAt: record.consentedAt,
-        expiresAt:   record.expiresAt,
+        expiresAt: record.expiresAt,
         withdrawnAt: record.withdrawnAt,
-        createdAt:   record.createdAt,
-        updatedAt:   record.updatedAt,
-
-        // ── Website context ───────────────────────────────────────────
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt,
         website: website
           ? { id: website.id, name: website.name, domain: website.domain, siteKey: website.siteKey }
           : null,
-
-        // ── Policy/notice version ─────────────────────────────────────
         policyVersion: policyVersion
           ? {
-              id:          policyVersion.id,
-              version:     policyVersion.version,
-              policyName:  policyName,
+              id: policyVersion.id,
+              version: policyVersion.version,
+              policyName,
               isPublished: policyVersion.isPublished,
               publishedAt: policyVersion.publishedAt,
             }
           : null,
-
-        // ── Notice snapshot (what was presented at consent time) ───────
-        // Stored in metadata at insert time — preserves the exact notice
-        // text and configuration shown to the visitor.
-        noticeSnapshot: record.metadata ?? null,
-
-        // ── Per-purpose and per-vendor decisions ──────────────────────
+        noticeSnapshot: history[0]?.noticeSnapshot ?? record.metadata ?? null,
         decisions: decisions.map((d) => {
           const purpose = d.purposeId ? purposeMap.get(d.purposeId) : null;
-          const vendor  = d.vendorId  ? vendorMap.get(d.vendorId)   : null;
+          const vendor = d.vendorId ? vendorMap.get(d.vendorId) : null;
           return {
-            type:      purpose ? "purpose" : "vendor",
-            id:        d.purposeId ?? d.vendorId,
-            key:       purpose?.key  ?? null,
-            name:      purpose?.name ?? vendor?.name ?? null,
-            domain:    vendor?.domain ?? null,
-            decision:  d.decision,
-            granted:   d.granted,
+            type: purpose ? "purpose" : "vendor",
+            id: d.purposeId ?? d.vendorId,
+            key: purpose?.key ?? null,
+            name: purpose?.name ?? vendor?.name ?? null,
+            domain: vendor?.domain ?? null,
+            decision: d.decision,
+            granted: d.granted,
             decidedAt: d.decidedAt,
           };
         }),
-
-        // ── Immutable event audit trail ───────────────────────────────
         events: events.map((e) => ({
-          id:         e.id,
-          eventType:  e.eventType,
-          eventData:  e.eventData,
-          source:     e.source,
+          id: e.id,
+          eventType: e.eventType,
+          eventData: e.eventData,
+          source: e.source,
           occurredAt: e.occurredAt,
         })),
-
         proof: {
           stored: storedProof,
           currentHash: currentProof.hash,
           verification,
         },
+        history: history.map(serializeSnapshot),
       },
     });
   } catch (error) {

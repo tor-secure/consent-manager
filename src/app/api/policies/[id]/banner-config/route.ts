@@ -14,6 +14,7 @@ import {
 import { BANNER_TEXT_FIELDS, PREFERENCE_TEXT_FIELDS } from "@/lib/i18n/resolve-notice";
 import { isRegisteredLocale, normalizeLocaleTag, languageOf } from "@/lib/i18n/locale-registry";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership, resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 const VALID_POSITIONS = ["bottom", "top", "bottom-left", "bottom-right", "center"] as const;
 const VALID_LAYOUTS = ["bar", "box", "dialog"] as const;
@@ -82,27 +83,11 @@ export async function PUT(
       return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
     }
 
-    // Get versions. The live SDK prefers a published version, so studio
-    // changes must land on that row — not only the latest draft.
-    const allVersions = await db
-      .select({
-        id: consentPolicyVersions.id,
-        version: consentPolicyVersions.version,
-        isPublished: consentPolicyVersions.isPublished,
-        configuration: consentPolicyVersions.configuration,
-      })
-      .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
-
-    const latestVersion = allVersions[allVersions.length - 1] ?? null;
-    if (!latestVersion) {
+    // Published versions are historical evidence. Edit a draft and require
+    // an explicit publish before the SDK can serve the change.
+    const draftVersion = await ensureDraftPolicyVersion(policy.id);
+    if (!draftVersion) {
       return NextResponse.json({ success: false, message: "No policy version found" }, { status: 404 });
-    }
-
-    const saveIds = new Set<string>([latestVersion.id]);
-    for (const version of allVersions) {
-      if (version.isPublished) saveIds.add(version.id);
     }
 
     const body = await request.json();
@@ -201,10 +186,10 @@ export async function PUT(
       : (raw.supportedLocales ?? []);
 
     const existingRaw =
-      latestVersion.configuration &&
-      typeof latestVersion.configuration === "object" &&
-      !Array.isArray(latestVersion.configuration)
-        ? (latestVersion.configuration as Record<string, unknown>)
+      draftVersion.configuration &&
+      typeof draftVersion.configuration === "object" &&
+      !Array.isArray(draftVersion.configuration)
+        ? (draftVersion.configuration as Record<string, unknown>)
         : {};
 
     const config: BannerConfiguration = {
@@ -241,7 +226,7 @@ export async function PUT(
     await db
       .update(consentPolicyVersions)
       .set({ configuration: payload, updatedAt: new Date() })
-      .where(inArray(consentPolicyVersions.id, [...saveIds]));
+      .where(eq(consentPolicyVersions.id, draftVersion.id));
 
     return NextResponse.json({ success: true, configuration: config });
   } catch (error) {

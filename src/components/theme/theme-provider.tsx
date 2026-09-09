@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
 
 export type Theme = "light" | "dark";
 
@@ -14,6 +14,7 @@ type ThemeContextValue = {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const STORAGE_KEY = "cmp:theme";
+const THEME_EVENT = "cmp-theme-change";
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
@@ -37,25 +38,39 @@ function readStoredTheme(): Theme {
   return "light";
 }
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-  const [resolved, setResolved] = useState(false);
+function subscribeToTheme(onStoreChange: () => void) {
+  const syncTheme = () => {
+    applyTheme(readStoredTheme());
+    onStoreChange();
+  };
+  window.addEventListener("storage", syncTheme);
+  window.addEventListener(THEME_EVENT, syncTheme);
+  return () => {
+    window.removeEventListener("storage", syncTheme);
+    window.removeEventListener(THEME_EVENT, syncTheme);
+  };
+}
 
-  useEffect(() => {
-    const initial = readStoredTheme();
-    setThemeState(initial);
-    applyTheme(initial);
-    setResolved(true);
-  }, []);
+function subscribeToHydration() {
+  return () => {};
+}
+
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const theme = useSyncExternalStore<Theme>(
+    subscribeToTheme,
+    readStoredTheme,
+    () => "light",
+  );
+  const resolved = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
   const setTheme = useCallback((next: Theme) => {
-    setThemeState(next);
     applyTheme(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* ignore */
     }
+    window.dispatchEvent(new Event(THEME_EVENT));
   }, []);
 
   const toggleTheme = useCallback(() => {

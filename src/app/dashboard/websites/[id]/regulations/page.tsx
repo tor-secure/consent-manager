@@ -8,6 +8,9 @@ import { websiteJurisdictionRules } from "@/db/schema/website-jurisdiction-rules
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { WebsiteRegulationForm } from "@/components/websites/website-regulation-form";
 import { GeoLegalEnginePreview } from "@/components/websites/geo-legal-engine-preview";
+import { getIabRegistration } from "@/lib/signals/iab-adapter";
+import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function WebsiteRegulationsPage({
   params,
@@ -17,7 +20,7 @@ export default async function WebsiteRegulationsPage({
   const { id } = await params;
   const website = await requireTenantWebsite(id);
 
-  const [policies, rules] = await Promise.all([
+  const [policies, rules, currentGvl] = await Promise.all([
     db
       .select({
         id: consentPolicies.id,
@@ -41,24 +44,20 @@ export default async function WebsiteRegulationsPage({
           eq(websiteJurisdictionRules.organizationId, website.organizationId),
         ),
       ),
+    getCurrentGvl(),
   ]);
 
   return (
     <div className="page-wrap space-y-6">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Regulations</span>
+      <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">Websites</Link>
+        <span aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-[var(--foreground)]">{website.name}</Link>
+        <span aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]" aria-current="page">Regulations</span>
       </nav>
 
-      <div>
-        <h1 className="page-title">Consent regulations</h1>
-        <p className="page-description">
-          Configure jurisdiction-aware policy selection and optional Google / IAB signals. These settings do not make the organization legally compliant.
-        </p>
-      </div>
+      <PageHeader eyebrow={website.name} title="Consent regulations" description="Configure jurisdiction-aware policy selection and optional Google / IAB signals. These operational settings are not legal advice or certification." />
 
       <GeoLegalEnginePreview websiteId={website.id} />
 
@@ -68,6 +67,11 @@ export default async function WebsiteRegulationsPage({
         defaultRegulationKey={website.defaultRegulationKey}
         integrations={parseConsentIntegrations(website.consentIntegrations)}
         rules={rules}
+        iabReadiness={{
+          registered: getIabRegistration(process.env, website.iabRegistration).valid,
+          gvlVersion: currentGvl?.version ?? null,
+        }}
+        iabRegistration={website.iabRegistration as { cmpId?: number | null; cmpVersion?: number | null } | null}
       />
     </div>
   );

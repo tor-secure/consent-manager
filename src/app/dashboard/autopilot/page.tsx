@@ -10,6 +10,13 @@ import { buildConsentRecommendations } from "@/lib/intelligence/recommendations"
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
+import { buildAutopilotPlan } from "@/lib/intelligence/autopilot-engine";
+import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AutopilotPlanControls } from "@/components/intelligence/autopilot-plan-controls";
+import { db } from "@/db";
+import { autopilotPlans } from "@/db/schema/intelligence";
+import { and, desc, eq } from "drizzle-orm";
 
 function severityVariant(severity: string): "danger" | "warning" | "neutral" {
   if (severity === "high") return "danger";
@@ -62,13 +69,14 @@ export default async function AutopilotPage({
   const scenarios = loaded ? simulatePrivacyImpact(loaded.input) : [];
   const bestNext = scenarios.slice().sort((a, b) => b.delta - a.delta)[0] ?? null;
 
-  // A tiny “autopilot plan”: rank the scenarios by delta and take the top 2
-  // (the simulator is single-step, so we keep this to a realistic MVP).
-  const plan = scenarios
-    .filter((s) => s.delta > 0)
-    .slice()
-    .sort((a, b) => b.delta - a.delta)
-    .slice(0, 2);
+  const plan = loaded ? buildAutopilotPlan(loaded.input).steps : [];
+  const latestPlan = websiteId
+    ? await db.select().from(autopilotPlans).where(and(eq(autopilotPlans.organizationId, context.organization.id), eq(autopilotPlans.websiteId, websiteId))).orderBy(desc(autopilotPlans.createdAt)).limit(1).then((rows) => rows[0] ?? null)
+    : null;
+  const persistedPlan = latestPlan?.plan as { steps?: Array<{ id: string; title?: string; applyMode?: string; reversible?: boolean; legalPublication?: boolean }>; appliedStepIds?: string[] } | null;
+  const safeSteps = (persistedPlan?.steps ?? [])
+    .filter((step) => step.applyMode === "operator_approval" && step.reversible && !step.legalPublication)
+    .map((step) => ({ id: step.id, title: step.title ?? step.id.replaceAll("_", " "), applied: persistedPlan?.appliedStepIds?.includes(step.id) ?? false }));
 
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
@@ -79,12 +87,11 @@ export default async function AutopilotPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <EmptyState title="No website available for autopilot" description="Add a website, publish a policy, and run a scan to generate an assisted remediation plan." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/autopilot" websites={sites.map((s) => ({ id: s.id, name: s.name }))} selected={websiteId} />
+          {websiteId ? <RunIntelligenceButton websiteId={websiteId} engine="autopilot" /> : null}
 
           {!websiteId || !loaded || !baseline || !snapshot ? (
             <Card>
@@ -99,11 +106,11 @@ export default async function AutopilotPage({
                   <CardContent className="p-5">
                     <h2 className="text-base font-semibold">Baseline</h2>
                     <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                      Operational consent quality score: <span className="font-semibold text-slate-900">{baseline.overall}/100</span>
+                      Operational consent quality score: <span className="font-semibold text-[var(--foreground)]">{baseline.overall}/100</span>
                     </p>
                     {quality?.category ? (
                       <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                        Category: <span className="font-medium text-slate-900">{quality.category.replaceAll("_", " ")}</span>
+                        Category: <span className="font-medium text-[var(--foreground)]">{quality.category.replaceAll("_", " ")}</span>
                       </p>
                     ) : null}
                   </CardContent>
@@ -131,12 +138,17 @@ export default async function AutopilotPage({
                 <CardContent className="p-5">
                   <h2 className="text-base font-semibold">Autopilot plan</h2>
                   <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                    Top scenario steps ranked by expected quality delta.
+                    Cumulatively recomputed steps. Legal publication is always routed to explicit operator action.
                   </p>
+                  {latestPlan ? (
+                    <div className="mt-4">
+                      <AutopilotPlanControls planId={latestPlan.id} status={latestPlan.status} rollbackAvailable={Boolean(latestPlan.rollbackState)} safeSteps={safeSteps} />
+                    </div>
+                  ) : null}
                   {plan.length ? (
                     <div className="mt-4 space-y-3">
                       {plan.map((row) => (
-                        <div key={row.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                        <div key={row.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div>
                               <p className="font-semibold">{row.title}</p>
@@ -152,7 +164,7 @@ export default async function AutopilotPage({
                           </div>
                           <div className="mt-3">
                             <Link href={scenarioToActionHref(row.id)} className="btn btn-secondary">
-                              Apply step
+                              {row.applyMode === "operator_approval" ? "Review and approve" : "Open operator workflow"}
                             </Link>
                           </div>
                         </div>
@@ -172,7 +184,7 @@ export default async function AutopilotPage({
                     <div className="mt-4 space-y-3">
                       {recommendations.length ? (
                         recommendations.map((item) => (
-                          <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                          <div key={item.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
                             <div className="flex flex-wrap items-center justify-between gap-3">
                               <div>
                                 <p className="font-semibold">{item.title}</p>
@@ -200,7 +212,7 @@ export default async function AutopilotPage({
                     <p className="mt-1 text-sm text-[var(--muted-foreground)]">Single-step quality deltas.</p>
                     <div className="mt-4 space-y-3">
                       {scenarios.map((row) => (
-                        <div key={row.id} className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4">
+                        <div key={row.id} className="flex items-start justify-between gap-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
                           <div>
                             <p className="font-semibold">{row.title}</p>
                             <p className="mt-1 text-sm text-[var(--muted-foreground)]">{row.description}</p>

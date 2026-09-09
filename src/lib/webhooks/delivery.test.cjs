@@ -22,6 +22,9 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "server-only") return {};
   if (request === "@/db") return { db: {} };
   if (request === "@/lib/logger") return { logger: { error() {}, warn() {}, info() {}, debug() {} } };
+  if (request === "@/lib/redaction-core") {
+    return require(path.join(root, ".tmp/portable-redaction/redaction-core.js"));
+  }
   if (request.startsWith("@/db/schema/")) return { webhookDeliveries: {}, webhookEndpoints: {} };
   return originalLoad.call(this, request, parent, isMain);
 };

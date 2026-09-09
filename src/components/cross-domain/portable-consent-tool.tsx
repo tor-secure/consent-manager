@@ -1,22 +1,46 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { notify } from "@/components/feedback/notify";
+import { Alert } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Field, FormCard } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 type WebsiteRow = { id: string; name: string; domain: string | null };
+type PortableDecision = { purposeKey: string | null; vendorDomain: string | null; granted: boolean };
+type PortableClaims = {
+  consentId: string;
+  originWebsiteId: string;
+  targetWebsiteId: string;
+  jurisdiction: string | null;
+  status: string;
+  choice: string | null;
+  issuedAt: string;
+  exchangeExpiresAt: string;
+  decisions: PortableDecision[];
+};
 
 type PortableConsentExportResponse = {
   success: boolean;
-  claims: unknown;
+  claims: PortableClaims;
   proof: unknown;
+  token?: string;
+  code?: string;
+  expiresAt?: string;
 };
+type PortableImportResult = { consentId: string; recordId: string; expiresAt: string | null; choice: string; decisions: PortableDecision[] };
 
 export default function PortableConsentTool({ websites }: { websites: WebsiteRow[] }) {
   const [consentId, setConsentId] = useState("");
   const [fromWebsiteId, setFromWebsiteId] = useState(websites[0]?.id ?? "");
   const [targetWebsiteId, setTargetWebsiteId] = useState(websites[0]?.id ?? "");
 
-  const [portableBundle, setPortableBundle] = useState<{ claims: unknown; proof: unknown } | null>(null);
-  const [importResult, setImportResult] = useState<unknown>(null);
+  const [portableBundle, setPortableBundle] = useState<PortableConsentExportResponse | null>(null);
+  const [importResult, setImportResult] = useState<PortableImportResult | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,12 +54,13 @@ export default function PortableConsentTool({ websites }: { websites: WebsiteRow
       const qs = new URLSearchParams({
         consentId: consentId.trim(),
         websiteId: fromWebsiteId,
+        targetWebsiteId,
       });
       const r = await fetch(`/api/consent/portable/export?${qs.toString()}`);
       const data = (await r.json()) as PortableConsentExportResponse & { message?: string };
       if (!data.success) throw new Error(data.message || "Export failed");
 
-      setPortableBundle({ claims: data.claims, proof: data.proof });
+      setPortableBundle(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -48,6 +73,8 @@ export default function PortableConsentTool({ websites }: { websites: WebsiteRow
       setError("Export a portable bundle first.");
       return;
     }
+    const targetName = websites.find((site) => site.id === targetWebsiteId)?.name ?? "the target website";
+    if (!window.confirm(`Import and consume this one-time exchange on ${targetName}? This action cannot be undone.`)) return;
     setBusy(true);
     setError(null);
     try {
@@ -60,7 +87,7 @@ export default function PortableConsentTool({ websites }: { websites: WebsiteRow
           targetWebsiteId,
         }),
       });
-      const data = await r.json();
+      const data = (await r.json()) as PortableImportResult & { success?: boolean; message?: string };
       if (!data.success) throw new Error(data.message || "Import failed");
       setImportResult(data);
     } catch (e) {
@@ -70,48 +97,58 @@ export default function PortableConsentTool({ websites }: { websites: WebsiteRow
     }
   }
 
+  async function copyText(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value);
+      notify.success(`${label[0].toUpperCase()}${label.slice(1)} copied`);
+    } catch {
+      setError(`Unable to copy the ${label}. Select and copy it manually.`);
+    }
+  }
+
+  function downloadBundle() {
+    if (!portableBundle) return;
+    const blob = new Blob([JSON.stringify(portableBundle, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `portable-consent-${portableBundle.claims.consentId}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    notify.success("Portable bundle downloaded");
+  }
+
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-medium text-slate-900">Portable consent exchange</p>
-        <p className="mt-1 text-sm text-slate-500">
-          Export a consent from one site, then import it onto another site&apos;s active policy.
-          This is integrity-checked and maps by purpose keys / vendor domains.
-        </p>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">Consent ID</label>
-          <input
-            className="input w-full"
+      <FormCard title="Create a portable exchange" description="Export active consent from one site to a specific target. Exchanges expire after 10 minutes and can be consumed once.">
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Field label="Consent ID" htmlFor="portable-consent-id" hint="The active public consent_id from the source website.">
+            <Input
+            id="portable-consent-id"
             value={consentId}
             onChange={(e) => setConsentId(e.target.value)}
-            placeholder="e.g. CMP generated consent_id"
+            placeholder="consent_id"
             list="cmp-website-id-suggestions"
+            autoComplete="off"
           />
+          </Field>
           <datalist id="cmp-website-id-suggestions">
             {websiteIdSuggestions.map((id) => (
               <option key={id} value={id} />
             ))}
           </datalist>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">From website</label>
-          <select className="select w-full" value={fromWebsiteId} onChange={(e) => setFromWebsiteId(e.target.value)}>
+          <Field label="Source website" htmlFor="portable-source">
+            <Select id="portable-source" value={fromWebsiteId} onChange={(e) => setFromWebsiteId(e.target.value)}>
             {websites.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.domain ?? "no-domain"})
               </option>
             ))}
-          </select>
-        </div>
-
-        <div className="space-y-2 lg:col-span-2">
-          <label className="text-sm font-medium text-slate-700">Target website</label>
-          <select
-            className="select w-full"
+            </Select>
+          </Field>
+          <Field label="Target website" htmlFor="portable-target" hint="The exchange will be cryptographically bound to this website.">
+            <Select
+            id="portable-target"
             value={targetWebsiteId}
             onChange={(e) => setTargetWebsiteId(e.target.value)}
           >
@@ -120,38 +157,59 @@ export default function PortableConsentTool({ websites }: { websites: WebsiteRow
                 {w.name} ({w.domain ?? "no-domain"})
               </option>
             ))}
-          </select>
+            </Select>
+          </Field>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-3">
-        <button className="btn btn-primary" disabled={busy || !consentId} onClick={exportPortable}>
+        {fromWebsiteId === targetWebsiteId ? <Alert variant="warning">Choose a different target website to make this a cross-domain exchange.</Alert> : null}
+        <div className="flex flex-wrap gap-3">
+        <Button disabled={!consentId.trim() || fromWebsiteId === targetWebsiteId} loading={busy} onClick={exportPortable}>
           {busy ? "Working..." : "Export portable consent"}
-        </button>
-        <button className="btn btn-secondary" disabled={busy || !portableBundle} onClick={importPortable}>
+        </Button>
+        <Button variant="secondary" disabled={!portableBundle} loading={busy} onClick={importPortable}>
           Import onto target website
-        </button>
-      </div>
+        </Button>
+        </div>
+      </FormCard>
 
-      {error ? <div className="text-sm text-rose-700">{error}</div> : null}
+      {error ? <Alert variant="error" role="alert">{error}</Alert> : null}
 
       {portableBundle ? (
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <p className="text-sm font-medium text-slate-900">Portable bundle ready</p>
-          <p className="mt-1 text-xs text-slate-500">Claims/proof are what your SDK will store on device.</p>
-          <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-xs text-slate-800">
-            {JSON.stringify(portableBundle, null, 2)}
-          </pre>
-        </div>
-      ) : null}
+        <FormCard
+          title="Portable bundle ready"
+          titleExtra={<Badge variant="warning">One-time exchange</Badge>}
+          description={`Issued ${new Date(portableBundle.claims.issuedAt).toLocaleString()} · expires ${new Date(portableBundle.claims.exchangeExpiresAt).toLocaleString()}`}
+        >
+          <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["Status", portableBundle.claims.status],
+              ["Jurisdiction", portableBundle.claims.jurisdiction ?? "Not recorded"],
+              ["Choice", portableBundle.claims.choice ?? "Granular"],
+              ["Decisions", String(portableBundle.claims.decisions.length)],
+            ].map(([label, value]) => <div key={label} className="rounded-xl bg-[var(--muted)] p-3"><dt className="text-xs text-[var(--muted-foreground)]">{label}</dt><dd className="mt-1 font-medium capitalize text-[var(--foreground)]">{value.replaceAll("_", " ")}</dd></div>)}
+          </dl>
+          <div className="rounded-xl border border-[var(--border)] p-4">
+            <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Handoff code</p>
+            <p className="mt-2 break-all font-mono text-xl font-semibold tracking-wider text-[var(--foreground)]">{portableBundle.code}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {portableBundle.code ? <Button variant="outline" onClick={() => copyText(portableBundle.code!, "code")}>Copy code</Button> : null}
+            {portableBundle.token ? <Button variant="outline" onClick={() => copyText(portableBundle.token!, "token")}>Copy token</Button> : null}
+            <Button variant="ghost" onClick={downloadBundle}>Download bundle</Button>
+          </div>
+          <div className="table-scroll rounded-xl border border-[var(--border)]">
+            <table className="data-table">
+              <caption className="sr-only">Portable consent decisions</caption>
+              <thead><tr><th scope="col">Item</th><th scope="col">Type</th><th scope="col">Decision</th></tr></thead>
+              <tbody>{portableBundle.claims.decisions.map((decision, index) => <tr key={`${decision.purposeKey ?? decision.vendorDomain}:${index}`}><th scope="row" className="text-left font-medium">{decision.purposeKey ?? decision.vendorDomain}</th><td>{decision.purposeKey ? "Purpose" : "Vendor"}</td><td><Badge variant={decision.granted ? "success" : "neutral"}>{decision.granted ? "Granted" : "Denied"}</Badge></td></tr>)}</tbody>
+            </table>
+          </div>
+        </FormCard>
+      ) : <EmptyState title="No exchange created" description="Choose distinct source and target websites, then export an active consent record." />}
 
       {importResult ? (
-        <div className="rounded-2xl border border-slate-200 bg-emerald-50 p-4">
-          <p className="text-sm font-medium text-slate-900">Import result</p>
-          <pre className="mt-3 max-h-80 overflow-auto whitespace-pre-wrap rounded-xl bg-white p-3 text-xs text-slate-800">
-            {JSON.stringify(importResult, null, 2)}
-          </pre>
-        </div>
+        <Alert variant="success">
+          Imported as <span className="font-mono font-medium">{importResult.consentId}</span> with {importResult.decisions.length} mapped decisions. The exchange is now consumed.
+        </Alert>
       ) : null}
     </div>
   );

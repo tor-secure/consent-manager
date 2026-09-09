@@ -1,4 +1,4 @@
-# Consent Manager — Feature Guide (27 Features)
+# Consent Manager — Feature Guide (28 Features)
 
 This document explains every major feature in the Consent Manager product: what it is, how it appears and works on your websites and dashboard, and how to use it step by step.
 
@@ -17,7 +17,7 @@ This document explains every major feature in the Consent Manager product: what 
 The consent banner is the first notice visitors see asking them to accept, reject, or customize cookies and tracking. The preference center is the detailed panel where visitors can turn individual purposes and vendors on or off. Together they are the main visitor-facing UI of the CMP.
 
 **How it is used on the website**  
-After you publish a policy and install the SDK, the script loads banner config from the CMP API. If the visitor has no valid stored consent, the banner appears (layout, colors, and copy come from Banner Studio / policy banner config). Choosing “Customize” (or opening preferences later) opens the preference center. Choices are saved to local storage and sent to the consent record API so enforcement can update immediately.
+After you publish a policy and install the SDK, the script starts in a blocked state and loads banner config from the CMP API. If the visitor has no server-confirmed consent, the banner appears. A choice is not persisted as confirmed and optional enforcement is not opened until the consent API validates and stores both the record and evidence snapshot.
 
 **How to use it (step by step)**
 
@@ -84,24 +84,31 @@ When a visitor submits a choice, the consent record API stores decisions and att
 3. Review status, jurisdiction, policy version, and the proof section (hash, signature, verification flags).
 4. Confirm **intact** / signature-valid when auditing for regulators or internal compliance.
 5. Use the evidence endpoint `/api/consent/evidence/[consentId]` (authenticated) for programmatic export.
+6. Historical evidence remains readable after the current consent record is withdrawn, replaced, or deleted. Configure retention and legal holds under **Administration → Data retention**.
+
+Deleting current consent state does not delete historical consent evidence.
+
+Privacy-rights / DSAR intake, identity verification, access/portability export, and hold-aware deletion are documented in `docs/PRIVACY_RIGHTS.md`. The product provides workflow support only; it does not certify legal compliance.
 
 ---
 
 ## 5. Script & SDK Blocking
 
 **What it is**  
-Client-side enforcement that stops non-essential scripts from running until the matching purpose (or vendor) consent is granted. Scripts marked with CMP attributes stay inert (`type="text/plain"`) until consent unlocks them.
+Client-side enforcement that quarantines controlled non-essential scripts, dynamic third-party scripts, iframes, and known pixels until matching server-confirmed purpose/vendor consent exists. Scripts marked with CMP attributes stay inert (`type="text/plain"`) until consent unlocks them.
 
 **How it is used on the website**  
-The CMP SDK loads tracker rules with the config, builds a blocklist from current decisions, and rewrites or pauses tagged scripts. After Accept All / granular save, granted purposes restore scripts so tags can fire.
+The CMP SDK establishes blocked state before fetching configuration, loads the extended tracker registry, and evaluates root DOM insertions synchronously with a MutationObserver fallback. It also blocks known optional cookie/storage writes and cleans accessible configured cookies/storage after denial or withdrawal. Unknown third-party behavior is configurable as BLOCK, WARN, or ALLOW.
 
 **How to use it (step by step)**
 
-1. Map trackers to purposes under **Trackers**.
-2. On your site HTML, tag controllable scripts, e.g. `data-cmp-purpose="analytics"`.
-3. Install the CMP SDK **before** third-party tags where possible.
+1. Map trackers to purposes and vendors under **Trackers**. Unmapped detections stay visible and fail closed until classified.
+2. On static HTML, keep controllable scripts inert with `type="text/plain"` and `data-cmp-purpose="analytics"`.
+3. Install the non-async CMP SDK **before** every application bundle, tag manager, and third-party tag.
 4. Load the page with no consent: confirm analytics/marketing scripts do not execute.
 5. Accept Analytics (or Accept All) and confirm those scripts activate.
+
+Client-side JavaScript cannot undo data already transmitted, remove HttpOnly or third-party cookies, or guarantee interception of resources loaded before the SDK. See `docs/TRACKER_ENFORCEMENT.md` for CSP, GTM, server-side tagging, and integration requirements.
 6. Review **Websites → [site] → Enforcement** for how rules are categorized.
 
 ---
@@ -145,18 +152,18 @@ The SDK publishes Google Consent Mode defaults (typically denied until consent) 
 ## 8. IAB TCF / GPP Support
 
 **What it is**  
-Support for industry signalling frameworks (IAB Europe TCF and Global Privacy Platform / GPP) so ad tech and vendors can read standardized consent/privacy strings alongside your first-party CMP decisions.
+Technical support for IAB Europe TCF v2.2 and GPP 1.1 signalling. This implementation is not IAB certification or registration.
 
 **How it is used on the website**  
-Adapters in the CMP signals layer and SDK/config path expose TCF/GPP-related outputs when enabled for the website. Vendors that understand these frameworks can read the shared APIs or strings from the page.
+The SDK exposes standards-shaped `__tcfapi` and `__gpp` lifecycles. The server encodes strings from stored mappings and consent decisions. Production-valid output is blocked unless `IAB_CMP_ID` and `IAB_CMP_VERSION` contain an externally issued registration, a validated GVL has been synced, and mappings are complete.
 
 **How to use it (step by step)**
 
 1. Open website regulation / consent integration settings and enable IAB TCF and/or GPP as required for your markets.
-2. Ensure vendors that rely on TCF/GPP are listed and mapped.
-3. Publish policy and load the site with the SDK.
-4. After a consent choice, verify framework APIs/strings are present (browser console / vendor debug tools).
-5. Re-test after policy version changes that affect purposes or vendor lists.
+2. Obtain an IAB CMP registration externally; set `IAB_CMP_ID` and `IAB_CMP_VERSION`. This application does not register a CMP.
+3. Sync the official GVL using the authenticated admin or secret-protected scheduled endpoint.
+4. Map every in-scope purpose and vendor and configure allowed GPP sections.
+5. Publish policy and load the site with the SDK. After a choice, verify APIs and strings with independent conformance tooling.
 
 ---
 
@@ -507,6 +514,26 @@ Configured per policy (A/B settings API / Experiments UI). The SDK picks a weigh
 
 ---
 
+## 28. Children, Age & Guardian Controls
+
+**What it is**  
+A server-authoritative child-protection layer: website configuration, age-assurance state, guardian contact verification, and fail-closed restriction of advertising/behavioral purposes. It extends the existing consent engine, tracker enforcement, Phase 7 publication validator, Phase 5 evidence, and Phase 6 DSAR workflow.
+
+**How it is used on the website**  
+When child protection is enabled, the SDK shows an age self-declaration (never labeled “verified age”) and keeps restricted trackers blocked until the server state allows them. Email guardian tokens prove contact only. Staff attestation is the built-in unlock for verified states.
+
+**How to use it (step by step)**
+
+1. Open **Websites → [site] → Child protection**.
+2. Set child-directed, age-assurance, the applicable minimum age, guardian requirement, and restricted purpose keys.
+3. Publish the policy. Child-directed sites without complete controls are blocked by the existing publication validator.
+4. Confirm the live banner shows the age/guardian notice and that advertising trackers stay blocked for unknown/minor visitors.
+5. Read `docs/CHILDREN_AGE_GUARDIAN_CONTROLS.md` for the state machine, limitations, and deployment.
+
+This is a technical control. It does not certify legal parental consent or age-assurance sufficiency.
+
+---
+
 ## Quick route map
 
 | Feature | Primary dashboard path |
@@ -530,6 +557,9 @@ Configured per policy (A/B settings API / Experiments UI). The SDK picks a weigh
 | Dependency graph | `/dashboard/graph` |
 | Drift / shadow / page intel | `/dashboard/monitoring`, `/dashboard/risk` |
 | A/B testing | `/dashboard/experiments` |
+| Privacy rights / DSAR | `/dashboard/rights-requests`, `/privacy-request` |
+| Policy compliance validation | `/dashboard/policies/[id]`, `POST /api/policies/[id]/validate` |
+| Children / age / guardian | `/dashboard/websites/[id]/child-protection`, `/guardian-consent` |
 | SDK install | `/dashboard/websites/[id]/installation` |
 
 ---

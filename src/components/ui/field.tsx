@@ -28,15 +28,17 @@ export function FormCard({
   title,
   description,
   titleExtra,
+  className = "",
   children,
 }: {
   title?: string;
   description?: ReactNode;
   titleExtra?: ReactNode;
+  className?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] card-shadow">
+    <section className={`rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] card-shadow ${className}`}>
       {(title || description) && (
         <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
           {title ? (

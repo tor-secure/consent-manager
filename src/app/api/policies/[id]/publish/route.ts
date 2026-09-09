@@ -1,115 +1,86 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
-import { policyPurposes } from "@/db/schema/policy-purposes";
-import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
-import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
+import { authorizeOwnedPolicy } from "@/lib/compliance/http";
+import {
+  ignoreClientComplianceClaims,
+  validateOwnedPolicy,
+  writeComplianceAudit,
+} from "@/lib/compliance/service";
+import { COMPLIANCE_AUDIT_ACTIONS } from "@/lib/compliance/types";
+import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
+import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
+import { captureDigitalTwinSnapshot } from "@/lib/intelligence/service";
 
 // ---------------------------------------------------------------------------
 // POST /api/policies/[id]/publish
 //
-// Publishes the latest draft. If the latest version is already live, a new
-// draft is copied first so purposes/vendors added after the first publish
-// can go live as a new version.
-//
-// Validation:
-//   1. Caller belongs to the org that owns this policy.
-//   2. The policy has at least one version.
-//   3. The version being published has at least one purpose.
-//
-// On success the version is marked published and the parent policy is active.
+// Publishes the latest draft after server-side compliance validation.
+// Client validated/jurisdiction/organizationId claims are ignored.
 // ---------------------------------------------------------------------------
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id: policyId } = await params;
-    const { isAuthenticated, userId, orgId } = await auth();
+    const authz = await authorizeOwnedPolicy(policyId);
+    if (authz.error) return authz.error;
 
-    if (!isAuthenticated || !userId || !orgId) {
-      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    let body: unknown = null;
+    try {
+      body = await request.json();
+    } catch {
+      body = null;
     }
+    ignoreClientComplianceClaims(body);
 
-    const localUser = await resolveLocalUser(userId);
-    if (!localUser) {
-      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
-    }
+    const validated = await validateOwnedPolicy({
+      organizationId: authz.organization.id,
+      userId: authz.localUser.id,
+      policyId: authz.policy.policyId,
+      websiteId: authz.policy.websiteId,
+      policyName: authz.policy.policyName,
+      websiteName: authz.policy.websiteName,
+      defaultRegulationKey: authz.policy.defaultRegulationKey,
+      defaultRegion: authz.policy.defaultRegion,
+      consentIntegrations: authz.policy.consentIntegrations,
+    });
 
-    // ── 1. Resolve org ──────────────────────────────────────────────────────
-    const organization = await resolveLocalOrganization(orgId);
-
-    if (!organization) {
-      return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
-    }
-
-    const membership = await resolveActiveMembership(organization.id, localUser.id);
-    if (!membership) {
-      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
-    }
-
-    // ── 2. Scope policy through org websites ────────────────────────────────
-    const orgWebsites = await db
-      .select({ id: websites.id })
-      .from(websites)
-      .where(eq(websites.organizationId, organization.id));
-
-    const websiteIds = orgWebsites.map((w) => w.id);
-    if (websiteIds.length === 0) {
-      return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
-    }
-
-    const [policy] = await db
-      .select({ id: consentPolicies.id, status: consentPolicies.status })
-      .from(consentPolicies)
-      .where(
-        and(
-          eq(consentPolicies.id, policyId),
-          inArray(consentPolicies.websiteId, websiteIds),
-        ),
-      )
-      .limit(1);
-
-    if (!policy) {
-      return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
-    }
-
-    // ── 3. Get a draft to publish (clone if the latest is already live) ─────
-    const latestVersion = await ensureDraftPolicyVersion(policy.id);
-
-    if (!latestVersion) {
+    if (!validated.ok) {
       return NextResponse.json(
         { success: false, message: "This policy has no versions to publish." },
         { status: 422 },
       );
     }
 
-    // ── 4. Guard: must have at least one purpose ────────────────────────────
-    const [purposeCount] = await db
-      .select({ count: policyPurposes.id })
-      .from(policyPurposes)
-      .where(eq(policyPurposes.policyVersionId, latestVersion.id))
-      .limit(1);
-
-    if (!purposeCount) {
+    if (validated.result.errors.length > 0) {
+      await writeComplianceAudit({
+        organizationId: authz.organization.id,
+        userId: authz.localUser.id,
+        policyId: authz.policy.policyId,
+        websiteId: authz.policy.websiteId,
+        versionId: validated.versionId,
+        action: COMPLIANCE_AUDIT_ACTIONS.publishRejected,
+        result: validated.result,
+        description: `Publishing blocked with ${validated.result.errors.length} compliance error(s)`,
+      });
       return NextResponse.json(
         {
           success: false,
-          message:
-            "A policy must have at least one purpose before it can be published.",
-          missingPurposes: true,
+          message: `Publishing blocked. ${validated.result.errors.length} compliance error${validated.result.errors.length === 1 ? "" : "s"} must be fixed.`,
+          missingPurposes: validated.result.errors.some((row) => row.code === "PURPOSE_REQUIRED_MISSING"),
+          validation: validated.result,
         },
         { status: 422 },
       );
     }
 
-    // ── 6. Publish — update version + policy in one round-trip ─────────────
     const now = new Date();
 
     const [updatedVersion] = await db
@@ -121,14 +92,45 @@ export async function POST(
         effectiveFrom: now,
         updatedAt: now,
       })
-      .where(eq(consentPolicyVersions.id, latestVersion.id))
+      .where(eq(consentPolicyVersions.id, validated.versionId))
       .returning();
 
-    // Reflect active status on the parent policy too.
     await db
       .update(consentPolicies)
       .set({ status: "active", updatedAt: now })
-      .where(eq(consentPolicies.id, policy.id));
+      .where(eq(consentPolicies.id, authz.policy.policyId));
+
+    await writeComplianceAudit({
+      organizationId: authz.organization.id,
+      userId: authz.localUser.id,
+      policyId: authz.policy.policyId,
+      websiteId: authz.policy.websiteId,
+      versionId: validated.versionId,
+      action: COMPLIANCE_AUDIT_ACTIONS.publishAccepted,
+      result: validated.result,
+      description: "Policy published after server-side compliance validation",
+    });
+
+    try {
+      const [graph, quality] = await Promise.all([
+        loadConsentGraph(authz.organization.id, authz.policy.websiteId),
+        loadQualityScoreInput(authz.policy.websiteId),
+      ]);
+      if (graph && quality) {
+        await captureDigitalTwinSnapshot({
+          organizationId: authz.organization.id,
+          websiteId: authz.policy.websiteId,
+          source: "policy",
+          sourceId: updatedVersion.id,
+          actorUserId: authz.localUser.id,
+          graph,
+          qualityInput: quality.input,
+          qualityScore: calculateConsentQualityScore(quality.input).overall,
+        });
+      }
+    } catch (snapshotError) {
+      console.error("Policy published but digital twin snapshot failed:", snapshotError);
+    }
 
     return NextResponse.json(
       {
@@ -140,6 +142,7 @@ export async function POST(
           publishedAt: updatedVersion.publishedAt,
           effectiveFrom: updatedVersion.effectiveFrom,
         },
+        validation: validated.result,
       },
       { status: 200 },
     );

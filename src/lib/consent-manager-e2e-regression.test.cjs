@@ -39,7 +39,10 @@ Module._load = function patchedLoad(request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { buildCmpSdkScript } = require(findCompiled("src/lib/sdk/cmp-sdk-script.ts"));
+const {
+  buildCmpSdkScript,
+  buildEmbedSnippet,
+} = require(findCompiled("src/lib/sdk/cmp-sdk-script.ts"));
 const {
   buildBlocklist,
   buildGrantsFromDecisions,
@@ -90,13 +93,13 @@ function createStore() {
     policy: { id: ids.policyA, websiteId: ids.websiteA, status: "active" },
     policyVersion: { id: ids.versionA, policyId: ids.policyA, version: 1, isPublished: true },
     purposes: [
-      { id: ids.requiredPurpose, key: "essential", name: "Essential", isRequired: true },
-      { id: ids.analyticsPurpose, key: "analytics", name: "Analytics", isRequired: false },
-      { id: ids.adsPurpose, key: "ads", name: "Advertising", isRequired: false },
+      { id: ids.requiredPurpose, key: "essential", name: "Essential", isRequired: true, iabTcfPurposeId: 1 },
+      { id: ids.analyticsPurpose, key: "analytics", name: "Analytics", isRequired: false, iabTcfPurposeId: 7 },
+      { id: ids.adsPurpose, key: "ads", name: "Advertising", isRequired: false, iabTcfPurposeId: 4 },
     ],
     vendors: [
-      { id: ids.analyticsVendor, name: "Analytics Vendor", domain: "analytics.example" },
-      { id: ids.adsVendor, name: "Ads Vendor", domain: "ads.example" },
+      { id: ids.analyticsVendor, name: "Analytics Vendor", domain: "analytics.example", iabVendorId: 100 },
+      { id: ids.adsVendor, name: "Ads Vendor", domain: "ads.example", iabVendorId: 200 },
     ],
     trackerRules: [
       {
@@ -122,6 +125,12 @@ function createStore() {
         vendorId: ids.analyticsVendor,
         isEssential: false,
         status: "active",
+        cookieNames: ["_analytics", "_analytics_*"],
+        localStorageKeys: ["analytics_*"],
+        sessionStorageKeys: ["analytics_session"],
+        indexedDbNames: ["analytics-db"],
+        scriptUrlPatterns: ["analytics.example"],
+        iframeUrlPatterns: ["analytics.example/embed"],
       },
       {
         id: "tracker-ads",
@@ -151,6 +160,8 @@ function createStore() {
     records: [],
     decisions: new Map(),
     events: [],
+    evidenceSnapshots: [],
+    submissions: new Map(),
     auditLogs: [],
     webhookDeliveries: [],
     nextConsentNumber: 1,
@@ -192,12 +203,51 @@ function createStore() {
     purposes: store.purposes,
     vendors: store.vendors,
     trackerRules: store.trackerRules,
+    trackerEnforcement: {
+      unknownTrackerBehavior: "BLOCK",
+      debugMode: false,
+    },
     locale: { language: "en", region: "IN" },
     grievance: {},
     signals: {
       googleConsentMode: { enabled: false, status: "disabled", purposeSignals: {} },
       iabTcf: { enabled: false, status: "disabled" },
       iabGpp: { enabled: false, status: "disabled" },
+    },
+  };
+  store.config.policyContext = {
+    token: "signed-test-policy-context-v1",
+    claims: {
+      version: 1,
+      algorithm: "HMAC-SHA256",
+      contextId: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      organizationId: store.organization.id,
+      websiteId: store.website.id,
+      siteKey: store.website.siteKey,
+      policyId: store.policy.id,
+      policyVersionId: store.policyVersion.id,
+      policyVersionNumber: store.policyVersion.version,
+      jurisdiction: "dpdp",
+      locale: "en",
+      variantId: null,
+      noticeHash: "a".repeat(64),
+      issuedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    },
+    noticeSnapshot: {
+      policy: {
+        id: store.policy.id,
+        name: store.config.policy.name,
+        versionId: store.policyVersion.id,
+        version: store.policyVersion.version,
+      },
+      jurisdiction: "dpdp",
+      locale: "en",
+      variantId: null,
+      bannerConfig: store.config.bannerConfig,
+      purposes: store.purposes,
+      vendors: store.vendors,
+      grievance: {},
     },
   };
 
@@ -301,10 +351,47 @@ function createApi(store) {
     if (body.websiteId !== store.website.id) {
       return { status: 404, body: { success: false, message: "Website not found" } };
     }
+    const context = body.policyContext;
+    if (!context?.token || !context.claims || !context.noticeSnapshot) {
+      return { status: 400, body: { success: false, message: "A valid policy context is required" } };
+    }
+    if (
+      context.claims.organizationId !== store.organization.id ||
+      context.claims.websiteId !== store.website.id ||
+      context.claims.siteKey !== store.website.siteKey
+    ) {
+      return { status: 403, body: { success: false, message: "Policy context scope mismatch" } };
+    }
     if (!body.submission || !["accept-all", "reject-all", "granular"].includes(body.submission.choice)) {
       return {
         status: 400,
         body: { success: false, message: "submission.choice must be accept-all, reject-all, or granular" },
+      };
+    }
+    if (!/^[0-9a-f-]{36}$/i.test(String(body.submissionId || ""))) {
+      return { status: 400, body: { success: false, message: "A valid submissionId is required" } };
+    }
+    if (
+      !Number.isInteger(body.expectedStateVersion) ||
+      (body.consentId ? body.expectedStateVersion < 1 : body.expectedStateVersion !== 0)
+    ) {
+      return { status: 400, body: { success: false, message: "Invalid expectedStateVersion" } };
+    }
+    const requestSignature = JSON.stringify({
+      websiteId: body.websiteId,
+      consentId: body.consentId || null,
+      expectedStateVersion: body.expectedStateVersion,
+      policyContextId: context.claims.contextId,
+      submission: body.submission,
+    });
+    const existingSubmission = store.submissions.get(body.submissionId);
+    if (existingSubmission) {
+      if (existingSubmission.requestSignature !== requestSignature) {
+        return { status: 409, body: { success: false, message: "Submission conflict" } };
+      }
+      return {
+        status: 200,
+        body: { ...existingSubmission.response, idempotent: true },
       };
     }
 
@@ -329,9 +416,10 @@ function createApi(store) {
         consentId,
         organizationId: store.organization.id,
         websiteId: store.website.id,
-        policyVersionId: store.policyVersion.id,
+        policyVersionId: context.claims.policyVersionId,
         visitorId: "visitor-e2e",
         status,
+        stateVersion: 1,
         source: "web",
         consentedAt: new Date().toISOString(),
         expiresAt,
@@ -347,16 +435,53 @@ function createApi(store) {
       store.records.push(record);
       emitSideEffects(store, record, "consent.created", { status, choice: body.submission.choice });
     } else {
+      if (body.expectedStateVersion !== record.stateVersion) {
+        return { status: 409, body: { success: false, message: "Consent state changed" } };
+      }
       record.status = status;
+      record.stateVersion += 1;
+      record.policyVersionId = context.claims.policyVersionId;
       record.consentedAt = new Date().toISOString();
       record.expiresAt = expiresAt;
       emitSideEffects(store, record, "consent.updated", { status, choice: body.submission.choice });
     }
 
     store.decisions.set(record.id, decisions);
+    const evidenceSnapshot = {
+      id: `evidence-${body.submissionId}`,
+      consentId,
+      policyId: context.claims.policyId,
+      policyVersionId: context.claims.policyVersionId,
+      policyVersionNumber: context.claims.policyVersionNumber,
+      policyContextId: context.claims.contextId,
+      jurisdiction: context.claims.jurisdiction,
+      noticeHash: context.claims.noticeHash,
+      decisions,
+    };
+    store.evidenceSnapshots.push(evidenceSnapshot);
+    const response = {
+      success: true,
+      confirmed: true,
+      consentId,
+      status,
+      stateVersion: record.stateVersion,
+      policyVersionId: context.claims.policyVersionId,
+      policyContextId: context.claims.contextId,
+      evidenceSnapshotId: evidenceSnapshot.id,
+      confirmedAt: record.consentedAt,
+      expiresAt,
+      decisions,
+      signals: {},
+      confirmation: {
+        policyContextValidated: true,
+        persisted: true,
+        evidenceSnapshotCreated: true,
+      },
+    };
+    store.submissions.set(body.submissionId, { requestSignature, response });
     return {
       status: body.consentId ? 200 : 201,
-      body: { success: true, consentId, status, policyVersionId: store.policyVersion.id, expiresAt },
+      body: response,
     };
   }
 
@@ -381,11 +506,22 @@ function createApi(store) {
     if (record.status === "withdrawn") {
       return { status: 409, body: { success: false, message: "Consent has already been withdrawn" } };
     }
+    if (body.expectedStateVersion !== record.stateVersion) {
+      return { status: 409, body: { success: false, message: "Consent state changed" } };
+    }
     const previousStatus = record.status;
     record.status = "withdrawn";
+    record.stateVersion += 1;
     record.withdrawnAt = new Date().toISOString();
     emitSideEffects(store, record, "consent.withdrawn", { previousStatus, withdrawnAt: record.withdrawnAt });
-    return { status: 200, body: { success: true, withdrawnAt: record.withdrawnAt } };
+    return {
+      status: 200,
+      body: {
+        success: true,
+        withdrawnAt: record.withdrawnAt,
+        stateVersion: record.stateVersion,
+      },
+    };
   }
 
   function analytics() {
@@ -480,6 +616,10 @@ class FakeElement {
       next.parentNode = this;
       previous.parentNode = null;
       this.children[index] = next;
+      const scriptIndex = this.ownerDocument.scripts.indexOf(previous);
+      if (scriptIndex >= 0 && next.tagName === "SCRIPT") {
+        this.ownerDocument.scripts[scriptIndex] = next;
+      }
     }
     return previous;
   }
@@ -493,13 +633,19 @@ class FakeElement {
     this.listeners[type] = (this.listeners[type] ?? []).filter((item) => item !== handler);
   }
 
-  querySelectorAll() {
-    return [];
+  querySelectorAll(selector) {
+    const tags = String(selector).split(",").map((value) => value.trim().toUpperCase());
+    const hits = [];
+    for (const child of this.children) {
+      collect(child, (element) => tags.includes(element.tagName), hits);
+    }
+    return hits;
   }
 
   focus() {}
 
   click() {
+    if (this.disabled) return;
     for (const handler of this.listeners.click ?? []) handler();
   }
 }
@@ -553,6 +699,12 @@ function createBrowser(store, storageSeed = {}) {
     querySelectorAll(selector) {
       if (selector === "script[data-cmp-purpose]") {
         return this.scripts.filter((script) => script.getAttribute("data-cmp-purpose"));
+      }
+      if (selector === "script,iframe,img") {
+        const hits = [];
+        collect(this.head, (element) => ["SCRIPT", "IFRAME", "IMG"].includes(element.tagName), hits);
+        collect(this.body, (element) => ["SCRIPT", "IFRAME", "IMG"].includes(element.tagName), hits);
+        return hits;
       }
       return [];
     },
@@ -611,11 +763,65 @@ function createBrowser(store, storageSeed = {}) {
     "data-cmp-purpose": "ads",
   });
 
-  const storage = new Map(Object.entries(storageSeed));
+  const storage =
+    storageSeed instanceof Map
+      ? storageSeed
+      : new Map(Object.entries(storageSeed));
+  const sessionValues = new Map();
+  function storageApi(values) {
+    const api = {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null;
+      },
+      setItem(key, value) {
+        values.set(key, String(value));
+      },
+      removeItem(key) {
+        values.delete(key);
+      },
+      key(index) {
+        return [...values.keys()][index] ?? null;
+      },
+    };
+    Object.defineProperty(api, "length", {
+      get() {
+        return values.size;
+      },
+    });
+    return api;
+  }
+  const localStorageApi = storageApi(storage);
+  const sessionStorageApi = storageApi(sessionValues);
+  const cookieJar = new Map();
+  Object.defineProperty(document, "cookie", {
+    configurable: true,
+    get() {
+      return [...cookieJar.entries()].map(([key, value]) => `${key}=${value}`).join("; ");
+    },
+    set(serialized) {
+      const [pair] = String(serialized).split(";");
+      const separator = pair.indexOf("=");
+      const name = pair.slice(0, separator).trim();
+      const value = pair.slice(separator + 1);
+      if (/max-age\s*=\s*0/i.test(serialized) || /expires\s*=\s*thu,\s*01\s+jan\s+1970/i.test(serialized)) {
+        cookieJar.delete(name);
+      } else {
+        cookieJar.set(name, value);
+      }
+    },
+  });
   const windowListeners = {};
+  const intervals = new Map();
+  let nextIntervalId = 1;
   const window = {
     __CMP_DEBUG: false,
-    location: { search: "", href: "https://example.com/" },
+    __CMP_CONFIRMATION_DISPLAY_MS: 0,
+    location: {
+      search: "",
+      href: "https://example.com/",
+      hostname: "example.com",
+      origin: "https://example.com",
+    },
     navigator: { language: "en-US", languages: ["en-US", "en"] },
     pageYOffset: 240,
     scrollY: 240,
@@ -631,13 +837,24 @@ function createBrowser(store, storageSeed = {}) {
     removeEventListener(type, handler) {
       windowListeners[type] = (windowListeners[type] ?? []).filter((item) => item !== handler);
     },
+    setInterval(handler) {
+      const id = nextIntervalId++;
+      intervals.set(id, handler);
+      return id;
+    },
+    clearInterval(id) {
+      intervals.delete(id);
+    },
+    setTimeout,
+    clearTimeout,
+    AbortController,
     __gtagCalls: [],
     gtag(...args) {
       this.__gtagCalls.push(args);
     },
     __tcfapi: undefined,
     __gpp: undefined,
-    console,
+    console: { ...console, debug() {} },
     document,
     URL,
     CustomEvent: class CustomEvent {
@@ -646,17 +863,8 @@ function createBrowser(store, storageSeed = {}) {
       }
     },
     dispatchEvent() {},
-    localStorage: {
-      getItem(key) {
-        return storage.has(key) ? storage.get(key) : null;
-      },
-      setItem(key, value) {
-        storage.set(key, String(value));
-      },
-      removeItem(key) {
-        storage.delete(key);
-      },
-    },
+    localStorage: localStorageApi,
+    sessionStorage: sessionStorageApi,
     fetch: async (url, init = {}) => {
       const parsed = new URL(url);
       let result;
@@ -665,7 +873,10 @@ function createBrowser(store, storageSeed = {}) {
       } else if (parsed.pathname.startsWith("/api/sdk/")) {
         result = { status: 404, body: { success: false, message: "Website not found" } };
       } else if (parsed.pathname === "/api/consent/record" && init.method === "POST") {
-        result = api.submitConsent(JSON.parse(init.body));
+        const body = JSON.parse(init.body);
+        result = store.consentPostInterceptor
+          ? await store.consentPostInterceptor(body, init, api)
+          : api.submitConsent(body);
       } else if (parsed.pathname === "/api/consent/record") {
         result = api.getConsent(parsed.searchParams.get("consentId"), parsed.searchParams.get("websiteId"));
       } else if (parsed.pathname === "/api/consent/withdraw") {
@@ -684,7 +895,25 @@ function createBrowser(store, storageSeed = {}) {
   window.document = document;
   document.defaultView = window;
 
-  return { adsScript, analyticsScript, api, document, storage, store, window };
+  return {
+    adsScript,
+    analyticsScript,
+    api,
+    document,
+    cookieJar,
+    sessionValues,
+    storage,
+    store,
+    window,
+    runConfigRefresh() {
+      for (const handler of intervals.values()) handler();
+    },
+    dispatchStorage(key) {
+      for (const handler of windowListeners.storage ?? []) {
+        handler({ key });
+      }
+    },
+  };
 }
 
 async function flush() {
@@ -701,6 +930,7 @@ async function loadSdk(browser) {
       console,
       fetch: browser.window.fetch,
       localStorage: browser.window.localStorage,
+      sessionStorage: browser.window.sessionStorage,
       URL,
       URLSearchParams,
       CustomEvent: browser.window.CustomEvent,
@@ -733,6 +963,8 @@ async function testAcceptAllFlow() {
   await flush();
 
   assert.equal(store.records[0].status, "accepted");
+  assert.equal(store.records[0].policyVersionId, ids.versionA);
+  assert.equal(store.evidenceSnapshots[0].policyVersionId, ids.versionA);
   assert.equal(browser.window.CMP.getConsent().consentId, "cid_e2e_1");
   assert.equal(browser.window.CMP.getConsent().decisions.purposes[ids.analyticsPurpose], true);
   assert.notEqual(browser.document.scripts.find((s) => s.getAttribute("src") === "https://analytics.example/analytics.js").getAttribute("type"), "text/plain");
@@ -772,6 +1004,502 @@ async function testRejectAllFlow() {
   assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
   assert.equal(store.webhookDeliveries[0].eventType, "consent.declined");
   assert.equal(browser.document.documentElement.getAttribute("data-cmp-scroll-lock"), null);
+
+  const reload = createBrowser(store, Object.fromEntries(browser.storage.entries()));
+  await loadSdk(reload);
+  assert.ok(
+    reload.document.getElementById("__cmp_banner__"),
+    "reject-all should show the consent banner again on the next page load",
+  );
+}
+
+async function testPublishedPolicyRefresh() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+
+  const versionTwoId = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+  store.config.policy.versionId = versionTwoId;
+  store.config.policy.version = 2;
+  store.config.bannerConfig.title = "Updated privacy policy";
+  store.config.policyContext = {
+    ...store.config.policyContext,
+    token: "signed-test-policy-context-v2",
+    claims: {
+      ...store.config.policyContext.claims,
+      contextId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      policyVersionId: versionTwoId,
+      policyVersionNumber: 2,
+      noticeHash: "b".repeat(64),
+    },
+    noticeSnapshot: {
+      ...store.config.policyContext.noticeSnapshot,
+      policy: {
+        ...store.config.policyContext.noticeSnapshot.policy,
+        versionId: versionTwoId,
+        version: 2,
+      },
+      bannerConfig: store.config.bannerConfig,
+    },
+  };
+  browser.runConfigRefresh();
+  await flush();
+
+  const banner = browser.document.getElementById("__cmp_banner__");
+  const title = collect(banner, (el) => el.tagName === "STRONG")[0];
+  assert.equal(
+    title.textContent,
+    "Privacy choices",
+    "an open banner must preserve the policy context already shown",
+  );
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(
+    store.records[0].policyVersionId,
+    ids.versionA,
+    "publishing v2 while v1 is open must still record v1",
+  );
+  assert.equal(store.evidenceSnapshots[0].policyVersionId, ids.versionA);
+}
+
+async function testServerConfirmedConsentStateMachine() {
+  const store = createStore();
+  store.config.signals.googleConsentMode = {
+    enabled: true,
+    waitForUpdateMs: 500,
+    purposeSignals: { analytics: ["analytics_storage"] },
+  };
+  let releaseConsent;
+  let requestCount = 0;
+  store.consentPostInterceptor = (body, _init, api) =>
+    new Promise((resolve) => {
+      requestCount += 1;
+      releaseConsent = () => resolve(api.submitConsent(body));
+    });
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+
+  const accept = buttonByText(browser, "Accept all");
+  accept.click();
+  await flush();
+
+  assert.equal(requestCount, 1);
+  assert.equal(accept.disabled, true, "submit controls must be disabled while pending");
+  assert.equal(browser.window.CMP.getConsent().state, "PENDING");
+  assert.equal(browser.window.CMP.getConsent().confirmed, false);
+  assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
+  const pendingSignal = [...browser.window.__gtagCalls]
+    .reverse()
+    .find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(pendingSignal[2].analytics_storage, "denied");
+  assert.equal(store.records.length, 0);
+  assert.equal(store.evidenceSnapshots.length, 0);
+  assert.equal(
+    JSON.parse(browser.storage.get(`cmp_consent_${store.website.siteKey}`)).status,
+    "pending",
+  );
+
+  // A second click while the first request is pending must be ignored.
+  accept.click();
+  assert.equal(requestCount, 1);
+
+  releaseConsent();
+  await flush();
+  assert.equal(browser.window.CMP.getConsent().state, "GRANTED");
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.notEqual(
+    browser.document.scripts
+      .find((script) => script.getAttribute("src") === "https://analytics.example/analytics.js")
+      .getAttribute("type"),
+    "text/plain",
+  );
+  const confirmedSignal = [...browser.window.__gtagCalls]
+    .reverse()
+    .find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(confirmedSignal[2].analytics_storage, "granted");
+  assert.equal(store.records.length, 1);
+  assert.equal(store.evidenceSnapshots.length, 1);
+  assert.equal(
+    JSON.parse(browser.storage.get(`cmp_consent_${store.website.siteKey}`)).status,
+    "confirmed",
+  );
+}
+
+async function testConsentFailuresRemainBlocked() {
+  const failures = [
+    ["HTTP 400", async () => ({ status: 400, body: { success: false } })],
+    ["HTTP 403", async () => ({ status: 403, body: { success: false } })],
+    ["HTTP 409", async () => ({ status: 409, body: { success: false } })],
+    ["database persistence failure", async () => ({ status: 500, body: { success: false } })],
+    ["evidence creation failure", async () => ({ status: 500, body: { success: false } })],
+    ["network failure", async () => { throw new Error("network unavailable"); }],
+    [
+      "HTTP success without explicit server confirmation",
+      async () => ({ status: 200, body: { success: true } }),
+    ],
+  ];
+
+  for (const [label, interceptor] of failures) {
+    const store = createStore();
+    store.consentPostInterceptor = interceptor;
+    const browser = createBrowser(store);
+    await loadSdk(browser);
+    buttonByText(browser, "Accept all").click();
+    await flush();
+
+    assert.equal(browser.window.CMP.getConsent().state, "FAILED", label);
+    assert.equal(browser.window.CMP.getConsent().confirmed, false, label);
+    assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain", label);
+    assert.equal(store.records.length, 0, label);
+    assert.equal(store.evidenceSnapshots.length, 0, label);
+    assert.equal(
+      JSON.parse(browser.storage.get(`cmp_consent_${store.website.siteKey}`)).status,
+      "failed",
+      label,
+    );
+    assert.ok(browser.document.getElementById("__cmp_banner__"), label);
+  }
+}
+
+async function testConsentTimeoutRemainsBlocked() {
+  const store = createStore();
+  store.consentPostInterceptor = (_body, init) =>
+    new Promise((_resolve, reject) => {
+      init.signal.addEventListener("abort", () => reject(new Error("aborted")));
+    });
+  const browser = createBrowser(store);
+  browser.window.__CMP_SUBMIT_TIMEOUT_MS = 250;
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await flush();
+
+  assert.equal(browser.window.CMP.getConsent().state, "FAILED");
+  assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
+  assert.equal(store.records.length, 0);
+}
+
+async function testPendingReloadAndCrossTabWithdrawal() {
+  const store = createStore();
+  const sharedStorage = new Map();
+  let releaseConsent;
+  store.consentPostInterceptor = (body, _init, api) =>
+    new Promise((resolve) => {
+      releaseConsent = () => resolve(api.submitConsent(body));
+    });
+  const tabA = createBrowser(store, sharedStorage);
+  await loadSdk(tabA);
+  buttonByText(tabA, "Accept all").click();
+  await flush();
+
+  const tabB = createBrowser(store, sharedStorage);
+  await loadSdk(tabB);
+  assert.equal(tabB.window.CMP.getConsent().state, "PENDING");
+  assert.equal(tabB.analyticsScript.getAttribute("type"), "text/plain");
+
+  releaseConsent();
+  await flush();
+  tabB.dispatchStorage(`cmp_consent_${store.website.siteKey}`);
+  await flush();
+  assert.equal(tabB.window.CMP.getConsent().state, "GRANTED");
+  assert.notEqual(
+    tabB.document.scripts
+      .find((script) => script.getAttribute("src") === "https://analytics.example/analytics.js")
+      .getAttribute("type"),
+    "text/plain",
+  );
+
+  // Start a stale update in A, then withdraw from B before A receives a response.
+  let releaseStaleUpdate;
+  store.consentPostInterceptor = (body, _init, api) =>
+    new Promise((resolve) => {
+      releaseStaleUpdate = () => resolve(api.submitConsent(body));
+    });
+  const stalePromise = tabA.window.CMP.acceptAll().catch(() => undefined);
+  await flush();
+  await tabB.window.CMP.withdrawConsent();
+  await flush();
+  releaseStaleUpdate();
+  await stalePromise;
+  await flush();
+  tabA.dispatchStorage(`cmp_consent_${store.website.siteKey}`);
+  await flush();
+
+  assert.equal(
+    JSON.parse(sharedStorage.get(`cmp_consent_${store.website.siteKey}`)).status,
+    "withdrawn",
+  );
+  assert.equal(tabA.window.CMP.getConsent().confirmed, true);
+  assert.equal(tabA.window.CMP.getConsent().state, "DENIED");
+  assert.equal(tabA.analyticsScript.getAttribute("type"), "text/plain");
+  assert.equal(tabB.analyticsScript.getAttribute("type"), "text/plain");
+  const staleTabTracker = appendResource(
+    tabA,
+    "script",
+    "https://analytics.example/stale-tab.js",
+  );
+  assert.equal(staleTabTracker.getAttribute("type"), "text/plain");
+}
+
+async function testPendingStorageNeverActivatesProcessing() {
+  const store = createStore();
+  const browser = createBrowser(store, {
+    [`cmp_consent_${store.website.siteKey}`]: JSON.stringify({
+      status: "pending",
+      serverConfirmed: false,
+      consentId: "",
+      submissionId: "12121212-1212-4121-8121-121212121212",
+      revision: Date.now(),
+    }),
+  });
+  await loadSdk(browser);
+  assert.equal(browser.window.CMP.getConsent().state, "PENDING");
+  assert.equal(browser.window.CMP.getConsent().confirmed, false);
+  assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
+}
+
+function appendResource(browser, tagName, src, attributes = {}) {
+  const element = browser.document.createElement(tagName);
+  element.setAttribute("src", src);
+  for (const [name, value] of Object.entries(attributes)) {
+    element.setAttribute(name, value);
+  }
+  browser.document.body.appendChild(element);
+  return element;
+}
+
+async function testDynamicTrackerAndIframeEnforcement() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+
+  const beforeConsent = appendResource(
+    browser,
+    "script",
+    "https://analytics.example/dynamic.js",
+  );
+  assert.equal(beforeConsent.getAttribute("src"), null);
+  assert.equal(beforeConsent.getAttribute("type"), "text/plain");
+  assert.equal(beforeConsent.getAttribute("data-cmp-blocked"), "true");
+
+  const iframe = appendResource(
+    browser,
+    "iframe",
+    "https://analytics.example/embed/dashboard",
+  );
+  assert.equal(iframe.getAttribute("src"), "about:blank");
+  assert.equal(iframe.getAttribute("data-cmp-blocked"), "true");
+  const pixel = appendResource(
+    browser,
+    "img",
+    "https://analytics.example/collect.gif",
+  );
+  assert.ok(pixel.getAttribute("src").startsWith("data:image/gif"));
+
+  const unknown = appendResource(
+    browser,
+    "script",
+    "https://unmapped-third-party.example/tracker.js",
+  );
+  assert.equal(unknown.getAttribute("type"), "text/plain");
+  assert.equal(
+    unknown.getAttribute("data-cmp-block-reason"),
+    "unknown-tracker-fail-closed",
+  );
+
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  const restoredAnalytics = collect(
+    browser.document.body,
+    (element) =>
+      element.tagName === "SCRIPT" &&
+      element.getAttribute("src") === "https://analytics.example/dynamic.js",
+  );
+  assert.equal(restoredAnalytics.length, 1);
+  assert.equal(iframe.getAttribute("src"), "https://analytics.example/embed/dashboard");
+  assert.equal(pixel.getAttribute("src"), "https://analytics.example/collect.gif");
+  assert.equal(unknown.getAttribute("type"), "text/plain");
+
+  const afterConsent = appendResource(
+    browser,
+    "script",
+    "https://analytics.example/after-confirmation.js",
+  );
+  assert.equal(
+    afterConsent.getAttribute("src"),
+    "https://analytics.example/after-confirmation.js",
+  );
+
+  await browser.window.CMP.withdrawConsent();
+  await flush();
+  const futureTracker = appendResource(
+    browser,
+    "script",
+    "https://analytics.example/after-withdrawal.js",
+  );
+  assert.equal(futureTracker.getAttribute("src"), null);
+  assert.equal(futureTracker.getAttribute("type"), "text/plain");
+  assert.equal(iframe.getAttribute("src"), "about:blank");
+  const metrics = browser.window.CMP.getEnforcementDiagnostics().metrics;
+  assert.ok(metrics.inspected > 0);
+  assert.ok(metrics.blocked > 0);
+  assert.ok(metrics.inspectionMs >= 0);
+}
+
+async function testDeclaredScriptAndUnknownWarnPolicy() {
+  const deniedStore = createStore();
+  const deniedBrowser = createBrowser(deniedStore);
+  await loadSdk(deniedBrowser);
+  buttonByText(deniedBrowser, "Reject all").click();
+  await flush();
+  const declared = appendResource(
+    deniedBrowser,
+    "script",
+    "https://custom.example/declared.js",
+    { "data-cmp-purpose": "analytics", "data-cmp-tracker": "Custom analytics" },
+  );
+  assert.equal(declared.getAttribute("type"), "text/plain");
+
+  const warnStore = createStore();
+  warnStore.config.trackerEnforcement = {
+    unknownTrackerBehavior: "WARN",
+    debugMode: true,
+  };
+  const warnBrowser = createBrowser(warnStore);
+  await loadSdk(warnBrowser);
+  const warned = appendResource(
+    warnBrowser,
+    "script",
+    "https://unknown-warn.example/widget.js",
+  );
+  assert.equal(warned.getAttribute("src"), "https://unknown-warn.example/widget.js");
+  const diagnostics = warnBrowser.window.CMP.getEnforcementDiagnostics();
+  assert.equal(diagnostics.unknownTrackerBehavior, "WARN");
+  assert.ok(
+    diagnostics.events.some(
+      (event) =>
+        event.action === "ALLOWED" &&
+        event.reason === "unknown-tracker-warn",
+    ),
+  );
+}
+
+async function testCookieAndStorageEnforcementCleanup() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+
+  browser.document.cookie = "_analytics=blocked-before-consent";
+  browser.window.localStorage.setItem("analytics_client", "blocked");
+  browser.window.sessionStorage.setItem("analytics_session", "blocked");
+  assert.equal(browser.cookieJar.has("_analytics"), false);
+  assert.equal(browser.storage.has("analytics_client"), false);
+  assert.equal(browser.sessionValues.has("analytics_session"), false);
+
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  browser.document.cookie = "_analytics=allowed";
+  browser.window.localStorage.setItem("analytics_client", "allowed");
+  browser.window.sessionStorage.setItem("analytics_session", "allowed");
+  assert.equal(browser.cookieJar.get("_analytics"), "allowed");
+  assert.equal(browser.storage.get("analytics_client"), "allowed");
+  assert.equal(browser.sessionValues.get("analytics_session"), "allowed");
+
+  await browser.window.CMP.withdrawConsent();
+  await flush();
+  assert.equal(browser.cookieJar.has("_analytics"), false);
+  assert.equal(browser.storage.has("analytics_client"), false);
+  assert.equal(browser.sessionValues.has("analytics_session"), false);
+}
+
+async function testDynamicTrackerPendingAndFailedStates() {
+  const store = createStore();
+  let rejectConsent;
+  store.consentPostInterceptor = (_body, _init, _api) =>
+    new Promise((_resolve, reject) => {
+      rejectConsent = reject;
+    });
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+
+  const pendingTracker = appendResource(
+    browser,
+    "script",
+    "https://analytics.example/pending.js",
+  );
+  assert.equal(browser.window.CMP.getConsent().state, "PENDING");
+  assert.equal(pendingTracker.getAttribute("type"), "text/plain");
+
+  rejectConsent(new Error("network failure"));
+  await flush();
+  const failedTracker = appendResource(
+    browser,
+    "script",
+    "https://analytics.example/failed.js",
+  );
+  assert.equal(browser.window.CMP.getConsent().state, "FAILED");
+  assert.equal(failedTracker.getAttribute("type"), "text/plain");
+}
+
+function testConsentSubmissionIdempotency() {
+  const store = createStore();
+  const api = createApi(store);
+  const body = {
+    websiteId: store.website.id,
+    expectedStateVersion: 0,
+    submissionId: "13131313-1313-4131-8131-131313131313",
+    policyContext: store.config.policyContext,
+    submission: { choice: "accept-all" },
+  };
+  const first = api.submitConsent(body);
+  const repeated = api.submitConsent(body);
+  assert.equal(first.status, 201);
+  assert.equal(repeated.status, 200);
+  assert.equal(repeated.body.idempotent, true);
+  assert.equal(first.body.consentId, repeated.body.consentId);
+  assert.equal(store.records.length, 1);
+  assert.equal(store.evidenceSnapshots.length, 1);
+
+  const conflict = api.submitConsent({
+    ...body,
+    submission: { choice: "reject-all" },
+  });
+  assert.equal(conflict.status, 409);
+  assert.equal(store.evidenceSnapshots.length, 1);
+}
+
+function testSynchronousBootstrapSnippet() {
+  const snippet = buildEmbedSnippet({
+    siteKey: "site_bootstrap_test",
+    cdnUrl: "https://cmp.example/api/sdk/script",
+  });
+  assert.match(snippet, /<script src="https:\/\/cmp\.example\/api\/sdk\/script"/);
+  assert.match(snippet, /data-site-key="site_bootstrap_test"/);
+  assert.doesNotMatch(snippet, /\basync\b|\bdefer\b/);
+}
+
+async function testMissingRequiredPurposeRePrompt() {
+  const store = createStore();
+  const browser = createBrowser(store, {
+    [`cmp_consent_${store.website.siteKey}`]: JSON.stringify({
+      consentId: "cid_e2e_incomplete",
+      choice: "granular",
+      policyVersionId: store.policyVersion.id,
+      purposeIds: store.purposes.map((purpose) => purpose.id),
+      vendorIds: store.vendors.map((vendor) => vendor.id),
+      decisions: [
+        { purposeId: ids.analyticsPurpose, vendorId: null, granted: true, decision: "granular" },
+      ],
+    }),
+    [`cmp_expiry_${store.website.siteKey}`]: String(Date.now() + 86_400_000),
+  });
+  await loadSdk(browser);
+  assert.ok(
+    browser.document.getElementById("__cmp_banner__"),
+    "missing required-purpose acceptance should require another consent prompt",
+  );
 }
 
 async function testGranularPersistenceWithdrawalAndExpiry() {
@@ -781,6 +1509,7 @@ async function testGranularPersistenceWithdrawalAndExpiry() {
 
   browser.window.CMP.saveGranular(
     [
+      { purposeId: ids.requiredPurpose, granted: true },
       { purposeId: ids.analyticsPurpose, granted: true },
       { purposeId: ids.adsPurpose, granted: false },
     ],
@@ -806,7 +1535,10 @@ async function testGranularPersistenceWithdrawalAndExpiry() {
   reload.window.CMP.withdrawConsent();
   await flush();
   assert.equal(store.records[0].status, "withdrawn");
-  assert.equal(reload.storage.get(`cmp_consent_${store.website.siteKey}`), undefined);
+  assert.equal(
+    JSON.parse(reload.storage.get(`cmp_consent_${store.website.siteKey}`)).status,
+    "withdrawn",
+  );
   assert.ok(reload.document.getElementById("__cmp_banner__"), "banner should return after withdrawal");
   assert.equal(reload.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
   assert.equal(store.webhookDeliveries.at(-1).eventType, "consent.withdrawn");
@@ -831,6 +1563,20 @@ function testNegativeCasesAndEnforcement() {
   assert.equal(isValidConsentId("cid_e2e_12345678"), true);
   assert.equal(api.submitConsent({ websiteId: ids.websiteA, submission: { choice: "invalid" } }).status, 400);
   assert.equal(api.submitConsent({ websiteId: ids.websiteB, submission: { choice: "accept-all" } }).status, 404);
+  assert.equal(
+    api.submitConsent({
+      websiteId: ids.websiteA,
+      policyContext: {
+        ...store.config.policyContext,
+        claims: {
+          ...store.config.policyContext.claims,
+          organizationId: ids.orgB,
+        },
+      },
+      submission: { choice: "accept-all" },
+    }).status,
+    403,
+  );
 
   const decisions = buildDecisions(store, "granular", [
     { purposeId: ids.analyticsPurpose, granted: true },
@@ -881,6 +1627,12 @@ async function testGoogleAndIabSignalPropagation() {
   assert.equal(typeof browser.window.__tcfapi, "function");
   assert.equal(typeof browser.window.__gpp, "function");
   assert.ok(browser.window.__gtagCalls.some((call) => call[0] === "consent" && call[1] === "default"));
+  let beforeConsentTcf;
+  browser.window.__tcfapi("getTCData", 2, (data) => {
+    beforeConsentTcf = data;
+  });
+  assert.equal(beforeConsentTcf.purpose.consents[1], false);
+  assert.equal(browser.window.__gpp("getGPPString"), "");
 
   buttonByText(browser, "Accept all").click();
   await flush();
@@ -889,12 +1641,24 @@ async function testGoogleAndIabSignalPropagation() {
   assert.ok(update);
   assert.equal(update[2].analytics_storage, "granted");
   assert.equal(update[2].ad_storage, "granted");
+  let confirmedTcf;
+  browser.window.__tcfapi("getTCData", 2, (data) => {
+    confirmedTcf = data;
+  });
+  assert.equal(confirmedTcf.eventStatus, "useractioncomplete");
+  assert.equal(Object.values(confirmedTcf.purpose.consents).every(Boolean), true);
 
   browser.window.CMP.withdrawConsent();
   await flush();
   const withdrawn = [...browser.window.__gtagCalls].reverse().find((call) => call[0] === "consent" && call[1] === "update");
   assert.equal(withdrawn[2].analytics_storage, "denied");
   assert.equal(withdrawn[2].security_storage, "granted");
+  let withdrawnTcf;
+  browser.window.__tcfapi("getTCData", 2, (data) => {
+    withdrawnTcf = data;
+  });
+  assert.equal(Object.values(withdrawnTcf.purpose.consents).some(Boolean), false);
+  assert.equal(browser.window.__gpp("getGPPString"), "");
 }
 
 async function testBannerLocalizationAndEvidenceLocale() {
@@ -1008,15 +1772,163 @@ async function testHostScrollLockSurfaces() {
   assert.equal(browser.window.scrollY, 480);
 }
 
+function testChildProtectionEndToEnd() {
+  const {
+    nextStateFromAssertion,
+    restrictedProcessingAllowed,
+    applyGuardianContactVerified,
+    applyGuardianStaffVerified,
+    applyGuardianFailure,
+  } = require(findCompiled("src/lib/children/state.ts"));
+  const { applyChildRestrictionsToGrants } = require(findCompiled("src/lib/children/evaluate.ts"));
+  const { evaluatePolicyCompliance } = require(findCompiled("src/lib/compliance/evaluate.ts"));
+  const { verifyAgeContext, issueAgeContext } = require(findCompiled("src/lib/children/context.ts"));
+
+  const config = {
+    enabled: true,
+    childDirected: true,
+    ageAssuranceRequired: true,
+    minimumAge: 16,
+    childMaxAge: 13,
+    guardianConsentRequired: true,
+    restrictedPurposeKeys: ["advertising", "ads", "marketing", "profiling"],
+    minimumAssurance: "assured",
+    sessionTtlHours: 24,
+  };
+
+  const incomplete = evaluatePolicyCompliance({
+    policy: { id: ids.policyA, name: "Child policy", websiteId: ids.websiteA, organizationId: ids.orgA },
+    website: { id: ids.websiteA, name: "Child site", defaultRegulationKey: "gdpr", defaultRegion: "DE" },
+    organization: {
+      id: ids.orgA, name: "E2E Organization", dpoName: "Ada", dpoEmail: "ada@example.com",
+      grievanceOfficerName: "Ada", grievanceOfficerEmail: "g@example.com", grievancePortalUrl: null, settings: {},
+    },
+    version: { id: ids.versionA, version: 1, isPublished: false },
+    banner: {
+      title: "Notice", description: "Choose", privacyPolicyUrl: "https://example.com/privacy",
+      defaultConsent: "none", showRejectAll: true, showCustomize: true, showPreferenceWidget: true,
+      showPurposeDescriptions: true, showVendorList: true, preferenceCenterDescription: "Manage",
+    },
+    declarations: { childDirected: true, childAgeThreshold: null, guardianConsentRequired: false },
+    childProtection: { enabled: true, childDirected: true, ageAssuranceRequired: false, minimumAge: null, guardianConsentRequired: false, restrictedPurposeKeys: [] },
+    purposes: [
+      { id: ids.requiredPurpose, key: "necessary", name: "Necessary", description: "Required", isRequired: true, legalBasis: "legal_obligation", dataCategories: ["Device"], retentionPeriod: "Session" },
+      { id: ids.adsPurpose, key: "advertising", name: "Ads", description: "Ads", isRequired: false, legalBasis: "consent", dataCategories: ["Usage"], retentionPeriod: "13 months" },
+    ],
+    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE" }],
+    trackers: [{ id: "tracker-ads", name: "ads.js", status: "active", isEssential: false, purposeId: ids.adsPurpose, vendorId: ids.adsVendor, scannerClassification: "mapped" }],
+    consentIntegrations: { iabTcfEnabled: false, iabGppEnabled: false },
+    assignedRegulationKeys: ["gdpr"],
+    rightsByJurisdiction: { gdpr: ["access", "correction", "erasure", "restriction", "objection", "portability", "withdraw_consent"] },
+    gpcRuntimeSupported: false,
+    optOutPropagationImplemented: false,
+  });
+  assert.equal(incomplete.valid, false);
+
+  const published = evaluatePolicyCompliance({
+    policy: { id: ids.policyA, name: "Child policy", websiteId: ids.websiteA, organizationId: ids.orgA },
+    website: { id: ids.websiteA, name: "Child site", defaultRegulationKey: "gdpr", defaultRegion: "DE" },
+    organization: {
+      id: ids.orgA, name: "E2E Organization", dpoName: "Ada", dpoEmail: "ada@example.com",
+      grievanceOfficerName: "Ada", grievanceOfficerEmail: "g@example.com", grievancePortalUrl: null, settings: {},
+    },
+    version: { id: ids.versionA, version: 1, isPublished: false },
+    banner: {
+      title: "Notice", description: "Choose", privacyPolicyUrl: "https://example.com/privacy",
+      defaultConsent: "none", showRejectAll: true, showCustomize: true, showPreferenceWidget: true,
+      showPurposeDescriptions: true, showVendorList: true, preferenceCenterDescription: "Manage",
+    },
+    declarations: { childDirected: true, childAgeThreshold: 16, guardianConsentRequired: true },
+    childProtection: config,
+    purposes: [
+      { id: ids.requiredPurpose, key: "necessary", name: "Necessary", description: "Required", isRequired: true, legalBasis: "legal_obligation", dataCategories: ["Device"], retentionPeriod: "Session" },
+      { id: ids.adsPurpose, key: "advertising", name: "Ads", description: "Ads", isRequired: false, legalBasis: "consent", dataCategories: ["Usage"], retentionPeriod: "13 months" },
+    ],
+    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE" }],
+    trackers: [{ id: "tracker-ads", name: "ads.js", status: "active", isEssential: false, purposeId: ids.adsPurpose, vendorId: ids.adsVendor, scannerClassification: "mapped" }],
+    consentIntegrations: { iabTcfEnabled: false, iabGppEnabled: false },
+    assignedRegulationKeys: ["gdpr"],
+    rightsByJurisdiction: { gdpr: ["access", "correction", "erasure", "restriction", "objection", "portability", "withdraw_consent"] },
+    gpcRuntimeSupported: false,
+    optOutPropagationImplemented: false,
+  });
+  assert.equal(published.valid, true);
+
+  const minor = nextStateFromAssertion({ config, assertedOverThreshold: false, method: "self_declaration" });
+  const grants = applyChildRestrictionsToGrants(
+    { purposes: { [ids.adsPurpose]: true, [ids.requiredPurpose]: true }, vendors: { [ids.adsVendor]: true } },
+    [
+      { id: ids.adsPurpose, key: "advertising", isRequired: false },
+      { id: ids.requiredPurpose, key: "necessary", isRequired: true },
+    ],
+    config,
+    minor,
+  );
+  assert.equal(shouldBlock(storeTracker(ids.adsPurpose, ids.adsVendor), grants), true);
+  assert.equal(restrictedProcessingAllowed(config, applyGuardianContactVerified(minor)), false);
+  assert.equal(restrictedProcessingAllowed(config, applyGuardianFailure(minor)), false);
+  const unlocked = applyGuardianStaffVerified(minor);
+  const unlockedGrants = applyChildRestrictionsToGrants(
+    { purposes: { [ids.adsPurpose]: true, [ids.requiredPurpose]: true }, vendors: { [ids.adsVendor]: true } },
+    [
+      { id: ids.adsPurpose, key: "advertising", isRequired: false },
+      { id: ids.requiredPurpose, key: "necessary", isRequired: true },
+    ],
+    config,
+    unlocked,
+  );
+  assert.equal(shouldBlock(storeTracker(ids.adsPurpose, ids.adsVendor), unlockedGrants), false);
+
+  const context = issueAgeContext({
+    organizationId: ids.orgA,
+    websiteId: ids.websiteA,
+    sessionId: "sess-child",
+    ageStatus: "minor",
+    guardianStatus: "pending",
+    restrictedProcessingAllowed: false,
+  });
+  assert.equal(verifyAgeContext(context.token, { organizationId: ids.orgB, websiteId: ids.websiteA }).ok, false);
+  assert.equal(verifyAgeContext(context.token, { organizationId: ids.orgA, websiteId: ids.websiteA }).ok, true);
+}
+
+function storeTracker(purposeId, vendorId) {
+  return {
+    id: "tracker-ads",
+    name: "ads.js",
+    type: "script",
+    domain: "ads.example",
+    identifier: "ads.js",
+    purposeKey: "advertising",
+    purposeId,
+    vendorId,
+    isEssential: false,
+    status: "active",
+  };
+}
+
 async function main() {
   await testAcceptAllFlow();
   await testRejectAllFlow();
+  await testPublishedPolicyRefresh();
+  await testServerConfirmedConsentStateMachine();
+  await testConsentFailuresRemainBlocked();
+  await testConsentTimeoutRemainsBlocked();
+  await testPendingReloadAndCrossTabWithdrawal();
+  await testPendingStorageNeverActivatesProcessing();
+  await testDynamicTrackerAndIframeEnforcement();
+  await testDeclaredScriptAndUnknownWarnPolicy();
+  await testCookieAndStorageEnforcementCleanup();
+  await testDynamicTrackerPendingAndFailedStates();
+  testConsentSubmissionIdempotency();
+  testSynchronousBootstrapSnippet();
+  await testMissingRequiredPurposeRePrompt();
   await testGranularPersistenceWithdrawalAndExpiry();
   testNegativeCasesAndEnforcement();
   await testInvalidJsonPayload();
   await testGoogleAndIabSignalPropagation();
   await testBannerLocalizationAndEvidenceLocale();
   await testHostScrollLockSurfaces();
+  testChildProtectionEndToEnd();
 
   console.log("consent manager e2e regression tests passed");
 }

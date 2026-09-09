@@ -38,6 +38,8 @@ export type PendingInvitation = {
 
 function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
   if (avatarUrl) {
+    // User avatar URLs are supplied by the identity provider and may use arbitrary hosts.
+    // eslint-disable-next-line @next/next/no-img-element
     return <img src={avatarUrl} alt={name} className="h-8 w-8 shrink-0 rounded-full object-cover" />;
   }
   return (
@@ -56,13 +58,11 @@ export function TeamMembersPanel({
   availableRoles,
   pendingInvitations,
   canManage,
-  currentUserId,
 }: {
   members: TeamMember[];
   availableRoles: AvailableRole[];
   pendingInvitations: PendingInvitation[];
   canManage: boolean;
-  currentUserId: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

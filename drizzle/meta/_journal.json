@@ -288,6 +288,97 @@
       "when": 1788417165333,
       "tag": "0040_redundant_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1788810000000,
+      "tag": "0041_api_key_scopes",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1788813600000,
+      "tag": "0042_portable_consent_exchanges",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1788813842681,
+      "tag": "0043_legal_iab",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1788814210798,
+      "tag": "0044_legal_iab_constraints",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1788814820059,
+      "tag": "0045_intelligence",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1788976112966,
+      "tag": "0046_policy_context_evidence",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1788977767376,
+      "tag": "0047_consent_submission_idempotency",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1788978578576,
+      "tag": "0048_consent_state_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1788979683161,
+      "tag": "0049_tracker_enforcement_inventory",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1788982274246,
+      "tag": "0050_tracker_mapping_management",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1788983407828,
+      "tag": "0051_evidence_retention",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1788985200000,
+      "tag": "0052_privacy_rights",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1788988962561,
+      "tag": "0053_children_guardian_controls",
+      "breakpoints": true
     }
   ]
 }

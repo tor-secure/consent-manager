@@ -44,6 +44,7 @@ async function authorizeWebsite(websiteId: string) {
       id: websites.id,
       defaultRegulationKey: websites.defaultRegulationKey,
       consentIntegrations: websites.consentIntegrations,
+      iabRegistration: websites.iabRegistration,
     })
     .from(websites)
     .where(and(eq(websites.id, websiteId), eq(websites.organizationId, organization.id)))
@@ -70,6 +71,7 @@ export async function GET(
       success: true,
       defaultRegulationKey: authz.website.defaultRegulationKey,
       integrations: parseConsentIntegrations(authz.website.consentIntegrations),
+      iabRegistration: authz.website.iabRegistration,
     });
   } catch {
     return NextResponse.json({ success: false, message: "Unable to load consent integrations." }, { status: 500 });
@@ -98,6 +100,15 @@ export async function PUT(
 
     const body = await request.json();
     const parsed = parseConsentIntegrations(body.integrations ?? body);
+    const registrationInput = body.iabRegistration && typeof body.iabRegistration === "object"
+      ? body.iabRegistration as Record<string, unknown>
+      : null;
+    const iabRegistration = registrationInput
+      ? {
+          cmpId: Number.isInteger(Number(registrationInput.cmpId)) ? Number(registrationInput.cmpId) : null,
+          cmpVersion: Number.isInteger(Number(registrationInput.cmpVersion)) ? Number(registrationInput.cmpVersion) : null,
+        }
+      : authz.website.iabRegistration;
     let defaultRegulationKey: string | null = authz.website.defaultRegulationKey;
     if (body.defaultRegulationKey === null || body.defaultRegulationKey === "") {
       defaultRegulationKey = null;
@@ -113,6 +124,7 @@ export async function PUT(
       .set({
         defaultRegulationKey,
         consentIntegrations: serializeConsentIntegrations(parsed),
+        iabRegistration,
         updatedAt: new Date(),
       })
       .where(and(eq(websites.id, authz.website.id), eq(websites.organizationId, authz.organization.id)));
@@ -130,6 +142,7 @@ export async function PUT(
       success: true,
       defaultRegulationKey,
       integrations: parsed,
+      iabRegistration,
     });
   } catch {
     return NextResponse.json({ success: false, message: "Unable to save consent integrations." }, { status: 500 });

@@ -4,85 +4,121 @@ import {
   uuid,
   varchar,
   text,
+  jsonb,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { organizations } from "./organizations";
 import { websites } from "./websites";
+import { users } from "./users";
 
-// ---------------------------------------------------------------------------
-// data_principal_requests
-//
-// Records rights requests submitted by Data Principals under DPDP 2023
-// §11 (access), §12 (correction / erasure), §13 (grievance), and §14
-// (nomination). No login required from the Data Principal — intake is a
-// public API endpoint.
-//
-// SLA obligations per DPDP Rules 2025 Rule 12:
-//   • acknowledgedAt must be ≤ 48 hours after receivedAt
-//   • completedAt must be ≤ 30 days after receivedAt
-// Both deadlines are pre-computed and stored as acknowledgeBy / dueAt so that
-// the dashboard can surface SLA breaches without arithmetic at render time.
-// ---------------------------------------------------------------------------
+export type RequestType =
+  | "access"
+  | "correction"
+  | "erasure"
+  | "portability"
+  | "objection"
+  | "restriction"
+  | "withdraw_consent"
+  | "grievance"
+  | "nomination";
 
-export type RequestType = "access" | "correction" | "erasure" | "grievance" | "nomination";
-export type RequestStatus = "received" | "acknowledged" | "in_progress" | "completed" | "rejected";
+export type RequestStatus =
+  | "received"
+  | "verification_pending"
+  | "verified"
+  | "in_review"
+  | "acknowledged"
+  | "in_progress"
+  | "completed"
+  | "rejected"
+  | "expired"
+  | "cancelled";
 
 export const dataPrincipalRequests = pgTable(
   "data_principal_requests",
   {
     id: uuid("id").defaultRandom().primaryKey(),
 
-    // ── Tenant scope ────────────────────────────────────────────────────
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
 
-    websiteId: uuid("website_id")
-      .references(() => websites.id, { onDelete: "set null" }),
+    websiteId: uuid("website_id").references(() => websites.id, {
+      onDelete: "set null",
+    }),
 
-    // ── Request classification ──────────────────────────────────────────
-    // access | correction | erasure | grievance | nomination
     requestType: varchar("request_type", { length: 50 }).notNull(),
 
-    // received | acknowledged | in_progress | completed | rejected
-    status: varchar("status", { length: 50 }).notNull().default("received"),
+    status: varchar("status", { length: 50 })
+      .notNull()
+      .default("verification_pending"),
 
-    // ── Requester identity (Data Principal) ─────────────────────────────
-    // Stored as-is; production deployments should encrypt these columns at
-    // rest via a KMS-backed encrypted column extension.
+    jurisdiction: varchar("jurisdiction", { length: 32 })
+      .notNull()
+      .default("dpdp"),
+
+    jurisdictionSnapshot: jsonb("jurisdiction_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+
+    requesterReference: varchar("requester_reference", { length: 32 }),
+
     requesterName: varchar("requester_name", { length: 255 }).notNull(),
 
     requesterEmail: varchar("requester_email", { length: 320 }).notNull(),
 
     requesterPhone: varchar("requester_phone", { length: 50 }),
 
-    // ── Optional link to existing consent record ─────────────────────────
-    // If the requester supplies their consentId we can look up exactly what
-    // data is held and fulfil access/erasure requests efficiently.
+    requesterKind: varchar("requester_kind", { length: 30 })
+      .notNull()
+      .default("direct_requester"),
+
+    agentAuthorizationNote: text("agent_authorization_note"),
+
     consentId: varchar("consent_id", { length: 255 }),
 
-    // ── Request content ──────────────────────────────────────────────────
     description: text("description").notNull(),
 
-    // Operator's internal response / resolution notes (never sent to requester
-    // automatically in this release — email delivery is out of scope).
     responseNotes: text("response_notes"),
 
-    // ── SLA timestamps ──────────────────────────────────────────────────
-    // Acknowledgement deadline: receivedAt + 48 hours (Rule 12(2))
+    verificationStatus: varchar("verification_status", { length: 40 })
+      .notNull()
+      .default("pending"),
+
+    verificationMethod: varchar("verification_method", { length: 40 }),
+
+    verificationExpiresAt: timestamp("verification_expires_at", {
+      withTimezone: true,
+    }),
+
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+
+    assignedTo: uuid("assigned_to").references(() => users.id, {
+      onDelete: "set null",
+    }),
+
+    deadlineKind: varchar("deadline_kind", { length: 40 })
+      .notNull()
+      .default("configured_target"),
+
     acknowledgeBy: timestamp("acknowledge_by", { withTimezone: true }).notNull(),
 
-    // Response deadline: receivedAt + 30 days (Rule 12(3))
     dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
 
-    // When the operator actually acknowledged the request
     acknowledgedAt: timestamp("acknowledged_at", { withTimezone: true }),
 
-    // When the request was fully resolved (completed or rejected)
     completedAt: timestamp("completed_at", { withTimezone: true }),
 
-    // ── Audit ───────────────────────────────────────────────────────────
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+
+    outcome: jsonb("outcome")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+
     receivedAt: timestamp("received_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
@@ -102,5 +138,8 @@ export const dataPrincipalRequests = pgTable(
     index("dpr_due_at_idx").on(table.dueAt),
     index("dpr_received_at_idx").on(table.receivedAt),
     index("dpr_requester_email_idx").on(table.requesterEmail),
+    index("dpr_verification_status_idx").on(table.verificationStatus),
+    index("dpr_jurisdiction_idx").on(table.jurisdiction),
+    uniqueIndex("dpr_requester_reference_unique").on(table.requesterReference),
   ],
 );

@@ -218,8 +218,6 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
     );
   }
 
-  let cumulative = 0;
-
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
       <div className="relative shrink-0">
@@ -229,8 +227,10 @@ function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }
             const pct = total > 0 ? s.value / total : 0;
             const dash = pct * circumference;
             const gap = circumference - dash;
-            const offset = -cumulative * circumference;
-            cumulative += pct;
+            const previousValue = slices
+              .slice(0, i)
+              .reduce((sum, slice) => sum + slice.value, 0);
+            const offset = -(previousValue / total) * circumference;
             return (
               <circle
                 key={i}
@@ -351,6 +351,10 @@ function ComplianceCheckItem({ label, done }: { label: string; done: boolean }) 
   );
 }
 
+async function getCurrentTimestamp() {
+  return Date.now();
+}
+
 // ---------------------------------------------------------------------------
 // Page — server component
 // Auth + bootstrap guaranteed by dashboard layout.
@@ -358,6 +362,7 @@ function ComplianceCheckItem({ label, done }: { label: string; done: boolean }) 
 
 export default async function DashboardPage() {
   const { organization: localOrg } = await requireDashboardContext();
+  const renderedAt = await getCurrentTimestamp();
 
   const orgWebsites = await db
     .select({ id: websites.id })
@@ -440,7 +445,7 @@ export default async function DashboardPage() {
     if (r.status === "accepted" || r.status === "partial") status = "Approved";
     else if (r.status === "withdrawn" || r.status === "rejected") status = "Withdrawn";
 
-    const minutes = Math.max(1, Math.floor((Date.now() - new Date(r.createdAt).getTime()) / 60000));
+    const minutes = Math.max(1, Math.floor((renderedAt - new Date(r.createdAt).getTime()) / 60000));
     let time = `${minutes}m ago`;
     if (minutes >= 60) {
       const hours = Math.floor(minutes / 60);

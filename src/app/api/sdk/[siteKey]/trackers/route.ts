@@ -74,6 +74,18 @@ export async function GET(
         vendorId: trackers.vendorId,
         isEssential: trackers.isEssential,
         status: trackers.status,
+        category: trackers.category,
+        cookieNames: trackers.cookieNames,
+        storageTypes: trackers.storageTypes,
+        localStorageKeys: trackers.localStorageKeys,
+        sessionStorageKeys: trackers.sessionStorageKeys,
+        indexedDbNames: trackers.indexedDbNames,
+        scriptUrlPatterns: trackers.scriptUrlPatterns,
+        iframeUrlPatterns: trackers.iframeUrlPatterns,
+        pixelUrlPatterns: trackers.pixelUrlPatterns,
+        party: trackers.party,
+        duration: trackers.duration,
+        deletionBehavior: trackers.deletionBehavior,
       })
       .from(trackers)
       .where(
@@ -108,6 +120,18 @@ export async function GET(
       vendorId: t.vendorId,
       isEssential: t.isEssential,
       status: t.status,
+      category: t.category,
+      cookieNames: t.cookieNames,
+      storageTypes: t.storageTypes,
+      localStorageKeys: t.localStorageKeys,
+      sessionStorageKeys: t.sessionStorageKeys,
+      indexedDbNames: t.indexedDbNames,
+      scriptUrlPatterns: t.scriptUrlPatterns,
+      iframeUrlPatterns: t.iframeUrlPatterns,
+      pixelUrlPatterns: t.pixelUrlPatterns,
+      party: t.party as TrackerRule["party"],
+      duration: t.duration,
+      deletionBehavior: t.deletionBehavior,
     }));
 
     return NextResponse.json(

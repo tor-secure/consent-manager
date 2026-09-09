@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { notify } from "@/components/feedback/notify";
@@ -13,9 +14,12 @@ export type RightsRequestRow = {
   id: string;
   requestType: string;
   status: string;
+  jurisdiction: string;
+  requesterReference: string | null;
   requesterName: string;
   requesterEmail: string;
   requesterPhone: string | null;
+  verificationStatus: string;
   consentId: string | null;
   description: string;
   responseNotes: string | null;
@@ -24,6 +28,7 @@ export type RightsRequestRow = {
   acknowledgedAt: Date | null;
   completedAt: Date | null;
   receivedAt: Date;
+  assignedToName: string | null;
   websiteName: string | null;
   websiteDomain: string | null;
 };
@@ -78,6 +83,10 @@ function TypeBadge({ type }: { type: string }) {
     access:      "primary",
     correction:  "warning",
     erasure:     "danger",
+    portability: "primary",
+    objection:   "warning",
+    restriction: "purple",
+    withdraw_consent: "danger",
     grievance:   "purple",
     nomination:  "neutral",
   };
@@ -95,14 +104,27 @@ function TypeBadge({ type }: { type: string }) {
 function StatusBadge({ status }: { status: string }) {
   const variantMap: Record<string, "neutral" | "warning" | "primary" | "success" | "danger"> = {
     received:     "neutral",
+    verification_pending: "warning",
+    verified: "primary",
+    in_review: "warning",
     acknowledged: "warning",
     in_progress:  "primary",
     completed:    "success",
     rejected:     "danger",
+    expired: "danger",
+    cancelled: "neutral",
   };
   const label: Record<string, string> = {
-    received: "Received", acknowledged: "Acknowledged",
-    in_progress: "In Progress", completed: "Completed", rejected: "Rejected",
+    received: "Received",
+    verification_pending: "Verification pending",
+    verified: "Verified",
+    in_review: "In review",
+    acknowledged: "Acknowledged",
+    in_progress: "In Progress",
+    completed: "Completed",
+    rejected: "Rejected",
+    expired: "Expired",
+    cancelled: "Cancelled",
   };
   return (
     <Badge variant={variantMap[status] ?? "neutral"} size="sm">
@@ -125,8 +147,8 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
   const [error, setError]         = useState<string | null>(null);
   const [success, setSuccess]     = useState<string | null>(null);
 
-  const isTerminal = status === "completed" || status === "rejected";
-  const needsAck   = !request.acknowledgedAt && status === "received";
+  const isTerminal = ["completed", "rejected", "expired", "cancelled"].includes(status);
+  const needsAck = !request.acknowledgedAt && !isTerminal && status !== "in_progress";
 
   async function save(nextStatus?: string) {
     setError(null); setSuccess(null);
@@ -172,9 +194,15 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold text-slate-900">{request.requesterName}</p>
           <p className="truncate text-xs text-slate-500">{request.requesterEmail}</p>
+          <p className="truncate text-[11px] uppercase text-slate-400">
+            {request.jurisdiction} · {request.verificationStatus} · {request.requesterReference ?? request.id.slice(0, 8)}
+          </p>
           {request.websiteName && (
             <p className="mt-0.5 truncate text-xs text-slate-400">{request.websiteName}</p>
           )}
+          <p className="mt-0.5 truncate text-[11px] text-slate-400">
+            Assigned: {request.assignedToName ?? "Unassigned"}
+          </p>
         </div>
 
         {/* SLA + received */}
@@ -270,25 +298,26 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
-                {needsAck && (
+                <Link
+                  href={`/dashboard/rights-requests/${request.id}`}
+                  className="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                >
+                  Open workflow
+                </Link>
+                {needsAck && status !== "verification_pending" && status !== "in_review" && (
                   <button type="button" disabled={isPending}
-                    onClick={() => save("acknowledged")}
-                    className="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
-                    Acknowledge request
+                    onClick={() => save(status === "verified" ? "in_review" : "acknowledged")}
+                    className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+                    Move to review
                   </button>
                 )}
-                {status === "acknowledged" && (
+                {status === "acknowledged" || status === "in_review" ? (
                   <button type="button" disabled={isPending}
                     onClick={() => save("in_progress")}
-                    className="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50">
+                    className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
                     Mark in progress
                   </button>
-                )}
-                <button type="button" disabled={isPending}
-                  onClick={() => save("completed")}
-                  className="inline-flex items-center rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-50">
-                  Mark completed
-                </button>
+                ) : null}
                 <button type="button" disabled={isPending}
                   onClick={() => save("rejected")}
                   className="inline-flex items-center rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-medium text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:opacity-50">
@@ -327,11 +356,18 @@ export function RightsRequestManager({
 }: {
   requests: RightsRequestRow[];
 }) {
-  const [filter, setFilter] = useState<"all" | "open" | "completed">("open");
+  const [filter, setFilter] = useState<"all" | "open" | "completed" | "overdue">("open");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [jurisdictionFilter, setJurisdictionFilter] = useState("all");
+  const [verificationFilter, setVerificationFilter] = useState("all");
 
   const filtered = requests.filter((r) => {
-    if (filter === "open")      return r.status !== "completed" && r.status !== "rejected";
-    if (filter === "completed") return r.status === "completed" || r.status === "rejected";
+    if (filter === "open" && ["completed", "rejected", "expired", "cancelled"].includes(r.status)) return false;
+    if (filter === "completed" && r.status !== "completed" && r.status !== "rejected") return false;
+    if (filter === "overdue" && (["completed", "rejected", "expired", "cancelled"].includes(r.status) || new Date(r.dueAt) >= new Date())) return false;
+    if (typeFilter !== "all" && r.requestType !== typeFilter) return false;
+    if (jurisdictionFilter !== "all" && r.jurisdiction !== jurisdictionFilter) return false;
+    if (verificationFilter !== "all" && r.verificationStatus !== verificationFilter) return false;
     return true;
   });
 
@@ -358,8 +394,28 @@ export function RightsRequestManager({
       </div>
 
       {/* Filter tabs */}
+      <div className="flex flex-wrap gap-2">
+        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+          <option value="all">All types</option>
+          {["access", "correction", "erasure", "portability", "objection", "restriction", "withdraw_consent", "grievance", "nomination"].map((type) => (
+            <option key={type} value={type}>{type}</option>
+          ))}
+        </select>
+        <select value={jurisdictionFilter} onChange={(event) => setJurisdictionFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+          <option value="all">All jurisdictions</option>
+          {["dpdp", "gdpr", "ccpa", "lgpd"].map((key) => (
+            <option key={key} value={key}>{key.toUpperCase()}</option>
+          ))}
+        </select>
+        <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+          <option value="all">All verification</option>
+          {["pending", "verified", "failed", "expired", "unverified"].map((key) => (
+            <option key={key} value={key}>{key}</option>
+          ))}
+        </select>
+      </div>
       <div className="flex gap-0.5 rounded-2xl border border-slate-200 bg-slate-50 p-0.5 self-start soft-shadow w-fit">
-        {(["open", "all", "completed"] as const).map((f) => (
+        {(["open", "all", "completed", "overdue"] as const).map((f) => (
           <button
             key={f}
             type="button"

@@ -288,7 +288,7 @@ export function WebhookEndpointManager({
   initialEndpoints,
 }: { initialEndpoints: WebhookEndpointRow[] }) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [createdSecret, setCreatedSecret] = useState<{ secret: string; name: string } | null>(null);

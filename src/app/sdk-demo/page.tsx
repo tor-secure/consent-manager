@@ -1,11 +1,38 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Script from "next/script";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
 const RECENT_KEYS_STORAGE = "cmp_demo_recent_sitekeys";
+const RECENT_KEYS_EVENT = "cmp-demo-recent-keys";
+
+function subscribeToLocation() {
+  return () => {};
+}
+
+function subscribeToRecentKeys(onStoreChange: () => void) {
+  window.addEventListener("storage", onStoreChange);
+  window.addEventListener(RECENT_KEYS_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener("storage", onStoreChange);
+    window.removeEventListener(RECENT_KEYS_EVENT, onStoreChange);
+  };
+}
+
+function getRecentKeysSnapshot() {
+  try {
+    return window.localStorage.getItem(RECENT_KEYS_STORAGE) ?? "[]";
+  } catch {
+    return "[]";
+  }
+}
+
+function updateRecentKeys(keys: string[]) {
+  window.localStorage.setItem(RECENT_KEYS_STORAGE, JSON.stringify(keys));
+  window.dispatchEvent(new Event(RECENT_KEYS_EVENT));
+}
 
 type ConsentState = {
   consentId: string | null;
@@ -74,58 +101,55 @@ type CmpConfig = {
 function SdkDemoInner() {
   const searchParams = useSearchParams();
   const urlSiteKey = searchParams.get("siteKey")?.trim() || "";
-  const [siteKey, setSiteKey] = useState(urlSiteKey || "");
+  const [siteKey] = useState(urlSiteKey || "");
   const [inputKey, setInputKey] = useState(urlSiteKey || "");
   const [consentState, setConsentState] = useState<ConsentState | null>(null);
   const [configResponse, setConfigResponse] = useState<CmpConfig | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
-  const [configLoading, setConfigLoading] = useState(false);
+  const [configLoading, setConfigLoading] = useState(Boolean(siteKey));
   const [eventLog, setEventLog] = useState<string[]>([]);
-  const [recentKeys, setRecentKeys] = useState<string[]>([]);
-  const [currentHostname, setCurrentHostname] = useState<string>("localhost");
-  const [pageProtocol, setPageProtocol] = useState<string>("http:");
-
-  // --- Client-side hydration-safe origin info ---
-  useEffect(() => {
+  const currentHostname = useSyncExternalStore(
+    subscribeToLocation,
+    () => window.location.hostname,
+    () => "localhost",
+  );
+  const pageProtocol = useSyncExternalStore(
+    subscribeToLocation,
+    () => window.location.protocol,
+    () => "http:",
+  );
+  const recentKeysJson = useSyncExternalStore(
+    subscribeToRecentKeys,
+    getRecentKeysSnapshot,
+    () => "[]",
+  );
+  const recentKeys = useMemo(() => {
     try {
-      const u = new URL(window.location.href);
-      setCurrentHostname(u.hostname);
-      setPageProtocol(u.protocol);
+      const parsed = JSON.parse(recentKeysJson);
+      return Array.isArray(parsed)
+        ? parsed.filter((value): value is string => typeof value === "string")
+        : [];
     } catch {
-      /* ignore */
+      return [];
     }
-  }, []);
-
-  // --- Recent siteKeys persistence (no manual code changes required) ---
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(RECENT_KEYS_STORAGE);
-      if (raw) setRecentKeys(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  }, [recentKeysJson]);
 
   function pushRecentKey(k: string) {
     if (!k) return;
-    setRecentKeys((prev) => {
-      const next = [k, ...prev.filter((x) => x !== k)].slice(0, 8);
-      try {
-        localStorage.setItem(RECENT_KEYS_STORAGE, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    try {
+      updateRecentKeys([k, ...recentKeys.filter((x) => x !== k)].slice(0, 8));
+    } catch {
+      /* ignore */
+    }
   }
 
   function clearRecentKeys() {
     try {
       localStorage.removeItem(RECENT_KEYS_STORAGE);
+      window.dispatchEvent(new Event(RECENT_KEYS_EVENT));
     } catch {
       /* ignore */
     }
-    setRecentKeys([]);
   }
 
   function clearCurrentConsentStorage() {
@@ -156,13 +180,7 @@ function SdkDemoInner() {
   // Fetch the config endpoint directly so we can show a preview of what the SDK
   // will see, independent of the SDK's own fetch.
   useEffect(() => {
-    if (!siteKey) {
-      setConfigResponse(null);
-      setConfigError(null);
-      return;
-    }
-    setConfigLoading(true);
-    setConfigError(null);
+    if (!siteKey) return;
     fetch(`/api/sdk/${encodeURIComponent(siteKey)}/config`)
       .then((r) => r.json())
       .then((data) => {
@@ -420,7 +438,7 @@ function SdkDemoInner() {
                     onClick={() => switchOrigin("same")}
                     className="h-9 rounded-lg border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-50 px-3"
                   >
-                    Same origin ({pageProtocol}//<span className="font-mono">{currentHostname}</span>)
+                    Same origin ({pageProtocol}{"//"}<span className="font-mono">{currentHostname}</span>)
                   </button>
                   <button
                     type="button"
@@ -488,7 +506,7 @@ function SdkDemoInner() {
                 <div className="rounded-xl bg-slate-900 text-slate-100 p-4 text-xs font-mono">
                   <div className="text-slate-400 mb-2">window.CMP.getConsent()</div>
                   <pre className="whitespace-pre-wrap break-all leading-relaxed">
-                    {JSON.stringify(consentState, null, 2) || "// loading…"}
+                    {JSON.stringify(consentState, null, 2) || "loading…"}
                   </pre>
                 </div>
               </div>
@@ -497,7 +515,7 @@ function SdkDemoInner() {
                 <h2 className="text-base font-semibold text-slate-900 mb-3">Event Log</h2>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 h-48 overflow-y-auto text-xs font-mono space-y-1">
                   {eventLog.length === 0 ? (
-                    <div className="text-slate-400">// no events yet — interact with the banner above</div>
+                    <div className="text-slate-400">No events yet — interact with the banner above</div>
                   ) : (
                     eventLog.map((line, i) => (
                       <div key={i} className="text-slate-700">
@@ -645,7 +663,6 @@ function SdkDemoInner() {
 {`<script
   src="/api/sdk/script?siteKey=${siteKey}"
   data-site-key="${siteKey}"
-  async
 ></script>`}
                 </pre>
               </div>

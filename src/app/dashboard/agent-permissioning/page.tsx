@@ -1,8 +1,8 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadOrgWebsites } from "@/lib/intelligence/org-websites";
 import AgentPermissionTool from "@/components/agent-permissioning/agent-permission-tool";
-import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function AgentPermissioningPage() {
   const context = await requireDashboardContext();
@@ -17,9 +17,7 @@ export default async function AgentPermissioningPage() {
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <EmptyState title="No website available for permission checks" description="Add a website and collect a consent record before evaluating agent access." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <AgentPermissionTool websites={sites.map((s) => ({ id: s.id, name: s.name }))} />
       )}

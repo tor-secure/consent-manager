@@ -3,7 +3,6 @@ import {
   timestamp,
   uuid,
   varchar,
-  text,
   boolean,
   unique,
   index,

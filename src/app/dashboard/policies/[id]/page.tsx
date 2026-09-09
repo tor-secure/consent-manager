@@ -21,7 +21,7 @@ import {
   type ManagedVendor,
   type AvailableVendor,
 } from "@/components/policies/policy-vendor-manager-panel";
-import { PublishPolicyButton } from "@/components/policies/publish-policy-button";
+import { PolicyPublishSection } from "@/components/policies/policy-publish-section";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -345,7 +345,7 @@ export default async function PolicyDetailPage({
             )}
 
             {/* Publish action */}
-            <PublishPolicyButton
+            <PolicyPublishSection
               policyId={policy.id}
               latestVersionId={latestVersion?.id ?? null}
               latestVersionNumber={latestVersion?.version ?? null}

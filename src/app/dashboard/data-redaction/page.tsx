@@ -1,8 +1,8 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadOrgWebsites } from "@/lib/intelligence/org-websites";
 import DataRedactionTool from "@/components/data-redaction/data-redaction-tool";
-import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function DataRedactionPage() {
   const context = await requireDashboardContext();
@@ -17,9 +17,7 @@ export default async function DataRedactionPage() {
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <EmptyState title="No analytics source available" description="Add a website and collect consent activity before previewing consent-based data redaction." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <DataRedactionTool websites={sites.map((s) => ({ id: s.id, name: s.name }))} />
       )}

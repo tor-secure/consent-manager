@@ -248,7 +248,6 @@ export default async function TeamPage() {
           availableRoles={availableRoles}
           pendingInvitations={pendingInvitations}
           canManage={canManage}
-          currentUserId={localUser.id}
         />
 
         {/* Roles & permissions reference */}

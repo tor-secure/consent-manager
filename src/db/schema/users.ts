@@ -1,5 +1,4 @@
 import {
-  boolean,
   jsonb,
   pgTable,
   text,

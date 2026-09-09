@@ -8,6 +8,7 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { defaultBannerAbTest, parseBannerAbTest, type BannerAbTest } from "@/lib/intelligence/ab-test";
+import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,28 +59,17 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Policy not found" }, { status: 404 });
     }
 
-    const allVersions = await db
-      .select({
-        id: consentPolicyVersions.id,
-        version: consentPolicyVersions.version,
-        isPublished: consentPolicyVersions.isPublished,
-        configuration: consentPolicyVersions.configuration,
-      })
-      .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
-
-    const latestVersion = allVersions[allVersions.length - 1] ?? null;
-    if (!latestVersion) {
+    const draftVersion = await ensureDraftPolicyVersion(policy.id);
+    if (!draftVersion) {
       return NextResponse.json({ success: false, message: "No policy version found" }, { status: 404 });
     }
 
     const body = (await request.json()) as Record<string, unknown>;
     const existingRaw =
-      latestVersion.configuration &&
-      typeof latestVersion.configuration === "object" &&
-      !Array.isArray(latestVersion.configuration)
-        ? (latestVersion.configuration as Record<string, unknown>)
+      draftVersion.configuration &&
+      typeof draftVersion.configuration === "object" &&
+      !Array.isArray(draftVersion.configuration)
+        ? (draftVersion.configuration as Record<string, unknown>)
         : {};
 
     let next: BannerAbTest | null = parseBannerAbTest(body.abTest) ?? parseBannerAbTest(existingRaw.abTest);
@@ -96,16 +86,11 @@ export async function POST(
       next = { ...next, enabled: body.enabled };
     }
 
-    const saveIds = new Set<string>([latestVersion.id]);
-    for (const version of allVersions) {
-      if (version.isPublished) saveIds.add(version.id);
-    }
-
     const payload = { ...existingRaw, abTest: next };
     await db
       .update(consentPolicyVersions)
       .set({ configuration: payload, updatedAt: new Date() })
-      .where(inArray(consentPolicyVersions.id, [...saveIds]));
+      .where(eq(consentPolicyVersions.id, draftVersion.id));
 
     return NextResponse.json({ success: true, abTest: next });
   } catch (error) {

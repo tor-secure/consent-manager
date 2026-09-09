@@ -163,8 +163,6 @@ export function StudioPreview({
   const [urlInput, setUrlInput]           = useState(websiteUrl ?? "");
   const [activeUrl, setActiveUrl]         = useState<string | null>(websiteUrl);
 
-  useEffect(() => { setIframeBlocked(false); }, [activeUrl]);
-
   function handleUrlSubmit(e: React.FormEvent) {
     e.preventDefault();
     let url = urlInput.trim();

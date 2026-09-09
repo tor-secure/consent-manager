@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
-  defaultBannerConfig,
   parseBannerConfig,
   getTranslation,
   setTranslation,
@@ -406,9 +405,9 @@ export function BannerConfigForm({
             <div className="rounded-2xl bg-white card-shadow p-6 space-y-5">
               <Field label="Default consent">
                 <select value={config.defaultConsent} onChange={(e) => update("defaultConsent", e.target.value as ConsentDefault)} className={inputCls}>
-                  <option value="none">None (wait for explicit choice)</option>
-                  <option value="opt-in">Opt-in (consent granted by default)</option>
-                  <option value="opt-out">Opt-out (consent denied by default)</option>
+                  <option value="none">Blocked until server-confirmed choice</option>
+                  <option value="opt-in">Legacy opt-in setting (still blocked until confirmation)</option>
+                  <option value="opt-out">Legacy opt-out setting (blocked by default)</option>
                 </select>
               </Field>
               <Field label="Consent expires after (days)" hint="1–3650 days.">

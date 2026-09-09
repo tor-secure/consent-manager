@@ -5,6 +5,7 @@ import {
   varchar,
   text,
   boolean,
+  jsonb,
   unique,
 } from "drizzle-orm/pg-core";
 
@@ -48,6 +49,34 @@ export const trackers = pgTable(
     }),
 
     description: text("description"),
+
+    category: varchar("category", { length: 100 }),
+
+    cookieNames: jsonb("cookie_names").$type<string[]>().notNull().default([]),
+
+    storageTypes: jsonb("storage_types").$type<string[]>().notNull().default([]),
+
+    localStorageKeys: jsonb("local_storage_keys").$type<string[]>().notNull().default([]),
+
+    sessionStorageKeys: jsonb("session_storage_keys").$type<string[]>().notNull().default([]),
+
+    indexedDbNames: jsonb("indexed_db_names").$type<string[]>().notNull().default([]),
+
+    scriptUrlPatterns: jsonb("script_url_patterns").$type<string[]>().notNull().default([]),
+
+    iframeUrlPatterns: jsonb("iframe_url_patterns").$type<string[]>().notNull().default([]),
+
+    pixelUrlPatterns: jsonb("pixel_url_patterns").$type<string[]>().notNull().default([]),
+
+    scannerClassification: varchar("scanner_classification", { length: 30 })
+      .notNull()
+      .default("unmapped"),
+
+    party: varchar("party", { length: 20 }).notNull().default("unknown"),
+
+    duration: varchar("duration", { length: 255 }),
+
+    deletionBehavior: text("deletion_behavior"),
 
     detectionMethod: varchar("detection_method", {
       length: 50,

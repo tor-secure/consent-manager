@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { webhookDeliveries } from "@/db/schema/webhook-deliveries";
 import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
 import { logger } from "@/lib/logger";
+import { redactValue, type RedactionConsent, type RedactionPolicy } from "@/lib/redaction-core";
 
 export const WEBHOOK_SIGNATURE_HEADER = "X-CMP-Signature";
 export const WEBHOOK_TIMESTAMP_HEADER = "X-CMP-Timestamp";
@@ -23,6 +24,7 @@ export type WebhookEvent = {
   eventId?: string | null;
   eventType: string;
   payload: Record<string, unknown>;
+  redaction?: { policy: RedactionPolicy; consent: RedactionConsent };
 };
 
 type WebhookEndpointForDelivery = {
@@ -134,11 +136,14 @@ async function defaultMarkEndpointDelivered(endpointId: string, deliveredAt: Dat
 function buildSignedRequest(event: WebhookEvent, endpoint: WebhookEndpointForDelivery) {
   const eventId = event.eventId ?? randomUUID();
   const timestamp = Math.floor(Date.now() / 1000).toString();
+  const payload = event.redaction
+    ? redactValue(event.payload, event.redaction.policy, event.redaction.consent).value
+    : event.payload;
   const body = JSON.stringify({
     id: eventId,
     type: event.eventType,
     organizationId: event.organizationId,
-    data: event.payload,
+    data: payload,
   });
 
   if (!endpoint.signingSecretHash) {

@@ -165,7 +165,7 @@ assert.ok(
 const api = fs.readFileSync(path.join(root, "src/app/api/analytics/consent/route.ts"), "utf8");
 assert.match(api, /loadConsentAnalytics\(organization\.id/);
 assert.doesNotMatch(api, /searchParams\.get\(["']organizationId["']\)/);
-assert.match(api, /analytics: aggregated/);
+assert.match(api, /let analytics: AnalyticsPayload = aggregated/);
 
 const queries = fs.readFileSync(path.join(root, "src/lib/analytics/queries.ts"), "utf8");
 assert.match(queries, /eq\(consentRecords\.organizationId, organizationId\)/);

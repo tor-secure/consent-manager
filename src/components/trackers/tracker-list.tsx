@@ -23,6 +23,11 @@ export type TrackerRow = {
   websiteDomain?: string;
   vendorName: string | null;
   purposeName: string | null;
+  category?: string | null;
+  party?: string;
+  cookieNames?: string[];
+  storageTypes?: string[];
+  duration?: string | null;
 };
 
 // ---------------------------------------------------------------------------
@@ -65,6 +70,7 @@ const TYPE_STYLES: Record<string, string> = {
   cookie:      "bg-amber-50  text-amber-700  ring-amber-500/20",
   pixel:       "bg-sky-50    text-sky-700    ring-sky-500/20",
   script:      "bg-violet-50 text-violet-700 ring-violet-500/20",
+  iframe:      "bg-indigo-50 text-indigo-700 ring-indigo-500/20",
   beacon:      "bg-pink-50   text-pink-700   ring-pink-500/20",
   fingerprint: "bg-rose-50   text-rose-700   ring-rose-500/20",
   storage:     "bg-teal-50   text-teal-700   ring-teal-500/20",
@@ -75,6 +81,7 @@ const TYPE_DOTS: Record<string, string> = {
   cookie:      "bg-amber-500",
   pixel:       "bg-sky-500",
   script:      "bg-violet-500",
+  iframe:      "bg-indigo-500",
   beacon:      "bg-pink-500",
   fingerprint: "bg-rose-500",
   storage:     "bg-teal-500",
@@ -265,6 +272,15 @@ export function TrackerList({
                             <code className="mt-0.5 block max-w-[200px] truncate rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
                               {t.identifier}
                             </code>
+                          )}
+                          {(t.category || t.party || t.cookieNames?.length) && (
+                            <p className="mt-1 text-[10px] text-slate-400">
+                              {[t.category, t.party, t.cookieNames?.length
+                                ? `${t.cookieNames.length} cookie pattern${t.cookieNames.length === 1 ? "" : "s"}`
+                                : null]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
                           )}
                         </div>
                       </div>

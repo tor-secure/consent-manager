@@ -4,6 +4,7 @@ import { eq, desc, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
+import { users } from "@/db/schema/users";
 import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
 import {
   RightsRequestManager,
@@ -47,15 +48,28 @@ export default async function RightsRequestsPage() {
       : [];
   const websiteMap = new Map(websiteRows.map((w) => [w.id, w]));
 
+  const assigneeIds = [...new Set(rows.map((r) => r.assignedTo).filter(Boolean) as string[])];
+  const assigneeRows =
+    assigneeIds.length > 0
+      ? await db
+          .select({ id: users.id, name: users.name })
+          .from(users)
+          .where(inArray(users.id, assigneeIds))
+      : [];
+  const assigneeMap = new Map(assigneeRows.map((u) => [u.id, u.name]));
+
   const requests: RightsRequestRow[] = rows.map((r) => {
     const site = r.websiteId ? websiteMap.get(r.websiteId) : undefined;
     return {
       id:              r.id,
       requestType:     r.requestType,
       status:          r.status,
+      jurisdiction:    r.jurisdiction,
+      requesterReference: r.requesterReference,
       requesterName:   r.requesterName,
       requesterEmail:  r.requesterEmail,
       requesterPhone:  r.requesterPhone,
+      verificationStatus: r.verificationStatus,
       consentId:       r.consentId,
       description:     r.description,
       responseNotes:   r.responseNotes,
@@ -64,6 +78,7 @@ export default async function RightsRequestsPage() {
       acknowledgedAt:  r.acknowledgedAt,
       completedAt:     r.completedAt,
       receivedAt:      r.receivedAt,
+      assignedToName:  r.assignedTo ? assigneeMap.get(r.assignedTo) ?? null : null,
       websiteName:     site?.name ?? null,
       websiteDomain:   site?.domain ?? null,
     };
@@ -83,16 +98,16 @@ export default async function RightsRequestsPage() {
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="page-title">
-              Data Principal Rights Requests
+              Privacy Rights / Requests
             </h1>
             {openCount > 0 && (
               <Badge variant="primary" size="sm">{openCount} open</Badge>
             )}
           </div>
           <p className="page-description">
-            Manage access, correction, erasure, grievance, and nomination requests under
-            DPDP 2023 §11–14 + Rules 2025 Rule 12.
-            {" "}Acknowledge within <strong>48 hours</strong> · Respond within <strong>30 days</strong>.
+            Tenant-scoped DSAR workflow with identity verification, configured
+            jurisdiction targets, and evidence-preserving deletion. Deadlines are
+            configured targets, not a legal-compliance certification.
           </p>
         </div>
       </div>
@@ -107,9 +122,9 @@ export default async function RightsRequestsPage() {
           </svg>
           <p>
             <strong className="font-semibold">
-              {overdueAck} request{overdueAck !== 1 ? "s" : ""} past the 48-hour acknowledgement deadline.
+              {overdueAck} request{overdueAck !== 1 ? "s" : ""} past the configured acknowledgement target.
             </strong>{" "}
-            Open the request and click <em>Acknowledge request</em> immediately to avoid a statutory breach.
+            Open the request and move it into review. These targets are configured SLAs, not a legal-compliance certification.
           </p>
         </div>
       )}
@@ -123,9 +138,9 @@ export default async function RightsRequestsPage() {
           </svg>
           <p>
             <strong className="font-semibold">
-              {overdueDue} request{overdueDue !== 1 ? "s" : ""} past the 30-day response deadline.
+              {overdueDue} request{overdueDue !== 1 ? "s" : ""} past the configured response target.
             </strong>{" "}
-            Resolve and mark these completed or rejected as soon as possible.
+            Resolve and mark these completed or rejected as soon as possible. Deadlines are configured targets unless your legal configuration says otherwise.
           </p>
         </div>
       )}
@@ -147,7 +162,10 @@ export default async function RightsRequestsPage() {
                 POST /api/rights-request
               </code>
               <code className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
-                GET  /api/rights-request/[id]
+                POST /api/rights-request/verify
+              </code>
+              <code className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+                GET  /api/rights-request/status?token=
               </code>
             </div>
           </div>

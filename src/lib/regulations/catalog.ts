@@ -1,6 +1,7 @@
 export const REGULATION_KEYS = [
   "dpdp",
   "gdpr",
+  "uk_gdpr",
   "ccpa",
   "lgpd",
   "pipeda",
@@ -33,6 +34,11 @@ export type JurisdictionScope = {
 export type RegulationVersion = {
   version: string;
   effectiveFrom: string;
+  effectiveTo?: string;
+  precedence: number;
+  sourceUrls: readonly string[];
+  lastReviewedAt: string;
+  reviewStatus: "reviewed" | "review_due" | "draft";
   jurisdictionScope: JurisdictionScope;
   rules: RegulationRule;
 };
@@ -84,6 +90,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2023-08-11",
         jurisdictionScope: { countries: ["IN"], regions: [] },
+        precedence: 80,
+        sourceUrls: ["https://www.meity.gov.in/data-protection-framework"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optInNotice(["necessary", "analytics", "advertising", "functional"], {
           googleConsentMode: false,
           iabTcf: false,
@@ -100,7 +110,14 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
       {
         version: "1.0",
         effectiveFrom: "2018-05-25",
-        jurisdictionScope: { countries: [...EEA, "GB"], regions: ["EU", "EEA"] },
+        jurisdictionScope: { countries: [...EEA], regions: ["EU", "EEA"] },
+        precedence: 90,
+        sourceUrls: [
+          "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+          "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32002L0058",
+        ],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optInNotice(["necessary", "analytics", "advertising", "functional", "personalization"], {
           googleConsentMode: true,
           iabTcf: true,
@@ -108,6 +125,26 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         }),
       },
     ],
+  },
+  {
+    key: "uk_gdpr",
+    label: "UK GDPR / PECR",
+    description: "Operational opt-in profile for United Kingdom GDPR and PECR-oriented banner/enforcement.",
+    versions: [{
+      version: "1.0",
+      effectiveFrom: "2021-01-01",
+      jurisdictionScope: { countries: ["GB"], regions: ["UK"] },
+      precedence: 95,
+      sourceUrls: [
+        "https://www.legislation.gov.uk/eur/2016/679/contents",
+        "https://www.legislation.gov.uk/uksi/2003/2426/contents",
+      ],
+      lastReviewedAt: "2026-08-01",
+      reviewStatus: "reviewed",
+      rules: optInNotice(["necessary", "analytics", "advertising", "functional", "personalization"], {
+        googleConsentMode: true, iabTcf: true, iabGpp: true,
+      }),
+    }],
   },
   {
     key: "ccpa",
@@ -118,6 +155,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2020-01-01",
         jurisdictionScope: { countries: ["US"], regions: ["CA"] },
+        precedence: 100,
+        sourceUrls: ["https://oag.ca.gov/privacy/ccpa"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optOutNotice(["analytics", "advertising", "sale_share"], {
           googleConsentMode: true,
           iabTcf: false,
@@ -128,6 +169,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "2.0",
         effectiveFrom: "2023-01-01",
         jurisdictionScope: { countries: ["US"], regions: ["CA"] },
+        precedence: 110,
+        sourceUrls: ["https://cppa.ca.gov/regulations/"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optOutNotice(["analytics", "advertising", "sale_share", "sensitive"], {
           googleConsentMode: true,
           iabTcf: false,
@@ -145,6 +190,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2020-09-18",
         jurisdictionScope: { countries: ["BR"], regions: [] },
+        precedence: 80,
+        sourceUrls: ["https://www.gov.br/anpd/pt-br/assuntos/legislacao/lgpd"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optInNotice(["necessary", "analytics", "advertising"], {
           googleConsentMode: false,
           iabTcf: false,
@@ -162,6 +211,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2001-01-01",
         jurisdictionScope: { countries: ["CA"], regions: [] },
+        precedence: 70,
+        sourceUrls: ["https://laws-lois.justice.gc.ca/eng/acts/p-8.6/"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optInNotice(["necessary", "analytics", "advertising"], {
           googleConsentMode: false,
           iabTcf: false,
@@ -179,6 +232,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2023-12-31",
         jurisdictionScope: { countries: ["US"], regions: ["UT"] },
+        precedence: 100,
+        sourceUrls: ["https://le.utah.gov/xcode/Title13/Chapter61/13-61.html"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optOutNotice(["analytics", "advertising"], {
           googleConsentMode: true,
           iabTcf: false,
@@ -196,6 +253,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2023-01-01",
         jurisdictionScope: { countries: ["US"], regions: ["VA"] },
+        precedence: 100,
+        sourceUrls: ["https://law.lis.virginia.gov/vacode/title59.1/chapter53/"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optOutNotice(["analytics", "advertising"], {
           googleConsentMode: true,
           iabTcf: false,
@@ -213,6 +274,10 @@ export const REGULATION_CATALOG: RegulationProfile[] = [
         version: "1.0",
         effectiveFrom: "2023-07-01",
         jurisdictionScope: { countries: ["US"], regions: ["CO"] },
+        precedence: 100,
+        sourceUrls: ["https://coag.gov/resources/colorado-privacy-act/"],
+        lastReviewedAt: "2026-08-01",
+        reviewStatus: "reviewed",
         rules: optOutNotice(["analytics", "advertising"], {
           googleConsentMode: true,
           iabTcf: false,

@@ -21,6 +21,7 @@ export type TenantWebsite = {
   defaultRegion: string | null;
   defaultRegulationKey: string | null;
   consentIntegrations: Record<string, unknown>;
+  iabRegistration: Record<string, unknown> | null;
   verified: boolean;
   verifiedAt: Date | null;
   createdAt: Date;
@@ -67,6 +68,7 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
 
   let defaultRegulationKey: string | null = null;
   let consentIntegrations: Record<string, unknown> = {};
+  let iabRegistration: Record<string, unknown> | null = null;
 
   try {
     const [extra] = await db
@@ -82,11 +84,19 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
   } catch {
     /* Production DBs that have not been migrated yet omit these columns. */
   }
+  try {
+    const [iab] = await db.select({ iabRegistration: websites.iabRegistration })
+      .from(websites).where(eq(websites.id, row.id)).limit(1);
+    iabRegistration = iab?.iabRegistration ?? null;
+  } catch {
+    /* Backward-compatible until migration 0043 is applied. */
+  }
 
   return {
     ...row,
     defaultRegulationKey,
     consentIntegrations,
+    iabRegistration,
   };
 });
 
