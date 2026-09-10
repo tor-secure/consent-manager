@@ -42,6 +42,7 @@ export async function ensureDraftPolicyVersion(
       status: "draft",
       isPublished: false,
       configuration,
+      processingSnapshot: {},
     })
     .returning();
 

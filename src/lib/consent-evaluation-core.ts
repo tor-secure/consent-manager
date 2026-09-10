@@ -14,6 +14,9 @@ export const CONSENT_EVALUATION_REASON_CODES = [
   "UNKNOWN_DATA_CATEGORY",
   "UNCLASSIFIED_TRACKER",
   "CHILD_RESTRICTED",
+  "CALIFORNIA_SALE_OPTED_OUT",
+  "CALIFORNIA_SHARE_OPTED_OUT",
+  "CALIFORNIA_SENSITIVE_PI_LIMITED",
 ] as const;
 
 export type ConsentEvaluationReasonCode =
@@ -45,21 +48,33 @@ export type ConsentEvaluationSnapshot = {
     status: string;
     dataCategories: string[] | null;
   }>;
-  vendors: Array<{
-    id: string;
-    domain: string | null;
-    status: string;
-  }>;
   trackers: Array<{
     id: string;
     purposeId: string | null;
     vendorId: string | null;
     isEssential: boolean;
     status: string;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
+  }>;
+  vendors: Array<{
+    id: string;
+    domain: string | null;
+    status: string;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
   }>;
   childProtection?: {
     restrictedPurposeKeys: string[];
     allowRestricted: boolean;
+  };
+  california?: {
+    applicable: boolean;
+    saleOptOut: boolean;
+    shareOptOut: boolean;
+    sensitivePiLimit: boolean;
   };
 };
 
@@ -153,6 +168,8 @@ export function evaluateConsentSnapshot(
   const vendors = request.vendorDomains.map((requested) => {
     const vendor = vendorByDomain.get(normalized(requested));
     if (!vendor) return denied(requested, "UNKNOWN_VENDOR");
+    const californiaReason = californiaDenial(vendor, snapshot.california);
+    if (californiaReason) return denied(requested, californiaReason);
     if (stateReason) return denied(requested, stateReason);
     return vendorGranted.get(vendor.id) === true
       ? granted(requested, "GRANTED")
@@ -162,6 +179,8 @@ export function evaluateConsentSnapshot(
   const trackers = request.trackerIds.map((requested) => {
     const tracker = trackerById.get(normalized(requested));
     if (!tracker) return denied(requested, "UNKNOWN_TRACKER");
+    const californiaReason = californiaDenial(tracker, snapshot.california);
+    if (californiaReason) return denied(requested, californiaReason);
     if (tracker.isEssential) return granted(requested, "ESSENTIAL_TRACKER");
     const trackerPurpose = tracker.purposeId
       ? snapshot.purposes.find((purpose) => purpose.id === tracker.purposeId)
@@ -214,6 +233,19 @@ export function evaluateConsentSnapshot(
     consentState,
     results: { purposes, vendors, trackers, dataCategories },
   };
+}
+
+function californiaDenial(
+  row: { ccpaSale?: string | null; ccpaShare?: string | null; ccpaSensitivePi?: string | null },
+  california: ConsentEvaluationSnapshot["california"],
+): ConsentEvaluationReasonCode | null {
+  if (!california?.applicable) return null;
+  if (california.saleOptOut && row.ccpaSale === "applicable") return "CALIFORNIA_SALE_OPTED_OUT";
+  if (california.shareOptOut && row.ccpaShare === "applicable") return "CALIFORNIA_SHARE_OPTED_OUT";
+  if (california.sensitivePiLimit && row.ccpaSensitivePi === "applicable") {
+    return "CALIFORNIA_SENSITIVE_PI_LIMITED";
+  }
+  return null;
 }
 
 function granted(

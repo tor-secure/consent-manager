@@ -11,6 +11,7 @@ import {
   loadOwnedTracker,
   loadOwnedVendor,
   trackerMutationLimit,
+  vendorMappingError,
 } from "@/lib/trackers/http";
 import { trackerPublishedPolicyImpact } from "@/lib/trackers/policy-impact";
 import {
@@ -60,9 +61,8 @@ export async function POST(
       return NextResponse.json({ success: false, message: "Purpose not found in this organization." }, { status: 400 });
     }
     const vendor = await loadOwnedVendor(authz.organization.id, nextVendorId);
-    if (!vendor.ok) {
-      return NextResponse.json({ success: false, message: "Vendor not found in this organization." }, { status: 400 });
-    }
+    const vendorError = vendorMappingError(vendor);
+    if (vendorError) return vendorError;
 
     const scannerClassification = resolveScannerClassification({
       purposeId: nextPurposeId,

@@ -66,8 +66,13 @@ Stable IDs live in `src/lib/compliance/rule-registry.ts`. Examples:
 | `DPDP_NOTICE_MISSING_CATEGORY` | error |
 | `DPDP_CONSENT_MANAGER_CONFIG_MISSING` | error |
 | `CCPA_MISSING_DO_NOT_SELL_SHARE` | error |
-| `CCPA_GPC_RUNTIME_UNSUPPORTED` | warning |
+| `CCPA_GPC_RUNTIME_UNSUPPORTED` | warning (only if the runtime flag is off) |
 | `CCPA_GPC_CLAIMED_WITHOUT_RUNTIME` | error |
+| `CCPA_SALE_OPT_OUT_UNCONFIGURED` | error |
+| `CCPA_SHARE_OPT_OUT_UNCONFIGURED` | error |
+| `CCPA_SENSITIVE_PI_CONTROL_UNCONFIGURED` | error |
+| `CCPA_OPT_OUT_VENDOR_MAPPING_MISSING` | error |
+| `CCPA_OPT_OUT_TRACKER_MAPPING_MISSING` | error |
 | `LGPD_MISSING_RIGHT` | error |
 | `TRANSFER_MECHANISM_MISSING` | warning |
 
@@ -80,12 +85,14 @@ Stable IDs live in `src/lib/compliance/rule-registry.ts`. Examples:
 
 ## Runtime honesty
 
-The current SDK does **not** implement Sec-GPC. The validator therefore:
+Phase 10 implements Sec-GPC (`1` only) and internal California opt-out enforcement. The validator:
 
-- warns `CCPA_GPC_RUNTIME_UNSUPPORTED` for CCPA-family policies
-- errors `CCPA_GPC_CLAIMED_WITHOUT_RUNTIME` if a draft claims GPC is honored
+- uses server `GPC_RUNTIME_SUPPORTED` — client `gpcSupported` / `gpcHonored` claims are not proof
+- errors `CCPA_GPC_CLAIMED_WITHOUT_RUNTIME` if a draft claims GPC is honored while the runtime flag is off
+- warns `CCPA_GPC_RUNTIME_UNSUPPORTED` only when the runtime flag is off
+- errors when California opt-out is enabled but vendor/tracker sale-share classifications remain `unknown`
 
-Opt-out propagation is treated the same way: IAB GPP encoding is not claimed as complete downstream propagation.
+IAB GPP encoding is a publication aid. It is not a guarantee that third-party networks received or applied the opt-out. See `docs/CCPA_GPC_RUNTIME.md`.
 
 ## Admin UI
 

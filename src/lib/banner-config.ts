@@ -60,6 +60,10 @@ export type BannerConfiguration = {
   closeOnOverlayClick: boolean;
   blockPageUntilConsent: boolean;
   respectDoNotTrack: boolean;
+  doNotSellEnabled: boolean;
+  doNotShareEnabled: boolean;
+  gpcHonored: boolean;
+  limitSensitivePiEnabled: boolean;
   consentExpireDays: number;
   showOnEveryVisit: boolean;
 
@@ -113,6 +117,10 @@ export function defaultBannerConfig(): BannerConfiguration {
     closeOnOverlayClick: false,
     blockPageUntilConsent: false,
     respectDoNotTrack: true,
+    doNotSellEnabled: false,
+    doNotShareEnabled: false,
+    gpcHonored: true,
+    limitSensitivePiEnabled: false,
     consentExpireDays: 365,
     showOnEveryVisit: false,
 
@@ -158,6 +166,10 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   if (typeof merged.showPreferenceWidget !== "boolean") merged.showPreferenceWidget = true;
   merged.preferenceWidgetPosition =
     merged.preferenceWidgetPosition === "bottom-right" ? "bottom-right" : "bottom-left";
+  merged.doNotSellEnabled = merged.doNotSellEnabled === true;
+  merged.doNotShareEnabled = merged.doNotShareEnabled === true;
+  merged.gpcHonored = merged.gpcHonored !== false;
+  merged.limitSensitivePiEnabled = merged.limitSensitivePiEnabled === true;
 
   return merged;
 }

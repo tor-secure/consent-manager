@@ -10,6 +10,7 @@ import {
   loadOwnedTracker,
   loadOwnedVendor,
   trackerMutationLimit,
+  vendorMappingError,
 } from "@/lib/trackers/http";
 import { trackerPublishedPolicyImpact } from "@/lib/trackers/policy-impact";
 import {
@@ -67,9 +68,8 @@ export async function PATCH(
 
     if (input.vendorId !== undefined) {
       const vendor = await loadOwnedVendor(authz.organization.id, input.vendorId);
-      if (!vendor.ok) {
-        return NextResponse.json({ success: false, message: "Vendor not found in this organization." }, { status: 400 });
-      }
+      const vendorError = vendorMappingError(vendor);
+      if (vendorError) return vendorError;
     }
     if (input.purposeId !== undefined) {
       const purpose = await loadOwnedPurpose(authz.organization.id, input.purposeId);
@@ -102,6 +102,9 @@ export async function PATCH(
         purposeId: nextPurposeId,
         category: input.category === undefined ? owned.tracker.category : input.category,
         isEssential: nextEssential,
+        ccpaSale: input.ccpaSale ?? owned.tracker.ccpaSale,
+        ccpaShare: input.ccpaShare ?? owned.tracker.ccpaShare,
+        ccpaSensitivePi: input.ccpaSensitivePi ?? owned.tracker.ccpaSensitivePi,
         status: nextStatus,
         domain: input.domain === undefined ? owned.tracker.domain : input.domain,
         identifier: input.identifier ?? owned.tracker.identifier,

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -16,6 +16,12 @@ import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
 import { rightsRequestVerifications } from "@/db/schema/rights-request-verifications";
 import { rightsRequestExports } from "@/db/schema/rights-request-exports";
 import { ageAssuranceSessions } from "@/db/schema/age-assurance";
+import {
+  processingActivities,
+  rightsDownstreamActions,
+} from "@/db/schema/processing-inventory";
+import { vendors } from "@/db/schema/vendors";
+import { californiaOptOutStates } from "@/db/schema/california-opt-out";
 import { minimizedAgeRecord } from "@/lib/children/service";
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
@@ -38,6 +44,7 @@ import {
   tokensMatch,
 } from "./tokens";
 import {
+  DOWNSTREAM_ACTION_DISCLAIMER,
   EXPORT_TTL_MS,
   IDENTITY_TOKEN_TTL_MS,
   RIGHTS_AUDIT_ACTIONS,
@@ -378,6 +385,31 @@ export async function discoverRightsData(input: {
         )
     : [];
 
+  const californiaOptOuts = consentIds.length && websiteIds.length
+    ? await db
+        .select({
+          consentId: californiaOptOutStates.consentId,
+          websiteId: californiaOptOutStates.websiteId,
+          state: californiaOptOutStates.state,
+          source: californiaOptOutStates.source,
+          saleOptOut: californiaOptOutStates.saleOptOut,
+          shareOptOut: californiaOptOutStates.shareOptOut,
+          sensitivePiLimit: californiaOptOutStates.sensitivePiLimit,
+          gpcHeader: californiaOptOutStates.gpcHeader,
+          jurisdiction: californiaOptOutStates.jurisdiction,
+          effectiveAt: californiaOptOutStates.effectiveAt,
+          updatedAt: californiaOptOutStates.updatedAt,
+        })
+        .from(californiaOptOutStates)
+        .where(
+          and(
+            eq(californiaOptOutStates.organizationId, input.organizationId),
+            inArray(californiaOptOutStates.consentId, consentIds),
+            inArray(californiaOptOutStates.websiteId, websiteIds),
+          ),
+        )
+    : [];
+
   const policyVersionIds = [
     ...new Set([
       ...records.map((row) => row.policyVersionId),
@@ -418,6 +450,58 @@ export async function discoverRightsData(input: {
     }),
   );
 
+  const activityFilter = input.request.websiteId
+    ? and(
+        eq(processingActivities.organizationId, input.organizationId),
+        or(
+          eq(processingActivities.websiteId, input.request.websiteId),
+          isNull(processingActivities.websiteId),
+        ),
+      )
+    : eq(processingActivities.organizationId, input.organizationId);
+
+  const activityRows = await db
+    .select({
+      id: processingActivities.id,
+      vendorId: processingActivities.vendorId,
+      purposeId: processingActivities.purposeId,
+      dataCategories: processingActivities.dataCategories,
+      processingRole: processingActivities.processingRole,
+      status: processingActivities.status,
+    })
+    .from(processingActivities)
+    .where(activityFilter);
+
+  const downstreamVendorIds = [...new Set(activityRows.map((row) => row.vendorId))];
+  const downstreamVendors = downstreamVendorIds.length
+    ? await db
+        .select({
+          id: vendors.id,
+          name: vendors.name,
+          role: vendors.role,
+          country: vendors.country,
+          downstreamDsarMode: vendors.downstreamDsarMode,
+          status: vendors.status,
+        })
+        .from(vendors)
+        .where(
+          and(
+            eq(vendors.organizationId, input.organizationId),
+            inArray(vendors.id, downstreamVendorIds),
+          ),
+        )
+    : [];
+
+  const downstreamActions = await db
+    .select()
+    .from(rightsDownstreamActions)
+    .where(
+      and(
+        eq(rightsDownstreamActions.organizationId, input.organizationId),
+        eq(rightsDownstreamActions.requestId, input.request.id),
+      ),
+    );
+
   await writeRightsAudit({
     organizationId: input.organizationId,
     action: RIGHTS_AUDIT_ACTIONS.dataDiscovered,
@@ -428,6 +512,7 @@ export async function discoverRightsData(input: {
       recordCount: records.length,
       evidenceCount: snapshots.length,
       holdOnRequest,
+      downstreamVendorCount: downstreamVendors.length,
     },
   });
 
@@ -438,7 +523,17 @@ export async function discoverRightsData(input: {
     events,
     snapshots,
     ageSessions,
+    californiaOptOuts,
     versions,
+    downstream: {
+      disclaimer: DOWNSTREAM_ACTION_DISCLAIMER,
+      vendors: downstreamVendors.map((vendor) => ({
+        ...vendor,
+        actionRequired: vendor.downstreamDsarMode === "required",
+      })),
+      activities: activityRows,
+      actions: downstreamActions,
+    },
     holds: {
       request: holdOnRequest,
       consentRecords: holdOnRecords.map((row) => row.id),
@@ -484,6 +579,21 @@ export async function createRightsExport(input: {
       granted: row.granted,
     })),
     ageAssurance: discovered.ageSessions.map(minimizedAgeRecord),
+    californiaOptOut: discovered.californiaOptOuts,
+    downstreamVendorActions: {
+      disclaimer: discovered.downstream.disclaimer,
+      vendors: discovered.downstream.vendors,
+      actions: discovered.downstream.actions.map((row) => ({
+        id: row.id,
+        vendorId: row.vendorId,
+        status: row.status,
+        actionRequired: row.actionRequired,
+        reference: row.reference,
+        requestedAt: row.requestedAt,
+        completedAt: row.completedAt,
+        notes: row.notes,
+      })),
+    },
   };
 
   const historicalEvidence =
@@ -521,6 +631,7 @@ export async function createRightsExport(input: {
               "historical_evidence_references",
               "policy_version_context",
               "rights_request_summary",
+              "downstream_vendor_actions",
             ],
     }),
     currentOperationalData: currentOperational,

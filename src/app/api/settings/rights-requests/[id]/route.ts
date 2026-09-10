@@ -53,6 +53,7 @@ export async function GET(
         status: row.status,
         websiteId: row.websiteId,
       })),
+      downstream: discovered.downstream,
     },
   });
 }

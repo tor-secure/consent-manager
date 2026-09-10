@@ -117,6 +117,7 @@ ${apiBaseLine}
   var STORAGE_KEY = 'cmp_consent_' + SITE_KEY;
   var EXPIRY_KEY  = 'cmp_expiry_'  + SITE_KEY;
   var POLICY_CONTEXT_KEY = 'cmp_policy_context_' + SITE_KEY;
+  var CA_OPT_OUT_KEY = 'cmp_ca_optout_' + SITE_KEY;
   var BUILTIN_TRACKER_CATALOG = ${JSON.stringify(BUILTIN_TRACKER_CATALOG)};
 
   var _config      = null;
@@ -147,6 +148,7 @@ ${apiBaseLine}
   var _tcfQueue = [];
   var _gppQueue = [];
   var _configRevision = '';
+  var _california = null;
   var _quarantinedNodes = [];
   var _enforcementObserver = null;
   var _enforcementMutating = false;
@@ -391,7 +393,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         trackerEnforcement: config.trackerEnforcement,
         signals: config.signals,
         negotiation: config.negotiation,
-        childProtection: config.childProtection
+        childProtection: config.childProtection,
+        california: config.california
       });
     } catch (e) {
       return String(config.policy && config.policy.versionId || '');
@@ -679,9 +682,97 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     return '';
   }
 
+  function navigatorGpc() {
+    try {
+      return window.navigator && window.navigator.globalPrivacyControl === true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function californiaEnabled() {
+    return !!( _config && _config.california && _config.california.enabled );
+  }
+
+  function persistCalifornia(state) {
+    _california = state || null;
+    try {
+      if (_california) localStorage.setItem(CA_OPT_OUT_KEY, JSON.stringify(_california));
+      else localStorage.removeItem(CA_OPT_OUT_KEY);
+    } catch (e) {}
+  }
+
+  function loadStoredCalifornia() {
+    try {
+      var raw = localStorage.getItem(CA_OPT_OUT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function californiaBlocksRule(rule) {
+    var ca = _california;
+    if (!ca || ca.applicable === false) {
+      if (californiaEnabled() && (navigatorGpc() || (_config.california && _config.california.gpcRecognized))) {
+        ca = { applicable: true, saleOptOut: true, shareOptOut: true, sensitivePiLimit: !!(_config.california && _config.california.limitSensitivePiEnabled) };
+      } else {
+        return false;
+      }
+    }
+    if (ca.saleOptOut && rule.ccpaSale === 'applicable') return true;
+    if (ca.shareOptOut && rule.ccpaShare === 'applicable') return true;
+    if (ca.sensitivePiLimit && rule.ccpaSensitivePi === 'applicable') return true;
+    return false;
+  }
+
+  function syncCaliforniaOptOut(extra, callback) {
+    extra = extra || {};
+    if (!californiaEnabled()) {
+      persistCalifornia(null);
+      if (callback) callback(null);
+      return;
+    }
+    var payload = {
+      consentId: _consentId || extra.consentId || undefined,
+      gpc: navigatorGpc() ? true : undefined,
+      doNotSell: extra.doNotSell,
+      doNotShare: extra.doNotShare,
+      limitSensitive: extra.limitSensitive,
+      withdrawn: extra.withdrawn === true
+    };
+    fetch(API_BASE + '/api/sdk/' + encodeURIComponent(SITE_KEY) + '/opt-out', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      cache: 'no-store'
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data && data.success && data.california) persistCalifornia(data.california);
+        applyTrackerEnforcement();
+        if (callback) callback(data && data.california);
+      })
+      .catch(function() {
+        if (navigatorGpc() || (_config.california && _config.california.gpcRecognized)) {
+          persistCalifornia({
+            applicable: true,
+            state: 'gpc_opted_out',
+            source: 'gpc',
+            gpcRecognized: true,
+            saleOptOut: true,
+            shareOptOut: true,
+            sensitivePiLimit: !!(_config.california && _config.california.limitSensitivePiEnabled),
+            ui: { gpcDetected: true, optOutActive: true, managedByBrowserSignal: true, manualOptOutActive: false, label: 'Opt-out managed by browser privacy signal' }
+          });
+        }
+        applyTrackerEnforcement();
+        if (callback) callback(_california);
+      });
+  }
+
   function isBlocked(rule) {
-    if (rule.isEssential) return false;
     if (rule.status !== 'active') return false;
+    if (californiaBlocksRule(rule)) return true;
+    if (rule.isEssential) return false;
     if (!consentIsServerConfirmed()) return true;
     if (window.childMode === true) {
       // Client childMode is never a security boundary.
@@ -1492,6 +1583,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       policyContext: _policyContext,
       language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
       abVariant: _abVariantId || undefined,
+      gpc: navigatorGpc() ? true : undefined,
       submission: {
         choice: job.choice,
         purposeDecisions: job.purposeDecisions || [],
@@ -1539,6 +1631,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         job.submissionId,
         data.stateVersion
       );
+      if (data.california) persistCalifornia(data.california);
       if (job.callback) {
         if (applied) job.callback(null, data.consentId);
         else job.callback(new Error('A newer consent state is already active'));
@@ -1936,7 +2029,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       confirmed: consentIsServerConfirmed(),
       stateVersion: _stateVersion,
       decisions: _decisions,
-      websiteId: _config ? _config.websiteId : null
+      websiteId: _config ? _config.websiteId : null,
+      california: _california
     };
   }
 
@@ -2356,6 +2450,49 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       body.appendChild(osec);
     }
 
+    if (californiaEnabled()) {
+      var caSec = document.createElement('section');
+      caSec.setAttribute('style', 'padding:14px 0 6px 0;border-top:1px solid rgba(15,23,42,.08);');
+      var caH = document.createElement('h3');
+      caH.textContent = 'California privacy choices';
+      caH.setAttribute('style', 'margin:0 0 6px;font-size:13px;font-weight:700;');
+      caSec.appendChild(caH);
+      var caHelp = document.createElement('p');
+      caHelp.textContent = 'These controls are separate from consent preferences. A valid Global Privacy Control signal is honored automatically.';
+      caHelp.setAttribute('style', 'margin:0 0 10px;font-size:12px;opacity:.7;line-height:1.45;');
+      caSec.appendChild(caHelp);
+      var caState = _california && _california.ui ? _california.ui.label : (navigatorGpc() || (_config.california && _config.california.gpcRecognized) ? 'GPC detected' : 'Not opted out');
+      var caBadge = document.createElement('p');
+      caBadge.textContent = caState;
+      caBadge.setAttribute('style', 'margin:0 0 10px;font-size:12px;font-weight:600;');
+      caSec.appendChild(caBadge);
+      if (_config.california.doNotSellEnabled || _config.california.doNotShareEnabled) {
+        var dnsBtn = document.createElement('button');
+        dnsBtn.type = 'button';
+        dnsBtn.textContent = 'Do Not Sell or Share My Personal Information';
+        dnsBtn.setAttribute('style', 'display:block;width:100%;text-align:left;padding:10px 12px;margin:6px 0;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:transparent;color:inherit;cursor:pointer;');
+        dnsBtn.addEventListener('click', function() {
+          syncCaliforniaOptOut({ doNotSell: true, doNotShare: true }, function() {
+            renderPreferenceCenter();
+          });
+        });
+        caSec.appendChild(dnsBtn);
+      }
+      if (_config.california.limitSensitivePiEnabled) {
+        var spiBtn = document.createElement('button');
+        spiBtn.type = 'button';
+        spiBtn.textContent = 'Limit Use of Sensitive Personal Information';
+        spiBtn.setAttribute('style', 'display:block;width:100%;text-align:left;padding:10px 12px;margin:6px 0;border:1px solid rgba(15,23,42,.12);border-radius:10px;background:transparent;color:inherit;cursor:pointer;');
+        spiBtn.addEventListener('click', function() {
+          syncCaliforniaOptOut({ limitSensitive: true }, function() {
+            renderPreferenceCenter();
+          });
+        });
+        caSec.appendChild(spiBtn);
+      }
+      body.appendChild(caSec);
+    }
+
     // Footer (actions)
     var footer = document.createElement('div');
     footer.setAttribute('style',
@@ -2465,6 +2602,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   window.CMP = {
     getConsent: getConsent,
+    getCaliforniaOptOut: function() { return _california; },
     getEnforcementDiagnostics: function() {
       return {
         metrics: {
@@ -2747,6 +2885,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         ) {
           throw new Error('Stored consent is not active');
         }
+        if (data.california) persistCalifornia(data.california);
         var applied = saveConsent(
           data.record.consentId,
           data.decisions,
@@ -2771,6 +2910,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   window.addEventListener('storage', function(event) {
+    if (event && event.key === CA_OPT_OUT_KEY) {
+      _california = loadStoredCalifornia();
+      applyTrackerEnforcement();
+      return;
+    }
     if (!event || event.key !== STORAGE_KEY) return;
     var stored = loadStoredConsent();
     if (!stored || stored.status === 'withdrawn') {
@@ -2869,6 +3013,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _configRevision = configRevision(_config);
       scheduleConfigRefresh();
       initExternalSignals();
+      _california = loadStoredCalifornia();
+      syncCaliforniaOptOut({}, function() {
 
       var stored = loadStoredConsent();
       if (
@@ -2938,6 +3084,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
         );
       }
+      });
     })
     .catch(function(err) { log('Failed to initialise CMP: ' + err); });
 

@@ -78,6 +78,11 @@ function baseSnapshot(overrides = {}) {
         name: "Analytics Co",
         privacyPolicyUrl: "https://vendor.example/privacy",
         country: "DE",
+        role: "independent_controller",
+        status: "active",
+        processingCountries: ["DE"],
+        dpaStatus: "not_applicable",
+        downstreamDsarMode: "not_required",
       },
     ],
     trackers: [
@@ -217,12 +222,64 @@ function testCcpaRules() {
     declarations: parseComplianceDeclarations({ gpcHonored: true, childDirected: true }, {}),
   });
   const result = evaluatePolicyCompliance(snapshot);
-  assert.equal(GPC_RUNTIME_SUPPORTED, false);
+  assert.equal(GPC_RUNTIME_SUPPORTED, true);
+  assert.equal(OPT_OUT_PROPAGATION_IMPLEMENTED, true);
   assert.ok(codes(result).includes("CCPA_MISSING_DO_NOT_SELL_SHARE"));
-  assert.ok(codes(result).includes("CCPA_GPC_CLAIMED_WITHOUT_RUNTIME"));
+  assert.ok(codes(result).includes("CCPA_SALE_OPT_OUT_UNCONFIGURED"));
+  assert.ok(codes(result).includes("CCPA_SHARE_OPT_OUT_UNCONFIGURED"));
   assert.ok(codes(result).includes("CCPA_MISSING_OPT_OUT"));
   assert.ok(codes(result).includes("CCPA_MINOR_CONFIG_MISSING"));
-  assert.ok(result.warnings.some((row) => row.code === "CCPA_GPC_RUNTIME_UNSUPPORTED"));
+  assert.equal(codes(result).includes("CCPA_GPC_CLAIMED_WITHOUT_RUNTIME"), false);
+  assert.equal(result.warnings.some((row) => row.code === "CCPA_GPC_RUNTIME_UNSUPPORTED"), false);
+
+  const claimedWithoutRuntime = evaluatePolicyCompliance(baseSnapshot({
+    website: { ...baseSnapshot().website, defaultRegulationKey: "ccpa", defaultRegion: "US-CA" },
+    assignedRegulationKeys: ["ccpa"],
+    gpcRuntimeSupported: false,
+    declarations: parseComplianceDeclarations({ gpcHonored: true }, {}),
+  }));
+  assert.ok(codes(claimedWithoutRuntime).includes("CCPA_GPC_CLAIMED_WITHOUT_RUNTIME"));
+
+  const unmapped = evaluatePolicyCompliance(baseSnapshot({
+    website: { ...baseSnapshot().website, defaultRegulationKey: "ccpa", defaultRegion: "US-CA" },
+    assignedRegulationKeys: ["ccpa"],
+    declarations: parseComplianceDeclarations({
+      doNotSellEnabled: true,
+      doNotShareEnabled: true,
+      gpcHonored: true,
+    }, {}),
+  }));
+  assert.ok(codes(unmapped).includes("CCPA_OPT_OUT_VENDOR_MAPPING_MISSING"));
+  assert.ok(codes(unmapped).includes("CCPA_OPT_OUT_TRACKER_MAPPING_MISSING"));
+
+  const configured = evaluatePolicyCompliance(baseSnapshot({
+    website: { ...baseSnapshot().website, defaultRegulationKey: "ccpa", defaultRegion: "US-CA" },
+    assignedRegulationKeys: ["ccpa"],
+    declarations: parseComplianceDeclarations({
+      doNotSellEnabled: true,
+      doNotShareEnabled: true,
+      gpcHonored: true,
+    }, {}),
+    vendors: [{
+      ...baseSnapshot().vendors[0],
+      country: "US",
+      processingCountries: ["US"],
+      ccpaSale: "applicable",
+      ccpaShare: "applicable",
+      ccpaSensitivePi: "not_applicable",
+    }],
+    trackers: [{
+      ...baseSnapshot().trackers[0],
+      ccpaSale: "applicable",
+      ccpaShare: "applicable",
+      ccpaSensitivePi: "not_applicable",
+    }],
+  }));
+  assert.equal(codes(configured).includes("CCPA_OPT_OUT_VENDOR_MAPPING_MISSING"), false);
+  assert.equal(codes(configured).includes("CCPA_OPT_OUT_TRACKER_MAPPING_MISSING"), false);
+  assert.equal(codes(configured).includes("CCPA_SALE_OPT_OUT_UNCONFIGURED"), false);
+  assert.equal(codes(configured).includes("CCPA_SHARE_OPT_OUT_UNCONFIGURED"), false);
+  assert.equal(codes(configured).includes("CCPA_GPC_CLAIMED_WITHOUT_RUNTIME"), false);
 }
 
 function testLgpdRules() {
@@ -317,6 +374,8 @@ function testPublishRouteIsAuthoritative() {
   assert.doesNotMatch(source, /body\.jurisdiction/);
   assert.doesNotMatch(source, /body\.organizationId/);
   assert.match(source, /status: 422/);
+  assert.match(source, /processingSnapshot/);
+  assert.match(source, /isPublished, false/);
 }
 
 testJurisdictionResolutionIgnoresClient();

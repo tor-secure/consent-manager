@@ -14,6 +14,10 @@ import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { parseBannerConfig } from "@/lib/banner-config";
 import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
+import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
+import { evidenceCaliforniaOptOut, publicCaliforniaState, resolveCaliforniaOptOut } from "@/lib/ccpa/state";
+import { loadCaliforniaOptOut, upsertCaliforniaOptOut } from "@/lib/ccpa/service";
+import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { logger } from "@/lib/logger";
 import {
   generateConsentId,
@@ -56,6 +60,7 @@ import { parseChildProtectionConfig } from "@/lib/children/config";
 import { denyRestrictedDecisions } from "@/lib/children/evaluate";
 import { loadLatestSession, rowToState } from "@/lib/children/service";
 import { publicAgeView } from "@/lib/children/state";
+import { evidenceProcessingInventory, isFrozenProcessingSnapshot } from "@/lib/processing/snapshot";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -89,6 +94,8 @@ export async function GET(request: Request) {
       .select({
         id: consentRecords.id,
         consentId: consentRecords.consentId,
+        organizationId: consentRecords.organizationId,
+        websiteId: consentRecords.websiteId,
         status: consentRecords.status,
         stateVersion: consentRecords.stateVersion,
         consentedAt: consentRecords.consentedAt,
@@ -130,6 +137,31 @@ export async function GET(request: Request) {
           .from(consentDecisions)
           .where(eq(consentDecisions.consentRecordId, record.id));
 
+    const [site] = await db
+      .select({
+        defaultRegulationKey: websites.defaultRegulationKey,
+        defaultRegion: websites.defaultRegion,
+      })
+      .from(websites)
+      .where(eq(websites.id, websiteId))
+      .limit(1);
+    const californiaRow = await loadCaliforniaOptOut({
+      organizationId: record.organizationId,
+      websiteId: websiteId,
+      consentId,
+    });
+    const gpc = parseGpcFromRequest(request.headers, null);
+    const california = publicCaliforniaState(resolveCaliforniaOptOut({
+      regulationKey: californiaRow?.jurisdiction ?? site?.defaultRegulationKey,
+      region: site?.defaultRegion,
+      header: gpc.header,
+      client: gpc.client,
+      persisted: californiaRow,
+      consentWithdrawn: Boolean(record.withdrawnAt),
+      jurisdiction: californiaRow?.jurisdiction ?? site?.defaultRegulationKey ?? null,
+      policyVersionId: californiaRow?.policyVersionId ?? record.policyVersionId,
+    }));
+
     return NextResponse.json(
       {
         success: true,
@@ -145,6 +177,7 @@ export async function GET(request: Request) {
           withdrawnAt: record.withdrawnAt,
           policyVersionId: record.policyVersionId,
         },
+        california,
         decisions: decisions.map((d) => ({
           purposeId: d.purposeId,
           vendorId: d.vendorId,
@@ -331,6 +364,7 @@ export async function POST(request: Request) {
         status: websites.status,
         defaultLanguage: websites.defaultLanguage,
         defaultRegulationKey: websites.defaultRegulationKey,
+        defaultRegion: websites.defaultRegion,
         consentIntegrations: websites.consentIntegrations,
         iabRegistration: websites.iabRegistration,
         childProtection: websites.childProtection,
@@ -371,6 +405,7 @@ export async function POST(request: Request) {
         version: consentPolicyVersions.version,
         isPublished: consentPolicyVersions.isPublished,
         configuration: consentPolicyVersions.configuration,
+        processingSnapshot: consentPolicyVersions.processingSnapshot,
       })
       .from(consentPolicyVersions)
       .innerJoin(
@@ -462,6 +497,33 @@ export async function POST(request: Request) {
     const now = new Date();
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
     const consentId = isNew ? generateConsentId() : String(rawConsentId).trim();
+    const declarations = parseComplianceDeclarations(
+      bannerConfig as unknown as Record<string, unknown>,
+      {},
+    );
+    const persistedCalifornia = isNew
+      ? null
+      : await loadCaliforniaOptOut({
+          organizationId: website.organizationId,
+          websiteId: website.id,
+          consentId,
+        });
+    const gpc = parseGpcFromRequest(request.headers, body.gpc);
+    const californiaResolved = resolveCaliforniaOptOut({
+      regulationKey: policyContext.jurisdiction || website.defaultRegulationKey,
+      region: website.defaultRegion,
+      header: gpc.header,
+      client: gpc.client,
+      persisted: persistedCalifornia,
+      manualDoNotSell: body.doNotSell === true,
+      manualDoNotShare: body.doNotShare === true,
+      manualLimitSensitive: body.limitSensitive === true,
+      clearManual: body.doNotSell === false && body.doNotShare === false && body.limitSensitive === false,
+      consentWithdrawn: submission.choice === "reject-all",
+      limitSensitiveConfigured: declarations.limitSensitivePiEnabled,
+      jurisdiction: policyContext.jurisdiction,
+      policyVersionId: contextVersion.id,
+    });
     const integrations = parseConsentIntegrations(website.consentIntegrations);
     const registration = getIabRegistration(process.env, website.iabRegistration);
     const currentGvl = await getCurrentGvl();
@@ -502,7 +564,13 @@ export async function POST(request: Request) {
         })
       : null;
     const gppString = integrations.iabGpp.enabled && registration.valid && applicableSections.length
-      ? encodeGppString({ sectionIds: applicableSections, optedOut: submission.choice === "reject-all" })
+      ? encodeGppString({
+          sectionIds: applicableSections,
+          optedOut: submission.choice === "reject-all" || californiaResolved.saleOptOut || californiaResolved.shareOptOut,
+          saleOptOut: californiaResolved.saleOptOut || submission.choice === "reject-all",
+          sharingOptOut: californiaResolved.shareOptOut || submission.choice === "reject-all",
+          sensitiveLimit: californiaResolved.sensitivePiLimit,
+        })
       : null;
     const iabEvidence = {
       tcString,
@@ -519,6 +587,10 @@ export async function POST(request: Request) {
         restrictedProcessingAllowed: childView.restrictedProcessingAllowed,
         selfDeclarationIsNotVerified: true,
       },
+      ...(isFrozenProcessingSnapshot(contextVersion.processingSnapshot)
+        ? { processingInventory: evidenceProcessingInventory(contextVersion.processingSnapshot) }
+        : {}),
+      californiaOptOut: evidenceCaliforniaOptOut(californiaResolved),
     };
 
     // ── Consent evidence snapshot ────────────────────────────────────────
@@ -765,6 +837,13 @@ export async function POST(request: Request) {
 
     if (idempotentEvidence) {
       const prior = idempotentEvidence as typeof consentEvidenceSnapshots.$inferSelect;
+      await upsertCaliforniaOptOut({
+        organizationId: website.organizationId,
+        websiteId: website.id,
+        consentId: prior.consentId,
+        expiresAt,
+        resolved: californiaResolved,
+      });
       const [priorRecord] = prior.consentRecordId
         ? await db
             .select({ expiresAt: consentRecords.expiresAt })
@@ -797,6 +876,7 @@ export async function POST(request: Request) {
           expiresAt: priorRecord?.expiresAt ?? null,
           decisions: prior.decisions,
           signals: prior.signals,
+          california: publicCaliforniaState(californiaResolved),
           confirmation: {
             policyContextValidated: true,
             persisted: true,
@@ -806,6 +886,14 @@ export async function POST(request: Request) {
         { status: 200, headers: CORS_HEADERS },
       );
     }
+
+    await upsertCaliforniaOptOut({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      consentId: savedRecord.consentId,
+      expiresAt: savedRecord.expiresAt,
+      resolved: californiaResolved,
+    });
 
     // ── Append consent event (best-effort — must not fail the response) ──
     // The consent record is already committed at this point. An event-append
@@ -875,6 +963,7 @@ export async function POST(request: Request) {
             }
           : null,
         signals: iabEvidence,
+        california: publicCaliforniaState(californiaResolved),
         confirmation: {
           policyContextValidated: true,
           persisted: true,

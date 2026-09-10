@@ -178,6 +178,49 @@ for (const route of [
 }
 
 {
+  const http = compact(read("src/lib/processing/http.ts"));
+  assertMatches(http, /!isAuthenticated\s*\|\|\s*!userId/, "processing auth rejects unauthenticated users");
+  assertIncludes(http, "status: 401", "processing auth returns unauthorized");
+  assertIncludes(http, "status: 403", "processing auth returns forbidden");
+  assertIncludes(http, "resolveLocalOrganization(orgId)", "processing auth resolves the session organization");
+  assertIncludes(http, "eq(vendors.organizationId, organizationId)", "vendor lookup is organization scoped");
+  assertIncludes(http, "eq(processingActivities.organizationId, organizationId)", "processing activity lookup is organization scoped");
+  assertIncludes(http, "eq(crossBorderTransfers.organizationId, organizationId)", "transfer lookup is organization scoped");
+  assertIncludes(http, "eq(vendorRelationships.organizationId, organizationId)", "vendor relationship lookup is organization scoped");
+  assert.doesNotMatch(http, /body.organizationId/, "processing helpers must not trust a client-supplied organizationId");
+}
+
+for (const [route, loader, notFound] of [
+  ["src/app/api/vendors/[id]/route.ts", "loadOwnedVendorRecord", "Vendor not found"],
+  ["src/app/api/processing-activities/[id]/route.ts", "loadOwnedActivity", "Processing activity not found"],
+  ["src/app/api/transfers/[id]/route.ts", "loadOwnedTransfer", "Transfer not found"],
+  ["src/app/api/vendors/[id]/relationships/route.ts", "loadOwnedVendorRecord", "Vendor not found"],
+]) {
+  const source = compact(read(route));
+  assertIncludes(source, "authorizeProcessingOrganization()", `${route} uses shared processing authorization`);
+  assertIncludes(source, `${loader}(authz.organization.id`, `${route} loads the resource through the session organization`);
+  assertIncludes(source, notFound, `${route} returns 404 for another tenant's resource`);
+  assertIncludes(source, "status: 404", `${route} uses a 404 status for missing or cross-tenant ids`);
+}
+
+{
+  const source = compact(read("src/app/api/settings/rights-requests/[id]/downstream/route.ts"));
+  assertIncludes(source, "authorizeRightsOrganization()", "downstream DSAR uses shared rights authorization");
+  assertIncludes(source, "requireRightsManager", "downstream DSAR updates require Owner/Admin");
+  assertIncludes(source, "loadOwnedRightsRequest(authz.organization.id", "downstream DSAR loads the request through the session organization");
+  assertIncludes(source, "loadOwnedVendorRecord(authz.organization.id", "downstream DSAR cannot attach another tenant's vendor");
+  assertIncludes(source, "eq(rightsDownstreamActions.organizationId, authz.organization.id)", "downstream DSAR rows are organization scoped");
+}
+
+{
+  const source = compact(read("src/app/api/policies/[id]/publish/route.ts"));
+  assertIncludes(source, "ignoreClientComplianceClaims(body)", "policy publish ignores client-forged validation claims");
+  assertIncludes(source, "authorizeOwnedPolicy(policyId)", "policy publish authorizes the policy through the session organization");
+  assert.doesNotMatch(source, /body.validated/, "policy publish must not trust client validated flags");
+  assert.doesNotMatch(source, /body.organizationId/, "policy publish must not trust a client-supplied organizationId");
+}
+
+{
   const { oneLine } = assertAuthenticated("src/app/api/consent/evidence/[consentId]/route.ts");
   assertMatches(
     oneLine,

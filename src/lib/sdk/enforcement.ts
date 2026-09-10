@@ -33,7 +33,8 @@ export type TrackerRule = {
   purposeId: string | null;
   // vendorId (UUID) for vendor-level grant lookup.
   vendorId: string | null;
-  // Essential trackers are NEVER blocked regardless of consent state.
+  // Essential trackers are allowed regardless of consent state unless the
+  // operator explicitly classified them as California sale/share/sensitive.
   isEssential: boolean;
   // Whether this tracker is currently active / should be enforced.
   status: string;
@@ -49,6 +50,9 @@ export type TrackerRule = {
   party?: "first-party" | "third-party" | "unknown";
   duration?: string | null;
   deletionBehavior?: string | null;
+  ccpaSale?: "unknown" | "applicable" | "not_applicable" | null;
+  ccpaShare?: "unknown" | "applicable" | "not_applicable" | null;
+  ccpaSensitivePi?: "unknown" | "applicable" | "not_applicable" | null;
 };
 
 // The per-purpose / per-vendor grant map provided by the consent engine.
@@ -58,21 +62,43 @@ export type ConsentGrants = {
   // vendorId → granted
   vendors: Record<string, boolean>;
   childRestrictedPurposeIds?: string[];
+  california?: {
+    applicable: boolean;
+    saleOptOut: boolean;
+    shareOptOut: boolean;
+    sensitivePiLimit: boolean;
+    state?: string;
+    source?: string;
+    gpcActive?: boolean;
+  };
 };
 
 // ---------------------------------------------------------------------------
 // shouldBlock
 // Returns true when a tracker should be blocked given the current grants.
-// Essential trackers are NEVER blocked.
+// Essential trackers are allowed unless a California classification restricts them.
 // A tracker with no purpose/vendor mapping is blocked by default (deny-by-default).
 // ---------------------------------------------------------------------------
 
-export function shouldBlock(rule: TrackerRule, grants: ConsentGrants): boolean {
-  // Essential trackers are always allowed.
-  if (rule.isEssential) return false;
+function californiaBlocks(
+  rule: TrackerRule,
+  california: ConsentGrants["california"],
+): boolean {
+  if (!california?.applicable) return false;
+  if (california.saleOptOut && rule.ccpaSale === "applicable") return true;
+  if (california.shareOptOut && rule.ccpaShare === "applicable") return true;
+  if (california.sensitivePiLimit && rule.ccpaSensitivePi === "applicable") return true;
+  return false;
+}
 
+export function shouldBlock(rule: TrackerRule, grants: ConsentGrants): boolean {
   // Inactive / deleted trackers — don't block (they shouldn't appear anyway).
   if (rule.status !== "active") return false;
+
+  if (californiaBlocks(rule, grants.california)) return true;
+
+  // Essential trackers are always allowed unless California classification restricts them.
+  if (rule.isEssential) return false;
 
   if (rule.purposeId && (grants.childRestrictedPurposeIds ?? []).includes(rule.purposeId)) {
     return true;

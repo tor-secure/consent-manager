@@ -22,6 +22,32 @@ type Discovery = {
     preserveEvidence: boolean;
   };
   records: Array<{ id: string; consentId: string; status: string; websiteId: string }>;
+  californiaOptOuts?: Array<{
+    consentId: string;
+    websiteId: string;
+    state: string;
+    source: string;
+    saleOptOut: boolean;
+    shareOptOut: boolean;
+    sensitivePiLimit: boolean;
+  }>;
+  downstream?: {
+    disclaimer: string;
+    vendors: Array<{
+      id: string;
+      name: string;
+      role: string | null;
+      downstreamDsarMode: string;
+      actionRequired: boolean;
+    }>;
+    actions: Array<{
+      id: string;
+      vendorId: string;
+      status: string;
+      reference: string | null;
+      notes: string | null;
+    }>;
+  };
 };
 
 export type RightsRequestDetailModel = {
@@ -190,6 +216,19 @@ export function RightsRequestDetail({
         <p className="text-sm text-slate-600">
           {discovery.recordCount} current records · {discovery.evidenceCount} evidence snapshots · {discovery.eventCount} events
         </p>
+        {(discovery.californiaOptOuts ?? []).length > 0 && (
+          <div className="space-y-2 rounded-2xl border border-slate-100 px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">California opt-out</p>
+            {discovery.californiaOptOuts!.map((row) => (
+              <p key={`${row.consentId}-${row.websiteId}`} className="text-sm text-slate-700">
+                State {row.state.replaceAll("_", " ")} · source {row.source}
+                {row.saleOptOut ? " · Do Not Sell" : ""}
+                {row.shareOptOut ? " · Do Not Share" : ""}
+                {row.sensitivePiLimit ? " · Limit sensitive PI" : ""}
+              </p>
+            ))}
+          </div>
+        )}
         {discovery.holds.request && (
           <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800">Legal hold is active on this rights request.</p>
         )}
@@ -256,6 +295,56 @@ export function RightsRequestDetail({
           </div>
         )}
       </section>
+
+      {discovery.downstream && (
+        <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-800">Downstream vendors</h2>
+          <p className="text-xs text-slate-500">{discovery.downstream.disclaimer}</p>
+          {discovery.downstream.vendors.length === 0 ? (
+            <p className="text-sm text-slate-500">No processing-activity vendors discovered for this request.</p>
+          ) : (
+            <ul className="space-y-3">
+              {discovery.downstream.vendors.map((vendor) => {
+                const action = discovery.downstream?.actions.find((row) => row.vendorId === vendor.id);
+                return (
+                  <li key={vendor.id} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+                    <p className="font-medium text-slate-800">{vendor.name}</p>
+                    <p className="text-xs text-slate-500">{vendor.role ?? "unknown"} · tracking {vendor.downstreamDsarMode}</p>
+                    <p className="mt-1 text-xs">Operator status: {action?.status ?? "not recorded"}</p>
+                    {request.canManage && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {["pending", "sent", "completed", "failed", "manually_handled", "not_required"].map((status) => (
+                          <button
+                            key={status}
+                            type="button"
+                            disabled={pending}
+                            onClick={() => startTransition(async () => {
+                              const res = await fetch(`/api/settings/rights-requests/${request.id}/downstream`, {
+                                method: "PATCH",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ vendorId: vendor.id, status }),
+                              });
+                              const data = await res.json() as { success: boolean; message?: string };
+                              if (!data.success) notify.error(data.message ?? "Unable to record downstream status");
+                              else {
+                                notify.success("Downstream status recorded. This is not vendor deletion proof.");
+                                router.refresh();
+                              }
+                            })}
+                            className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-[11px] capitalize"
+                          >
+                            {status.replaceAll("_", " ")}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+      )}
 
       {request.requestType === "correction" && request.canManage && request.verificationStatus === "verified" && !terminal && (
         <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">

@@ -84,7 +84,11 @@ export const RIGHTS_AUDIT_ACTIONS = {
   correctionApplied: "RIGHTS_REQUEST_CORRECTION_APPLIED",
   withdrawInvoked: "RIGHTS_REQUEST_WITHDRAW_INVOKED",
   assigned: "RIGHTS_REQUEST_ASSIGNED",
+  downstreamUpdated: "DOWNSTREAM_REQUEST_UPDATED",
 } as const;
+
+export const DOWNSTREAM_ACTION_DISCLAIMER =
+  "Downstream vendor action status is operator-recorded orchestration only. This CMP does not claim that it performed, verified, or completed an external vendor's deletion or correction.";
 
 export const MAX_VERIFICATION_ATTEMPTS = 5;
 export const IDENTITY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;

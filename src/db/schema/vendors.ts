@@ -7,6 +7,7 @@ import {
   unique,
   integer,
   check,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -42,6 +43,37 @@ export const vendors = pgTable(
     country: varchar("country", {
       length: 100,
     }),
+
+    legalName: varchar("legal_name", { length: 255 }),
+
+    role: varchar("role", { length: 40 }).notNull().default("unknown"),
+
+    processingCountries: jsonb("processing_countries")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
+
+    dpaStatus: varchar("dpa_status", { length: 40 })
+      .notNull()
+      .default("not_configured"),
+
+    dpaEffectiveAt: timestamp("dpa_effective_at", { withTimezone: true }),
+
+    dpaReviewAt: timestamp("dpa_review_at", { withTimezone: true }),
+
+    dpaReference: varchar("dpa_reference", { length: 255 }),
+
+    downstreamDsarMode: varchar("downstream_dsar_mode", { length: 40 })
+      .notNull()
+      .default("not_required"),
+
+    ccpaSale: varchar("ccpa_sale", { length: 40 }).notNull().default("unknown"),
+
+    ccpaShare: varchar("ccpa_share", { length: 40 }).notNull().default("unknown"),
+
+    ccpaSensitivePi: varchar("ccpa_sensitive_pi", { length: 40 })
+      .notNull()
+      .default("unknown"),
 
     description: text("description"),
 

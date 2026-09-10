@@ -98,9 +98,27 @@ export async function loadOwnedVendor(organizationId: string, vendorId: string |
   if (!vendorId) return { ok: true as const, vendor: null };
   if (!isUuid(vendorId)) return { ok: false as const };
   const [vendor] = await db
-    .select({ id: vendors.id, name: vendors.name })
+    .select({ id: vendors.id, name: vendors.name, status: vendors.status, deletedAt: vendors.deletedAt })
     .from(vendors)
     .where(and(eq(vendors.id, vendorId), eq(vendors.organizationId, organizationId)))
     .limit(1);
-  return vendor ? { ok: true as const, vendor } : { ok: false as const };
+  if (!vendor) return { ok: false as const };
+  if (vendor.status === "archived" || vendor.status === "inactive" || vendor.deletedAt) {
+    return { ok: false as const, inactive: true as const };
+  }
+  return { ok: true as const, vendor };
+}
+
+export function vendorMappingError(vendor: Awaited<ReturnType<typeof loadOwnedVendor>>) {
+  if (vendor.ok) return null;
+  if ("inactive" in vendor && vendor.inactive) {
+    return NextResponse.json(
+      { success: false, message: "Archived or inactive vendors cannot be mapped to trackers." },
+      { status: 400 },
+    );
+  }
+  return NextResponse.json(
+    { success: false, message: "Vendor not found in this organization." },
+    { status: 400 },
+  );
 }

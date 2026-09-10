@@ -9,9 +9,47 @@ import {
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { parseVendorRole, parseDpaStatus, parseDownstreamDsarMode, parseStringList, PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
+import { parseCcpaApplicability } from "@/lib/ccpa/types";
+import { writeProcessingAudit } from "@/lib/processing/service";
 
-const VALID_STATUSES = ["active", "inactive"] as const;
+const VALID_STATUSES = ["active", "inactive", "archived"] as const;
 const VALID_SOURCES = ["custom", "iab", "google"] as const;
+
+export async function GET() {
+  try {
+    const { isAuthenticated, userId, orgId } = await auth();
+    if (!isAuthenticated || !userId) {
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    }
+    if (!orgId) {
+      return NextResponse.json({ success: false, message: "No active organization selected" }, { status: 400 });
+    }
+    const localUser = await resolveLocalUser(userId);
+    if (!localUser) {
+      return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
+    }
+    const organization = await resolveLocalOrganization(orgId);
+    if (!organization) {
+      return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
+    }
+    const membership = await resolveActiveMembership(organization.id, localUser.id);
+    if (!membership) {
+      return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
+    }
+
+    const rows = await db
+      .select()
+      .from(vendors)
+      .where(eq(vendors.organizationId, organization.id))
+      .orderBy(vendors.name);
+
+    return NextResponse.json({ success: true, vendors: rows });
+  } catch (error) {
+    console.error("Vendor list failed:", error);
+    return NextResponse.json({ success: false, message: "Failed to list vendors" }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -128,10 +166,28 @@ export async function POST(request: Request) {
         privacyPolicyUrl,
         country,
         description,
-        status,
+        status: status === "archived" ? "active" : status,
         source,
+        legalName: body.legalName ? String(body.legalName).trim() || null : null,
+        role: parseVendorRole(body.role),
+        processingCountries: parseStringList(body.processingCountries),
+        dpaStatus: parseDpaStatus(body.dpaStatus),
+        dpaReference: body.dpaReference ? String(body.dpaReference).trim() || null : null,
+        downstreamDsarMode: parseDownstreamDsarMode(body.downstreamDsarMode),
+        ccpaSale: parseCcpaApplicability(body.ccpaSale),
+        ccpaShare: parseCcpaApplicability(body.ccpaShare),
+        ccpaSensitivePi: parseCcpaApplicability(body.ccpaSensitivePi),
       })
       .returning();
+
+    await writeProcessingAudit({
+      organizationId: organization.id,
+      userId: localUser.id,
+      action: PROCESSING_AUDIT_ACTIONS.vendorCreated,
+      resourceType: "vendor",
+      resourceId: vendor.id,
+      description: `Created vendor ${vendor.name}`,
+    });
 
     return NextResponse.json({ success: true, vendor }, { status: 201 });
   } catch (error) {

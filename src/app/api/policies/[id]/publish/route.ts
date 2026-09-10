@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { consentPolicies } from "@/db/schema/consent-policies";
@@ -15,6 +15,7 @@ import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { captureDigitalTwinSnapshot } from "@/lib/intelligence/service";
+import { buildLivePolicyProcessingSnapshot } from "@/lib/processing/service";
 
 // ---------------------------------------------------------------------------
 // POST /api/policies/[id]/publish
@@ -82,6 +83,14 @@ export async function POST(
     }
 
     const now = new Date();
+    const processingSnapshot = await buildLivePolicyProcessingSnapshot({
+      organizationId: authz.organization.id,
+      websiteId: authz.policy.websiteId,
+      policyVersionId: validated.versionId,
+      policyVersion: validated.versionNumber,
+      vendorIds: validated.vendorIds,
+      frozenAt: now,
+    });
 
     const [updatedVersion] = await db
       .update(consentPolicyVersions)
@@ -90,10 +99,23 @@ export async function POST(
         status: "active",
         publishedAt: now,
         effectiveFrom: now,
+        processingSnapshot,
         updatedAt: now,
       })
-      .where(eq(consentPolicyVersions.id, validated.versionId))
+      .where(
+        and(
+          eq(consentPolicyVersions.id, validated.versionId),
+          eq(consentPolicyVersions.isPublished, false),
+        ),
+      )
       .returning();
+
+    if (!updatedVersion) {
+      return NextResponse.json(
+        { success: false, message: "This policy version is already published." },
+        { status: 409 },
+      );
+    }
 
     await db
       .update(consentPolicies)

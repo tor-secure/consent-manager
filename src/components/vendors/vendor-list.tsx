@@ -17,6 +17,8 @@ export type VendorRow = {
   country: string | null;
   status: string;
   source: string;
+  role?: string | null;
+  dpaStatus?: string | null;
   createdAt: Date;
 };
 
@@ -178,7 +180,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60">
-                  {["Vendor", "Key", "Domain", "Country", "Source", "Status", "Added"].map((h) => (
+                  {["Vendor", "Key", "Domain", "Country", "Role", "DPA", "Source", "Status", "Added"].map((h) => (
                     <th
                       key={h}
                       className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
@@ -199,7 +201,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
                           <VendorAvatar name={v.name} />
                         </div>
                         <span className="font-medium leading-snug text-[var(--foreground)] group-hover:text-indigo-600 transition-colors">
-                          {v.name}
+                          <Link href={`/dashboard/vendors/${v.id}`}>{v.name}</Link>
                         </span>
                       </div>
                     </td>
@@ -229,6 +231,9 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
                       )}
                     </td>
 
+                    <td className="px-5 py-4 text-slate-600 capitalize">{(v.role ?? "unknown").replaceAll("_", " ")}</td>
+                    <td className="px-5 py-4 text-slate-600 capitalize">{(v.dpaStatus ?? "not_configured").replaceAll("_", " ")}</td>
+
                     {/* Source */}
                     <td className="px-5 py-4">
                       <SourceBadge source={v.source} />
@@ -244,7 +249,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
                           variant={v.status === "active" ? "success" : "neutral"}
                           size="sm"
                         >
-                          {v.status === "active" ? "Active" : "Inactive"}
+                          {v.status === "active" ? "Active" : v.status === "archived" ? "Archived" : "Inactive"}
                         </Badge>
                       </div>
                     </td>

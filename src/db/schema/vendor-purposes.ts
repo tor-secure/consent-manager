@@ -3,6 +3,7 @@ import {
   timestamp,
   uuid,
   unique,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 import { vendors } from "./vendors";
@@ -24,6 +25,10 @@ export const vendorPurposes = pgTable(
       .references(() => purposes.id, {
         onDelete: "cascade",
       }),
+
+    processingRole: varchar("processing_role", { length: 40 }),
+
+    status: varchar("status", { length: 40 }).notNull().default("active"),
 
     createdAt: timestamp("created_at", {
       withTimezone: true,

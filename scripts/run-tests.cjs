@@ -80,6 +80,11 @@ compile(
     "src/lib/sdk/cmp-sdk-script.ts",
     "src/lib/sdk/enforcement.ts",
     "src/lib/sdk/public-http.ts",
+    "src/lib/ccpa/types.ts",
+    "src/lib/ccpa/gpc.ts",
+    "src/lib/ccpa/state.ts",
+    "src/lib/ccpa/enforcement.ts",
+    "src/lib/ccpa/validate.ts",
     "src/lib/trackers/management.ts",
     "src/lib/retention/core.ts",
     "src/lib/privacy-rights/types.ts",
@@ -99,6 +104,10 @@ compile(
     "src/lib/children/state.ts",
     "src/lib/children/evaluate.ts",
     "src/lib/children/context.ts",
+    "src/lib/processing/types.ts",
+    "src/lib/processing/regions.ts",
+    "src/lib/processing/snapshot.ts",
+    "src/lib/processing/validate.ts",
     "src/lib/webhooks/delivery.ts",
   ],
   ["--rootDir", "."],
@@ -122,6 +131,7 @@ copyCompiled("src/lib/portable-consent-core.js", "portable-redaction/portable-co
 copyCompiled("src/lib/redaction-core.js", "portable-redaction/redaction-core.js");
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
 copyCompiled("src/lib/trackers/management.js", "tracker-management/trackers/management.js");
+copyCompiled("src/lib/ccpa/types.js", "tracker-management/ccpa/types.js");
 copyCompiled("src/lib/retention/core.js", "retention/retention/core.js");
 for (const file of [
   "types",
@@ -136,11 +146,17 @@ for (const file of [
 ]) {
   copyCompiled(`src/lib/privacy-rights/${file}.js`, `privacy-rights/${file}.js`);
 }
+for (const file of ["types", "gpc", "state", "enforcement", "validate"]) {
+  copyCompiled(`src/lib/ccpa/${file}.js`, `ccpa/${file}.js`);
+}
 for (const file of ["types", "rule-registry", "evaluate"]) {
   copyCompiled(`src/lib/compliance/${file}.js`, `compliance/${file}.js`);
 }
 for (const file of ["types", "config", "state", "evaluate", "context"]) {
   copyCompiled(`src/lib/children/${file}.js`, `children/${file}.js`);
+}
+for (const file of ["types", "regions", "snapshot", "validate"]) {
+  copyCompiled(`src/lib/processing/${file}.js`, `processing/${file}.js`);
 }
 fs.cpSync(
   path.join(tempRoot, "compiled", "src", "lib"),

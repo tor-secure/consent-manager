@@ -18,6 +18,9 @@ import {
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { parseChildProtectionConfig } from "@/lib/children/config";
 import { loadLatestSession, sessionAllowsRestricted } from "@/lib/children/service";
+import { inheritCcpaApplicability } from "@/lib/ccpa/types";
+import { californiaEnforcementFromRecord } from "@/lib/ccpa/state";
+import { loadCaliforniaOptOut } from "@/lib/ccpa/service";
 
 export type ConsentEvaluationContext = {
   organizationId: string;
@@ -95,6 +98,9 @@ export async function evaluateConsentForTenant(
         id: vendors.id,
         domain: vendors.domain,
         status: vendors.status,
+        ccpaSale: vendors.ccpaSale,
+        ccpaShare: vendors.ccpaShare,
+        ccpaSensitivePi: vendors.ccpaSensitivePi,
       })
       .from(vendors)
       .where(
@@ -110,6 +116,9 @@ export async function evaluateConsentForTenant(
         vendorId: trackers.vendorId,
         isEssential: trackers.isEssential,
         status: trackers.status,
+        ccpaSale: trackers.ccpaSale,
+        ccpaShare: trackers.ccpaShare,
+        ccpaSensitivePi: trackers.ccpaSensitivePi,
       })
       .from(trackers)
       .where(
@@ -127,20 +136,33 @@ export async function evaluateConsentForTenant(
       (!decision.purposeId || tenantPurposeIds.has(decision.purposeId)) &&
       (!decision.vendorId || tenantVendorIds.has(decision.vendorId)),
   );
-  const tenantTrackers = trackerRows.map((tracker) => ({
-    ...tracker,
-    purposeId:
-      tracker.purposeId && tenantPurposeIds.has(tracker.purposeId)
-        ? tracker.purposeId
-        : null,
-    vendorId:
-      tracker.vendorId && tenantVendorIds.has(tracker.vendorId)
-        ? tracker.vendorId
-        : null,
-  }));
+  const tenantTrackers = trackerRows.map((tracker) => {
+    const vendor = tracker.vendorId
+      ? vendorRows.find((row) => row.id === tracker.vendorId)
+      : null;
+    return {
+      ...tracker,
+      purposeId:
+        tracker.purposeId && tenantPurposeIds.has(tracker.purposeId)
+          ? tracker.purposeId
+          : null,
+      vendorId:
+        tracker.vendorId && tenantVendorIds.has(tracker.vendorId)
+          ? tracker.vendorId
+          : null,
+      ccpaSale: inheritCcpaApplicability(tracker.ccpaSale, vendor?.ccpaSale),
+      ccpaShare: inheritCcpaApplicability(tracker.ccpaShare, vendor?.ccpaShare),
+      ccpaSensitivePi: inheritCcpaApplicability(tracker.ccpaSensitivePi, vendor?.ccpaSensitivePi),
+    };
+  });
 
   const childConfig = parseChildProtectionConfig(record.childProtection);
   const ageRow = await loadLatestSession({
+    organizationId: context.organizationId,
+    websiteId: context.websiteId,
+    consentId: context.consentId,
+  });
+  const californiaRow = await loadCaliforniaOptOut({
     organizationId: context.organizationId,
     websiteId: context.websiteId,
     consentId: context.consentId,
@@ -159,6 +181,7 @@ export async function evaluateConsentForTenant(
         restrictedPurposeKeys: childConfig.restrictedPurposeKeys,
         allowRestricted: sessionAllowsRestricted(childConfig, ageRow),
       },
+      california: californiaRow ? californiaEnforcementFromRecord(californiaRow) : undefined,
     }),
   };
 }

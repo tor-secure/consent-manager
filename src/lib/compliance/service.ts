@@ -16,6 +16,7 @@ import { parseChildProtectionConfig } from "@/lib/children/config";
 import { parseBannerConfig } from "@/lib/banner-config";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
+import { loadLiveProcessingInventory } from "@/lib/processing/service";
 
 import {
   GPC_RUNTIME_SUPPORTED,
@@ -86,6 +87,16 @@ export async function loadPolicyComplianceSnapshot(input: {
           name: vendors.name,
           privacyPolicyUrl: vendors.privacyPolicyUrl,
           country: vendors.country,
+          role: vendors.role,
+          status: vendors.status,
+          processingCountries: vendors.processingCountries,
+          dpaStatus: vendors.dpaStatus,
+          dpaReviewAt: vendors.dpaReviewAt,
+          downstreamDsarMode: vendors.downstreamDsarMode,
+          ccpaSale: vendors.ccpaSale,
+          ccpaShare: vendors.ccpaShare,
+          ccpaSensitivePi: vendors.ccpaSensitivePi,
+          deletedAt: vendors.deletedAt,
         })
         .from(vendorPurposes)
         .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
@@ -97,8 +108,6 @@ export async function loadPolicyComplianceSnapshot(input: {
         )
     : [];
 
-  const uniqueVendors = [...new Map(vendorRows.map((row) => [row.id, row])).values()];
-
   const trackerRows = await db
     .select({
       id: trackers.id,
@@ -108,9 +117,64 @@ export async function loadPolicyComplianceSnapshot(input: {
       purposeId: trackers.purposeId,
       vendorId: trackers.vendorId,
       scannerClassification: trackers.scannerClassification,
+      ccpaSale: trackers.ccpaSale,
+      ccpaShare: trackers.ccpaShare,
+      ccpaSensitivePi: trackers.ccpaSensitivePi,
     })
     .from(trackers)
     .where(eq(trackers.websiteId, input.websiteId));
+
+  const uniqueVendorMap = new Map(vendorRows.map((row) => [row.id, row]));
+  const trackerVendorIds = [...new Set(trackerRows.map((row) => row.vendorId).filter((id): id is string => Boolean(id)))];
+  const missingTrackerVendorIds = trackerVendorIds.filter((id) => !uniqueVendorMap.has(id));
+  if (missingTrackerVendorIds.length > 0) {
+    const extraVendors = await db
+      .select({
+        id: vendors.id,
+        name: vendors.name,
+        privacyPolicyUrl: vendors.privacyPolicyUrl,
+        country: vendors.country,
+        role: vendors.role,
+        status: vendors.status,
+        processingCountries: vendors.processingCountries,
+        dpaStatus: vendors.dpaStatus,
+        dpaReviewAt: vendors.dpaReviewAt,
+        downstreamDsarMode: vendors.downstreamDsarMode,
+        ccpaSale: vendors.ccpaSale,
+        ccpaShare: vendors.ccpaShare,
+        ccpaSensitivePi: vendors.ccpaSensitivePi,
+        deletedAt: vendors.deletedAt,
+      })
+      .from(vendors)
+      .where(
+        and(
+          eq(vendors.organizationId, input.organizationId),
+          inArray(vendors.id, missingTrackerVendorIds),
+        ),
+      );
+    for (const row of extraVendors) uniqueVendorMap.set(row.id, row);
+  }
+  const uniqueVendors = [...uniqueVendorMap.values()].map((row) => ({
+    id: row.id,
+    name: row.name,
+    privacyPolicyUrl: row.privacyPolicyUrl,
+    country: row.country,
+    role: row.role,
+    status: row.deletedAt ? "archived" : row.status,
+    processingCountries: row.processingCountries ?? [],
+    dpaStatus: row.dpaStatus,
+    dpaReviewAt: row.dpaReviewAt ? row.dpaReviewAt.toISOString() : null,
+    downstreamDsarMode: row.downstreamDsarMode,
+    ccpaSale: row.ccpaSale,
+    ccpaShare: row.ccpaShare,
+    ccpaSensitivePi: row.ccpaSensitivePi,
+  }));
+  const referencedVendorIds = uniqueVendors.map((row) => row.id);
+  const inventory = await loadLiveProcessingInventory({
+    organizationId: input.organizationId,
+    websiteId: input.websiteId,
+    vendorIds: referencedVendorIds,
+  });
 
   const assignedRules = await db
     .select({ regulationKey: websiteJurisdictionRules.regulationKey })
@@ -189,6 +253,11 @@ export async function loadPolicyComplianceSnapshot(input: {
       declarations: parseComplianceDeclarations(bannerRaw, asRecord(org.settings)),
       purposes: attached,
       vendors: uniqueVendors,
+      processingInventory: {
+        activities: inventory.activities,
+        relationships: inventory.relationships,
+        transfers: inventory.transfers,
+      },
       trackers: trackerRows,
       consentIntegrations: {
         iabTcfEnabled: integrations.iabTcf.enabled,
@@ -214,7 +283,7 @@ export async function validateOwnedPolicy(input: {
   consentIntegrations: unknown;
   auditAction?: string;
 }): Promise<
-  | { ok: true; result: ComplianceValidationResult; versionId: string }
+  | { ok: true; result: ComplianceValidationResult; versionId: string; versionNumber: number; vendorIds: string[] }
   | { ok: false; reason: "no_version" }
 > {
   const loaded = await loadPolicyComplianceSnapshot(input);
@@ -239,7 +308,7 @@ export async function validateOwnedPolicy(input: {
       warningCodes: result.warnings.map((row) => row.code),
     },
   });
-  return { ok: true, result, versionId: loaded.versionId };
+  return { ok: true, result, versionId: loaded.versionId, versionNumber: loaded.snapshot.version.version, vendorIds: loaded.snapshot.vendors.map((row) => row.id) };
 }
 
 export async function writeComplianceAudit(input: {

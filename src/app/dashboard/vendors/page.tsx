@@ -36,6 +36,8 @@ export default async function VendorsPage() {
       country: vendors.country,
       status: vendors.status,
       source: vendors.source,
+      role: vendors.role,
+      dpaStatus: vendors.dpaStatus,
       createdAt: vendors.createdAt,
     })
     .from(vendors)

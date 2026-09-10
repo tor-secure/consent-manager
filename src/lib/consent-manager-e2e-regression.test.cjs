@@ -1815,7 +1815,7 @@ function testChildProtectionEndToEnd() {
       { id: ids.requiredPurpose, key: "necessary", name: "Necessary", description: "Required", isRequired: true, legalBasis: "legal_obligation", dataCategories: ["Device"], retentionPeriod: "Session" },
       { id: ids.adsPurpose, key: "advertising", name: "Ads", description: "Ads", isRequired: false, legalBasis: "consent", dataCategories: ["Usage"], retentionPeriod: "13 months" },
     ],
-    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE" }],
+    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE", role: "independent_controller", status: "active", dpaStatus: "not_applicable" }],
     trackers: [{ id: "tracker-ads", name: "ads.js", status: "active", isEssential: false, purposeId: ids.adsPurpose, vendorId: ids.adsVendor, scannerClassification: "mapped" }],
     consentIntegrations: { iabTcfEnabled: false, iabGppEnabled: false },
     assignedRegulationKeys: ["gdpr"],
@@ -1844,7 +1844,7 @@ function testChildProtectionEndToEnd() {
       { id: ids.requiredPurpose, key: "necessary", name: "Necessary", description: "Required", isRequired: true, legalBasis: "legal_obligation", dataCategories: ["Device"], retentionPeriod: "Session" },
       { id: ids.adsPurpose, key: "advertising", name: "Ads", description: "Ads", isRequired: false, legalBasis: "consent", dataCategories: ["Usage"], retentionPeriod: "13 months" },
     ],
-    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE" }],
+    vendors: [{ id: ids.adsVendor, name: "Ads Co", privacyPolicyUrl: "https://vendor.example/privacy", country: "DE", role: "independent_controller", status: "active", dpaStatus: "not_applicable" }],
     trackers: [{ id: "tracker-ads", name: "ads.js", status: "active", isEssential: false, purposeId: ids.adsPurpose, vendorId: ids.adsVendor, scannerClassification: "mapped" }],
     consentIntegrations: { iabTcfEnabled: false, iabGppEnabled: false },
     assignedRegulationKeys: ["gdpr"],
@@ -1906,6 +1906,96 @@ function storeTracker(purposeId, vendorId) {
   };
 }
 
+function testCaliforniaGpcRuntimeEnforcement() {
+  const { parseSecGpcHeader, gpcSignalIsActive } = require(findCompiled("src/lib/ccpa/gpc.ts"));
+  const { resolveCaliforniaOptOut, evidenceCaliforniaOptOut } = require(findCompiled("src/lib/ccpa/state.ts"));
+  const { collectCaliforniaMappingIssues } = require(findCompiled("src/lib/ccpa/validate.ts"));
+
+  assert.equal(parseSecGpcHeader("1"), "valid_1");
+  assert.equal(parseSecGpcHeader("0"), "invalid");
+  assert.equal(gpcSignalIsActive("valid_1", "false"), true);
+
+  const ads = {
+    ...storeTracker(ids.adsPurpose, ids.adsVendor),
+    ccpaSale: "not_applicable",
+    ccpaShare: "applicable",
+  };
+  const essential = {
+    id: "tracker-essential",
+    name: "essential.js",
+    type: "script",
+    domain: "cdn.example",
+    identifier: "essential.js",
+    purposeKey: "essential",
+    purposeId: ids.requiredPurpose,
+    vendorId: null,
+    isEssential: true,
+    status: "active",
+    ccpaSale: "not_applicable",
+    ccpaShare: "not_applicable",
+  };
+  const grants = {
+    purposes: { [ids.adsPurpose]: true, [ids.requiredPurpose]: true },
+    vendors: { [ids.adsVendor]: true },
+    california: { applicable: true, saleOptOut: false, shareOptOut: false, sensitivePiLimit: false },
+  };
+  assert.equal(shouldBlock(ads, grants), false);
+  assert.equal(shouldBlock(essential, grants), false);
+
+  const gpcOn = {
+    ...grants,
+    california: {
+      applicable: true,
+      saleOptOut: true,
+      shareOptOut: true,
+      sensitivePiLimit: false,
+      gpcActive: true,
+      state: "gpc_opted_out",
+      source: "gpc",
+    },
+  };
+  assert.equal(shouldBlock(ads, gpcOn), true);
+  assert.equal(shouldBlock(essential, gpcOn), false);
+  assert.equal(shouldBlock(ads, { ...gpcOn, purposes: { [ids.adsPurpose]: true, [ids.requiredPurpose]: true } }), true);
+
+  const withdrawn = {
+    purposes: { [ids.adsPurpose]: false, [ids.requiredPurpose]: true },
+    vendors: { [ids.adsVendor]: false },
+    california: { applicable: true, saleOptOut: true, shareOptOut: true, sensitivePiLimit: false, state: "withdrawn" },
+  };
+  assert.equal(shouldBlock(ads, withdrawn), true);
+
+  const childAndGpc = { ...gpcOn, childRestrictedPurposeIds: [ids.adsPurpose] };
+  assert.equal(shouldBlock(ads, childAndGpc), true);
+
+  const firstEvidence = evidenceCaliforniaOptOut(resolveCaliforniaOptOut({
+    regulationKey: "ccpa",
+    region: "US-CA",
+    header: "absent",
+    client: "unknown",
+  }));
+  const frozen = { ...firstEvidence };
+  const laterEvidence = evidenceCaliforniaOptOut(resolveCaliforniaOptOut({
+    regulationKey: "ccpa",
+    region: "US-CA",
+    header: "valid_1",
+    client: "unknown",
+  }));
+  assert.deepEqual(firstEvidence, frozen);
+  assert.equal(laterEvidence.gpcActive, true);
+
+  const mapping = collectCaliforniaMappingIssues({
+    doNotSellEnabled: true,
+    doNotShareEnabled: true,
+    limitSensitivePiEnabled: false,
+    specialCategoryProcessing: false,
+    hasSaleSharePurpose: false,
+    vendors: [{ id: ids.adsVendor, status: "active", ccpaSale: "unknown", ccpaShare: "unknown" }],
+    trackers: [{ id: "tracker-ads", status: "active", isEssential: false, ccpaSale: "unknown", ccpaShare: "unknown" }],
+  });
+  assert.ok(mapping.some((row) => row.code === "CCPA_OPT_OUT_VENDOR_MAPPING_MISSING"));
+}
+
 async function main() {
   await testAcceptAllFlow();
   await testRejectAllFlow();
@@ -1929,6 +2019,7 @@ async function main() {
   await testBannerLocalizationAndEvidenceLocale();
   await testHostScrollLockSurfaces();
   testChildProtectionEndToEnd();
+  testCaliforniaGpcRuntimeEnforcement();
 
   console.log("consent manager e2e regression tests passed");
 }

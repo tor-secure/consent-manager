@@ -135,18 +135,31 @@ export function encodeTcString(input: {
   return TCString.encode(model, { isForVendors: true });
 }
 
-export function encodeGppString(input: { sectionIds: number[]; optedOut: boolean }): string {
+export function encodeGppString(input: {
+  sectionIds: number[];
+  optedOut?: boolean;
+  saleOptOut?: boolean;
+  sharingOptOut?: boolean;
+  sensitiveLimit?: boolean;
+}): string {
+  const sale = input.saleOptOut === true || input.optedOut === true;
+  const share = input.sharingOptOut === true || input.optedOut === true;
+  const sensitive = input.sensitiveLimit === true;
   const model = new GppModel();
   for (const id of input.sectionIds) {
     if (id === 6) {
       model.setFieldValueBySectionId(6, "Notice", "Y");
-      model.setFieldValueBySectionId(6, "OptOutSale", input.optedOut ? "Y" : "N");
+      model.setFieldValueBySectionId(6, "OptOutSale", sale ? "Y" : "N");
       model.setFieldValueBySectionId(6, "LspaCovered", "N");
     } else if (id >= 7) {
       const sectionName = ({ 7: "usnat", 8: "usca", 9: "usva", 10: "usco", 11: "usut", 12: "usct" } as Record<number, string>)[id];
       if (sectionName) {
         model.setFieldValue(sectionName, "SaleOptOutNotice", 1);
-        model.setFieldValue(sectionName, "SaleOptOut", input.optedOut ? 1 : 2);
+        model.setFieldValue(sectionName, "SharingNotice", 1);
+        model.setFieldValue(sectionName, "SensitiveDataLimitUseNotice", 1);
+        model.setFieldValue(sectionName, "SaleOptOut", sale ? 1 : 2);
+        model.setFieldValue(sectionName, "SharingOptOut", share ? 1 : 2);
+        model.setFieldValue(sectionName, "SensitiveDataLimitUseOptOut", sensitive ? 1 : 2);
       }
     }
   }

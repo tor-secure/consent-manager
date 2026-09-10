@@ -225,7 +225,7 @@ function childSnapshot(overrides) {
       { id: "n", key: "necessary", name: "Necessary", description: "Required", isRequired: true, legalBasis: "legal_obligation", dataCategories: ["Device"], retentionPeriod: "Session" },
       { id: "a", key: "advertising", name: "Ads", description: "Ads", isRequired: false, legalBasis: "consent", dataCategories: ["Usage"], retentionPeriod: "13 months" },
     ],
-    vendors: [{ id: "v1", name: "Ads Co", privacyPolicyUrl: "https://vendor.example/p", country: "DE" }],
+    vendors: [{ id: "v1", name: "Ads Co", privacyPolicyUrl: "https://vendor.example/p", country: "DE", role: "independent_controller", status: "active", dpaStatus: "not_applicable" }],
     trackers: [{ id: "t", name: "ads.js", status: "active", isEssential: false, purposeId: "a", vendorId: "v1", scannerClassification: "mapped" }],
     consentIntegrations: { iabTcfEnabled: false, iabGppEnabled: false },
     assignedRegulationKeys: ["gdpr"],

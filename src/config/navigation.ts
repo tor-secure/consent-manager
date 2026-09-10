@@ -18,6 +18,7 @@ export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
     { title: "Policies", href: "/dashboard/policies", description: "Consent policies" },
     { title: "Purposes", href: "/dashboard/purposes", description: "Processing purposes" },
     { title: "Vendors", href: "/dashboard/vendors", description: "Third-party vendors" },
+    { title: "Transfers", href: "/dashboard/transfers", description: "Processing and cross-border transfers" },
     { title: "Trackers", href: "/dashboard/trackers", description: "Detected trackers" },
   ] },
   { title: "Discovery & Monitoring", items: [

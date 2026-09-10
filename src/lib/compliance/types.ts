@@ -1,4 +1,4 @@
-export const COMPLIANCE_VALIDATOR_VERSION = "1.1.0";
+export const COMPLIANCE_VALIDATOR_VERSION = "1.3.0";
 
 export type ComplianceSeverity = "error" | "warning";
 
@@ -31,6 +31,7 @@ export type ComplianceDeclarations = {
   doNotSellEnabled: boolean;
   doNotShareEnabled: boolean;
   gpcHonored: boolean;
+  limitSensitivePiEnabled: boolean;
   financialIncentive: boolean;
   financialIncentiveDisclosed: boolean;
   internationalTransfers: boolean;
@@ -104,7 +105,59 @@ export type PolicyComplianceSnapshot = {
     name: string;
     privacyPolicyUrl: string | null;
     country: string | null;
+    role?: string | null;
+    status?: string | null;
+    processingCountries?: string[];
+    dpaStatus?: string | null;
+    dpaReviewAt?: string | null;
+    downstreamDsarMode?: string | null;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
   }>;
+  processingInventory?: {
+    activities: Array<{
+      id: string;
+      vendorId: string;
+      websiteId: string | null;
+      purposeId: string | null;
+      purposeKey: string | null;
+      description: string | null;
+      dataCategories: string[];
+      sensitive: boolean;
+      processingRole: string;
+      processingLocation: string | null;
+      transferRequired: boolean;
+      legalBasis: string | null;
+      status: string;
+    }>;
+    relationships: Array<{
+      id: string;
+      parentVendorId: string;
+      childVendorId: string;
+      relationshipType: string;
+      status: string;
+    }>;
+    transfers: Array<{
+      id: string;
+      vendorId: string;
+      websiteId: string | null;
+      processingActivityId: string | null;
+      sourceCountry: string | null;
+      destinationCountry: string | null;
+      destinationRegion: string | null;
+      destinationType: string;
+      transferPurpose: string | null;
+      dataCategories: string[];
+      processingLocation: string | null;
+      mechanism: string;
+      safeguards: string | null;
+      documentationRef: string | null;
+      effectiveAt: string | null;
+      reviewAt: string | null;
+      status: string;
+    }>;
+  };
   trackers: Array<{
     id: string;
     name: string;
@@ -113,6 +166,9 @@ export type PolicyComplianceSnapshot = {
     purposeId: string | null;
     vendorId: string | null;
     scannerClassification: string;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
   }>;
   consentIntegrations: {
     iabTcfEnabled: boolean;

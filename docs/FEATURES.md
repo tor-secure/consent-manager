@@ -1,4 +1,4 @@
-# Consent Manager — Feature Guide (28 Features)
+# Consent Manager — Feature Guide (30 Features)
 
 This document explains every major feature in the Consent Manager product: what it is, how it appears and works on your websites and dashboard, and how to use it step by step.
 
@@ -534,6 +534,46 @@ This is a technical control. It does not certify legal parental consent or age-a
 
 ---
 
+## 29. Vendors, Processors, Transfers & Frozen Processing Snapshots
+
+**What it is**  
+Organization-scoped vendor/processor inventory (role, DPA metadata, processing activities, processor relationships, cross-border transfers) plus a frozen processing snapshot written onto the exact policy version being published. Historical policies and consent evidence never re-read today's live vendor tables.
+
+**How it is used on the website**  
+The public SDK may show vendor `role` with the existing vendor list. DPA files, credentials, and internal notes are not exposed. Publication is blocked until the server-side Phase 7 validator accepts the live inventory.
+
+**How to use it (step by step)**
+
+1. Open **Vendors**, set role / country / DPA status, and archive instead of hard-deleting historically referenced vendors.
+2. Open **Transfers** (or a vendor detail page) to record processing activities and transfer mechanisms.
+3. Publish the policy. Invalid vendor/transfer configuration returns structured 422 errors. Client-supplied validation results are ignored.
+4. After publish, change the live vendor or transfer: the published snapshot and later consent evidence stay unchanged.
+5. On a privacy-rights request, record downstream vendor action status. That status is orchestration only, not proof the CMP deleted vendor data.
+
+Read `docs/VENDORS_PROCESSORS_TRANSFERS.md` for snapshot design, rules, and limitations.
+
+---
+
+## 30. California Opt-Out, GPC & Do Not Sell/Share
+
+**What it is**  
+A server-authoritative California opt-out layer: Global Privacy Control (`Sec-GPC` / `navigator.globalPrivacyControl`), Do Not Sell, Do Not Share, and Limit Use of Sensitive Personal Information. It extends the existing consent, tracker, vendor, evidence, DSAR, and Phase 7 publication systems. It does not replace consent with a second engine.
+
+**How it is used on the website**  
+Optional processing stays blocked until the CMP evaluates GPC. When a valid GPC signal applies, classified sale/share trackers stay blocked even if the visitor later clicks Allow. The preference center shows California choices separately from consent toggles. GPC is honored without requiring a click.
+
+**How to use it (step by step)**
+
+1. Set the website regulation/region to a California-applicable configuration.
+2. In Banner Studio, enable Do Not Sell, Do Not Share, GPC honor, and Limit Sensitive PI if used.
+3. On each vendor and optional tracker, set sale / sharing / sensitive PI to applicable or not applicable. Do not leave California policies on `unknown`.
+4. Publish. Incomplete GPC/opt-out mapping is blocked by the existing validator.
+5. Confirm `Sec-GPC` is forwarded to the app, then test with GPC on and off.
+
+Read `docs/CCPA_GPC_RUNTIME.md`. This is a technical control, not a CCPA/CPRA certification.
+
+---
+
 ## Quick route map
 
 | Feature | Primary dashboard path |
@@ -560,6 +600,8 @@ This is a technical control. It does not certify legal parental consent or age-a
 | Privacy rights / DSAR | `/dashboard/rights-requests`, `/privacy-request` |
 | Policy compliance validation | `/dashboard/policies/[id]`, `POST /api/policies/[id]/validate` |
 | Children / age / guardian | `/dashboard/websites/[id]/child-protection`, `/guardian-consent` |
+| Vendors / processors / transfers | `/dashboard/vendors`, `/dashboard/vendors/[id]`, `/dashboard/transfers` |
+| California opt-out / GPC | Banner Studio, vendor/tracker California fields, preference center |
 | SDK install | `/dashboard/websites/[id]/installation` |
 
 ---

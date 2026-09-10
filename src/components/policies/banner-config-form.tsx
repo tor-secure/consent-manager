@@ -433,6 +433,10 @@ export function BannerConfigForm({
               </div>
               <div className="space-y-3">
                 <Toggle checked={config.respectDoNotTrack}    onChange={(v) => update("respectDoNotTrack", v)}    label="Respect Do Not Track (DNT) header" />
+                <Toggle checked={config.doNotSellEnabled} onChange={(v) => update("doNotSellEnabled", v)} label="Enable Do Not Sell My Personal Information" />
+                <Toggle checked={config.doNotShareEnabled} onChange={(v) => update("doNotShareEnabled", v)} label="Enable Do Not Share My Personal Information" />
+                <Toggle checked={config.gpcHonored} onChange={(v) => update("gpcHonored", v)} label="Honor Global Privacy Control (GPC) in the notice" />
+                <Toggle checked={config.limitSensitivePiEnabled} onChange={(v) => update("limitSensitivePiEnabled", v)} label="Enable Limit Use of Sensitive Personal Information" />
                 <Toggle checked={config.closeOnOverlayClick}  onChange={(v) => update("closeOnOverlayClick", v)}  label="Close banner on overlay click" />
                 <Toggle checked={config.blockPageUntilConsent}onChange={(v) => update("blockPageUntilConsent", v)}label="Block page scrolling until consent given" />
                 <Toggle checked={config.showOnEveryVisit}     onChange={(v) => update("showOnEveryVisit", v)}     label="Show banner on every visit" />

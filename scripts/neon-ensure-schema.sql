@@ -642,3 +642,145 @@ CREATE INDEX IF NOT EXISTS "guardian_requests_org_idx"
 CREATE INDEX IF NOT EXISTS "guardian_requests_session_idx"
   ON "guardian_authorization_requests" ("session_id");
 
+ALTER TABLE "consent_policy_versions"
+  ADD COLUMN IF NOT EXISTS "processing_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL;
+ALTER TABLE "vendor_purposes"
+  ADD COLUMN IF NOT EXISTS "processing_role" varchar(40);
+ALTER TABLE "vendor_purposes"
+  ADD COLUMN IF NOT EXISTS "status" varchar(40) DEFAULT 'active' NOT NULL;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "legal_name" varchar(255);
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "role" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "processing_countries" jsonb DEFAULT '[]'::jsonb NOT NULL;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "dpa_status" varchar(40) DEFAULT 'not_configured' NOT NULL;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "dpa_effective_at" timestamp with time zone;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "dpa_review_at" timestamp with time zone;
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "dpa_reference" varchar(255);
+ALTER TABLE "vendors"
+  ADD COLUMN IF NOT EXISTS "downstream_dsar_mode" varchar(40) DEFAULT 'not_required' NOT NULL;
+
+CREATE TABLE IF NOT EXISTS "processing_activities" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid REFERENCES "websites"("id") ON DELETE CASCADE,
+  "vendor_id" uuid NOT NULL REFERENCES "vendors"("id") ON DELETE CASCADE,
+  "purpose_id" uuid REFERENCES "purposes"("id") ON DELETE SET NULL,
+  "description" text,
+  "data_categories" jsonb DEFAULT '[]'::jsonb NOT NULL,
+  "sensitive" boolean DEFAULT false NOT NULL,
+  "source_of_data" varchar(255),
+  "recipients" jsonb DEFAULT '[]'::jsonb NOT NULL,
+  "retention_period" varchar(255),
+  "processing_role" varchar(40) DEFAULT 'unknown' NOT NULL,
+  "processing_location" varchar(100),
+  "transfer_required" boolean DEFAULT false NOT NULL,
+  "legal_basis" varchar(50),
+  "status" varchar(40) DEFAULT 'active' NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "processing_activities_org_idx" ON "processing_activities" ("organization_id");
+CREATE INDEX IF NOT EXISTS "processing_activities_website_idx" ON "processing_activities" ("website_id");
+CREATE INDEX IF NOT EXISTS "processing_activities_vendor_idx" ON "processing_activities" ("vendor_id");
+
+CREATE TABLE IF NOT EXISTS "vendor_relationships" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "parent_vendor_id" uuid NOT NULL REFERENCES "vendors"("id") ON DELETE CASCADE,
+  "child_vendor_id" uuid NOT NULL REFERENCES "vendors"("id") ON DELETE CASCADE,
+  "relationship_type" varchar(40) NOT NULL,
+  "status" varchar(40) DEFAULT 'active' NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "vendor_relationships_org_idx" ON "vendor_relationships" ("organization_id");
+CREATE INDEX IF NOT EXISTS "vendor_relationships_parent_idx" ON "vendor_relationships" ("parent_vendor_id");
+CREATE INDEX IF NOT EXISTS "vendor_relationships_child_idx" ON "vendor_relationships" ("child_vendor_id");
+
+CREATE TABLE IF NOT EXISTS "cross_border_transfers" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid REFERENCES "websites"("id") ON DELETE CASCADE,
+  "vendor_id" uuid NOT NULL REFERENCES "vendors"("id") ON DELETE CASCADE,
+  "processing_activity_id" uuid REFERENCES "processing_activities"("id") ON DELETE SET NULL,
+  "source_country" varchar(8),
+  "destination_country" varchar(8),
+  "destination_region" varchar(32),
+  "destination_type" varchar(40) DEFAULT 'vendor' NOT NULL,
+  "transfer_purpose" varchar(255),
+  "data_categories" jsonb DEFAULT '[]'::jsonb NOT NULL,
+  "processing_location" varchar(100),
+  "mechanism" varchar(40) DEFAULT 'not_configured' NOT NULL,
+  "safeguards" text,
+  "documentation_ref" varchar(255),
+  "notes" text,
+  "effective_at" timestamp with time zone,
+  "review_at" timestamp with time zone,
+  "status" varchar(40) DEFAULT 'active' NOT NULL,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "transfers_org_idx" ON "cross_border_transfers" ("organization_id");
+CREATE INDEX IF NOT EXISTS "transfers_website_idx" ON "cross_border_transfers" ("website_id");
+CREATE INDEX IF NOT EXISTS "transfers_vendor_idx" ON "cross_border_transfers" ("vendor_id");
+
+CREATE TABLE IF NOT EXISTS "rights_downstream_actions" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "request_id" uuid NOT NULL REFERENCES "data_principal_requests"("id") ON DELETE CASCADE,
+  "vendor_id" uuid NOT NULL REFERENCES "vendors"("id") ON DELETE RESTRICT,
+  "processing_activity_id" uuid REFERENCES "processing_activities"("id") ON DELETE SET NULL,
+  "action_required" boolean DEFAULT false NOT NULL,
+  "status" varchar(40) DEFAULT 'not_required' NOT NULL,
+  "reference" varchar(255),
+  "requested_at" timestamp with time zone,
+  "completed_at" timestamp with time zone,
+  "notes" text,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "rights_downstream_org_idx" ON "rights_downstream_actions" ("organization_id");
+CREATE INDEX IF NOT EXISTS "rights_downstream_request_idx" ON "rights_downstream_actions" ("request_id");
+CREATE INDEX IF NOT EXISTS "rights_downstream_vendor_idx" ON "rights_downstream_actions" ("vendor_id");
+
+CREATE TABLE IF NOT EXISTS "california_opt_out_states" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "consent_id" varchar(255) NOT NULL,
+  "visitor_id" varchar(255),
+  "state" varchar(40) DEFAULT 'unknown' NOT NULL,
+  "source" varchar(40) DEFAULT 'none' NOT NULL,
+  "sale_opt_out" boolean DEFAULT false NOT NULL,
+  "share_opt_out" boolean DEFAULT false NOT NULL,
+  "sensitive_pi_limit" boolean DEFAULT false NOT NULL,
+  "gpc_header" varchar(20) DEFAULT 'absent' NOT NULL,
+  "gpc_client" varchar(20) DEFAULT 'unknown' NOT NULL,
+  "jurisdiction" varchar(100),
+  "policy_version_id" uuid REFERENCES "consent_policy_versions"("id") ON DELETE SET NULL,
+  "effective_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "expires_at" timestamp with time zone,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "california_opt_out_org_website_consent_unique" ON "california_opt_out_states" ("organization_id","website_id","consent_id");
+CREATE INDEX IF NOT EXISTS "california_opt_out_org_idx" ON "california_opt_out_states" ("organization_id");
+CREATE INDEX IF NOT EXISTS "california_opt_out_website_idx" ON "california_opt_out_states" ("website_id");
+CREATE INDEX IF NOT EXISTS "california_opt_out_consent_idx" ON "california_opt_out_states" ("consent_id");
+ALTER TABLE "vendors" ADD COLUMN IF NOT EXISTS "ccpa_sale" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "vendors" ADD COLUMN IF NOT EXISTS "ccpa_share" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "vendors" ADD COLUMN IF NOT EXISTS "ccpa_sensitive_pi" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "trackers" ADD COLUMN IF NOT EXISTS "ccpa_sale" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "trackers" ADD COLUMN IF NOT EXISTS "ccpa_share" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "trackers" ADD COLUMN IF NOT EXISTS "ccpa_sensitive_pi" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_sale" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_share" varchar(40) DEFAULT 'unknown' NOT NULL;
+ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_sensitive_pi" varchar(40) DEFAULT 'unknown' NOT NULL;
+
+

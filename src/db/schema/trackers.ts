@@ -94,6 +94,14 @@ export const trackers = pgTable(
       .notNull()
       .default(false),
 
+    ccpaSale: varchar("ccpa_sale", { length: 40 }).notNull().default("unknown"),
+
+    ccpaShare: varchar("ccpa_share", { length: 40 }).notNull().default("unknown"),
+
+    ccpaSensitivePi: varchar("ccpa_sensitive_pi", { length: 40 })
+      .notNull()
+      .default("unknown"),
+
     firstSeenAt: timestamp("first_seen_at", {
       withTimezone: true,
     }),

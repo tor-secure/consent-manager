@@ -137,6 +137,8 @@ export default async function RightsRequestDetailPage({
             status: row.status,
             websiteId: row.websiteId,
           })),
+          californiaOptOuts: discovered.californiaOptOuts,
+          downstream: discovered.downstream,
         }}
       />
     </div>

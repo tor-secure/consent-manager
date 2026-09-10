@@ -35,6 +35,11 @@ export const consentPolicyVersions = pgTable(
       .notNull()
       .default({}),
 
+    processingSnapshot: jsonb("processing_snapshot")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default({}),
+
     isPublished: boolean("is_published")
       .notNull()
       .default(false),

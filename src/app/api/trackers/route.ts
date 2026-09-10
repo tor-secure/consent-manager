@@ -14,6 +14,7 @@ import {
   loadOwnedVendor,
   loadOwnedWebsite,
   trackerMutationLimit,
+  vendorMappingError,
 } from "@/lib/trackers/http";
 import {
   deriveTrackerIdentifier,
@@ -106,9 +107,8 @@ export async function POST(request: Request) {
     }
     if (input.vendorId !== undefined && input.vendorId !== null) {
       const vendor = await loadOwnedVendor(authz.organization.id, input.vendorId);
-      if (!vendor.ok) {
-        return NextResponse.json({ success: false, message: "Vendor not found in this organization." }, { status: 400 });
-      }
+      const vendorError = vendorMappingError(vendor);
+      if (vendorError) return vendorError;
     }
     if (input.purposeId !== undefined && input.purposeId !== null) {
       const purpose = await loadOwnedPurpose(authz.organization.id, input.purposeId);
@@ -142,6 +142,9 @@ export async function POST(request: Request) {
         purposeId: input.purposeId ?? null,
         category: input.category ?? null,
         isEssential: input.isEssential === true,
+        ccpaSale: input.ccpaSale ?? "unknown",
+        ccpaShare: input.ccpaShare ?? "unknown",
+        ccpaSensitivePi: input.ccpaSensitivePi ?? "unknown",
         status: input.status ?? "active",
         domain: input.domain ?? null,
         identifier,

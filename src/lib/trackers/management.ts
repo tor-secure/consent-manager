@@ -1,3 +1,5 @@
+import { parseCcpaApplicability, type CcpaApplicability } from "../ccpa/types";
+
 export const TRACKER_TYPES = [
   "cookie",
   "pixel",
@@ -373,6 +375,9 @@ export type TrackerWriteInput = {
   party: TrackerParty;
   duration: string | null;
   deletionBehavior: string | null;
+  ccpaSale?: CcpaApplicability;
+  ccpaShare?: CcpaApplicability;
+  ccpaSensitivePi?: CcpaApplicability;
   confirmEssential: boolean;
 };
 
@@ -491,6 +496,9 @@ export function parseTrackerWriteInput(
       deletionBehavior: body.deletionBehavior === undefined
         ? undefined
         : String(body.deletionBehavior).trim() || null,
+      ccpaSale: body.ccpaSale === undefined ? undefined : parseCcpaApplicability(body.ccpaSale),
+      ccpaShare: body.ccpaShare === undefined ? undefined : parseCcpaApplicability(body.ccpaShare),
+      ccpaSensitivePi: body.ccpaSensitivePi === undefined ? undefined : parseCcpaApplicability(body.ccpaSensitivePi),
       confirmEssential: body.confirmEssential === true,
     },
   };

@@ -83,9 +83,11 @@ export async function POST(
       );
     }
 
+    const processingRole = body.processingRole ? String(body.processingRole).trim() || null : null;
+
     const [link] = await db
       .insert(vendorPurposes)
-      .values({ vendorId: vendor.id, purposeId })
+      .values({ vendorId: vendor.id, purposeId, processingRole })
       .returning();
 
     return NextResponse.json({ success: true, vendorPurpose: link }, { status: 201 });

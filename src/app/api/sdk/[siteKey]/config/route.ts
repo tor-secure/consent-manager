@@ -36,6 +36,10 @@ import {
 } from "@/lib/policy-context";
 import { parseChildProtectionConfig } from "@/lib/children/config";
 import { publicChildSnapshot } from "@/lib/children/service";
+import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
+import { californiaRuntimeApplies } from "@/lib/ccpa/types";
+import { resolveTrackerCcpaClassification } from "@/lib/ccpa/enforcement";
+import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 
 // GET /api/sdk/[siteKey]/config
 // Public, CORS-enabled endpoint.
@@ -233,6 +237,10 @@ export async function GET(
               domain: vendors.domain,
               privacyPolicyUrl: vendors.privacyPolicyUrl,
               iabVendorId: vendors.iabVendorId,
+              role: vendors.role,
+              ccpaSale: vendors.ccpaSale,
+              ccpaShare: vendors.ccpaShare,
+              ccpaSensitivePi: vendors.ccpaSensitivePi,
             })
             .from(vendors)
             .where(inArray(vendors.id, vendorIds))
@@ -264,6 +272,9 @@ export async function GET(
         party: trackers.party,
         duration: trackers.duration,
         deletionBehavior: trackers.deletionBehavior,
+        ccpaSale: trackers.ccpaSale,
+        ccpaShare: trackers.ccpaShare,
+        ccpaSensitivePi: trackers.ccpaSensitivePi,
       })
       .from(trackers)
       .where(
@@ -287,30 +298,45 @@ export async function GET(
         : [];
     const purposeKeyMap = new Map(purposeKeyRows.map((p) => [p.id, p.key]));
 
-    const trackerRules: TrackerRule[] = trackerRows.map((t) => ({
-      id: t.id,
-      name: t.name,
-      type: t.type as TrackerRule["type"],
-      domain: t.domain,
-      identifier: t.identifier,
-      purposeKey: t.purposeId ? (purposeKeyMap.get(t.purposeId) ?? null) : null,
-      purposeId: t.purposeId,
-      vendorId: t.vendorId,
-      isEssential: t.isEssential,
-      status: t.status,
-      category: t.category,
-      cookieNames: t.cookieNames,
-      storageTypes: t.storageTypes,
-      localStorageKeys: t.localStorageKeys,
-      sessionStorageKeys: t.sessionStorageKeys,
-      indexedDbNames: t.indexedDbNames,
-      scriptUrlPatterns: t.scriptUrlPatterns,
-      iframeUrlPatterns: t.iframeUrlPatterns,
-      pixelUrlPatterns: t.pixelUrlPatterns,
-      party: t.party as TrackerRule["party"],
-      duration: t.duration,
-      deletionBehavior: t.deletionBehavior,
-    }));
+    const vendorById = new Map(resolvedVendors.map((vendor) => [vendor.id, vendor]));
+    const trackerRules: TrackerRule[] = trackerRows.map((t) => {
+      const vendor = t.vendorId ? vendorById.get(t.vendorId) : null;
+      const ccpa = resolveTrackerCcpaClassification({
+        trackerSale: t.ccpaSale,
+        trackerShare: t.ccpaShare,
+        trackerSensitive: t.ccpaSensitivePi,
+        vendorSale: vendor?.ccpaSale,
+        vendorShare: vendor?.ccpaShare,
+        vendorSensitive: vendor?.ccpaSensitivePi,
+      });
+      return {
+        id: t.id,
+        name: t.name,
+        type: t.type as TrackerRule["type"],
+        domain: t.domain,
+        identifier: t.identifier,
+        purposeKey: t.purposeId ? (purposeKeyMap.get(t.purposeId) ?? null) : null,
+        purposeId: t.purposeId,
+        vendorId: t.vendorId,
+        isEssential: t.isEssential,
+        status: t.status,
+        category: t.category,
+        cookieNames: t.cookieNames,
+        storageTypes: t.storageTypes,
+        localStorageKeys: t.localStorageKeys,
+        sessionStorageKeys: t.sessionStorageKeys,
+        indexedDbNames: t.indexedDbNames,
+        scriptUrlPatterns: t.scriptUrlPatterns,
+        iframeUrlPatterns: t.iframeUrlPatterns,
+        pixelUrlPatterns: t.pixelUrlPatterns,
+        party: t.party as TrackerRule["party"],
+        duration: t.duration,
+        deletionBehavior: t.deletionBehavior,
+        ccpaSale: ccpa.ccpaSale,
+        ccpaShare: ccpa.ccpaShare,
+        ccpaSensitivePi: ccpa.ccpaSensitivePi,
+      };
+    });
 
     const integrations = parseConsentIntegrations(website.consentIntegrations);
     const currentGvl = await getCurrentGvl();
@@ -521,6 +547,26 @@ export async function GET(
           disclosure: "Optional alternatives. Declining keeps the standard preference choices available.",
         },
         grievance,
+        california: (() => {
+          const gpc = parseGpcFromRequest(request.headers, null);
+          const declarations = parseComplianceDeclarations(
+            legalBannerConfig as unknown as Record<string, unknown>,
+            {},
+          );
+          const enabled = californiaRuntimeApplies({
+            regulationKey: resolved.regulation?.key ?? website.defaultRegulationKey,
+            region: resolved.geo.region ?? website.defaultRegion,
+          });
+          return {
+            enabled,
+            gpcRuntime: true,
+            gpcHeader: gpc.header,
+            gpcRecognized: gpc.active && enabled,
+            doNotSellEnabled: declarations.doNotSellEnabled,
+            doNotShareEnabled: declarations.doNotShareEnabled,
+            limitSensitivePiEnabled: declarations.limitSensitivePiEnabled,
+          };
+        })(),
         childProtection: {
           enabled: childConfig.enabled || childConfig.childDirected || childConfig.ageAssuranceRequired,
           childDirected: childConfig.childDirected,

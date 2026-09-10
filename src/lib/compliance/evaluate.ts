@@ -5,7 +5,18 @@ import { isMappedTracker } from "../trackers/management";
 import { availableRightsForJurisdiction } from "../privacy-rights/applicability";
 
 import { childProtectionIsComplete, parseChildProtectionConfig } from "../children/config";
+import { collectProcessingIssues, inventoryCoversDeclaredTransfer } from "../processing/validate";
+import { collectCaliforniaMappingIssues } from "../ccpa/validate";
+import {
+  parseDpaStatus,
+  parseDownstreamDsarMode,
+  parseStringList,
+  parseTransferMechanism,
+  parseVendorRole,
+  parseVendorStatus,
+} from "../processing/types";
 import { COMPLIANCE_RULES, type ComplianceRuleId } from "./rule-registry";
+import type { ComplianceSeverity } from "./types";
 import {
   COMPLIANCE_VALIDATOR_VERSION,
   GDPR_LAWFUL_BASES,
@@ -15,8 +26,8 @@ import {
   type PolicyComplianceSnapshot,
 } from "./types";
 
-export const GPC_RUNTIME_SUPPORTED = false;
-export const OPT_OUT_PROPAGATION_IMPLEMENTED = false;
+export const GPC_RUNTIME_SUPPORTED = true;
+export const OPT_OUT_PROPAGATION_IMPLEMENTED = true;
 
 const GDPR_FAMILY = new Set(["gdpr", "uk_gdpr"]);
 const CCPA_FAMILY = new Set(["ccpa", "ucpa", "vcdpa", "cpa"]);
@@ -48,11 +59,12 @@ function issue(
   jurisdiction: string,
   field?: string,
   messageOverride?: string,
+  severity?: ComplianceSeverity,
 ): ComplianceIssue {
   const rule = COMPLIANCE_RULES[code];
   return {
     code: rule.id,
-    severity: rule.severity,
+    severity: severity ?? rule.severity,
     jurisdiction,
     field,
     message: messageOverride ?? rule.description,
@@ -120,6 +132,7 @@ export function parseComplianceDeclarations(
     doNotSellEnabled: merged.doNotSellEnabled === true,
     doNotShareEnabled: merged.doNotShareEnabled === true,
     gpcHonored: merged.gpcHonored === true,
+    limitSensitivePiEnabled: merged.limitSensitivePiEnabled === true,
     financialIncentive: merged.financialIncentive === true,
     financialIncentiveDisclosed: merged.financialIncentiveDisclosed === true,
     internationalTransfers: merged.internationalTransfers === true,
@@ -318,6 +331,48 @@ function collectChildrenAndSensitive(
 
 function collectTransfers(snapshot: PolicyComplianceSnapshot, jurisdictions: string[]): ComplianceIssue[] {
   const issues: ComplianceIssue[] = [];
+  const inventory = snapshot.processingInventory;
+  const transfers = (inventory?.transfers ?? []).map((row) => ({
+    ...row,
+    mechanism: parseTransferMechanism(row.mechanism),
+  }));
+  const processingIssues = collectProcessingIssues({
+    websiteRegion: snapshot.website.defaultRegion,
+    jurisdictions,
+    internationalTransfersDeclared: snapshot.declarations.internationalTransfers,
+    declarationTransferMechanism: snapshot.declarations.transferMechanism,
+    dpaRequired: asRecord(asRecord(snapshot.organization.settings).processingInventory).dpaRequired === true,
+    nowIso: new Date().toISOString(),
+    vendors: snapshot.vendors.map((vendor) => ({
+      id: vendor.id,
+      key: vendor.id,
+      name: vendor.name,
+      legalName: null,
+      role: parseVendorRole(vendor.role),
+      country: vendor.country,
+      processingCountries: parseStringList(vendor.processingCountries),
+      privacyPolicyUrl: vendor.privacyPolicyUrl,
+      dpaStatus: parseDpaStatus(vendor.dpaStatus),
+      dpaReference: null,
+      dpaEffectiveAt: null,
+      downstreamDsarMode: parseDownstreamDsarMode(vendor.downstreamDsarMode),
+      status: parseVendorStatus(vendor.status ?? "active"),
+      purposes: [],
+    })),
+    activities: inventory?.activities ?? [],
+    relationships: inventory?.relationships ?? [],
+    transfers,
+  });
+  for (const row of processingIssues) {
+    issues.push(issue(
+      row.code as ComplianceRuleId,
+      "common",
+      row.field,
+      row.message,
+      row.severity,
+    ));
+  }
+
   const vendorCountries = snapshot.vendors
     .map((vendor) => text(vendor.country).toUpperCase())
     .filter(Boolean);
@@ -325,14 +380,32 @@ function collectTransfers(snapshot: PolicyComplianceSnapshot, jurisdictions: str
   const suggestsTransfer =
     snapshot.declarations.internationalTransfers ||
     (websiteRegion.length === 2 && vendorCountries.some((country) => country && country !== websiteRegion));
+  const inventoryCovers = inventoryCoversDeclaredTransfer({
+    websiteRegion: snapshot.website.defaultRegion,
+    jurisdictions,
+    internationalTransfersDeclared: snapshot.declarations.internationalTransfers,
+    declarationTransferMechanism: snapshot.declarations.transferMechanism,
+    dpaRequired: false,
+    nowIso: new Date().toISOString(),
+    vendors: [],
+    activities: [],
+    relationships: [],
+    transfers,
+  });
 
-  if (suggestsTransfer && !text(snapshot.declarations.transferMechanism)) {
+  if (suggestsTransfer && !text(snapshot.declarations.transferMechanism) && !inventoryCovers) {
     issues.push(issue("TRANSFER_MECHANISM_MISSING", "common", "declarations.transferMechanism"));
     if (jurisdictions.includes("lgpd") && snapshot.declarations.internationalTransfers) {
       issues.push(issue("LGPD_TRANSFER_MECHANISM_MISSING", "lgpd", "declarations.transferMechanism"));
     }
   }
   return issues;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function collectGdpr(snapshot: PolicyComplianceSnapshot, jurisdiction: string): ComplianceIssue[] {
@@ -419,6 +492,18 @@ function collectCcpa(snapshot: PolicyComplianceSnapshot, jurisdiction: string): 
   }
   if (!snapshot.optOutPropagationImplemented) {
     issues.push(issue("CCPA_OPT_OUT_PROPAGATION_UNSUPPORTED", jurisdiction, "runtime.optOutPropagation"));
+  }
+  for (const mapping of collectCaliforniaMappingIssues({
+    doNotSellEnabled: snapshot.declarations.doNotSellEnabled,
+    doNotShareEnabled: snapshot.declarations.doNotShareEnabled,
+    limitSensitivePiEnabled: snapshot.declarations.limitSensitivePiEnabled,
+    specialCategoryProcessing: snapshot.declarations.specialCategoryProcessing,
+    hasSaleSharePurpose,
+    vendors: snapshot.vendors,
+    trackers: snapshot.trackers,
+    activities: snapshot.processingInventory?.activities,
+  })) {
+    issues.push(issue(mapping.code as ComplianceRuleId, jurisdiction, mapping.field));
   }
   if (snapshot.declarations.financialIncentive && !snapshot.declarations.financialIncentiveDisclosed) {
     issues.push(issue(

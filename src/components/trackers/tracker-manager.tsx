@@ -38,6 +38,9 @@ export type ManagedTracker = {
   pixelUrlPatterns: string[];
   duration: string | null;
   deletionBehavior: string | null;
+  ccpaSale?: string | null;
+  ccpaShare?: string | null;
+  ccpaSensitivePi?: string | null;
   scannerClassification: string;
   updatedAt: string | Date;
   websiteName?: string;
@@ -81,6 +84,9 @@ const emptyForm = {
   party: "third-party",
   duration: "",
   deletionBehavior: "",
+  ccpaSale: "unknown",
+  ccpaShare: "unknown",
+  ccpaSensitivePi: "unknown",
   confirmEssential: false,
 };
 
@@ -169,6 +175,9 @@ export function TrackerManager({
       party: tracker.party || "unknown",
       duration: tracker.duration ?? "",
       deletionBehavior: tracker.deletionBehavior ?? "",
+      ccpaSale: tracker.ccpaSale ?? "unknown",
+      ccpaShare: tracker.ccpaShare ?? "unknown",
+      ccpaSensitivePi: tracker.ccpaSensitivePi ?? "unknown",
       confirmEssential: false,
     });
     setPanel("edit");
@@ -195,6 +204,9 @@ export function TrackerManager({
       party: form.party,
       duration: form.duration,
       deletionBehavior: form.deletionBehavior,
+      ccpaSale: form.ccpaSale,
+      ccpaShare: form.ccpaShare,
+      ccpaSensitivePi: form.ccpaSensitivePi,
       confirmEssential: form.confirmEssential,
     };
   }
@@ -618,6 +630,29 @@ function TrackerForm({
       <Field label="Deletion behavior" htmlFor="tracker-deletion">
         <Textarea id="tracker-deletion" value={form.deletionBehavior} onChange={(event) => update("deletionBehavior", event.target.value)} />
       </Field>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Field label="California sale" htmlFor="tracker-ccpa-sale">
+          <Select id="tracker-ccpa-sale" value={form.ccpaSale} onChange={(event) => update("ccpaSale", event.target.value)}>
+            <option value="unknown">Unknown</option>
+            <option value="applicable">Applicable</option>
+            <option value="not_applicable">Not applicable</option>
+          </Select>
+        </Field>
+        <Field label="California sharing" htmlFor="tracker-ccpa-share">
+          <Select id="tracker-ccpa-share" value={form.ccpaShare} onChange={(event) => update("ccpaShare", event.target.value)}>
+            <option value="unknown">Unknown</option>
+            <option value="applicable">Applicable</option>
+            <option value="not_applicable">Not applicable</option>
+          </Select>
+        </Field>
+        <Field label="California sensitive PI" htmlFor="tracker-ccpa-spi">
+          <Select id="tracker-ccpa-spi" value={form.ccpaSensitivePi} onChange={(event) => update("ccpaSensitivePi", event.target.value)}>
+            <option value="unknown">Unknown</option>
+            <option value="applicable">Applicable</option>
+            <option value="not_applicable">Not applicable</option>
+          </Select>
+        </Field>
+      </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={form.enabled} onChange={(event) => update("enabled", event.target.checked)} />
         Enabled

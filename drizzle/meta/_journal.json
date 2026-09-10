@@ -379,6 +379,20 @@
       "when": 1788988962561,
       "tag": "0053_children_guardian_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1789025429539,
+      "tag": "0054_vendors_processors_transfers",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1789029752928,
+      "tag": "0055_ccpa_gpc_runtime",
+      "breakpoints": true
     }
   ]
 }
