@@ -17,6 +17,7 @@ import { parseBannerConfig } from "@/lib/banner-config";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
 import { loadLiveProcessingInventory } from "@/lib/processing/service";
+import { isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 import {
   GPC_RUNTIME_SUPPORTED,
@@ -80,24 +81,51 @@ export async function loadPolicyComplianceSnapshot(input: {
     .where(eq(policyPurposes.policyVersionId, version.id));
 
   const purposeIds = attached.map((row) => row.id);
-  const vendorRows = purposeIds.length
-    ? await db
-        .select({
-          id: vendors.id,
-          name: vendors.name,
-          privacyPolicyUrl: vendors.privacyPolicyUrl,
-          country: vendors.country,
-          role: vendors.role,
-          status: vendors.status,
-          processingCountries: vendors.processingCountries,
-          dpaStatus: vendors.dpaStatus,
-          dpaReviewAt: vendors.dpaReviewAt,
-          downstreamDsarMode: vendors.downstreamDsarMode,
-          ccpaSale: vendors.ccpaSale,
-          ccpaShare: vendors.ccpaShare,
-          ccpaSensitivePi: vendors.ccpaSensitivePi,
-          deletedAt: vendors.deletedAt,
-        })
+  const vendorSelectFull = {
+    id: vendors.id,
+    name: vendors.name,
+    privacyPolicyUrl: vendors.privacyPolicyUrl,
+    country: vendors.country,
+    role: vendors.role,
+    status: vendors.status,
+    processingCountries: vendors.processingCountries,
+    dpaStatus: vendors.dpaStatus,
+    dpaReviewAt: vendors.dpaReviewAt,
+    downstreamDsarMode: vendors.downstreamDsarMode,
+    ccpaSale: vendors.ccpaSale,
+    ccpaShare: vendors.ccpaShare,
+    ccpaSensitivePi: vendors.ccpaSensitivePi,
+    deletedAt: vendors.deletedAt,
+  };
+  const vendorSelectLegacy = {
+    id: vendors.id,
+    name: vendors.name,
+    privacyPolicyUrl: vendors.privacyPolicyUrl,
+    country: vendors.country,
+    status: vendors.status,
+    deletedAt: vendors.deletedAt,
+  };
+
+  let vendorRows: Array<{
+    id: string;
+    name: string;
+    privacyPolicyUrl: string | null;
+    country: string | null;
+    role?: string | null;
+    status: string;
+    processingCountries?: string[] | null;
+    dpaStatus?: string | null;
+    dpaReviewAt?: Date | null;
+    downstreamDsarMode?: string | null;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
+    deletedAt: Date | null;
+  }> = [];
+  if (purposeIds.length) {
+    try {
+      vendorRows = await db
+        .select(vendorSelectFull)
         .from(vendorPurposes)
         .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
         .where(
@@ -105,76 +133,122 @@ export async function loadPolicyComplianceSnapshot(input: {
             eq(vendors.organizationId, input.organizationId),
             inArray(vendorPurposes.purposeId, purposeIds),
           ),
-        )
-    : [];
+        );
+    } catch (error) {
+      if (!isSchemaMismatchError(error)) throw error;
+      vendorRows = await db
+        .select(vendorSelectLegacy)
+        .from(vendorPurposes)
+        .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
+        .where(
+          and(
+            eq(vendors.organizationId, input.organizationId),
+            inArray(vendorPurposes.purposeId, purposeIds),
+          ),
+        );
+    }
+  }
 
-  const trackerRows = await db
-    .select({
-      id: trackers.id,
-      name: trackers.name,
-      status: trackers.status,
-      isEssential: trackers.isEssential,
-      purposeId: trackers.purposeId,
-      vendorId: trackers.vendorId,
-      scannerClassification: trackers.scannerClassification,
-      ccpaSale: trackers.ccpaSale,
-      ccpaShare: trackers.ccpaShare,
-      ccpaSensitivePi: trackers.ccpaSensitivePi,
-    })
-    .from(trackers)
-    .where(eq(trackers.websiteId, input.websiteId));
+  let trackerRows: Array<{
+    id: string;
+    name: string;
+    status: string;
+    isEssential: boolean;
+    purposeId: string | null;
+    vendorId: string | null;
+    scannerClassification: string | null;
+    ccpaSale?: string | null;
+    ccpaShare?: string | null;
+    ccpaSensitivePi?: string | null;
+  }>;
+  try {
+    trackerRows = await db
+      .select({
+        id: trackers.id,
+        name: trackers.name,
+        status: trackers.status,
+        isEssential: trackers.isEssential,
+        purposeId: trackers.purposeId,
+        vendorId: trackers.vendorId,
+        scannerClassification: trackers.scannerClassification,
+        ccpaSale: trackers.ccpaSale,
+        ccpaShare: trackers.ccpaShare,
+        ccpaSensitivePi: trackers.ccpaSensitivePi,
+      })
+      .from(trackers)
+      .where(eq(trackers.websiteId, input.websiteId));
+  } catch (error) {
+    if (!isSchemaMismatchError(error)) throw error;
+    trackerRows = await db
+      .select({
+        id: trackers.id,
+        name: trackers.name,
+        status: trackers.status,
+        isEssential: trackers.isEssential,
+        purposeId: trackers.purposeId,
+        vendorId: trackers.vendorId,
+        scannerClassification: trackers.scannerClassification,
+      })
+      .from(trackers)
+      .where(eq(trackers.websiteId, input.websiteId));
+  }
 
   const uniqueVendorMap = new Map(vendorRows.map((row) => [row.id, row]));
   const trackerVendorIds = [...new Set(trackerRows.map((row) => row.vendorId).filter((id): id is string => Boolean(id)))];
   const missingTrackerVendorIds = trackerVendorIds.filter((id) => !uniqueVendorMap.has(id));
   if (missingTrackerVendorIds.length > 0) {
-    const extraVendors = await db
-      .select({
-        id: vendors.id,
-        name: vendors.name,
-        privacyPolicyUrl: vendors.privacyPolicyUrl,
-        country: vendors.country,
-        role: vendors.role,
-        status: vendors.status,
-        processingCountries: vendors.processingCountries,
-        dpaStatus: vendors.dpaStatus,
-        dpaReviewAt: vendors.dpaReviewAt,
-        downstreamDsarMode: vendors.downstreamDsarMode,
-        ccpaSale: vendors.ccpaSale,
-        ccpaShare: vendors.ccpaShare,
-        ccpaSensitivePi: vendors.ccpaSensitivePi,
-        deletedAt: vendors.deletedAt,
-      })
-      .from(vendors)
-      .where(
-        and(
-          eq(vendors.organizationId, input.organizationId),
-          inArray(vendors.id, missingTrackerVendorIds),
-        ),
-      );
-    for (const row of extraVendors) uniqueVendorMap.set(row.id, row);
+    try {
+      const extraVendors = await db
+        .select(vendorSelectFull)
+        .from(vendors)
+        .where(
+          and(
+            eq(vendors.organizationId, input.organizationId),
+            inArray(vendors.id, missingTrackerVendorIds),
+          ),
+        );
+      for (const row of extraVendors) uniqueVendorMap.set(row.id, row);
+    } catch (error) {
+      if (!isSchemaMismatchError(error)) throw error;
+      const extraVendors = await db
+        .select(vendorSelectLegacy)
+        .from(vendors)
+        .where(
+          and(
+            eq(vendors.organizationId, input.organizationId),
+            inArray(vendors.id, missingTrackerVendorIds),
+          ),
+        );
+      for (const row of extraVendors) uniqueVendorMap.set(row.id, row);
+    }
   }
   const uniqueVendors = [...uniqueVendorMap.values()].map((row) => ({
     id: row.id,
     name: row.name,
     privacyPolicyUrl: row.privacyPolicyUrl,
     country: row.country,
-    role: row.role,
+    role: row.role ?? "unknown",
     status: row.deletedAt ? "archived" : row.status,
     processingCountries: row.processingCountries ?? [],
-    dpaStatus: row.dpaStatus,
+    dpaStatus: row.dpaStatus ?? "not_configured",
     dpaReviewAt: row.dpaReviewAt ? row.dpaReviewAt.toISOString() : null,
-    downstreamDsarMode: row.downstreamDsarMode,
-    ccpaSale: row.ccpaSale,
-    ccpaShare: row.ccpaShare,
-    ccpaSensitivePi: row.ccpaSensitivePi,
+    downstreamDsarMode: row.downstreamDsarMode ?? "not_required",
+    ccpaSale: row.ccpaSale ?? "unknown",
+    ccpaShare: row.ccpaShare ?? "unknown",
+    ccpaSensitivePi: row.ccpaSensitivePi ?? "unknown",
   }));
   const referencedVendorIds = uniqueVendors.map((row) => row.id);
-  const inventory = await loadLiveProcessingInventory({
-    organizationId: input.organizationId,
-    websiteId: input.websiteId,
-    vendorIds: referencedVendorIds,
-  });
+  let inventory: Awaited<ReturnType<typeof loadLiveProcessingInventory>>;
+  try {
+    inventory = await loadLiveProcessingInventory({
+      organizationId: input.organizationId,
+      websiteId: input.websiteId,
+      vendorIds: referencedVendorIds,
+    });
+  } catch (error) {
+    if (!isSchemaMismatchError(error)) throw error;
+    inventory = { vendors: [], activities: [], relationships: [], transfers: [] };
+  }
 
   const assignedRules = await db
     .select({ regulationKey: websiteJurisdictionRules.regulationKey })

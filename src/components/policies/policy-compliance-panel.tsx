@@ -57,14 +57,24 @@ export function PolicyCompliancePanel({
       body: JSON.stringify({}),
     })
       .then(async (res) => {
-        const data = (await res.json()) as {
-          success: boolean;
+        let data: {
+          success?: boolean;
           message?: string;
           validation?: PolicyValidationResult;
-        };
+        } = {};
+        try {
+          data = (await res.json()) as typeof data;
+        } catch {
+          data = {};
+        }
         if (cancelled) return;
         if (!data.success || !data.validation) {
-          setError(data.message ?? "Unable to validate this policy.");
+          setError(
+            data.message
+              ?? (res.status >= 500
+                ? "Unable to validate this policy. The database may be unreachable or missing vendor-role columns."
+                : "Unable to validate this policy."),
+          );
           onResult?.(null);
           return;
         }
@@ -73,7 +83,7 @@ export function PolicyCompliancePanel({
       })
       .catch(() => {
         if (!cancelled) {
-          setError("Unable to validate this policy.");
+          setError("Unable to reach the validation API. Confirm the app is running and the database is reachable.");
           onResult?.(null);
         }
       })

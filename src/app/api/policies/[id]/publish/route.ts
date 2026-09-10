@@ -16,6 +16,7 @@ import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { captureDigitalTwinSnapshot } from "@/lib/intelligence/service";
 import { buildLivePolicyProcessingSnapshot } from "@/lib/processing/service";
+import { policyValidationFailureMessage } from "@/lib/schema-mismatch";
 
 // ---------------------------------------------------------------------------
 // POST /api/policies/[id]/publish
@@ -171,8 +172,8 @@ export async function POST(
   } catch (error) {
     console.error("Publish policy failed:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to publish policy" },
-      { status: 500 },
+      { success: false, message: policyValidationFailureMessage(error) },
+      { status: 503 },
     );
   }
 }
