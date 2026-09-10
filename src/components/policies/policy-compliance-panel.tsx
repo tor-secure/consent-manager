@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { remediationLinkForRule } from "@/lib/compliance/remediation-links";
 
 type Issue = {
   code: string;
@@ -19,8 +21,17 @@ export type PolicyValidationResult = {
   warnings: Issue[];
 };
 
-function IssueCard({ issue }: { issue: Issue }) {
+function IssueCard({
+  issue,
+  policyId,
+  websiteId,
+}: {
+  issue: Issue;
+  policyId: string;
+  websiteId?: string | null;
+}) {
   const blocked = issue.severity === "error";
+  const link = remediationLinkForRule(issue.code, policyId, websiteId);
   return (
     <li className={`rounded-2xl px-4 py-3 ${blocked ? "bg-rose-50 text-rose-900" : "bg-amber-50 text-amber-900"}`}>
       <p className="text-[11px] font-semibold uppercase tracking-wide">
@@ -34,15 +45,22 @@ function IssueCard({ issue }: { issue: Issue }) {
           {issue.remediation}
         </p>
       )}
+      <p className="mt-2">
+        <Link href={link.href} className="text-xs font-semibold underline underline-offset-2">
+          {link.label} →
+        </Link>
+      </p>
     </li>
   );
 }
 
 export function PolicyCompliancePanel({
   policyId,
+  websiteId,
   onResult,
 }: {
   policyId: string;
+  websiteId?: string | null;
   onResult?: (result: PolicyValidationResult | null) => void;
 }) {
   const [result, setResult] = useState<PolicyValidationResult | null>(null);
@@ -125,7 +143,7 @@ export function PolicyCompliancePanel({
       {result.errors.length > 0 && (
         <ul className="space-y-2">
           {result.errors.map((item) => (
-            <IssueCard key={`${item.code}-${item.field ?? ""}`} issue={item} />
+            <IssueCard key={`${item.code}-${item.field ?? ""}`} issue={item} policyId={policyId} websiteId={websiteId} />
           ))}
         </ul>
       )}
@@ -134,7 +152,7 @@ export function PolicyCompliancePanel({
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Warnings</p>
           <ul className="space-y-2">
             {result.warnings.map((item) => (
-              <IssueCard key={`${item.code}-${item.field ?? ""}`} issue={item} />
+              <IssueCard key={`${item.code}-${item.field ?? ""}`} issue={item} policyId={policyId} websiteId={websiteId} />
             ))}
           </ul>
         </div>

@@ -10,6 +10,7 @@ import {
   searchCatalog,
   type CatalogVendor,
 } from "@/lib/vendor-catalog";
+import { DPA_STATUSES, VENDOR_ROLES } from "@/lib/processing/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -330,6 +331,8 @@ export function CreateVendorForm() {
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [source, setSource] = useState<"custom" | "iab" | "google">("custom");
+  const [role, setRole] = useState("independent_controller");
+  const [dpaStatus, setDpaStatus] = useState("not_applicable");
 
   const { pending: saving, run } = useAsyncAction();
   const [error, setError] = useState("");
@@ -401,6 +404,8 @@ export function CreateVendorForm() {
             description: description.trim() || null,
             status,
             source,
+            role,
+            dpaStatus,
           }),
         },
         {
@@ -541,7 +546,38 @@ export function CreateVendorForm() {
           Classification
         </h2>
 
-        <div className="grid gap-5 sm:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Field label="Role" hint="Required to publish a policy that uses this vendor. Do not leave unknown.">
+            <select
+              value={role}
+              onChange={(e) => {
+                const next = e.target.value;
+                setRole(next);
+                if (next === "processor" || next === "subprocessor") {
+                  setDpaStatus((current) => current === "not_applicable" ? "not_configured" : current);
+                } else if (dpaStatus === "not_configured") {
+                  setDpaStatus("not_applicable");
+                }
+              }}
+              className="field-input"
+              required
+            >
+              {VENDOR_ROLES.filter((item) => item !== "unknown").map((item) => (
+                <option key={item} value={item}>{item.replaceAll("_", " ")}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="DPA status">
+            <select
+              value={dpaStatus}
+              onChange={(e) => setDpaStatus(e.target.value)}
+              className="field-input"
+            >
+              {DPA_STATUSES.map((item) => (
+                <option key={item} value={item}>{item.replaceAll("_", " ")}</option>
+              ))}
+            </select>
+          </Field>
           <Field label="Country" hint="ISO 3166-1 alpha-2 code.">
             <input
               value={country}

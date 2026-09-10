@@ -332,7 +332,10 @@ export async function loadPolicyComplianceSnapshot(input: {
         relationships: inventory.relationships,
         transfers: inventory.transfers,
       },
-      trackers: trackerRows,
+      trackers: trackerRows.map((row) => ({
+        ...row,
+        scannerClassification: row.scannerClassification ?? "unmapped",
+      })),
       consentIntegrations: {
         iabTcfEnabled: integrations.iabTcf.enabled,
         iabGppEnabled: integrations.iabGpp.enabled,

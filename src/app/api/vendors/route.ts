@@ -12,7 +12,7 @@ import {
 import { parseVendorRole, parseDpaStatus, parseDownstreamDsarMode, parseStringList, PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
 import { parseCcpaApplicability } from "@/lib/ccpa/types";
 import { writeProcessingAudit } from "@/lib/processing/service";
-import { isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { creationFailureMessage, isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
 import { loadOrganizationVendorList } from "@/lib/processing/dashboard-queries";
 
 const VALID_STATUSES = ["active", "inactive", "archived"] as const;
@@ -166,6 +166,13 @@ export async function POST(request: Request) {
         source,
     };
 
+    const role = body.role === undefined || body.role === "" || body.role === "unknown"
+      ? "independent_controller"
+      : parseVendorRole(body.role);
+    const dpaStatus = body.dpaStatus === undefined
+      ? (role === "processor" || role === "subprocessor" ? "not_configured" : "not_applicable")
+      : parseDpaStatus(body.dpaStatus);
+
     let vendor;
     try {
       [vendor] = await db
@@ -173,9 +180,9 @@ export async function POST(request: Request) {
         .values({
           ...baseValues,
           legalName: body.legalName ? String(body.legalName).trim() || null : null,
-          role: parseVendorRole(body.role),
+          role,
           processingCountries: parseStringList(body.processingCountries),
-          dpaStatus: parseDpaStatus(body.dpaStatus),
+          dpaStatus,
           dpaReference: body.dpaReference ? String(body.dpaReference).trim() || null : null,
           downstreamDsarMode: parseDownstreamDsarMode(body.downstreamDsarMode),
           ccpaSale: parseCcpaApplicability(body.ccpaSale),
@@ -188,30 +195,25 @@ export async function POST(request: Request) {
       [vendor] = await db.insert(vendors).values(baseValues).returning();
     }
 
-    await writeProcessingAudit({
-      organizationId: organization.id,
-      userId: localUser.id,
-      action: PROCESSING_AUDIT_ACTIONS.vendorCreated,
-      resourceType: "vendor",
-      resourceId: vendor.id,
-      description: `Created vendor ${vendor.name}`,
-    });
+    try {
+      await writeProcessingAudit({
+        organizationId: organization.id,
+        userId: localUser.id,
+        action: PROCESSING_AUDIT_ACTIONS.vendorCreated,
+        resourceType: "vendor",
+        resourceId: vendor.id,
+        description: `Created vendor ${vendor.name}`,
+      });
+    } catch (auditError) {
+      console.error("Vendor created but audit write failed:", auditError);
+    }
 
     return NextResponse.json({ success: true, vendor }, { status: 201 });
   } catch (error) {
     console.error("Vendor creation failed:", error);
-    if (isSchemaMismatchError(error)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Vendor role columns are missing from the database. Apply pending schema, then create the vendor again.",
-        },
-        { status: 503 },
-      );
-    }
     return NextResponse.json(
-      { success: false, message: "Failed to create vendor" },
-      { status: 500 },
+      { success: false, message: creationFailureMessage("vendor", error) },
+      { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },
     );
   }
 }

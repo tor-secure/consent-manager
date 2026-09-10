@@ -179,9 +179,12 @@ export default async function AnalyticsPage({
           <h1 className="page-title">Analytics</h1>
           <p className="page-description">
             Aggregated consent metrics for{" "}
-            <span className="font-medium text-slate-700">{localOrg.name}</span>
+            <span className="font-medium text-[var(--secondary-foreground)]">{localOrg.name}</span>
             {" · "}
-            {analytics.period}.
+            {analytics.period}.{" "}
+            <Link href="/dashboard/quality" className="font-medium text-[var(--primary)] underline underline-offset-2">
+              Open quality score
+            </Link>
           </p>
         </div>
         <Suspense fallback={<div className="h-11 w-72 rounded-2xl bg-white soft-shadow" />}>

@@ -20,6 +20,7 @@ import type { ComplianceSeverity } from "./types";
 import {
   COMPLIANCE_VALIDATOR_VERSION,
   GDPR_LAWFUL_BASES,
+  normalizeLawfulBasis,
   type ComplianceDeclarations,
   type ComplianceIssue,
   type ComplianceValidationResult,
@@ -424,10 +425,11 @@ function collectGdpr(snapshot: PolicyComplianceSnapshot, jurisdiction: string): 
     issues.push(issue("GDPR_AUTOMATED_DECISION_MISSING", jurisdiction, "declarations.automatedDecisionMaking"));
   }
   for (const purpose of snapshot.purposes) {
+    const lawfulBasis = normalizeLawfulBasis(purpose.legalBasis);
     if (
       text(purpose.legalBasis) &&
-      !GDPR_LAWFUL_BASES.includes(purpose.legalBasis as (typeof GDPR_LAWFUL_BASES)[number]) &&
-      purpose.legalBasis !== "special_category"
+      !GDPR_LAWFUL_BASES.includes(lawfulBasis as (typeof GDPR_LAWFUL_BASES)[number]) &&
+      lawfulBasis !== "special_category"
     ) {
       issues.push(issue(
         "PURPOSE_WITHOUT_LEGAL_BASIS",

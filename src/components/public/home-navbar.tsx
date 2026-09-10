@@ -27,7 +27,7 @@ function ChevronDown() {
 function ShieldLogo({ className = "h-9 w-9" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#5850EC" />
+      <rect width="40" height="40" rx="10" fill="#2c4a7c" />
       <path
         d="M20 8.5l9 3.5v7.2c0 5.4-3.6 10.3-9 12.1-5.4-1.8-9-6.7-9-12.1v-7.2L20 8.5z"
         fill="white"
@@ -39,7 +39,7 @@ function ShieldLogo({ className = "h-9 w-9" }: { className?: string }) {
       />
       <path
         d="M16.2 20.1l2.4 2.4 5.2-5.2"
-        stroke="#5850EC"
+        stroke="#2c4a7c"
         strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -91,7 +91,7 @@ export function HomeNavbar() {
           ) : isSignedIn ? (
             <Link
               href="/dashboard"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#5850EC] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5]"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#243e68]"
             >
               Open workspace
               <span aria-hidden="true">→</span>
@@ -106,7 +106,7 @@ export function HomeNavbar() {
               </Link>
               <Link
                 href="/sign-up"
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#5850EC] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4F46E5]"
+                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#243e68]"
               >
                 Get Started Free
                 <span aria-hidden="true">→</span>
@@ -169,7 +169,7 @@ export function HomeNavbar() {
               ) : isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#5850EC] px-4 text-sm font-semibold text-white sm:col-span-2"
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white sm:col-span-2"
                   onClick={() => setMobileOpen(false)}
                 >
                   Open workspace
@@ -185,7 +185,7 @@ export function HomeNavbar() {
                   </Link>
                   <Link
                     href="/sign-up"
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[#5850EC] px-4 text-sm font-semibold text-white"
+                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white"
                     onClick={() => setMobileOpen(false)}
                   >
                     Get Started Free

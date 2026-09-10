@@ -7,6 +7,7 @@ import { PublishPolicyButton } from "./publish-policy-button";
 
 export function PolicyPublishSection({
   policyId,
+  websiteId,
   latestVersionId,
   latestVersionNumber,
   isPublished,
@@ -14,6 +15,7 @@ export function PolicyPublishSection({
   hasPurposes,
 }: {
   policyId: string;
+  websiteId?: string | null;
   latestVersionId: string | null;
   latestVersionNumber: number | null;
   isPublished: boolean;
@@ -27,7 +29,7 @@ export function PolicyPublishSection({
 
   return (
     <div className="space-y-4">
-      <PolicyCompliancePanel key={policyId} policyId={policyId} onResult={onResult} />
+      <PolicyCompliancePanel key={policyId} policyId={policyId} websiteId={websiteId} onResult={onResult} />
       <PublishPolicyButton
         policyId={policyId}
         latestVersionId={latestVersionId}

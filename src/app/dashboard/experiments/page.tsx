@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsPolicyEmpty, NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { db } from "@/db";
@@ -99,18 +100,12 @@ export default async function ExperimentsPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty description="Banner A/B tests run on a website with a published policy." />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/experiments" websites={sites} selected={websiteId} />
           {policies.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                No policies on this website. Create and publish a policy before running an experiment.
-              </CardContent>
-            </Card>
+            <NeedsPolicyEmpty websiteId={websiteId} />
           ) : (
             <div className="space-y-4">
               {policies.map((policy) => {

@@ -11,7 +11,7 @@ export type DashboardNavigationGroup = {
 };
 
 export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
-  { title: "Overview", items: [{ title: "Dashboard", href: "/dashboard", description: "Workspace overview" }] },
+  { title: "Overview", items: [{ title: "Dashboard", href: "/dashboard", description: "Workspace overview and get-live path" }] },
   { title: "Websites", items: [{ title: "Websites", href: "/dashboard/websites", description: "Manage sites and installation" }] },
   { title: "Consent Management", items: [
     { title: "Consent", href: "/dashboard/consent", description: "Visitor consent records" },

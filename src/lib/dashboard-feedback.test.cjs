@@ -38,5 +38,9 @@ assert.equal(userFacingError(409, "Domain already exists", "x").kind, "conflict"
 assert.equal(userFacingError(429, "slow down", "x").kind, "rate_limit");
 assert.equal(userFacingError(0, undefined, "fallback").kind, "network");
 assert.equal(userFacingError(500, "SQLSTATE 23505", "Unable to add website. Please try again.").message, "Unable to add website. Please try again.");
+assert.equal(
+  userFacingError(503, "Cannot reach the database. Set Windows DNS to 8.8.8.8 and 1.1.1.1, run ipconfig /flushdns, then try again.", "Unable to save.").message,
+  "Cannot reach the database. Set Windows DNS to 8.8.8.8 and 1.1.1.1, run ipconfig /flushdns, then try again.",
+);
 
 console.log("dashboard-feedback.test.cjs passed");

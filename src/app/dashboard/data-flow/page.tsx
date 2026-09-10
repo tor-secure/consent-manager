@@ -5,6 +5,7 @@ import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites"
 import { buildDataFlowMap } from "@/lib/intelligence/data-flow";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 export default async function DataFlowMapPage({
   searchParams,
@@ -29,9 +30,7 @@ export default async function DataFlowMapPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty />
       ) : !snapshot ? (
         <>
           <WebsiteFilter action="/dashboard/data-flow" websites={sites} selected={websiteId} />

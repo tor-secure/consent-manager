@@ -451,4 +451,12 @@ function testChildProtectionPublication() {
 
 testPublishRouteIsAuthoritative();
 testChildProtectionPublication();
+{
+  const aliased = evaluatePolicyCompliance(baseSnapshot({
+    purposes: baseSnapshot().purposes.map((purpose, index) => (
+      index === 0 ? { ...purpose, legalBasis: "legitimate_interest" } : purpose
+    )),
+  }));
+  assert.equal(aliased.errors.some((row) => row.code === "PURPOSE_WITHOUT_LEGAL_BASIS"), false);
+}
 console.log("compliance validation tests passed");

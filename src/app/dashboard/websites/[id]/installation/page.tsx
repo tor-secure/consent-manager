@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { requireTenantWebsite } from "@/lib/tenant-website";
 import { consentPolicies } from "@/db/schema/consent-policies";
+import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import {
   CodeBlock,
   VerifyInstallation,
@@ -28,6 +29,22 @@ export default async function InstallationPage({
       and(
         eq(consentPolicies.websiteId, website.id),
         eq(consentPolicies.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  const [publishedPolicy] = await db
+    .select({
+      id: consentPolicies.id,
+      name: consentPolicies.name,
+      version: consentPolicyVersions.version,
+    })
+    .from(consentPolicyVersions)
+    .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+    .where(
+      and(
+        eq(consentPolicies.websiteId, website.id),
+        eq(consentPolicyVersions.isPublished, true),
       ),
     )
     .limit(1);
@@ -127,8 +144,7 @@ export default function RootLayout({ children }) {
         </p>
       </div>
 
-      {/* Policy status banners */}
-      {!activePolicy && (
+      {!publishedPolicy ? (
         <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
           <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -136,24 +152,34 @@ export default function RootLayout({ children }) {
             <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
           </svg>
           <p>
-            <strong className="font-semibold">No active consent policy.</strong>{" "}
-            Create and activate a policy for this website before deploying the SDK.{" "}
-            <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
-              className="font-medium underline underline-offset-2 hover:text-amber-900">
-              Create policy →
-            </Link>
+            <strong className="font-semibold">No published policy — the banner will not appear.</strong>{" "}
+            The SDK config endpoint returns 404 until a version is published.{" "}
+            {activePolicy ? (
+              <Link href={`/dashboard/policies/${activePolicy.id}`}
+                className="font-medium underline underline-offset-2 hover:text-amber-900">
+                Open “{activePolicy.name}” and publish →
+              </Link>
+            ) : (
+              <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
+                className="font-medium underline underline-offset-2 hover:text-amber-900">
+                Create a policy →
+              </Link>
+            )}
           </p>
         </div>
-      )}
-      {activePolicy && (
+      ) : (
         <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
           <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
           </svg>
           <p>
-            <strong className="font-semibold">Active policy:</strong>{" "}
-            &ldquo;{activePolicy.name}&rdquo; is configured for this website.
+            <strong className="font-semibold">Published policy:</strong>{" "}
+            &ldquo;{publishedPolicy.name}&rdquo; v{publishedPolicy.version} is live for this site key.{" "}
+            <Link href={`/dashboard/policies/${publishedPolicy.id}`}
+              className="font-medium underline underline-offset-2 hover:text-emerald-900">
+              Open policy →
+            </Link>
           </p>
         </div>
       )}

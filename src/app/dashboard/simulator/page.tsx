@@ -7,6 +7,7 @@ import { simulatePrivacyImpact } from "@/lib/intelligence/simulator";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 function IconSim() {
   return (
@@ -38,9 +39,7 @@ export default async function PrivacyImpactSimulatorPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/simulator" websites={sites} selected={websiteId} />

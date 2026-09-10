@@ -9,6 +9,7 @@ import { vendors } from "@/db/schema/vendors";
 import { categoriseTrackers, type TrackerRule } from "@/lib/sdk/enforcement";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 
 // ---------------------------------------------------------------------------
@@ -240,29 +241,12 @@ export default async function EnforcementPage({
 
       {/* Empty state */}
       {rules.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                className="text-slate-300">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No trackers configured yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Add trackers manually or run a scan to detect them.
-              </p>
-            </div>
-            <Link
-              href="/dashboard/trackers"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
-            >
-              Go to Trackers
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No trackers configured yet"
+          description="Add trackers or run a scan. Unmapped optional trackers stay blocked until they have a purpose and vendor."
+          actionLabel="Open Trackers"
+          actionHref="/dashboard/trackers"
+        />
       )}
 
       {/* Tracker sections */}

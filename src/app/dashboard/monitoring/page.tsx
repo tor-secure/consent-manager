@@ -12,6 +12,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   FINDING_SEVERITIES,
   FINDING_STATUSES,
@@ -107,6 +108,7 @@ export default async function MonitoringPage({
         severity: privacyFindings.severity,
         status: privacyFindings.status,
         title: privacyFindings.title,
+        details: privacyFindings.details,
         firstDetectedAt: privacyFindings.firstDetectedAt,
         lastDetectedAt: privacyFindings.lastDetectedAt,
         trackerName: trackers.name,
@@ -213,11 +215,12 @@ export default async function MonitoringPage({
       </form>
 
       {findings.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-            No findings for this filter. Run a website scan from Scanner to compare the latest results with CMP configuration.
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No drift findings"
+          description="Run a website scan to compare the latest scripts with your CMP map. Unmapped or new items show up here with the page URL when the scanner captured it."
+          actionLabel="Open scanner"
+          actionHref="/dashboard/scanner"
+        />
       ) : (
         <Card>
           <CardContent className="overflow-x-auto p-0">
@@ -226,6 +229,7 @@ export default async function MonitoringPage({
                 <tr>
                   <th className="px-4 py-3">Finding</th>
                   <th className="px-4 py-3">Website</th>
+                  <th className="px-4 py-3">Page</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Severity</th>
                   <th className="px-4 py-3">Mapped to</th>
@@ -246,6 +250,9 @@ export default async function MonitoringPage({
                       </td>
                       <td className="px-4 py-3 text-[var(--muted-foreground)]">
                         {site ? `${site.name}` : "Website"}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">
+                        {row.details?.pageUrl ?? "—"}
                       </td>
                       <td className="px-4 py-3 capitalize">{typeLabel(row.findingType)}</td>
                       <td className="px-4 py-3">

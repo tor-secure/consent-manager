@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export const clerkAuthAppearance = {
   variables: {
-    colorPrimary: "#4F46E5",
+    colorPrimary: "#2c4a7c",
     colorText: "#111827",
     colorTextSecondary: "#6B7280",
     colorBackground: "#ffffff",
@@ -27,20 +27,20 @@ export const clerkAuthAppearance = {
     socialButtonsBlockButton:
       "!bg-white !text-[#111827] h-11 rounded-xl border border-solid !border-[#D1D5DB] text-sm font-semibold hover:!bg-[#F9FAFB]",
     socialButtonsBlockButtonText: "!text-[#111827] font-semibold",
-    lastAuthenticationStrategyBadge: "!bg-[#EEF2FF] !text-[#4338CA]",
+    lastAuthenticationStrategyBadge: "!bg-[#EEF2FF] !text-[#243e68]",
     dividerLine: "!bg-[#E5E7EB]",
     dividerText: "!text-[#6B7280] text-xs font-medium",
     formFieldLabel: "!text-[#111827] text-sm font-semibold",
     formFieldInput:
-      "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#4F46E5] focus:!ring-[#4F46E5]",
+      "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#2c4a7c] focus:!ring-[#2c4a7c]",
     formButtonPrimary:
-      "!bg-[#4F46E5] !text-white h-11 rounded-xl text-sm font-semibold hover:!bg-[#4338CA] shadow-none",
+      "!bg-[#2c4a7c] !text-white h-11 rounded-xl text-sm font-semibold hover:!bg-[#243e68] shadow-none",
     footerAction: "hidden",
     footerActionText: "hidden",
     footerActionLink: "hidden",
     identityPreviewText: "!text-[#111827]",
-    identityPreviewEditButton: "!text-[#4F46E5]",
-    formFieldAction: "!text-[#4F46E5]",
+    identityPreviewEditButton: "!text-[#2c4a7c]",
+    formFieldAction: "!text-[#2c4a7c]",
     footer: "!bg-transparent",
   },
 } as const;
@@ -50,7 +50,7 @@ const features = [
     title: "Secure & Compliant",
     description: "Enterprise-grade security built for GDPR, CCPA, and global privacy laws.",
     iconBg: "bg-[#EEF2FF]",
-    iconColor: "text-[#4F46E5]",
+    iconColor: "text-[#2c4a7c]",
     icon: (
       <path d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75ZM9.75 12.5l1.5 1.5 3-3" />
     ),
@@ -76,14 +76,14 @@ const features = [
 function ShieldLogo({ size = 36 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#4F46E5" />
+      <rect width="40" height="40" rx="10" fill="#2c4a7c" />
       <path
         d="M20 10.2l7.2 2.8v5.8c0 4.4-2.9 8.4-7.2 9.9-4.3-1.5-7.2-5.5-7.2-9.9v-5.8L20 10.2z"
         fill="white"
       />
       <path
         d="M16.2 20.1l2.4 2.4 5.2-5.2"
-        stroke="#4F46E5"
+        stroke="#2c4a7c"
         strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -116,7 +116,7 @@ function BrandPanel({
       />
 
       <div className="relative">
-        <span className="inline-flex rounded-full border border-[#C7D2FE] bg-white px-3 py-1 text-[12px] font-semibold text-[#4338CA]">
+        <span className="inline-flex rounded-full border border-[#C7D2FE] bg-white px-3 py-1 text-[12px] font-semibold text-[#243e68]">
           {badge}
         </span>
         <h1 className="mt-4 max-w-md text-balance text-[1.85rem] font-bold leading-tight tracking-tight text-[#111827] sm:text-[2.05rem]">
@@ -175,7 +175,7 @@ function BrandPanel({
                 <path
                   d="M0 40 C 30 34, 45 28, 70 30 C 100 33, 120 18, 145 14 C 160 12, 170 16, 180 10"
                   fill="none"
-                  stroke="#4F46E5"
+                  stroke="#2c4a7c"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 />
@@ -189,7 +189,7 @@ function BrandPanel({
                   cy="18"
                   r="14"
                   fill="none"
-                  stroke="#4F46E5"
+                  stroke="#2c4a7c"
                   strokeWidth="4"
                   strokeDasharray="62 26"
                   transform="rotate(-90 18 18)"
@@ -199,7 +199,7 @@ function BrandPanel({
           </div>
           <div
             className={`absolute -right-2 -top-3 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${
-              showPlus ? "bg-[#4F46E5]" : "bg-[#4F46E5]"
+              showPlus ? "bg-[#2c4a7c]" : "bg-[#2c4a7c]"
             }`}
           >
             {showPlus ? (
@@ -219,7 +219,7 @@ function BrandPanel({
                 />
                 <path
                   d="M9.75 12.5l1.5 1.5 3-3"
-                  stroke="#4F46E5"
+                  stroke="#2c4a7c"
                   strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -274,14 +274,14 @@ export function AuthPageShell({
             {isSignIn ? (
               <p className="text-sm text-[#4B5563]">
                 Don&apos;t have an account?{" "}
-                <Link href="/sign-up" className="font-semibold text-[#4F46E5] hover:text-[#4338CA]">
+                <Link href="/sign-up" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
                   Sign up
                 </Link>
               </p>
             ) : (
               <p className="text-sm text-[#4B5563]">
                 Already have an account?{" "}
-                <Link href="/sign-in" className="font-semibold text-[#4F46E5] hover:text-[#4338CA]">
+                <Link href="/sign-in" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
                   Log in
                 </Link>
               </p>
@@ -314,7 +314,7 @@ export function AuthPageShell({
                     viewBox="0 0 24 24"
                     fill="none"
                     aria-hidden="true"
-                    className="mt-0.5 shrink-0 text-[#4F46E5]"
+                    className="mt-0.5 shrink-0 text-[#2c4a7c]"
                   >
                     <path
                       d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75Z"
@@ -337,11 +337,11 @@ export function AuthPageShell({
 
         <p className="mt-5 text-center text-xs text-[#6B7280]">
           By continuing, you agree to our{" "}
-          <Link href="#" className="font-medium text-[#4F46E5] hover:underline">
+          <Link href="#" className="font-medium text-[#2c4a7c] hover:underline">
             Terms of Service
           </Link>{" "}
           and{" "}
-          <Link href="#" className="font-medium text-[#4F46E5] hover:underline">
+          <Link href="#" className="font-medium text-[#2c4a7c] hover:underline">
             Privacy Policy
           </Link>
           .

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { Badge } from "@/components/ui/badge";
@@ -50,9 +51,7 @@ export default async function RecommendationsPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/recommendations" websites={sites} selected={websiteId} />

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
@@ -6,6 +5,7 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { purposes } from "@/db/schema/purposes";
 import { PurposeList, type PurposeRow } from "@/components/purposes/purpose-list";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
 
 function IconPlus() {
   return (
@@ -50,22 +50,16 @@ export default async function PurposesPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">Purposes</h1>
-          <p className="page-description">
-            Consent purposes shared across all policies in your organisation.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/purposes/new"
-          className="btn btn-primary"
-        >
-          <IconPlus />
-          Create purpose
-        </Link>
-      </div>
+      <PageHeader
+        title="Purposes"
+        description="Consent purposes shared across all policies in your organisation. Open a row to edit description and lawful basis before publish."
+        action={
+          <PageHeaderLink href="/dashboard/purposes/new">
+            <IconPlus />
+            Create purpose
+          </PageHeaderLink>
+        }
+      />
 
       {/* ── Summary pills ───────────────────────────────────────────────── */}
       {total > 0 && (

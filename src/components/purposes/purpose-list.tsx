@@ -97,7 +97,7 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
           </div>
           <Link
             href="/dashboard/purposes/new"
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="btn btn-primary"
           >
             Create purpose
           </Link>
@@ -118,7 +118,7 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, key, or description…"
-          className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
+          className="field-input pl-9"
         />
       </div>
 
@@ -165,8 +165,8 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
                       <div className="flex items-start gap-2.5">
                         <StatusDot status={p.status} />
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
-                            {p.name}
+                          <p className="font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
+                            <Link href={`/dashboard/purposes/${p.id}`}>{p.name}</Link>
                           </p>
                           {p.description && (
                             <p className="mt-0.5 max-w-xs truncate text-xs text-slate-400">
@@ -178,7 +178,7 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
                     </td>
                     {/* Key */}
                     <td className="px-5 py-4">
-                      <code className="rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                      <code className="rounded-lg bg-[var(--muted)] px-2 py-1 font-mono text-xs text-[var(--secondary-foreground)] group-hover:bg-[var(--info-soft)] group-hover:text-[var(--primary)] transition-colors">
                         {p.key}
                       </code>
                     </td>

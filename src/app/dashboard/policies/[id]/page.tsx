@@ -22,8 +22,11 @@ import {
   type AvailableVendor,
 } from "@/components/policies/policy-vendor-manager-panel";
 import { PolicyPublishSection } from "@/components/policies/policy-publish-section";
+import { PolicySetupChecklist, type SetupCheck } from "@/components/policies/policy-setup-checklist";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { trackers } from "@/db/schema/trackers";
+import { parseBannerConfig } from "@/lib/banner-config";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,6 +87,7 @@ export default async function PolicyDetailPage({
       publishedAt: consentPolicyVersions.publishedAt,
       createdAt: consentPolicyVersions.createdAt,
       updatedAt: consentPolicyVersions.updatedAt,
+      configuration: consentPolicyVersions.configuration,
     })
     .from(consentPolicyVersions)
     .where(eq(consentPolicyVersions.policyId, policy.id))
@@ -97,7 +101,7 @@ export default async function PolicyDetailPage({
       .select({
         id: purposes.id, key: purposes.key, name: purposes.name,
         description: purposes.description, isRequired: purposes.isRequired,
-        status: purposes.status,
+        status: purposes.status, legalBasis: purposes.legalBasis,
       })
       .from(purposes)
       .where(eq(purposes.organizationId, localOrg.id))
@@ -122,7 +126,7 @@ export default async function PolicyDetailPage({
       id: vendors.id, name: vendors.name, key: vendors.key,
       domain: vendors.domain, country: vendors.country,
       privacyPolicyUrl: vendors.privacyPolicyUrl,
-      source: vendors.source, status: vendors.status,
+      source: vendors.source, status: vendors.status, role: vendors.role,
     })
     .from(vendors)
     .where(eq(vendors.organizationId, localOrg.id))
@@ -160,6 +164,78 @@ export default async function PolicyDetailPage({
   const isPublished  = latestVersion?.isPublished ?? false;
   const hasPurposes  = attachedIds.size > 0;
   const publishedVer = [...versions].reverse().find((v) => v.isPublished);
+
+  const websiteTrackers = await db
+    .select({
+      id: trackers.id,
+      purposeId: trackers.purposeId,
+      vendorId: trackers.vendorId,
+      status: trackers.status,
+      isEssential: trackers.isEssential,
+    })
+    .from(trackers)
+    .where(eq(trackers.websiteId, policy.websiteId));
+
+  const unmappedTrackers = websiteTrackers.filter(
+    (row) =>
+      row.status === "active" &&
+      !row.isEssential &&
+      (!row.purposeId || !row.vendorId),
+  );
+  const purposesMissingCopy = attachedPurposes.filter((p) => !p.description?.trim());
+  const unknownRoleVendors = attachedVendors.filter((v) => {
+    const role = "role" in v ? String((v as { role?: string }).role ?? "unknown") : "unknown";
+    return !role || role === "unknown";
+  });
+  const banner = latestVersion?.configuration
+    ? parseBannerConfig(latestVersion.configuration)
+    : null;
+  const hasBannerCopy = Boolean(banner?.title?.trim() && banner?.description?.trim() && banner?.privacyPolicyUrl?.trim());
+
+  const setupItems: SetupCheck[] = [
+    {
+      id: "purposes",
+      label: "Attach purposes",
+      done: hasPurposes,
+      href: `#policy-purposes`,
+      hint: hasPurposes ? `${attachedPurposes.length} purpose${attachedPurposes.length === 1 ? "" : "s"} attached.` : "A policy cannot publish without at least one purpose.",
+    },
+    {
+      id: "purpose-copy",
+      label: "Purpose descriptions",
+      done: hasPurposes && purposesMissingCopy.length === 0,
+      href: "/dashboard/purposes",
+      hint: purposesMissingCopy.length === 0 ? "Attached purposes have visitor-facing descriptions." : `${purposesMissingCopy.length} purpose${purposesMissingCopy.length === 1 ? "" : "s"} still need a description.`,
+    },
+    {
+      id: "vendor-roles",
+      label: "Vendor roles",
+      done: unknownRoleVendors.length === 0,
+      href: "/dashboard/vendors",
+      hint: unknownRoleVendors.length === 0 ? "Linked vendors have a processing role." : `${unknownRoleVendors.length} vendor${unknownRoleVendors.length === 1 ? "" : "s"} still have role unknown.`,
+    },
+    {
+      id: "trackers",
+      label: "Map optional trackers",
+      done: unmappedTrackers.length === 0,
+      href: "/dashboard/trackers",
+      hint: unmappedTrackers.length === 0 ? "Active optional trackers have a purpose and vendor." : `${unmappedTrackers.length} tracker${unmappedTrackers.length === 1 ? "" : "s"} are unmapped and will block publish.`,
+    },
+    {
+      id: "studio",
+      label: "Banner title, description, and privacy URL",
+      done: hasBannerCopy,
+      href: `/dashboard/policies/${policy.id}/studio`,
+      hint: hasBannerCopy ? "Banner Studio has the required notice fields." : "Open Banner Studio and set title, description, and a privacy policy URL.",
+    },
+    {
+      id: "publish",
+      label: "Publish a version",
+      done: isPublished,
+      href: `#policy-publish`,
+      hint: isPublished ? "A published version is live for the SDK." : "Fix remaining compliance errors, then publish.",
+    },
+  ];
 
   const policyStatusVariant: Record<string, "success" | "warning" | "neutral"> = {
     active:   "success",
@@ -212,11 +288,10 @@ export default async function PolicyDetailPage({
           </div>
         </div>
 
-        {/* Action buttons */}
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Link
             href={`/dashboard/policies/${policy.id}/studio`}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="btn btn-primary"
           >
             <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16"
               stroke="currentColor" strokeWidth={1.5}>
@@ -234,6 +309,8 @@ export default async function PolicyDetailPage({
         </div>
       </div>
 
+      <PolicySetupChecklist items={setupItems} />
+
       {/* ── Top grid: details + versions ────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
 
@@ -247,7 +324,7 @@ export default async function PolicyDetailPage({
               <InfoRow label="Website" value={
                 website ? (
                   <Link href={`/dashboard/websites/${website.id}`}
-                    className="font-medium text-slate-800 transition hover:text-indigo-600">
+                    className="font-medium text-[var(--foreground)] transition hover:text-[var(--primary)]">
                     {website.name}
                   </Link>
                 ) : <span className="text-slate-400">—</span>
@@ -353,26 +430,29 @@ export default async function PolicyDetailPage({
             )}
 
             {/* Publish action */}
+            <div id="policy-publish">
             <PolicyPublishSection
               policyId={policy.id}
+              websiteId={policy.websiteId}
               latestVersionId={latestVersion?.id ?? null}
               latestVersionNumber={latestVersion?.version ?? null}
               isPublished={isPublished}
               publishedAt={latestVersion?.publishedAt ?? null}
               hasPurposes={hasPurposes}
             />
+            </div>
           </CardContent>
         </Card>
 
-        {/* Purposes panel */}
+        <div id="policy-purposes">
         <PolicyPurposesPanel
           policyId={policy.id}
           attached={attachedPurposes}
           available={availablePurposes}
           latestVersionId={latestVersion?.id ?? null}
         />
+        </div>
 
-        {/* Vendors panel */}
         <PolicyVendorManagerPanel
           policyId={policy.id}
           latestVersionId={latestVersion?.id ?? null}
@@ -387,7 +467,7 @@ export default async function PolicyDetailPage({
         <CardContent className="flex flex-col gap-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-4">
             {/* Studio icon tile */}
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-md">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] shadow-md">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"
                 stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12 20h9" />
@@ -412,7 +492,7 @@ export default async function PolicyDetailPage({
           </div>
           <Link
             href={`/dashboard/policies/${policy.id}/studio`}
-            className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="btn btn-primary"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

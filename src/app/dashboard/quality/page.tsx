@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 import { computeWebsiteQualityScore } from "@/lib/monitoring/privacy-intelligence";
 import { qualityCategoryLabel } from "@/lib/monitoring/consent-quality";
 
@@ -40,11 +41,7 @@ export default async function ConsentQualityPage() {
       />
 
       {scores.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-            No websites in this organization yet.
-          </CardContent>
-        </Card>
+        <NeedsWebsiteEmpty description="Quality scores appear after you add a website and start mapping trackers." />
       ) : (
         <div className="space-y-4">
           {scores.map((row) => (
@@ -92,6 +89,12 @@ export default async function ConsentQualityPage() {
                   <p className="mt-4 text-sm text-[var(--muted-foreground)]">No deductions on the current signals.</p>
                 )}
                 <p className="mt-4 text-xs text-[var(--muted-foreground)]">{row.score.disclaimer}</p>
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  <Link href="/dashboard/trackers" className="font-medium text-[var(--primary)] underline underline-offset-2">Map trackers</Link>
+                  <Link href="/dashboard/policies" className="font-medium text-[var(--primary)] underline underline-offset-2">Publish policy</Link>
+                  <Link href="/dashboard/scanner" className="font-medium text-[var(--primary)] underline underline-offset-2">Run a scan</Link>
+                  <Link href="/dashboard/monitoring" className="font-medium text-[var(--primary)] underline underline-offset-2">Review drift</Link>
+                </div>
               </CardContent>
             </Card>
           ))}

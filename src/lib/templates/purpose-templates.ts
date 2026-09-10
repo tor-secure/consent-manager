@@ -6,7 +6,7 @@ export type PurposeTemplate = {
   isRequired: boolean;
   dataCategories: string[];
   retentionPeriod: string;
-  legalBasis: "consent" | "legitimate_interest" | "legal_obligation" | "vital_interest" | "public_task";
+  legalBasis: "consent" | "contract" | "legitimate_interests" | "legal_obligation" | "vital_interests" | "public_task";
 };
 
 export const PURPOSE_TEMPLATES: PurposeTemplate[] = [
@@ -19,7 +19,7 @@ export const PURPOSE_TEMPLATES: PurposeTemplate[] = [
     isRequired: true,
     dataCategories: ["Cookie identifiers", "IP address", "Device identifiers"],
     retentionPeriod: "12 months",
-    legalBasis: "legitimate_interest",
+    legalBasis: "legitimate_interests",
   },
   {
     key: "functional",

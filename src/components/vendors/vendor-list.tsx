@@ -99,8 +99,13 @@ function VendorAvatar({ name }: { name: string }) {
 // VendorList
 // ---------------------------------------------------------------------------
 
+function isUnknownRole(role: string | null | undefined) {
+  return !role || role === "unknown";
+}
+
 export function VendorList({ vendors }: { vendors: VendorRow[] }) {
   const [query, setQuery] = useState("");
+  const unknownRoleCount = vendors.filter((v) => isUnknownRole(v.role)).length;
 
   const filtered =
     query.trim() === ""
@@ -139,6 +144,14 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
 
   return (
     <div className="space-y-4">
+      {unknownRoleCount > 0 ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {unknownRoleCount === 1
+            ? "1 vendor has no role. Open it, set Role, and save — policies that use it cannot publish until then."
+            : `${unknownRoleCount} vendors have no role. Open each one, set Role, and save — policies that use them cannot publish until then.`}
+        </div>
+      ) : null}
+
       {/* Search bar */}
       <div className="relative max-w-sm">
         <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
@@ -231,7 +244,18 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
                       )}
                     </td>
 
-                    <td className="px-5 py-4 text-slate-600 capitalize">{(v.role ?? "unknown").replaceAll("_", " ")}</td>
+                    <td className="px-5 py-4 capitalize">
+                      {isUnknownRole(v.role) ? (
+                        <Link
+                          href={`/dashboard/vendors/${v.id}`}
+                          className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 hover:bg-amber-200"
+                        >
+                          Set role
+                        </Link>
+                      ) : (
+                        <span className="text-slate-600">{(v.role ?? "").replaceAll("_", " ")}</span>
+                      )}
+                    </td>
                     <td className="px-5 py-4 text-slate-600 capitalize">{(v.dpaStatus ?? "not_configured").replaceAll("_", " ")}</td>
 
                     {/* Source */}

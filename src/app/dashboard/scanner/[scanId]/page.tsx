@@ -185,6 +185,7 @@ export default async function ScanDetailPage({
 
   const known   = results.filter((r) => r.classificationStatus === "known" || r.classificationStatus === "mapped").length;
   const highRisk = results.filter((r) => r.riskLevel === "high").length;
+  const unmapped = results.filter((r) => !(r.purposeName || r.vendorName || r.classificationStatus === "mapped")).length;
 
   const duration =
     scan.startedAt && scan.completedAt
@@ -235,6 +236,19 @@ export default async function ScanDetailPage({
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
           <p className="font-semibold">Scan failed</p>
           <p className="mt-0.5 text-rose-700">{scan.errorMessage ?? "Unknown error"}</p>
+        </div>
+      )}
+
+      {unmapped > 0 && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+          <p className="font-semibold">{unmapped} unmapped detection{unmapped === 1 ? "" : "s"}</p>
+          <p className="mt-1">
+            Optional trackers without a purpose and vendor block policy publish. Map them in{" "}
+            <Link href="/dashboard/trackers" className="font-semibold underline underline-offset-2">
+              Trackers
+            </Link>
+            .
+          </p>
         </div>
       )}
 

@@ -44,11 +44,12 @@ const DATA_CATEGORY_SUGGESTIONS = [
 
 // DPDP-recognised processing grounds.
 const LEGAL_BASIS_OPTIONS = [
-  { value: "consent",               label: "Consent (DPDP §6)" },
-  { value: "legitimate_interest",   label: "Legitimate interest" },
-  { value: "legal_obligation",      label: "Legal obligation" },
-  { value: "vital_interest",        label: "Vital interests" },
-  { value: "public_task",           label: "Public task" },
+  { value: "consent",                 label: "Consent" },
+  { value: "contract",                label: "Contract" },
+  { value: "legitimate_interests",    label: "Legitimate interests" },
+  { value: "legal_obligation",        label: "Legal obligation" },
+  { value: "vital_interests",         label: "Vital interests" },
+  { value: "public_task",             label: "Public task" },
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -94,13 +95,13 @@ function DataCategoriesInput({
     <div className="space-y-2.5">
       {/* Tag display + text input */}
       <div
-        className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-500/15 transition cursor-text"
+        className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-sm focus-within:border-[var(--ring)] focus-within:ring-2 focus-within:ring-[var(--ring)]/15 transition cursor-text"
         onClick={() => document.getElementById("data-cat-input")?.focus()}
       >
         {value.map((cat) => (
           <span
             key={cat}
-            className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20"
+            className="inline-flex items-center gap-1 rounded-full bg-[var(--info-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--primary)] ring-1 ring-[var(--primary)]/20"
           >
             {cat}
             <button
@@ -322,7 +323,7 @@ export function CreatePurposeForm() {
       <FormCard
         title="DPDP notice information"
         titleExtra={
-          <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
+          <span className="inline-flex items-center rounded-full bg-[var(--info-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--primary)] ring-1 ring-[var(--primary)]/20">
             DPDP Rules 2025 Rule 3
           </span>
         }

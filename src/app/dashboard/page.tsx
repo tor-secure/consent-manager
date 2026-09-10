@@ -1,5 +1,5 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
-import { eq, inArray, sql, desc } from "drizzle-orm";
+import { eq, inArray, sql, desc, and } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -11,6 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { loadConsentAnalytics } from "@/lib/analytics/queries";
+import { purposes } from "@/db/schema/purposes";
+import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
+import { GetLiveStrip } from "@/components/dashboard/get-live-strip";
 
 // ---------------------------------------------------------------------------
 // Icons for StatCards
@@ -372,7 +375,7 @@ export default async function DashboardPage() {
   const websiteCount = orgWebsites.length;
   const websiteIds = orgWebsites.map((w) => w.id);
 
-  const [consentStatusTotals, trackerRows, policyRows, recentRecords, analytics] = await Promise.all([
+  const [consentStatusTotals, trackerRows, policyRows, recentRecords, analytics, purposeRows, publishedRows] = await Promise.all([
     db
       .select({
         total: sql<number>`count(*)::int`,
@@ -412,6 +415,24 @@ export default async function DashboardPage() {
       .limit(4),
 
     loadConsentAnalytics(localOrg.id, { days: "30" }),
+
+    db
+      .select({ id: purposes.id })
+      .from(purposes)
+      .where(eq(purposes.organizationId, localOrg.id)),
+
+    websiteIds.length > 0
+      ? db
+          .select({ id: consentPolicyVersions.id })
+          .from(consentPolicyVersions)
+          .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+          .where(
+            and(
+              inArray(consentPolicies.websiteId, websiteIds),
+              eq(consentPolicyVersions.isPublished, true),
+            ),
+          )
+      : Promise.resolve([]),
   ]);
 
   const totalConsents = consentStatusTotals[0]?.total ?? 0;
@@ -422,6 +443,8 @@ export default async function DashboardPage() {
   const withdrawnConsents = consentStatusTotals[0]?.withdrawn ?? 0;
   const trackerCount = trackerRows.length;
   const policyCount = policyRows.length;
+  const purposeCount = purposeRows.length;
+  const publishedCount = publishedRows.length;
 
   const PURPOSE_COLORS = [
     "var(--primary)",
@@ -484,6 +507,53 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      <GetLiveStrip
+        steps={[
+          {
+            id: "website",
+            label: "Website",
+            href: websiteCount > 0 ? "/dashboard/websites" : "/dashboard/websites/new",
+            done: websiteCount > 0,
+            hint: websiteCount > 0 ? `${websiteCount} site${websiteCount === 1 ? "" : "s"}` : "Add the domain you will install on",
+          },
+          {
+            id: "purposes",
+            label: "Purposes",
+            href: purposeCount > 0 ? "/dashboard/purposes" : "/dashboard/purposes/new",
+            done: purposeCount > 0,
+            hint: purposeCount > 0 ? `${purposeCount} purpose${purposeCount === 1 ? "" : "s"}` : "Create analytics, ads, and necessary",
+          },
+          {
+            id: "vendors",
+            label: "Vendors",
+            href: "/dashboard/vendors",
+            done: trackerCount > 0 || policyCount > 0,
+            hint: "Set a real role before publish",
+          },
+          {
+            id: "policy",
+            label: "Policy",
+            href: policyCount > 0 ? "/dashboard/policies" : "/dashboard/policies/new",
+            done: policyCount > 0,
+            hint: policyCount > 0 ? `${policyCount} polic${policyCount === 1 ? "y" : "ies"}` : "Attach purposes and open Studio",
+          },
+          {
+            id: "publish",
+            label: "Publish",
+            href: "/dashboard/policies",
+            done: publishedCount > 0,
+            hint: publishedCount > 0 ? `${publishedCount} published` : "Fix compliance errors, then publish",
+          },
+          {
+            id: "install",
+            label: "Install",
+            href: "/dashboard/websites",
+            done: publishedCount > 0 && totalConsents > 0,
+            hint: totalConsents > 0 ? "SDK is collecting records" : "Paste the snippet in <head>",
+          },
+        ]}
+      />
 
       {/* Metric cards — 1 col on mobile, 2 on sm, 4 on xl */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

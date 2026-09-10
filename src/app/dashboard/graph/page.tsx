@@ -4,6 +4,7 @@ import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 export default async function ConsentGraphPage({
   searchParams,
@@ -30,9 +31,7 @@ export default async function ConsentGraphPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/graph" websites={sites} selected={websiteId} />

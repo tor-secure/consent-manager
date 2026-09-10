@@ -160,7 +160,7 @@ export default async function PoliciesPage() {
             { label: "Total",     value: total,     dot: "bg-slate-400"   },
             { label: "Active",    value: active,    dot: "bg-emerald-500" },
             { label: "Draft",     value: draft,     dot: "bg-amber-400"   },
-            { label: "Published", value: published, dot: "bg-indigo-500"  },
+            { label: "Published", value: published, dot: "bg-[var(--primary)]"  },
           ].map((s) => (
             <div key={s.label}
               className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
@@ -205,7 +205,7 @@ export default async function PoliciesPage() {
               </p>
             </div>
             <Link href="/dashboard/policies/new"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
+              className="btn btn-primary">
               <IconPlus />
               Create policy
             </Link>
@@ -237,13 +237,13 @@ export default async function PoliciesPage() {
                       {/* Policy name */}
                       <td className="px-5 py-4">
                         <div className="icon-text-row">
-                          <div data-icon-tile className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                          <div data-icon-tile className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--info-soft)] text-[var(--primary)]">
                             <IconPolicy />
                           </div>
                           <div className="icon-text-body">
                             <Link
                               href={`/dashboard/policies/${policy.id}`}
-                              className="font-medium leading-snug text-[var(--foreground)] transition-colors group-hover:text-indigo-600">
+                              className="font-medium leading-snug text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
                               {policy.name}
                             </Link>
                             {policy.description && (
@@ -258,7 +258,7 @@ export default async function PoliciesPage() {
                       <td className="px-5 py-4">
                         {site ? (
                           <Link href={`/dashboard/websites/${site.id}`}
-                            className="text-slate-700 transition-colors hover:text-indigo-600">
+                            className="text-[var(--secondary-foreground)] transition-colors hover:text-[var(--primary)]">
                             <p className="font-medium">{site.name}</p>
                             <p className="text-xs text-slate-400">{site.domain}</p>
                           </Link>

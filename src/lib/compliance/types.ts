@@ -189,6 +189,16 @@ export const GDPR_LAWFUL_BASES = [
   "legitimate_interests",
 ] as const;
 
+const LAWFUL_BASIS_ALIASES: Record<string, (typeof GDPR_LAWFUL_BASES)[number]> = {
+  legitimate_interest: "legitimate_interests",
+  vital_interest: "vital_interests",
+};
+
+export function normalizeLawfulBasis(value: string | null | undefined): string {
+  const key = String(value ?? "").trim().toLowerCase();
+  return LAWFUL_BASIS_ALIASES[key] ?? key;
+}
+
 export const COMPLIANCE_AUDIT_ACTIONS = {
   validated: "POLICY_COMPLIANCE_VALIDATED",
   publishRejected: "POLICY_PUBLISH_REJECTED",

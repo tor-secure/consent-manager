@@ -46,3 +46,13 @@ export function policyValidationFailureMessage(error: unknown): string {
   }
   return "Unable to validate this policy.";
 }
+
+export function creationFailureMessage(entity: "purpose" | "vendor" | "policy", error: unknown): string {
+  if (isDatabaseUnreachableError(error)) {
+    return "Cannot reach the database. Set Windows DNS to 8.8.8.8 and 1.1.1.1, run ipconfig /flushdns, then try again.";
+  }
+  if (isSchemaMismatchError(error)) {
+    return `Cannot save this ${entity} until pending database columns are applied. After DNS works, run npm run db:ensure-schema.`;
+  }
+  return `Failed to create ${entity}`;
+}

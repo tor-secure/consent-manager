@@ -16,6 +16,7 @@ import {
 import { defaultBannerConfig, parseBannerConfig } from "@/lib/banner-config";
 import { getPolicyTemplate } from "@/lib/templates/policy-templates";
 import { getPurposeTemplate, isPurposeTemplateKey } from "@/lib/templates/purpose-templates";
+import { creationFailureMessage, isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 export async function POST(request: Request) {
   try {
@@ -141,7 +142,6 @@ export async function POST(request: Request) {
         })
         .returning();
 
-      // Create initial version v1 in draft state.
       const [version] = await tx
         .insert(consentPolicyVersions)
         .values({
@@ -210,8 +210,8 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Policy creation failed:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create policy" },
-      { status: 500 },
+      { success: false, message: creationFailureMessage("policy", error) },
+      { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },
     );
   }
 }

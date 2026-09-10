@@ -7,6 +7,7 @@ import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites"
 import { evaluateFirewall, grantsForScenario, type FirewallScenario } from "@/lib/intelligence/firewall";
 import { graphToTrackerRules, loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { PageHeader } from "@/components/ui/page-header";
+import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 const SCENARIOS: FirewallScenario[] = ["reject-all", "essential-only", "accept-all"];
 
@@ -53,9 +54,7 @@ export default async function ConsentFirewallPage({
       />
 
       {sites.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">No websites yet.</CardContent>
-        </Card>
+        <NeedsWebsiteEmpty description="The firewall previews block/allow outcomes from your live tracker map. Add a website first." />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/firewall" websites={sites} selected={websiteId} />

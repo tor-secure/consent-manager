@@ -74,6 +74,12 @@ export function userFacingError(
     };
   }
 
+  if (status === 503 || status >= 500) {
+    const message =
+      serverMessage && isSafeUserMessage(serverMessage) ? serverMessage : fallback;
+    return { kind: "server", message, showInline: true };
+  }
+
   return {
     kind: "server",
     message: fallback,

@@ -4,6 +4,8 @@ import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
 import { purposes } from "@/db/schema/purposes";
+import { creationFailureMessage, isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { normalizeLawfulBasis } from "@/lib/compliance/types";
 import {
   resolveLocalOrganization,
   resolveLocalUser,
@@ -19,9 +21,12 @@ const VALID_STATUSES = ["active", "inactive"] as const;
 // DPDP Rules 2025 Rule 3 — recognised processing grounds.
 const VALID_LEGAL_BASES = [
   "consent",
+  "contract",
   "legitimate_interest",
+  "legitimate_interests",
   "legal_obligation",
   "vital_interest",
+  "vital_interests",
   "public_task",
 ] as const;
 
@@ -151,32 +156,42 @@ export async function POST(request: Request) {
 
     // legalBasis: allowlist, defaults to "consent".
     const legalBasis = (VALID_LEGAL_BASES as readonly string[]).includes(body.legalBasis)
-      ? (body.legalBasis as (typeof VALID_LEGAL_BASES)[number])
+      ? normalizeLawfulBasis(body.legalBasis)
       : "consent";
 
     // ── Insert ───────────────────────────────────────────────────────────
 
-    const [purpose] = await db
-      .insert(purposes)
-      .values({
-        organizationId: organization.id,
-        key,
-        name,
-        description,
-        isRequired,
-        status,
-        dataCategories,
-        retentionPeriod,
-        legalBasis,
-      })
-      .returning();
+    const coreValues = {
+      organizationId: organization.id,
+      key,
+      name,
+      description,
+      isRequired,
+      status,
+    };
+
+    let purpose;
+    try {
+      [purpose] = await db
+        .insert(purposes)
+        .values({
+          ...coreValues,
+          dataCategories,
+          retentionPeriod,
+          legalBasis,
+        })
+        .returning();
+    } catch (error) {
+      if (!isSchemaMismatchError(error)) throw error;
+      [purpose] = await db.insert(purposes).values(coreValues).returning();
+    }
 
     return NextResponse.json({ success: true, purpose }, { status: 201 });
   } catch (error) {
     console.error("Purpose creation failed:", error);
     return NextResponse.json(
-      { success: false, message: "Failed to create purpose" },
-      { status: 500 },
+      { success: false, message: creationFailureMessage("purpose", error) },
+      { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },
     );
   }
 }
