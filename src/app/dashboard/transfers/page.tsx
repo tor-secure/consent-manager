@@ -1,13 +1,10 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
-import { vendors } from "@/db/schema/vendors";
-import { websites } from "@/db/schema/websites";
-import { purposes } from "@/db/schema/purposes";
-import { crossBorderTransfers, processingActivities } from "@/db/schema/processing-inventory";
+import { loadTransfersPage } from "@/lib/processing/dashboard-queries";
 import { ProcessingActivityForm, TransferForm } from "@/components/vendors/processing-forms";
 
 export default async function TransfersPage() {
@@ -20,13 +17,8 @@ export default async function TransfersPage() {
     .limit(1);
   if (!localOrg) return null;
 
-  const [transferRows, activityRows, orgVendors, orgWebsites, orgPurposes] = await Promise.all([
-    db.select().from(crossBorderTransfers).where(eq(crossBorderTransfers.organizationId, localOrg.id)).orderBy(desc(crossBorderTransfers.updatedAt)),
-    db.select().from(processingActivities).where(eq(processingActivities.organizationId, localOrg.id)).orderBy(desc(processingActivities.updatedAt)),
-    db.select({ id: vendors.id, name: vendors.name }).from(vendors).where(eq(vendors.organizationId, localOrg.id)).orderBy(vendors.name),
-    db.select({ id: websites.id, name: websites.name }).from(websites).where(eq(websites.organizationId, localOrg.id)),
-    db.select({ id: purposes.id, name: purposes.name }).from(purposes).where(eq(purposes.organizationId, localOrg.id)),
-  ]);
+  const { transferRows, activityRows, orgVendors, orgWebsites, orgPurposes, schemaLimited } =
+    await loadTransfersPage(localOrg.id);
 
   return (
     <div className="page-wrap space-y-6">
@@ -36,6 +28,12 @@ export default async function TransfersPage() {
           Record processing activities and cross-border transfers. Publication uses this inventory; published policy snapshots stay frozen after go-live.
         </p>
       </div>
+      {schemaLimited && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Transfer and processing tables are not in this database yet. Apply pending schema
+          (npm run db:ensure-schema) before recording transfers.
+        </div>
+      )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow">
         <h2 className="text-base font-semibold text-slate-900">Transfer records</h2>

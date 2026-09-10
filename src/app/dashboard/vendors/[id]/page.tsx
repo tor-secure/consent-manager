@@ -1,21 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { and, desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
-import { vendors } from "@/db/schema/vendors";
-import { vendorPurposes } from "@/db/schema/vendor-purposes";
-import { purposes } from "@/db/schema/purposes";
-import { trackers } from "@/db/schema/trackers";
-import { websites } from "@/db/schema/websites";
-import {
-  crossBorderTransfers,
-  processingActivities,
-  vendorRelationships,
-} from "@/db/schema/processing-inventory";
-import { auditLogs } from "@/db/schema/audit-logs";
+import { loadVendorEditorPage } from "@/lib/processing/dashboard-queries";
 import { VendorEditor } from "@/components/vendors/vendor-editor";
 import { ProcessingActivityForm, TransferForm } from "@/components/vendors/processing-forms";
 
@@ -34,35 +24,21 @@ export default async function VendorDetailPage({
     .limit(1);
   if (!localOrg) return null;
 
-  const [vendor] = await db
-    .select()
-    .from(vendors)
-    .where(and(eq(vendors.id, id), eq(vendors.organizationId, localOrg.id)))
-    .limit(1);
-  if (!vendor) notFound();
-
-  const [purposeLinks, activities, transfers, relationships, trackerRows, orgVendors, orgWebsites, orgPurposes, activityLogs] = await Promise.all([
-    db.select({
-      purposeName: purposes.name,
-      purposeKey: purposes.key,
-      processingRole: vendorPurposes.processingRole,
-    }).from(vendorPurposes).innerJoin(purposes, eq(vendorPurposes.purposeId, purposes.id)).where(
-      and(eq(vendorPurposes.vendorId, vendor.id), eq(purposes.organizationId, localOrg.id)),
-    ),
-    db.select().from(processingActivities).where(and(eq(processingActivities.organizationId, localOrg.id), eq(processingActivities.vendorId, vendor.id))),
-    db.select().from(crossBorderTransfers).where(and(eq(crossBorderTransfers.organizationId, localOrg.id), eq(crossBorderTransfers.vendorId, vendor.id))),
-    db.select().from(vendorRelationships).where(and(eq(vendorRelationships.organizationId, localOrg.id), eq(vendorRelationships.parentVendorId, vendor.id))),
-    db.select({ id: trackers.id, name: trackers.name, status: trackers.status }).from(trackers).where(eq(trackers.vendorId, vendor.id)).limit(20),
-    db.select({ id: vendors.id, name: vendors.name }).from(vendors).where(eq(vendors.organizationId, localOrg.id)).orderBy(vendors.name),
-    db.select({ id: websites.id, name: websites.name }).from(websites).where(eq(websites.organizationId, localOrg.id)),
-    db.select({ id: purposes.id, name: purposes.name }).from(purposes).where(eq(purposes.organizationId, localOrg.id)),
-    db.select({
-      id: auditLogs.id,
-      action: auditLogs.action,
-      description: auditLogs.description,
-      createdAt: auditLogs.createdAt,
-    }).from(auditLogs).where(and(eq(auditLogs.organizationId, localOrg.id), eq(auditLogs.resourceType, "vendor"), eq(auditLogs.resourceId, vendor.id))).orderBy(desc(auditLogs.createdAt)).limit(20),
-  ]);
+  const loaded = await loadVendorEditorPage(localOrg.id, id);
+  if (!loaded) notFound();
+  const {
+    vendor,
+    schemaLimited,
+    purposeLinks,
+    activities,
+    transfers,
+    relationships,
+    trackerRows,
+    orgVendors,
+    orgWebsites,
+    orgPurposes,
+    activityLogs,
+  } = loaded;
 
   return (
     <div className="page-wrap space-y-6">
@@ -76,6 +52,12 @@ export default async function VendorDetailPage({
           Role, DPA, processing, and transfer inventory. Changing these fields after a policy is published does not rewrite that policy&apos;s frozen snapshot or historical consent evidence.
         </p>
       </div>
+      {schemaLimited && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Some vendor inventory columns are missing from this database. You can still open the vendor.
+          Apply pending schema before saving role, DPA, or California fields.
+        </div>
+      )}
       <VendorEditor vendor={vendor} />
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow">

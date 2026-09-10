@@ -18,6 +18,7 @@ import {
 import { parseVendorPatch } from "@/lib/processing/parse";
 import { writeProcessingAudit } from "@/lib/processing/service";
 import { PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
+import { isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 export async function GET(
   _request: Request,
@@ -99,6 +100,7 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  try {
   const authz = await authorizeProcessingOrganization();
   if ("error" in authz) return authz.error;
   const { id } = await params;
@@ -182,6 +184,19 @@ export async function PATCH(
   }
 
   return NextResponse.json({ success: true, vendor: updated });
+  } catch (error) {
+    console.error("Vendor update failed:", error);
+    if (isSchemaMismatchError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Vendor role and inventory columns are missing. Apply pending schema, then save again.",
+        },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json({ success: false, message: "Failed to update vendor" }, { status: 500 });
+  }
 }
 
 export async function DELETE(

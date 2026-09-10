@@ -256,7 +256,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
 
                     {/* Added */}
                     <td className="px-5 py-4 text-slate-500">
-                      {v.createdAt.toLocaleDateString("en-GB", {
+                      {new Date(v.createdAt).toLocaleDateString("en-GB", {
                         day: "numeric", month: "short", year: "numeric",
                       })}
                     </td>

@@ -60,7 +60,9 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
   const [country, setCountry] = useState(vendor.country ?? "");
   const [description, setDescription] = useState(vendor.description ?? "");
   const [role, setRole] = useState(vendor.role);
-  const [processingCountries, setProcessingCountries] = useState((vendor.processingCountries ?? []).join(", "));
+  const [processingCountries, setProcessingCountries] = useState(
+    Array.isArray(vendor.processingCountries) ? vendor.processingCountries.join(", ") : "",
+  );
   const [dpaStatus, setDpaStatus] = useState(vendor.dpaStatus);
   const [dpaEffectiveAt, setDpaEffectiveAt] = useState(isoDate(vendor.dpaEffectiveAt));
   const [dpaReviewAt, setDpaReviewAt] = useState(isoDate(vendor.dpaReviewAt));

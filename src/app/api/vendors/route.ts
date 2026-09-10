@@ -12,6 +12,8 @@ import {
 import { parseVendorRole, parseDpaStatus, parseDownstreamDsarMode, parseStringList, PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
 import { parseCcpaApplicability } from "@/lib/ccpa/types";
 import { writeProcessingAudit } from "@/lib/processing/service";
+import { isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { loadOrganizationVendorList } from "@/lib/processing/dashboard-queries";
 
 const VALID_STATUSES = ["active", "inactive", "archived"] as const;
 const VALID_SOURCES = ["custom", "iab", "google"] as const;
@@ -38,11 +40,7 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
 
-    const rows = await db
-      .select()
-      .from(vendors)
-      .where(eq(vendors.organizationId, organization.id))
-      .orderBy(vendors.name);
+    const { rows } = await loadOrganizationVendorList(organization.id);
 
     return NextResponse.json({ success: true, vendors: rows });
   } catch (error) {
@@ -155,9 +153,7 @@ export async function POST(request: Request) {
       ? (body.source as (typeof VALID_SOURCES)[number])
       : "custom";
 
-    const [vendor] = await db
-      .insert(vendors)
-      .values({
+    const baseValues = {
         organizationId: organization.id,
         name,
         key,
@@ -168,17 +164,29 @@ export async function POST(request: Request) {
         description,
         status: status === "archived" ? "active" : status,
         source,
-        legalName: body.legalName ? String(body.legalName).trim() || null : null,
-        role: parseVendorRole(body.role),
-        processingCountries: parseStringList(body.processingCountries),
-        dpaStatus: parseDpaStatus(body.dpaStatus),
-        dpaReference: body.dpaReference ? String(body.dpaReference).trim() || null : null,
-        downstreamDsarMode: parseDownstreamDsarMode(body.downstreamDsarMode),
-        ccpaSale: parseCcpaApplicability(body.ccpaSale),
-        ccpaShare: parseCcpaApplicability(body.ccpaShare),
-        ccpaSensitivePi: parseCcpaApplicability(body.ccpaSensitivePi),
-      })
-      .returning();
+    };
+
+    let vendor;
+    try {
+      [vendor] = await db
+        .insert(vendors)
+        .values({
+          ...baseValues,
+          legalName: body.legalName ? String(body.legalName).trim() || null : null,
+          role: parseVendorRole(body.role),
+          processingCountries: parseStringList(body.processingCountries),
+          dpaStatus: parseDpaStatus(body.dpaStatus),
+          dpaReference: body.dpaReference ? String(body.dpaReference).trim() || null : null,
+          downstreamDsarMode: parseDownstreamDsarMode(body.downstreamDsarMode),
+          ccpaSale: parseCcpaApplicability(body.ccpaSale),
+          ccpaShare: parseCcpaApplicability(body.ccpaShare),
+          ccpaSensitivePi: parseCcpaApplicability(body.ccpaSensitivePi),
+        })
+        .returning();
+    } catch (error) {
+      if (!isSchemaMismatchError(error)) throw error;
+      [vendor] = await db.insert(vendors).values(baseValues).returning();
+    }
 
     await writeProcessingAudit({
       organizationId: organization.id,
@@ -192,6 +200,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, vendor }, { status: 201 });
   } catch (error) {
     console.error("Vendor creation failed:", error);
+    if (isSchemaMismatchError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Vendor role columns are missing from the database. Apply pending schema, then create the vendor again.",
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { success: false, message: "Failed to create vendor" },
       { status: 500 },

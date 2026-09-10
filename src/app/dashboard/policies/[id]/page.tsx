@@ -76,7 +76,15 @@ export default async function PolicyDetailPage({
   const website = orgWebsites.find((w) => w.id === policy.websiteId);
 
   const versions = await db
-    .select()
+    .select({
+      id: consentPolicyVersions.id,
+      version: consentPolicyVersions.version,
+      status: consentPolicyVersions.status,
+      isPublished: consentPolicyVersions.isPublished,
+      publishedAt: consentPolicyVersions.publishedAt,
+      createdAt: consentPolicyVersions.createdAt,
+      updatedAt: consentPolicyVersions.updatedAt,
+    })
     .from(consentPolicyVersions)
     .where(eq(consentPolicyVersions.policyId, policy.id))
     .orderBy(consentPolicyVersions.version);

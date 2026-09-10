@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
-import { vendors } from "@/db/schema/vendors";
+import { loadOrganizationVendorList } from "@/lib/processing/dashboard-queries";
 import { VendorList, type VendorRow } from "@/components/vendors/vendor-list";
 
 function IconPlus() {
@@ -27,23 +27,7 @@ export default async function VendorsPage() {
     .limit(1);
   if (!localOrg) return null;
 
-  const rows = await db
-    .select({
-      id: vendors.id,
-      key: vendors.key,
-      name: vendors.name,
-      domain: vendors.domain,
-      country: vendors.country,
-      status: vendors.status,
-      source: vendors.source,
-      role: vendors.role,
-      dpaStatus: vendors.dpaStatus,
-      createdAt: vendors.createdAt,
-    })
-    .from(vendors)
-    .where(eq(vendors.organizationId, localOrg.id))
-    .orderBy(vendors.name);
-
+  const { rows, schemaLimited } = await loadOrganizationVendorList(localOrg.id);
   const vendorList: VendorRow[] = rows;
 
   const total    = vendorList.length;
@@ -71,6 +55,13 @@ export default async function VendorsPage() {
           Create vendor
         </Link>
       </div>
+
+      {schemaLimited && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          Vendor role and DPA columns are not in this database yet. The list still loads. Apply pending schema
+          (npm run db:ensure-schema) before publishing policies that reference these vendors.
+        </div>
+      )}
 
       {/* ── Summary pills ───────────────────────────────────────────────── */}
       {total > 0 && (
