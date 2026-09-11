@@ -107,28 +107,28 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
   if (schedules.length === 0) return null;
 
   return (
-    <div className="rounded-2xl bg-white card-shadow">
-      <div className="border-b border-slate-100 px-6 py-4">
-        <h2 className="text-base font-semibold text-slate-900">Automatic scanning</h2>
-        <p className="mt-0.5 text-sm text-slate-500">
+    <div className="rounded-2xl bg-[var(--card)] card-shadow">
+      <div className="border-b border-[var(--border)] px-6 py-4">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">Automatic scanning</h2>
+        <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
           Daily, weekly, or monthly scans. An external scheduler must call the scan job in production.
         </p>
       </div>
       <div className="table-scroll scrollbar-thin">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/60">
+            <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
               {["Website", "Automatic", "Frequency", "Last scan", "Next scan", "Result", ""].map((heading) => (
                 <th
                   key={heading}
-                  className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                  className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
                 >
                   {heading}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--border)]">
             {schedules.map((row) => {
               const current = draft[row.websiteId] ?? {
                 enabled: row.enabled,
@@ -138,11 +138,11 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
               return (
                 <tr key={row.websiteId}>
                   <td className="px-5 py-4">
-                    <p className="font-medium text-slate-900">{row.websiteName}</p>
-                    <p className="text-xs text-slate-400">{row.websiteDomain}</p>
+                    <p className="font-medium text-[var(--foreground)]">{row.websiteName}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{row.websiteDomain}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <label className="inline-flex items-center gap-2 text-sm text-slate-700">
+                    <label className="inline-flex items-center gap-2 text-sm text-[var(--foreground)]">
                       <input
                         type="checkbox"
                         checked={current.enabled}
@@ -171,15 +171,15 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
                           },
                         }))
                       }
-                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm"
+                      className="h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 text-sm"
                     >
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
                     </select>
                   </td>
-                  <td className="px-5 py-4 text-slate-500">{fmt(row.lastScanAt)}</td>
-                  <td className="px-5 py-4 text-slate-500">
+                  <td className="px-5 py-4 text-[var(--muted-foreground)]">{fmt(row.lastScanAt)}</td>
+                  <td className="px-5 py-4 text-[var(--muted-foreground)]">
                     {current.enabled ? fmt(row.nextScanAt) : "—"}
                   </td>
                   <td className="px-5 py-4">
@@ -199,11 +199,11 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
                           {row.lastScanStatus}
                         </Badge>
                         {row.lastError && (
-                          <p className="max-w-[180px] truncate text-xs text-rose-500">{row.lastError}</p>
+                          <p className="max-w-[180px] truncate text-xs text-[var(--danger)]">{row.lastError}</p>
                         )}
                       </div>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-[var(--muted-foreground)]">—</span>
                     )}
                   </td>
                   <td className="px-5 py-4">

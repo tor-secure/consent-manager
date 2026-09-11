@@ -1,15 +1,15 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
 import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
 import { trackers } from "@/db/schema/trackers";
 import { scans } from "@/db/schema/scans";
 import { AnalyticsFilters } from "@/components/analytics/analytics-filters";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { loadConsentAnalytics, loadRecentConsentEvents } from "@/lib/analytics/queries";
 import { parseAnalyticsPeriod } from "@/lib/analytics/consent-metrics";
 import {
@@ -17,6 +17,11 @@ import {
   countryDisplayName,
   deviceDisplayName,
 } from "@/lib/analytics/client-hints";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
+import {
+  AnalyticsBreakdownSkeleton,
+  AnalyticsOverviewSkeleton,
+} from "@/components/dashboard/dashboard-skeletons";
 
 function IconTotal() {
   return (
@@ -68,7 +73,7 @@ function SectionHeader({ title, description, action }: { title: string; descript
   return (
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        <h2 className="text-lg font-bold tracking-tight text-slate-900">{title}</h2>
+        <h2 className="text-lg font-bold tracking-tight text-[var(--foreground)]">{title}</h2>
         {description && <p className="mt-1 text-sm text-[var(--muted-foreground)]">{description}</p>}
       </div>
       {action}
@@ -82,11 +87,27 @@ function fmt(date: Date | null) {
     + " " + date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
-function EmptyNote({ text }: { text: string }) {
+function EmptyNote({
+  text,
+  actionLabel,
+  actionHref,
+}: {
+  text: string;
+  actionLabel?: string;
+  actionHref?: string;
+}) {
   return (
     <Card>
       <CardContent className="py-12 text-center">
-        <p className="text-sm text-slate-500">{text}</p>
+        <p className="text-sm text-[var(--muted-foreground)]">{text}</p>
+        {actionLabel && actionHref ? (
+          <Link
+            href={actionHref}
+            className="mt-3 inline-block text-sm font-medium text-[var(--primary)] underline-offset-2 hover:underline"
+          >
+            {actionLabel}
+          </Link>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -94,141 +115,126 @@ function EmptyNote({ text }: { text: string }) {
 
 function RateBar({ value }: { value: number }) {
   return (
-    <div className="ml-auto h-2.5 w-36 overflow-hidden rounded-full bg-slate-100 inner-shadow">
+    <div className="ml-auto h-2.5 w-36 overflow-hidden rounded-full bg-[var(--secondary)] inner-shadow">
       <div
-        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-500"
+        className="h-full rounded-full bg-gradient-to-r from-[var(--success)] to-[var(--accent)]"
         style={{ width: `${Math.min(100, Math.max(0, value))}%` }}
       />
     </div>
   );
 }
 
+type AnalyticsSearchParams = {
+  days?: string;
+  websiteId?: string;
+  country?: string;
+  device?: string;
+  browser?: string;
+  purposeId?: string;
+  policyVersionId?: string;
+  from?: string;
+  to?: string;
+};
+
 export default async function AnalyticsPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    days?: string;
-    websiteId?: string;
-    country?: string;
-    device?: string;
-    browser?: string;
-    purposeId?: string;
-    policyVersionId?: string;
-    from?: string;
-    to?: string;
-  }>;
+  searchParams: Promise<AnalyticsSearchParams>;
 }) {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
+  const { organization: localOrg } = await requireDashboardContext();
   const params = await searchParams;
   const days = params.days ?? "30";
 
-  const [localOrg] = await db
-    .select({ id: organizations.id, name: organizations.name })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
+  return (
+    <div className="page-wrap space-y-8">
+      <PageHeader
+        title="Analytics"
+        description={
+          <>
+            Aggregated consent metrics for{" "}
+            <span className="font-medium text-[var(--secondary-foreground)]">{localOrg.name}</span>
+            .{" "}
+            <Link href="/dashboard/quality" className="font-medium text-[var(--primary)] underline underline-offset-2">
+              Open quality score
+            </Link>
+          </>
+        }
+        action={
+          <Suspense fallback={<div className="h-11 w-72 rounded-2xl bg-[var(--card)] soft-shadow" />}>
+            <AnalyticsFiltersSection days={days} params={params} />
+          </Suspense>
+        }
+      />
+      <Suspense fallback={<AnalyticsOverviewSkeleton />}>
+        <AnalyticsOverviewSection params={params} />
+      </Suspense>
+      <Suspense fallback={<AnalyticsBreakdownSkeleton />}>
+        <AnalyticsDeferredSection params={params} days={days} />
+      </Suspense>
+    </div>
+  );
+}
 
-  if (!localOrg) return null;
-
-  const analytics = await loadConsentAnalytics(localOrg.id, params);
-  const period = parseAnalyticsPeriod({ days: params.days, from: params.from, to: params.to });
-  const websiteIds = analytics.websites.map((site) => site.id);
-  const websiteMap = new Map(analytics.websites.map((site) => [site.id, site]));
-
-  const [trackerSummary, scanSummary, recentEvents] = await Promise.all([
-    websiteIds.length > 0
-      ? db
-          .select({
-            total: sql<number>`count(*)::int`,
-            essential: sql<number>`count(*) filter (where ${trackers.isEssential} = true)::int`,
-            withPurpose: sql<number>`count(*) filter (where ${trackers.purposeId} is not null)::int`,
-            unclassified: sql<number>`count(*) filter (where ${trackers.purposeId} is null and ${trackers.isEssential} = false)::int`,
-          })
-          .from(trackers)
-          .where(and(inArray(trackers.websiteId, websiteIds), eq(trackers.status, "active")))
-      : Promise.resolve([]),
-    websiteIds.length > 0
-      ? db
-          .select({
-            total: sql<number>`count(*)::int`,
-            completed: sql<number>`count(*) filter (where ${scans.status} = 'completed')::int`,
-            items: sql<number>`coalesce(sum(${scans.itemsDetected}), 0)::int`,
-          })
-          .from(scans)
-          .where(
-            and(
-              inArray(scans.websiteId, websiteIds),
-              period.since ? gte(scans.createdAt, period.since) : undefined,
-            ),
-          )
-      : Promise.resolve([]),
-    loadRecentConsentEvents(localOrg.id, websiteIds, period.since, period.until),
+async function AnalyticsFiltersSection({
+  days,
+  params,
+}: {
+  days: string;
+  params: AnalyticsSearchParams;
+}) {
+  const { organization: localOrg } = await requireDashboardContext();
+  const [overview, breakdowns] = await Promise.all([
+    loadConsentAnalytics(localOrg.id, params, "overview"),
+    loadConsentAnalytics(localOrg.id, params, "breakdowns"),
   ]);
 
-  const tk = trackerSummary[0];
-  const sc = scanSummary[0];
+  return (
+    <AnalyticsFilters
+      currentDays={days}
+      websites={overview.websites.map((site) => ({ value: site.id, label: site.name }))}
+      countries={breakdowns.filterOptions.countries.map((code) => ({
+        value: code,
+        label: countryDisplayName(code),
+      }))}
+      devices={breakdowns.filterOptions.devices.map((value) => ({
+        value,
+        label: deviceDisplayName(value),
+      }))}
+      browsers={breakdowns.filterOptions.browsers.map((value) => ({
+        value,
+        label: browserDisplayName(value),
+      }))}
+      purposes={overview.filterOptions.purposes.map((row) => ({
+        value: row.id ?? "",
+        label: row.label ?? "",
+      })).filter((row) => row.value)}
+      policyVersions={breakdowns.filterOptions.policyVersions.map((row) => ({
+        value: row.id,
+        label: row.label,
+      }))}
+    />
+  );
+}
+
+async function AnalyticsOverviewSection({
+  params,
+}: {
+  params: AnalyticsSearchParams;
+}) {
+  const { organization: localOrg } = await requireDashboardContext();
+  const analytics = await loadConsentAnalytics(localOrg.id, params, "overview");
   const hasData = analytics.overview.total > 0;
   const maxTrend = Math.max(1, ...analytics.trends.map((row) => row.interactions));
 
   return (
-    <div className="page-wrap space-y-8 animate-fade-in">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="page-title">Analytics</h1>
-          <p className="page-description">
-            Aggregated consent metrics for{" "}
-            <span className="font-medium text-[var(--secondary-foreground)]">{localOrg.name}</span>
-            {" · "}
-            {analytics.period}.{" "}
-            <Link href="/dashboard/quality" className="font-medium text-[var(--primary)] underline underline-offset-2">
-              Open quality score
-            </Link>
-          </p>
-        </div>
-        <Suspense fallback={<div className="h-11 w-72 rounded-2xl bg-white soft-shadow" />}>
-          <AnalyticsFilters
-            currentDays={days}
-            websites={analytics.websites.map((site) => ({ value: site.id, label: site.name }))}
-            countries={analytics.filterOptions.countries.map((code) => ({
-              value: code,
-              label: countryDisplayName(code),
-            }))}
-            devices={analytics.filterOptions.devices.map((value) => ({
-              value,
-              label: deviceDisplayName(value),
-            }))}
-            browsers={analytics.filterOptions.browsers.map((value) => ({
-              value,
-              label: browserDisplayName(value),
-            }))}
-            purposes={analytics.filterOptions.purposes.map((row) => ({
-              value: row.id ?? "",
-              label: row.label ?? "",
-            })).filter((row) => row.value)}
-            policyVersions={analytics.filterOptions.policyVersions.map((row) => ({
-              value: row.id,
-              label: row.label,
-            }))}
-          />
-        </Suspense>
-      </div>
-
+    <>
       {analytics.websites.length === 0 && (
-        <Card>
-          <CardContent className="pt-6">
-            <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center bg-white">
-              <p className="text-base font-semibold text-slate-800">No websites yet</p>
-              <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-                Add a website and collect consent to see analytics.
-              </p>
-              <Link href="/dashboard/websites/new" className="mt-6 btn btn-primary">
-                Add website
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No websites yet"
+          description="Add a website, publish a policy, and install the SDK to see consent analytics."
+          actionLabel="Add website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
       {analytics.websites.length > 0 && (
@@ -239,7 +245,15 @@ export default async function AnalyticsPage({
               description={`Visitor consent records · ${analytics.period}.`}
             />
             {!hasData ? (
-              <EmptyNote text="No consent records updated in this period. Install the SDK, publish a policy, and collect a choice — or widen the date range." />
+              <EmptyNote
+                text="No consent records updated in this period. Publish a policy, install the SDK, and collect a choice — or widen the date range."
+                actionLabel="Install SDK"
+                actionHref={
+                  analytics.websites[0]
+                    ? `/dashboard/websites/${analytics.websites[0].id}/installation`
+                    : "/dashboard/developers"
+                }
+              />
             ) : (
               <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-5">
                 <StatCard label="Total records" value={analytics.overview.total} icon={<IconTotal />} iconColor="blue" description="One row per consent record" />
@@ -262,9 +276,9 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Day</th>
                           <th className="px-6 py-4">Volume</th>
                           <th className="px-6 py-4 text-right">Interactions</th>
@@ -274,19 +288,19 @@ export default async function AnalyticsPage({
                           <th className="px-6 py-4 text-right">Withdrawals</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.trends.map((row) => (
                           <tr key={row.day}>
-                            <td className="px-6 py-3 font-medium text-slate-800">{row.day}</td>
+                            <td className="px-6 py-3 font-medium text-[var(--foreground)]">{row.day}</td>
                             <td className="px-6 py-3">
-                              <div className="h-2 w-40 overflow-hidden rounded-full bg-slate-100">
-                                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${(row.interactions / maxTrend) * 100}%` }} />
+                              <div className="h-2 w-40 overflow-hidden rounded-full bg-[var(--secondary)]">
+                                <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${(row.interactions / maxTrend) * 100}%` }} />
                               </div>
                             </td>
                             <td className="px-6 py-3 text-right tabular-nums">{row.interactions}</td>
-                            <td className="px-6 py-3 text-right tabular-nums text-emerald-600">{row.acceptAll}</td>
-                            <td className="px-6 py-3 text-right tabular-nums text-rose-600">{row.rejectAll}</td>
-                            <td className="px-6 py-3 text-right tabular-nums text-indigo-600">{row.granular}</td>
+                            <td className="px-6 py-3 text-right tabular-nums text-[var(--success)]">{row.acceptAll}</td>
+                            <td className="px-6 py-3 text-right tabular-nums text-[var(--danger)]">{row.rejectAll}</td>
+                            <td className="px-6 py-3 text-right tabular-nums text-[var(--primary)]">{row.granular}</td>
                             <td className="px-6 py-3 text-right tabular-nums">{row.withdrawals}</td>
                           </tr>
                         ))}
@@ -321,9 +335,9 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Website</th>
                           <th className="px-6 py-4 text-right">Total</th>
                           <th className="px-6 py-4 text-right">Accepted</th>
@@ -333,17 +347,17 @@ export default async function AnalyticsPage({
                           <th className="px-6 py-4 text-right">Consent rate</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.websiteSummary.map((row) => (
                           <tr key={row.websiteId}>
                             <td className="px-6 py-4">
-                              <p className="font-semibold text-slate-900">{row.websiteName}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">{row.websiteDomain}</p>
+                              <p className="font-semibold text-[var(--foreground)]">{row.websiteName}</p>
+                              <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{row.websiteDomain}</p>
                             </td>
                             <td className="px-6 py-4 text-right font-semibold tabular-nums">{row.total.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-right text-emerald-600 tabular-nums">{row.accepted.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-right text-rose-600 tabular-nums">{row.rejected.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-right text-indigo-600 tabular-nums">{row.partial.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right text-[var(--success)] tabular-nums">{row.accepted.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right text-[var(--danger)] tabular-nums">{row.rejected.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right text-[var(--primary)] tabular-nums">{row.partial.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.withdrawn.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right font-semibold tabular-nums">{row.consentRate}%</td>
                           </tr>
@@ -364,9 +378,9 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Purpose</th>
                           <th className="px-6 py-4 text-right">Decisions</th>
                           <th className="px-6 py-4 text-right">Granted</th>
@@ -375,16 +389,16 @@ export default async function AnalyticsPage({
                           <th className="px-6 py-4 text-right w-48">Progress</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.purposes.map((row) => (
                           <tr key={row.purposeId}>
                             <td className="px-6 py-4">
-                              <p className="font-semibold text-slate-900">{row.purposeName}</p>
-                              <code className="text-xs text-slate-400">{row.purposeKey}</code>
+                              <p className="font-semibold text-[var(--foreground)]">{row.purposeName}</p>
+                              <code className="text-xs text-[var(--muted-foreground)]">{row.purposeKey}</code>
                             </td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.total.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-right text-emerald-600 tabular-nums">{row.granted.toLocaleString()}</td>
-                            <td className="px-6 py-4 text-right text-rose-600 tabular-nums">{row.denied.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right text-[var(--success)] tabular-nums">{row.granted.toLocaleString()}</td>
+                            <td className="px-6 py-4 text-right text-[var(--danger)] tabular-nums">{row.denied.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right font-semibold tabular-nums">{row.grantRate}%</td>
                             <td className="px-6 py-4"><RateBar value={row.grantRate} /></td>
                           </tr>
@@ -397,6 +411,80 @@ export default async function AnalyticsPage({
             )}
           </section>
 
+          {analytics.eventTypes.length > 0 && (
+            <section>
+              <SectionHeader title="Consent events" description="Count of each consent event type." />
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {analytics.eventTypes.map((ev) => (
+                  <Card key={ev.eventType} className="p-5 sm:p-6">
+                    <code className="block truncate font-mono text-[11px] font-medium text-[var(--muted-foreground)] bg-[var(--muted)] px-2.5 py-1 rounded-xl">{ev.eventType}</code>
+                    <p className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]">{ev.count.toLocaleString()}</p>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+async function AnalyticsDeferredSection({
+  params,
+  days,
+}: {
+  params: AnalyticsSearchParams;
+  days: string;
+}) {
+  const { organization: localOrg } = await requireDashboardContext();
+  const [overview, analytics] = await Promise.all([
+    loadConsentAnalytics(localOrg.id, params, "overview"),
+    loadConsentAnalytics(localOrg.id, params, "breakdowns"),
+  ]);
+
+  if (overview.websites.length === 0) return null;
+
+  const period = parseAnalyticsPeriod({ days: params.days, from: params.from, to: params.to });
+  const websiteIds = overview.websites.map((site) => site.id);
+  const websiteMap = new Map(overview.websites.map((site) => [site.id, site]));
+  const hasData = overview.overview.total > 0;
+
+  const [trackerSummary, scanSummary, recentEvents] = await Promise.all([
+    websiteIds.length > 0
+      ? db
+          .select({
+            total: sql<number>`count(*)::int`,
+            essential: sql<number>`count(*) filter (where ${trackers.isEssential} = true)::int`,
+            withPurpose: sql<number>`count(*) filter (where ${trackers.purposeId} is not null)::int`,
+            unclassified: sql<number>`count(*) filter (where ${trackers.purposeId} is null and ${trackers.isEssential} = false)::int`,
+          })
+          .from(trackers)
+          .where(and(inArray(trackers.websiteId, websiteIds), eq(trackers.status, "active")))
+      : Promise.resolve([]),
+    websiteIds.length > 0
+      ? db
+          .select({
+            total: sql<number>`count(*)::int`,
+            completed: sql<number>`count(*) filter (where ${scans.status} = 'completed')::int`,
+            items: sql<number>`coalesce(sum(${scans.itemsDetected}), 0)::int`,
+          })
+          .from(scans)
+          .where(
+            and(
+              inArray(scans.websiteId, websiteIds),
+              period.since ? gte(scans.createdAt, period.since) : undefined,
+            ),
+          )
+      : Promise.resolve([]),
+    loadRecentConsentEvents(localOrg.id, websiteIds, period.since, period.until),
+  ]);
+
+  const tk = trackerSummary[0];
+  const sc = scanSummary[0];
+
+  return (
+    <div className="mt-10 space-y-10">
           <section>
             <SectionHeader
               title="Geography"
@@ -408,19 +496,19 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Country</th>
                           <th className="px-6 py-4 text-right">Records</th>
                           <th className="px-6 py-4 text-right">Consent rate</th>
                           <th className="px-6 py-4 text-right">Reject rate</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.countries.map((row) => (
                           <tr key={row.key}>
-                            <td className="px-6 py-4 font-semibold text-slate-900">{row.name}</td>
+                            <td className="px-6 py-4 font-semibold text-[var(--foreground)]">{row.name}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.total.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right font-semibold tabular-nums">{row.consentRate}%</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.rejectRate}%</td>
@@ -442,19 +530,19 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Device</th>
                           <th className="px-6 py-4 text-right">Interactions</th>
                           <th className="px-6 py-4 text-right">Acceptance</th>
                           <th className="px-6 py-4 text-right">Rejection</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.devices.map((row) => (
                           <tr key={row.key}>
-                            <td className="px-6 py-4 font-semibold text-slate-900">{row.name}</td>
+                            <td className="px-6 py-4 font-semibold text-[var(--foreground)]">{row.name}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.total.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.consentRate}%</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.rejectRate}%</td>
@@ -476,19 +564,19 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Browser</th>
                           <th className="px-6 py-4 text-right">Records</th>
                           <th className="px-6 py-4 text-right">Acceptance</th>
                           <th className="px-6 py-4 text-right">Rejection</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.browsers.map((row) => (
                           <tr key={row.key}>
-                            <td className="px-6 py-4 font-semibold text-slate-900">{row.name}</td>
+                            <td className="px-6 py-4 font-semibold text-[var(--foreground)]">{row.name}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.total.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.consentRate}%</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.rejectRate}%</td>
@@ -510,9 +598,9 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Website</th>
                           <th className="px-6 py-4">Policy version</th>
                           <th className="px-6 py-4 text-right">Records</th>
@@ -520,11 +608,11 @@ export default async function AnalyticsPage({
                           <th className="px-6 py-4 text-right">Consent rate</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {analytics.policyVersions.map((row) => (
                           <tr key={`${row.websiteId}-${row.policyVersionId}`}>
-                            <td className="px-6 py-4 text-slate-700">{row.websiteName}</td>
-                            <td className="px-6 py-4 font-semibold text-slate-900">{row.label}</td>
+                            <td className="px-6 py-4 text-[var(--foreground)]">{row.websiteName}</td>
+                            <td className="px-6 py-4 font-semibold text-[var(--foreground)]">{row.label}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.total.toLocaleString()}</td>
                             <td className="px-6 py-4 text-right tabular-nums">{row.acceptRate}%</td>
                             <td className="px-6 py-4 text-right font-semibold tabular-nums">{row.consentRate}%</td>
@@ -538,29 +626,13 @@ export default async function AnalyticsPage({
             )}
           </section>
 
-          {analytics.eventTypes.length > 0 && (
-            <section>
-              <SectionHeader title="Consent events" description="Count of each consent event type." />
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                {analytics.eventTypes.map((ev) => (
-                  <Card key={ev.eventType}>
-                    <CardContent className="py-5">
-                      <code className="block truncate font-mono text-[11px] font-medium text-slate-500 bg-slate-50 px-2.5 py-1 rounded-xl">{ev.eventType}</code>
-                      <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900">{ev.count.toLocaleString()}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-
           {tk && (
             <section>
               <SectionHeader
                 title="Tracker inventory"
                 description="Active trackers across all websites (not date-filtered)."
                 action={
-                  <Link href="/dashboard/trackers" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors rounded-xl px-3.5 h-9 inline-flex items-center bg-indigo-50 hover:bg-indigo-100/80">
+                  <Link href="/dashboard/trackers" className="btn btn-outline">
                     View all trackers
                   </Link>
                 }
@@ -580,7 +652,7 @@ export default async function AnalyticsPage({
                 title="Scanner activity"
                 description={`Scans run${days !== "all" ? ` in the last ${days} days` : ""}. Scanner results do not overwrite consent analytics.`}
                 action={
-                  <Link href="/dashboard/scanner" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors rounded-xl px-3.5 h-9 inline-flex items-center bg-indigo-50 hover:bg-indigo-100/80">
+                  <Link href="/dashboard/scanner" className="btn btn-outline">
                     View scanner
                   </Link>
                 }
@@ -599,7 +671,7 @@ export default async function AnalyticsPage({
                 title="Recent activity"
                 description="Latest consent event types. Identifiers are truncated."
                 action={
-                  <Link href="/dashboard/consent" className="text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors rounded-xl px-3.5 h-9 inline-flex items-center bg-indigo-50 hover:bg-indigo-100/80">
+                  <Link href="/dashboard/consent" className="btn btn-outline">
                     View all consent records
                   </Link>
                 }
@@ -607,9 +679,9 @@ export default async function AnalyticsPage({
               <Card>
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
-                    <table className="min-w-full divide-y divide-slate-100 text-sm">
+                    <table className="min-w-full divide-y divide-[var(--border)] text-sm">
                       <thead>
-                        <tr className="bg-slate-50/70 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                        <tr className="bg-[var(--muted)]/70 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           <th className="px-6 py-4">Event</th>
                           <th className="px-6 py-4">Website</th>
                           <th className="px-6 py-4">Consent ID</th>
@@ -617,22 +689,22 @@ export default async function AnalyticsPage({
                           <th className="px-6 py-4">Time</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-[var(--border)]">
                         {recentEvents.map((ev) => {
                           const site = websiteMap.get(ev.websiteId);
                           return (
                             <tr key={ev.id}>
                               <td className="px-6 py-4">
-                                <code className="rounded-xl bg-slate-50 px-2.5 py-1 font-mono text-[11px] font-medium text-slate-700">
+                                <code className="rounded-xl bg-[var(--muted)] px-2.5 py-1 font-mono text-[11px] font-medium text-[var(--foreground)]">
                                   {ev.eventType}
                                 </code>
                               </td>
-                              <td className="px-6 py-4 text-slate-600">{site?.name ?? "—"}</td>
+                              <td className="px-6 py-4 text-[var(--muted-foreground)]">{site?.name ?? "—"}</td>
                               <td className="px-6 py-4">
-                                <code className="font-mono text-xs text-slate-400">{ev.consentId.slice(0, 18)}…</code>
+                                <code className="font-mono text-xs text-[var(--muted-foreground)]">{ev.consentId.slice(0, 18)}…</code>
                               </td>
-                              <td className="px-6 py-4 capitalize text-slate-500">{ev.source}</td>
-                              <td className="px-6 py-4 text-slate-500 text-xs">{fmt(ev.occurredAt)}</td>
+                              <td className="px-6 py-4 capitalize text-[var(--muted-foreground)]">{ev.source}</td>
+                              <td className="px-6 py-4 text-[var(--muted-foreground)] text-xs">{fmt(ev.occurredAt)}</td>
                             </tr>
                           );
                         })}
@@ -644,26 +716,22 @@ export default async function AnalyticsPage({
             </section>
           )}
 
-          {analytics.websites.length > 0 && !hasData && recentEvents.length === 0 && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center bg-white">
-                  <p className="text-base font-semibold text-slate-800">No consent data yet</p>
-                  <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto">
-                    Deploy the SDK on your website and collect your first consent record.
-                  </p>
-                  <Link
-                    href={`/dashboard/websites/${analytics.websites[0]?.id ?? ""}/installation`}
-                    className="mt-6 btn btn-primary"
-                  >
-                    View installation guide
-                  </Link>
-                </div>
-              </CardContent>
+          {overview.websites.length > 0 && !hasData && recentEvents.length === 0 && (
+            <Card className="p-5 sm:p-6">
+              <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center bg-[var(--card)]">
+                <p className="text-base font-semibold text-[var(--foreground)]">No consent data yet</p>
+                <p className="mt-2 text-sm text-[var(--muted-foreground)] max-w-md mx-auto">
+                  Deploy the SDK on your website and collect your first consent record.
+                </p>
+                <Link
+                  href={`/dashboard/websites/${overview.websites[0]?.id ?? ""}/installation`}
+                  className="mt-6 btn btn-primary"
+                >
+                  View installation guide
+                </Link>
+              </div>
             </Card>
           )}
-        </div>
-      )}
     </div>
   );
 }

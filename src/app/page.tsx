@@ -4,6 +4,8 @@ import { HomeNavbar } from "@/components/public/home-navbar";
 import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
+import { HomeHowItWorks } from "@/components/public/home-how-it-works";
+import { HomePricing } from "@/components/public/home-pricing";
 import Link from "next/link";
 
 const trustItems = [
@@ -110,7 +112,7 @@ export default function Home() {
                   <span aria-hidden="true">→</span>
                 </Link>
                 <Link
-                  href="#solutions"
+                  href="/sdk-demo"
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#5850EC]/40 bg-white px-5 text-sm font-semibold text-[#5850EC] transition hover:border-[#5850EC] hover:bg-[#EEF2FF]"
                 >
                   <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#5850EC]/35">
@@ -124,7 +126,7 @@ export default function Home() {
                       <path d="M8 5.5v13l11-6.5L8 5.5Z" />
                     </svg>
                   </span>
-                  Book a Demo
+                  Try the SDK demo
                 </Link>
               </div>
 
@@ -156,7 +158,9 @@ export default function Home() {
         </section>
 
         <HomeTrustedFeatures />
+        <HomeHowItWorks />
         <HomeUseCasesCta />
+        <HomePricing />
       </main>
 
       <HomeFooter />

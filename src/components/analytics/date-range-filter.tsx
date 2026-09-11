@@ -29,7 +29,7 @@ export function DateRangeFilter({ current }: { current: string }) {
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-md border bg-white p-1">
+    <div className="flex items-center gap-1 rounded-md border bg-[var(--card)] p-1">
       {RANGES.map((r) => {
         const active = current === r.value || (r.value === "all" && current === "all");
         return (
@@ -41,8 +41,8 @@ export function DateRangeFilter({ current }: { current: string }) {
             className={[
               "rounded px-3 py-1.5 text-xs font-medium transition",
               active
-                ? "bg-neutral-900 text-white"
-                : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
+                ? "bg-[var(--foreground)] text-white"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--hover)] hover:text-[var(--foreground)]",
             ].join(" ")}
           >
             {r.label}

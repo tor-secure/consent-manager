@@ -156,22 +156,22 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
         <CardContent className="pt-2">
           {policyRows.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-8 text-center">
-              <p className="text-sm font-medium text-slate-600">No policies yet</p>
+              <p className="text-sm font-medium text-[var(--muted-foreground)]">No policies yet</p>
               <Link
                 href={`/dashboard/policies/new?websiteId=${websiteId}`}
-                className="inline-flex items-center gap-1 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                className="inline-flex items-center gap-1 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
               >
                 Create first policy
               </Link>
             </div>
           ) : (
             <div>
-              <ul role="list" className="divide-y divide-slate-100">
+              <ul role="list" className="divide-y divide-[var(--border)]">
                 {policyRows.map((p) => (
                   <li key={p.id} className="flex items-center justify-between py-3 text-sm group">
                     <Link
                       href={`/dashboard/policies/${p.id}`}
-                      className="font-medium text-slate-800 transition-colors group-hover:text-indigo-600"
+                      className="font-medium text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]"
                     >
                       {p.name}
                     </Link>
@@ -185,10 +185,10 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
                   </li>
                 ))}
               </ul>
-              <div className="mt-2 border-t border-slate-100 pt-3">
+              <div className="mt-2 border-t border-[var(--border)] pt-3">
                 <Link
                   href={`/dashboard/policies/new?websiteId=${websiteId}`}
-                  className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[var(--primary)] transition hover:text-[var(--primary)]"
                 >
                   Add policy
                 </Link>
@@ -229,10 +229,10 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
         <CardContent>
           {scanCount === 0 ? (
             <div className="flex flex-col items-center gap-3 py-6 text-center">
-              <p className="text-sm font-medium text-slate-600">No scans yet</p>
+              <p className="text-sm font-medium text-[var(--muted-foreground)]">No scans yet</p>
               <Link
                 href="/dashboard/scanner"
-                className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
               >
                 Go to scanner
               </Link>
@@ -246,14 +246,14 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
                   { label: "Failed", value: scanRows.filter((s) => s.status === "failed").length },
                 ].map((s) => (
                   <div key={s.label}
-                    className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
-                    <span className="font-semibold text-slate-800">{s.value}</span>
-                    <span className="text-slate-500">{s.label}</span>
+                    className="flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-xs">
+                    <span className="font-semibold text-[var(--foreground)]">{s.value}</span>
+                    <span className="text-[var(--muted-foreground)]">{s.label}</span>
                   </div>
                 ))}
               </div>
               {lastScan && (
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   Last scan status:{" "}
                   <Badge
                     variant={
@@ -269,7 +269,7 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
               )}
               <Link
                 href="/dashboard/scanner"
-                className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                className="inline-flex items-center gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
               >
                 View all scans →
               </Link>

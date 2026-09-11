@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { dashboardNavigationGroups } from "@/config/navigation";
+import { dashboardNavigationGroups, SETUP_NAV_HREFS } from "@/config/navigation";
 
 type NavItem = {
   label: string;
@@ -15,6 +15,7 @@ type NavItem = {
 type NavGroup = {
   label: string;
   items: NavItem[];
+  defaultCollapsed?: boolean;
 };
 
 function IconOverview() {
@@ -207,8 +208,9 @@ function iconForHref(href: string) {
   return <IconAnalytics />;
 }
 
-const NAV_GROUPS: NavGroup[] = dashboardNavigationGroups.map((group) => ({
+const ALL_NAV_GROUPS: NavGroup[] = dashboardNavigationGroups.map((group) => ({
   label: group.title,
+  defaultCollapsed: group.defaultCollapsed,
   items: group.items.map((item) => ({
     label: item.title,
     href: item.href,
@@ -216,6 +218,24 @@ const NAV_GROUPS: NavGroup[] = dashboardNavigationGroups.map((group) => ({
     ariaLabel: item.ariaLabel ?? item.description,
   })),
 }));
+
+function groupsForMode(setupMode: boolean): NavGroup[] {
+  if (!setupMode) return ALL_NAV_GROUPS;
+  const primary: NavGroup[] = [];
+  const moreItems: NavItem[] = [];
+  for (const group of ALL_NAV_GROUPS) {
+    const kept = group.items.filter((item) => SETUP_NAV_HREFS.has(item.href));
+    const rest = group.items.filter((item) => !SETUP_NAV_HREFS.has(item.href));
+    moreItems.push(...rest);
+    if (kept.length > 0) {
+      primary.push({ ...group, items: kept, defaultCollapsed: false });
+    }
+  }
+  if (moreItems.length > 0) {
+    primary.push({ label: "More tools", items: moreItems, defaultCollapsed: true });
+  }
+  return primary;
+}
 
 function SidebarItem({
   item,
@@ -280,6 +300,10 @@ function isItemActive(href: string, pathname: string) {
 
 function groupContainsPath(group: NavGroup, pathname: string) {
   return group.items.some((item) => isItemActive(item.href, pathname));
+}
+
+function defaultGroupOpen(group: NavGroup, pathname: string) {
+  return groupContainsPath(group, pathname) || !group.defaultCollapsed;
 }
 
 function readOpenGroups(): Record<string, boolean> {
@@ -434,13 +458,21 @@ function CompliancePromo({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => void }) {
+export function SidebarNav({
+  collapsed,
+  setupMode = false,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+  setupMode?: boolean;
+}) {
   const pathname = usePathname();
+  const navGroups = groupsForMode(setupMode);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
-    for (const group of NAV_GROUPS) {
-      initial[group.label] = groupContainsPath(group, pathname);
+    for (const group of navGroups) {
+      initial[group.label] = defaultGroupOpen(group, pathname);
     }
     return initial;
   });
@@ -455,17 +487,19 @@ export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpenGroups((current) => {
       const next = { ...current };
-      for (const group of NAV_GROUPS) {
+      for (const group of groupsForMode(setupMode)) {
         if (groupContainsPath(group, pathname)) {
           next[group.label] = true;
         } else if (typeof stored[group.label] === "boolean") {
           next[group.label] = stored[group.label];
+        } else {
+          next[group.label] = defaultGroupOpen(group, pathname);
         }
       }
       writeOpenGroups(next);
       return next;
     });
-  }, [pathname]);
+  }, [pathname, setupMode]);
 
   function toggleGroup(label: string) {
     setOpenGroups((current) => {
@@ -488,7 +522,7 @@ export function SidebarNav({ collapsed }: { collapsed: boolean; onToggle: () => 
         aria-label="Dashboard navigation"
         className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin pr-1"
       >
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <SidebarGroup
             key={group.label}
             group={group}

@@ -80,7 +80,7 @@ export default async function RightsRequestDetailPage({
 
   return (
     <div className="page-wrap space-y-6">
-      <Link href="/dashboard/rights-requests" className="text-sm text-slate-500 hover:text-slate-800">
+      <Link href="/dashboard/rights-requests" className="text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]">
         ← Privacy Rights
       </Link>
       <RightsRequestDetail

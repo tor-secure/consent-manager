@@ -42,7 +42,7 @@ export function AuditLogFilters({
       <div className="flex flex-wrap items-center gap-2.5">
         {/* Search input */}
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
             width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
             <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
             <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -56,12 +56,12 @@ export function AuditLogFilters({
               return () => clearTimeout(handle);
             }}
             placeholder="Search action or resource…"
-            className="h-9 w-64 rounded-2xl border border-slate-200 bg-white pl-9 pr-3 text-sm shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
+            className="h-9 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-3 text-sm shadow-sm outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
           />
         </div>
 
         {/* Date range pills */}
-        <div className="flex items-center gap-0.5 rounded-2xl border border-slate-200 bg-slate-50 p-0.5 shadow-sm">
+        <div className="flex items-center gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">
           {DATE_RANGES.map((r) => {
             const active = currentDays === r.value || (r.value === "all" && !["7","30","90"].includes(currentDays));
             return (
@@ -71,8 +71,8 @@ export function AuditLogFilters({
                 onClick={() => updateParam("days", r.value)}
                 className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                   active
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {r.label}
@@ -84,7 +84,7 @@ export function AuditLogFilters({
 
       {/* Count / loading */}
       <p className={`text-xs font-medium transition-opacity ${isPending ? "opacity-50" : "opacity-100"}`}>
-        <span className="text-slate-400">
+        <span className="text-[var(--muted-foreground)]">
           {isPending
             ? "Loading…"
             : `${totalCount.toLocaleString()} event${totalCount !== 1 ? "s" : ""}`}

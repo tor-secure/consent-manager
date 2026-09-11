@@ -7,7 +7,7 @@ import { simulatePrivacyImpact } from "@/lib/intelligence/simulator";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { PageHeader } from "@/components/ui/page-header";
-import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
+import { NeedsScanEmpty, NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
 function IconSim() {
   return (
@@ -79,11 +79,10 @@ export default async function PrivacyImpactSimulatorPage({
               </div>
             </>
           ) : (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                Quality inputs are unavailable for this website (missing CMP snapshot or schema).
-              </CardContent>
-            </Card>
+            <NeedsScanEmpty
+              websiteId={websiteId}
+              description="Run a scan so the simulator can estimate how mapping trackers, resolving findings, or publishing a policy would change the quality score."
+            />
           )}
         </>
       )}

@@ -94,11 +94,12 @@ export default async function AutopilotPage({
           {websiteId ? <RunIntelligenceButton websiteId={websiteId} engine="autopilot" /> : null}
 
           {!websiteId || !loaded || !baseline || !snapshot ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                Quality inputs are unavailable for this website (missing CMP snapshot or schema).
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="Quality inputs are not ready"
+              description="Publish a policy and run a scan so autopilot can read the CMP snapshot and quality score."
+              actionLabel="Open scanner"
+              actionHref={websiteId ? `/dashboard/scanner?website=${websiteId}` : "/dashboard/scanner"}
+            />
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">

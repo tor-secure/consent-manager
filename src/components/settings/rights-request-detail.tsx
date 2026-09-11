@@ -137,17 +137,17 @@ export function RightsRequestDetail({
         <Badge size="sm" variant={deadlineState === "overdue" ? "danger" : "neutral"}>{deadlineState}</Badge>
       </div>
 
-      <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-800">Request</h2>
+      <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">Request</h2>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          <div><dt className="text-slate-500">Reference</dt><dd className="font-mono text-slate-800">{request.requesterReference ?? request.id}</dd></div>
-          <div><dt className="text-slate-500">Jurisdiction</dt><dd className="uppercase">{request.jurisdiction}</dd></div>
-          <div><dt className="text-slate-500">Submitted</dt><dd>{fmt(request.receivedAt)}</dd></div>
-          <div><dt className="text-slate-500">Deadline (configured target)</dt><dd>{fmt(request.dueAt)} · {request.deadlineKind}</dd></div>
-          <div><dt className="text-slate-500">Requester</dt><dd>{request.requesterName} · {request.requesterEmail}</dd></div>
-          <div><dt className="text-slate-500">Kind</dt><dd>{request.requesterKind.replace("_", " ")}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Reference</dt><dd className="font-mono text-[var(--foreground)]">{request.requesterReference ?? request.id}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Jurisdiction</dt><dd className="uppercase">{request.jurisdiction}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Submitted</dt><dd>{fmt(request.receivedAt)}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Deadline (configured target)</dt><dd>{fmt(request.dueAt)} · {request.deadlineKind}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Requester</dt><dd>{request.requesterName} · {request.requesterEmail}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Kind</dt><dd>{request.requesterKind.replace("_", " ")}</dd></div>
           <div>
-            <dt className="text-slate-500">Assigned admin</dt>
+            <dt className="text-[var(--muted-foreground)]">Assigned admin</dt>
             <dd className="flex flex-wrap items-center gap-2">
               <span>{request.assignedToName ?? "Unassigned"}</span>
               {request.canManage && !terminal && (
@@ -157,7 +157,7 @@ export function RightsRequestDetail({
                   onClick={() => startTransition(async () => {
                     await patch({ action: "assign_self" });
                   })}
-                  className="rounded-xl border border-slate-200 px-2 py-0.5 text-[11px] font-medium"
+                  className="rounded-xl border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium"
                 >
                   Assign me
                 </button>
@@ -165,19 +165,19 @@ export function RightsRequestDetail({
             </dd>
           </div>
         </dl>
-        <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap">{request.description}</p>
+        <p className="rounded-2xl bg-[var(--muted)] px-4 py-3 text-sm text-[var(--foreground)] whitespace-pre-wrap">{request.description}</p>
       </section>
 
-      <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-800">Verification</h2>
+      <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">Verification</h2>
         <dl className="grid gap-2 text-sm sm:grid-cols-2">
-          <div><dt className="text-slate-500">State</dt><dd>{request.verificationStatus}</dd></div>
-          <div><dt className="text-slate-500">Method</dt><dd>{request.verificationMethod ?? "—"}</dd></div>
-          <div><dt className="text-slate-500">Verified</dt><dd>{fmt(request.verifiedAt)}</dd></div>
-          <div><dt className="text-slate-500">Challenge expires</dt><dd>{fmt(request.verificationExpiresAt)}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">State</dt><dd>{request.verificationStatus}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Method</dt><dd>{request.verificationMethod ?? "—"}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Verified</dt><dd>{fmt(request.verifiedAt)}</dd></div>
+          <div><dt className="text-[var(--muted-foreground)]">Challenge expires</dt><dd>{fmt(request.verificationExpiresAt)}</dd></div>
         </dl>
         {request.agentAuthorizationNote && (
-          <p className="text-sm text-slate-600">Agent note: {request.agentAuthorizationNote}</p>
+          <p className="text-sm text-[var(--muted-foreground)]">Agent note: {request.agentAuthorizationNote}</p>
         )}
         {request.canManage && !terminal && (
           <div className="flex flex-wrap gap-2">
@@ -188,7 +188,7 @@ export function RightsRequestDetail({
                 const data = await patch({ action: "resend_verification" });
                 if (data.verificationToken) setIssuedToken(data.verificationToken);
               })}
-              className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-medium"
+              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
             >
               Issue verification challenge
             </button>
@@ -198,29 +198,29 @@ export function RightsRequestDetail({
               onClick={() => startTransition(async () => {
                 await patch({ action: "staff_attest", attestationNote: "Out-of-band identity check completed by staff." });
               })}
-              className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-medium"
+              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
             >
               Staff-attest identity
             </button>
           </div>
         )}
         {issuedToken && (
-          <p className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          <p className="rounded-2xl bg-[var(--warning-soft)] px-4 py-3 text-xs text-[var(--warning)]">
             One-time verification token (shown once): <code className="break-all">{issuedToken}</code>
           </p>
         )}
       </section>
 
-      <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-800">Data</h2>
-        <p className="text-sm text-slate-600">
+      <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">Data</h2>
+        <p className="text-sm text-[var(--muted-foreground)]">
           {discovery.recordCount} current records · {discovery.evidenceCount} evidence snapshots · {discovery.eventCount} events
         </p>
         {(discovery.californiaOptOuts ?? []).length > 0 && (
-          <div className="space-y-2 rounded-2xl border border-slate-100 px-4 py-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">California opt-out</p>
+          <div className="space-y-2 rounded-2xl border border-[var(--border)] px-4 py-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">California opt-out</p>
             {discovery.californiaOptOuts!.map((row) => (
-              <p key={`${row.consentId}-${row.websiteId}`} className="text-sm text-slate-700">
+              <p key={`${row.consentId}-${row.websiteId}`} className="text-sm text-[var(--foreground)]">
                 State {row.state.replaceAll("_", " ")} · source {row.source}
                 {row.saleOptOut ? " · Do Not Sell" : ""}
                 {row.shareOptOut ? " · Do Not Share" : ""}
@@ -230,12 +230,12 @@ export function RightsRequestDetail({
           </div>
         )}
         {discovery.holds.request && (
-          <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-800">Legal hold is active on this rights request.</p>
+          <p className="rounded-2xl bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">Legal hold is active on this rights request.</p>
         )}
         {discovery.holds.consentRecords.length > 0 && (
-          <p className="text-sm text-rose-700">Legal hold on {discovery.holds.consentRecords.length} consent record(s).</p>
+          <p className="text-sm text-[var(--danger)]">Legal hold on {discovery.holds.consentRecords.length} consent record(s).</p>
         )}
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[var(--muted-foreground)]">
           Historical evidence is never deleted through this workflow. Current operational data is deleted only after verification and hold checks.
         </p>
         {request.canManage && request.verificationStatus === "verified" && (
@@ -256,7 +256,7 @@ export function RightsRequestDetail({
                 }
                 window.location.href = data.downloadPath;
               })}
-              className="rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white"
+              className="rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white"
             >
               Generate {request.requestType === "portability" ? "portability" : "access"} export
             </button>
@@ -271,7 +271,7 @@ export function RightsRequestDetail({
                   else notify.success("Eligible current-state data deleted; evidence preserved");
                   router.refresh();
                 })}
-                className="rounded-2xl bg-rose-600 px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-2xl bg-[var(--danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
               >
                 Execute eligible deletion
               </button>
@@ -287,7 +287,7 @@ export function RightsRequestDetail({
                   else notify.success("Existing withdrawal flow invoked");
                   router.refresh();
                 })}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-medium"
+                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
               >
                 Invoke consent withdrawal
               </button>
@@ -297,19 +297,19 @@ export function RightsRequestDetail({
       </section>
 
       {discovery.downstream && (
-        <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-800">Downstream vendors</h2>
-          <p className="text-xs text-slate-500">{discovery.downstream.disclaimer}</p>
+        <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Downstream vendors</h2>
+          <p className="text-xs text-[var(--muted-foreground)]">{discovery.downstream.disclaimer}</p>
           {discovery.downstream.vendors.length === 0 ? (
-            <p className="text-sm text-slate-500">No processing-activity vendors discovered for this request.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No processing-activity vendors discovered for this request.</p>
           ) : (
             <ul className="space-y-3">
               {discovery.downstream.vendors.map((vendor) => {
                 const action = discovery.downstream?.actions.find((row) => row.vendorId === vendor.id);
                 return (
-                  <li key={vendor.id} className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
-                    <p className="font-medium text-slate-800">{vendor.name}</p>
-                    <p className="text-xs text-slate-500">{vendor.role ?? "unknown"} · tracking {vendor.downstreamDsarMode}</p>
+                  <li key={vendor.id} className="rounded-2xl bg-[var(--muted)] px-4 py-3 text-sm">
+                    <p className="font-medium text-[var(--foreground)]">{vendor.name}</p>
+                    <p className="text-xs text-[var(--muted-foreground)]">{vendor.role ?? "unknown"} · tracking {vendor.downstreamDsarMode}</p>
                     <p className="mt-1 text-xs">Operator status: {action?.status ?? "not recorded"}</p>
                     {request.canManage && (
                       <div className="mt-2 flex flex-wrap gap-2">
@@ -331,7 +331,7 @@ export function RightsRequestDetail({
                                 router.refresh();
                               }
                             })}
-                            className="rounded-xl border border-slate-200 bg-white px-2 py-1 text-[11px] capitalize"
+                            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-[11px] capitalize"
                           >
                             {status.replaceAll("_", " ")}
                           </button>
@@ -347,12 +347,12 @@ export function RightsRequestDetail({
       )}
 
       {request.requestType === "correction" && request.canManage && request.verificationStatus === "verified" && !terminal && (
-        <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-800">Correction</h2>
+        <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Correction</h2>
           <input
             value={correctionName}
             onChange={(event) => setCorrectionName(event.target.value)}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-2xl border border-[var(--border)] px-3 py-2 text-sm"
           />
           <button
             type="button"
@@ -368,7 +368,7 @@ export function RightsRequestDetail({
               else notify.success("Approved correction applied");
               router.refresh();
             })}
-            className="rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white"
+            className="rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white"
           >
             Apply approved name correction
           </button>
@@ -376,13 +376,13 @@ export function RightsRequestDetail({
       )}
 
       {request.canManage && !terminal && (
-        <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-          <h2 className="text-sm font-semibold text-slate-800">Operator actions</h2>
+        <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Operator actions</h2>
           <textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={4}
-            className="w-full rounded-2xl border border-slate-200 px-3 py-2 text-sm"
+            className="w-full rounded-2xl border border-[var(--border)] px-3 py-2 text-sm"
             placeholder="Internal notes only"
           />
           <div className="flex flex-wrap gap-2">
@@ -394,7 +394,7 @@ export function RightsRequestDetail({
                 onClick={() => startTransition(async () => {
                   await patch({ status, responseNotes: notes });
                 })}
-                className="rounded-2xl border border-slate-200 px-4 py-2 text-xs font-medium capitalize"
+                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium capitalize"
               >
                 {status.replace("_", " ")}
               </button>
@@ -403,19 +403,19 @@ export function RightsRequestDetail({
         </section>
       )}
 
-      <section className="rounded-2xl bg-white card-shadow p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-slate-800">Activity</h2>
+      <section className="rounded-2xl bg-[var(--card)] card-shadow p-5 space-y-3">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">Activity</h2>
         {activity.length === 0 ? (
-          <p className="text-sm text-slate-500">No recorded activity yet.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">No recorded activity yet.</p>
         ) : (
           <ol className="space-y-3">
             {activity.map((item) => (
-              <li key={item.id} className="border-l-2 border-slate-200 pl-3">
-                <p className="text-xs font-medium text-slate-800">{item.action.replaceAll("_", " ")}</p>
+              <li key={item.id} className="border-l-2 border-[var(--border)] pl-3">
+                <p className="text-xs font-medium text-[var(--foreground)]">{item.action.replaceAll("_", " ")}</p>
                 {item.description && (
-                  <p className="text-sm text-slate-600">{item.description}</p>
+                  <p className="text-sm text-[var(--muted-foreground)]">{item.description}</p>
                 )}
-                <p className="text-[11px] text-slate-400">{fmt(item.createdAt)}</p>
+                <p className="text-[11px] text-[var(--muted-foreground)]">{fmt(item.createdAt)}</p>
               </li>
             ))}
           </ol>

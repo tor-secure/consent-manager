@@ -16,14 +16,14 @@ export function CreatePageHeader({
 }) {
   return (
     <div className="space-y-6">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href={backHref} className="transition hover:text-slate-900">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href={backHref} className="transition hover:text-[var(--foreground)]">
           {backLabel}
         </Link>
-        <span className="text-slate-300" aria-hidden="true">
+        <span className="text-[var(--border)]" aria-hidden="true">
           /
         </span>
-        <span className="font-medium text-slate-900">{current}</span>
+        <span className="font-medium text-[var(--foreground)]">{current}</span>
       </nav>
       <div>
         <h1 className="page-title">{title}</h1>
@@ -52,17 +52,17 @@ export function TemplateTile({
       onClick={onClick}
       className={`flex h-full min-h-[8.25rem] flex-col rounded-2xl border p-4 text-left transition ${
         active
-          ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-400/30"
-          : "border-[var(--border)] bg-[var(--card)] hover:border-slate-300 hover:bg-slate-50"
+          ? "border-[var(--ring)] bg-[var(--info-soft)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]"
+          : "border-[var(--border)] bg-[var(--card)] hover:border-[var(--border)] hover:bg-[var(--muted)]"
       }`}
     >
       {eyebrow ? (
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{eyebrow}</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">{eyebrow}</p>
       ) : null}
-      <p className={`text-sm font-semibold leading-snug text-slate-900 ${eyebrow ? "mt-1" : ""}`}>
+      <p className={`text-sm font-semibold leading-snug text-[var(--foreground)] ${eyebrow ? "mt-1" : ""}`}>
         {title}
       </p>
-      <p className="mt-1.5 line-clamp-3 flex-1 text-xs leading-relaxed text-slate-500">{summary}</p>
+      <p className="mt-1.5 line-clamp-3 flex-1 text-xs leading-relaxed text-[var(--muted-foreground)]">{summary}</p>
     </button>
   );
 }

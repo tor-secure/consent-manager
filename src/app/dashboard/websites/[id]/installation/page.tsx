@@ -12,6 +12,9 @@ import {
 } from "@/components/sdk/copy-snippet";
 import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
 import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
+import { Card, CardContent } from "@/components/ui/card";
 
 // Auth + bootstrap guaranteed by dashboard layout.
 // Tenant isolation: website scoped to org+id.
@@ -123,121 +126,114 @@ export default function RootLayout({ children }) {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Installation</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">Websites</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-[var(--foreground)]">{website.name}</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">Installation</span>
       </nav>
 
-      {/* Page header */}
-      <div>
-        <h1 className="page-title">SDK Installation</h1>
-        <p className="page-description">
-          Add the CMP banner to{" "}
-          <span className="font-medium text-slate-700">{website.domain}</span>{" "}
-          using the snippet below.
-        </p>
-      </div>
+      <PageHeader
+        title="SDK Installation"
+        description={
+          <>
+            Add the CMP banner to{" "}
+            <span className="font-medium text-[var(--foreground)]">{website.domain}</span>{" "}
+            using the snippet below.
+          </>
+        }
+      />
 
       {!publishedPolicy ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" d="M8 2l6 12H2z" />
-            <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
-          </svg>
+        <StatusBanner variant="warning" role="alert">
           <p>
             <strong className="font-semibold">No published policy — the banner will not appear.</strong>{" "}
             The SDK config endpoint returns 404 until a version is published.{" "}
             {activePolicy ? (
               <Link href={`/dashboard/policies/${activePolicy.id}`}
-                className="font-medium underline underline-offset-2 hover:text-amber-900">
+                className="font-medium underline underline-offset-2 hover:text-[var(--warning)]">
                 Open “{activePolicy.name}” and publish →
               </Link>
             ) : (
               <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
-                className="font-medium underline underline-offset-2 hover:text-amber-900">
+                className="font-medium underline underline-offset-2 hover:text-[var(--warning)]">
                 Create a policy →
               </Link>
             )}
           </p>
-        </div>
+        </StatusBanner>
       ) : (
-        <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm text-emerald-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-          </svg>
+        <StatusBanner variant="success">
           <p>
             <strong className="font-semibold">Published policy:</strong>{" "}
             &ldquo;{publishedPolicy.name}&rdquo; v{publishedPolicy.version} is live for this site key.{" "}
             <Link href={`/dashboard/policies/${publishedPolicy.id}`}
-              className="font-medium underline underline-offset-2 hover:text-emerald-900">
+              className="font-medium underline underline-offset-2 hover:text-[var(--success)]">
               Open policy →
             </Link>
           </p>
-        </div>
+        </StatusBanner>
       )}
 
       {originLooksLocal ? (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+        <StatusBanner variant="warning" role="alert">
           <p>
             <strong className="font-semibold">This snippet points at {appOrigin}.</strong>{" "}
             HTTPS websites cannot load a localhost script (mixed content). Set{" "}
-            <code className="rounded-lg bg-amber-100 px-1.5 py-0.5 font-mono text-xs">CMP_PUBLIC_ORIGIN</code>{" "}
+            <code className="rounded-lg bg-[var(--warning-soft)] px-1.5 py-0.5 font-mono text-xs">CMP_PUBLIC_ORIGIN</code>{" "}
             to your deployed ConsentFlow URL, then copy the snippet again.
           </p>
-        </div>
+        </StatusBanner>
       ) : null}
 
-      <div className="max-w-3xl space-y-8">
+      <Card className="max-w-3xl">
+      <CardContent className="space-y-8 pt-6">
 
         {/* Step 1 — Site key */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 1 — Your site key</h2>
-          <p className="mb-3 text-sm text-slate-500">
-            Unique identifier for <strong className="text-slate-700">{website.domain}</strong>. Safe to include in client-side code.
+          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 1 — Your site key</h2>
+          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
+            Unique identifier for <strong className="text-[var(--foreground)]">{website.domain}</strong>. Safe to include in client-side code.
           </p>
-          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-            <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm text-slate-900">
+          <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3">
+            <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm text-[var(--foreground)]">
               {website.siteKey}
             </code>
-            <span className="shrink-0 text-xs text-slate-400">site key</span>
+            <span className="shrink-0 text-xs text-[var(--muted-foreground)]">site key</span>
           </div>
         </section>
 
         {/* Step 2 — Add the snippet */}
         <section>
-          <h2 className="mb-1 text-base font-semibold text-slate-900">Step 2 — Add the snippet</h2>
-          <p className="mb-4 text-sm text-slate-500">
+          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Step 2 — Add the snippet</h2>
+          <p className="mb-4 text-sm text-[var(--muted-foreground)]">
             Paste the snippet as high in the{" "}
-            <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">&lt;head&gt;</code>{" "}
+            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">&lt;head&gt;</code>{" "}
             as possible, before any analytics or advertising scripts.
           </p>
 
           <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-slate-700">HTML / static sites</p>
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">HTML / static sites</p>
             <CodeBlock code={htmlSnippet} language="html" />
           </div>
           <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-slate-700">Next.js (App Router / Pages Router)</p>
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">Next.js (App Router / Pages Router)</p>
             <CodeBlock code={nextjsSnippet} language="tsx" />
           </div>
           <div>
-            <p className="mb-2 text-sm font-semibold text-slate-700">React (CRA / Vite)</p>
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">React (CRA / Vite)</p>
             <CodeBlock code={reactSnippet} language="tsx" />
           </div>
         </section>
 
         {/* Step 3 — How it works */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 3 — How the SDK works</h2>
-          <ol className="list-inside list-decimal space-y-2 text-sm text-slate-600">
-            <li>Loads synchronously before optional trackers, establishes blocked state, then fetches configuration from <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">{configUrlAbsolute}</code>.</li>
+          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 3 — How the SDK works</h2>
+          <ol className="list-inside list-decimal space-y-2 text-sm text-[var(--muted-foreground)]">
+            <li>Loads synchronously before optional trackers, establishes blocked state, then fetches configuration from <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">{configUrlAbsolute}</code>.</li>
             <li>Shows the banner if no stored consent is found.</li>
-            <li>On visitor choice, calls <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">POST /api/consent/record</code> and stores the <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">consentId</code> in <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">localStorage</code>.</li>
+            <li>On visitor choice, calls <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">POST /api/consent/record</code> and stores the <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">consentId</code> in <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">localStorage</code>.</li>
             <li>On subsequent visits, stored consent is respected until it expires.</li>
             <li>Visitors can reopen the Preference Center at any time to update or withdraw consent.</li>
           </ol>
@@ -245,8 +241,8 @@ export default function RootLayout({ children }) {
 
         {/* Config endpoint */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Config API endpoint</h2>
-          <p className="mb-3 text-sm text-slate-500">
+          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Config API endpoint</h2>
+          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
             Public endpoint — call it directly to inspect the active configuration.
           </p>
           <CodeBlock code={configEndpointNote} language="text" label="endpoint" />
@@ -254,23 +250,23 @@ export default function RootLayout({ children }) {
 
         {/* Script enforcement */}
         <section>
-          <h2 className="mb-1 text-base font-semibold text-slate-900">Script enforcement</h2>
-          <p className="mb-4 text-sm text-slate-500">
+          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Script enforcement</h2>
+          <p className="mb-4 text-sm text-[var(--muted-foreground)]">
             Tag third-party scripts with{" "}
-            <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">data-cmp-purpose</code>{" "}
-            and <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">type=&quot;text/plain&quot;</code>.
+            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">data-cmp-purpose</code>{" "}
+            and <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">type=&quot;text/plain&quot;</code>.
             The SDK pauses them until consent is granted.
           </p>
           <CodeBlock code={enforceSnippet} language="html" label="enforcement" />
 
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-            <p className="mb-2 text-sm font-semibold text-slate-700">How it works</p>
-            <ul className="list-inside list-disc space-y-1.5 text-xs text-slate-600">
-              <li>Scripts with <code className="rounded-md bg-slate-100 px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK restores them.</li>
+          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-5 py-4">
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">How it works</p>
+            <ul className="list-inside list-disc space-y-1.5 text-xs text-[var(--muted-foreground)]">
+              <li>Scripts with <code className="rounded-md bg-[var(--secondary)] px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK restores them.</li>
               <li>Tracker rules come from the config endpoint, including domain, identifier, and required purposeKey.</li>
-              <li>When consent changes, the SDK re-evaluates all tagged scripts via <code className="rounded-md bg-slate-100 px-1 font-mono">window.CMP.onConsentChange(fn)</code>.</li>
+              <li>When consent changes, the SDK re-evaluates all tagged scripts via <code className="rounded-md bg-[var(--secondary)] px-1 font-mono">window.CMP.onConsentChange(fn)</code>.</li>
               <li>Known registry domains and dynamically inserted third-party scripts/iframes are evaluated even without attributes. Add discovered resources to{" "}
-                <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-slate-900">Trackers</Link>{" "}
+                <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-[var(--foreground)]">Trackers</Link>{" "}
                 and keep static parser-loaded optional scripts inert with CMP attributes.</li>
               <li>JavaScript cannot undo requests that occurred before this SDK loaded or remove HttpOnly/third-party cookies. Use CSP, GTM consent checks, and server-side tagging for stronger coverage.</li>
             </ul>
@@ -279,40 +275,41 @@ export default function RootLayout({ children }) {
 
         {/* Step 4 — Verify */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-slate-900">Step 4 — Verify installation</h2>
-          <p className="mb-3 text-sm text-slate-500">
+          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 4 — Verify installation</h2>
+          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
             Confirm that the SDK config endpoint resolves correctly for your site key.
           </p>
           <VerifyInstallation siteKey={website.siteKey} />
         </section>
 
         {/* Next steps */}
-        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">Next steps</h2>
-          <ul className="space-y-2 text-sm text-slate-600">
+        <section className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-5">
+          <h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Next steps</h2>
+          <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
             <li>
               <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
-                className="font-medium text-slate-900 underline underline-offset-2 transition hover:text-indigo-600">
+                className="font-medium text-[var(--foreground)] underline underline-offset-2 transition hover:text-[var(--primary)]">
                 Create a consent policy
               </Link>{" "}if you haven&apos;t already.
             </li>
             <li>
               <Link
                 href={activePolicy ? `/dashboard/policies/${activePolicy.id}` : "#"}
-                className={`font-medium underline underline-offset-2 transition ${activePolicy ? "text-slate-900 hover:text-indigo-600" : "pointer-events-none text-slate-400"}`}
+                className={`font-medium underline underline-offset-2 transition ${activePolicy ? "text-[var(--foreground)] hover:text-[var(--primary)]" : "pointer-events-none text-[var(--muted-foreground)]"}`}
               >
                 Configure the banner appearance
               </Link>{" "}in the Banner Studio on your policy page.
             </li>
             <li>
               <Link href={`/dashboard/websites/${website.id}/settings`}
-                className="font-medium text-slate-900 underline underline-offset-2 transition hover:text-indigo-600">
+                className="font-medium text-[var(--foreground)] underline underline-offset-2 transition hover:text-[var(--primary)]">
                 Update website settings
               </Link>{" "}to set the default language and region.
             </li>
           </ul>
         </section>
-      </div>
+      </CardContent>
+      </Card>
     </div>
   );
 }

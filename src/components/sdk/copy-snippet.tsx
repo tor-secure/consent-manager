@@ -29,12 +29,12 @@ export function CopyButton({
     <button
       type="button"
       onClick={copy}
-      className="inline-flex items-center gap-1.5 rounded-md border bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100"
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--secondary-foreground)] hover:bg-[var(--muted)]"
     >
       {copied ? (
         <>
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-            <path d="M2 6l3 3 5-5" stroke="#16a34a" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M2 6l3 3 5-5" stroke="var(--success)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Copied!
         </>
@@ -65,14 +65,14 @@ export function CodeBlock({
   label?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <div className="flex items-center justify-between border-b bg-neutral-50 px-4 py-2">
-        <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+      <div className="flex items-center justify-between border-b bg-[var(--muted)] px-4 py-2">
+        <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
           {label ?? language}
         </span>
         <CopyButton text={code} />
       </div>
-      <pre className="overflow-x-auto bg-neutral-900 p-4 text-sm text-neutral-100">
+      <pre className="overflow-x-auto bg-[var(--foreground)] p-4 text-sm text-[var(--background)]">
         <code>{code}</code>
       </pre>
     </div>
@@ -113,8 +113,12 @@ export function VerifyInstallation({ siteKey }: { siteKey: string }) {
       }
 
       setStatus("ok");
+      const banner = data.bannerConfig as { layout?: string; position?: string; title?: string } | undefined;
+      const liveBanner = banner
+        ? ` Live banner: ${banner.layout ?? "bar"} / ${banner.position ?? "bottom"}${banner.title ? ` — “${banner.title}”` : ""}.`
+        : "";
       setMessage(
-        `Configuration verified. Policy "${data.policy.name}" v${data.policy.version}${isPublished ? " (published)" : " — draft"}. ${data.purposes.length} purpose${data.purposes.length !== 1 ? "s" : ""} loaded.`,
+        `Configuration verified. Policy "${data.policy.name}" v${data.policy.version}${isPublished ? " (published)" : " — draft"}. ${data.purposes.length} purpose${data.purposes.length !== 1 ? "s" : ""} loaded.${liveBanner}`,
       );
     } catch {
       setStatus("error");
@@ -123,15 +127,14 @@ export function VerifyInstallation({ siteKey }: { siteKey: string }) {
   }
 
   return (
-    <div className="rounded-lg border p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-neutral-900">
+          <p className="text-sm font-medium text-[var(--foreground)]">
             Verify configuration
           </p>
-          <p className="mt-0.5 text-xs text-neutral-500">
-            Confirm that the SDK config endpoint resolves correctly for this
-            site key.
+          <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
+            Confirm the published SDK config for this site key. Banner Studio drafts are not live until you publish.
           </p>
         </div>
 
@@ -139,16 +142,16 @@ export function VerifyInstallation({ siteKey }: { siteKey: string }) {
           type="button"
           onClick={verify}
           disabled={status === "checking"}
-          className="shrink-0 rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-50"
+          className="btn btn-primary shrink-0"
         >
           {status === "checking" ? "Checking…" : "Verify now"}
         </button>
       </div>
 
       {status === "ok" && (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+        <div className="mt-3 flex items-start gap-2 rounded-md border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] px-3 py-2 text-sm text-[var(--success)]">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="mt-0.5 shrink-0" aria-hidden="true">
-            <circle cx="8" cy="8" r="7" fill="#16a34a" />
+            <circle cx="8" cy="8" r="7" fill="var(--success)" />
             <path d="M5 8l2.5 2.5 3.5-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           {message}
@@ -156,9 +159,9 @@ export function VerifyInstallation({ siteKey }: { siteKey: string }) {
       )}
 
       {status === "error" && (
-        <div className="mt-3 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div className="mt-3 flex items-start gap-2 rounded-md border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2 text-sm text-[var(--danger)]">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="mt-0.5 shrink-0" aria-hidden="true">
-            <circle cx="8" cy="8" r="7" fill="#dc2626" />
+            <circle cx="8" cy="8" r="7" fill="var(--danger)" />
             <path d="M8 5v3M8 10.5v.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
           {message}

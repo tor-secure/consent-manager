@@ -38,9 +38,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
@@ -75,9 +75,9 @@ export function OrganizationSettingsForm({
   const [error, setError]                       = useState("");
 
   const inputCls = [
-    "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none",
-    "focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition",
-    "disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed",
+    "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none",
+    "focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition",
+    "disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] disabled:cursor-not-allowed",
   ].join(" ");
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -121,8 +121,8 @@ export function OrganizationSettingsForm({
 
       {/* Read-only notice */}
       {readOnly && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-start gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning)]">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" d="M8 2l6 12H2z" />
             <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
@@ -133,8 +133,8 @@ export function OrganizationSettingsForm({
 
       {/* ── General ─────────────────────────────────────────────────────── */}
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">General</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">General</h2>
         </div>
         <div className="space-y-5 p-6">
           <Field label="Organisation name">
@@ -177,8 +177,8 @@ export function OrganizationSettingsForm({
 
       {/* ── Locale ──────────────────────────────────────────────────────── */}
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Locale &amp; region</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Locale &amp; region</h2>
         </div>
         <div className="grid gap-5 p-6 sm:grid-cols-3">
           <Field label="Timezone">
@@ -226,16 +226,16 @@ export function OrganizationSettingsForm({
 
       {/* ── DPO & Grievance Officer (DPDP Rule 3(1)(d)) ────────────────── */}
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
+        <div className="border-b border-[var(--border)] px-6 py-4">
           <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-base font-semibold text-slate-900">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">
               Data Protection &amp; Grievance Officer
             </h2>
-            <span className="inline-flex items-center rounded-full bg-indigo-50 px-2.5 py-0.5 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
+            <span className="inline-flex items-center rounded-full bg-[var(--info-soft)] px-2.5 py-0.5 text-xs font-medium text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]">
               DPDP Rules 2025 Rule 3(1)(d)
             </span>
           </div>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Contact details shown in the consent notice. Required for DPDP compliance.
           </p>
         </div>
@@ -305,8 +305,8 @@ export function OrganizationSettingsForm({
 
       {/* ── Onboarding ──────────────────────────────────────────────────── */}
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Onboarding</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Onboarding</h2>
         </div>
         <div className="px-6 py-5">
           <label className="flex cursor-pointer items-center gap-3">
@@ -315,17 +315,17 @@ export function OrganizationSettingsForm({
               checked={onboardingCompleted}
               onChange={(e) => setOnboarding(e.target.checked)}
               disabled={readOnly}
-              className="h-4 w-4 rounded border-slate-300 accent-indigo-600"
+              className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
             />
-            <span className="text-sm text-slate-700">Mark onboarding as completed</span>
+            <span className="text-sm text-[var(--foreground)]">Mark onboarding as completed</span>
           </label>
         </div>
       </Card>
 
       {/* ── Feedback ────────────────────────────────────────────────────── */}
       {error && (
-        <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <svg className="h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+          <svg className="h-4 w-4 shrink-0 text-[var(--danger)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <circle cx="8" cy="8" r="6" />
             <path strokeLinecap="round" d="M8 5v3M8 11h.01" />
@@ -343,7 +343,7 @@ export function OrganizationSettingsForm({
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
           >
             Cancel
           </button>

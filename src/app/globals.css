@@ -217,6 +217,16 @@ html, body {
 }
 
 @layer components {
+  /*
+    Dashboard chrome (use these instead of slate/indigo utilities):
+    - Layout: .page-wrap / .page-title / .page-description
+    - Actions: .btn / .btn-primary / .btn-secondary / .btn-outline (h-10)
+    - Tables: .data-table / .table-scroll
+    - Forms: .field-label / .field-input
+    - React: PageHeader, Card, Button, EmptyState, StatusBanner, PageTabs
+    Color via CSS variables: --foreground, --muted-foreground, --primary,
+    --accent, --card, --border, --success/--warning/--danger/--info (+ *-soft).
+  */
   .page-wrap {
     width: 100%;
     max-width: 1680px;
@@ -321,7 +331,7 @@ html, body {
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem 1rem;
-    padding: 1rem 1.25rem;
+    padding: 1.25rem;
     border-bottom: 1px solid var(--border);
   }
 
@@ -331,7 +341,7 @@ html, body {
 
   @media (min-width: 640px) {
     .card-section-header {
-      padding: 1.125rem 1.5rem;
+      padding: 1.5rem;
     }
   }
 
@@ -401,6 +411,17 @@ html, body {
 
   .btn-secondary:hover {
     background: var(--hover);
+  }
+
+  .btn-outline {
+    background: var(--card);
+    color: var(--secondary-foreground);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-outline:hover {
+    background: var(--muted);
   }
 
   .field-label {
@@ -546,31 +567,31 @@ html, body {
 
   .hover-glass-card {
     box-sizing: border-box;
-    background: rgba(217, 217, 217, 0.58);
-    border: 1px solid white;
-    box-shadow: 12px 17px 51px rgba(0, 0, 0, 0.22);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    border-radius: 17px;
-    text-align: center;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    border-radius: 1rem;
+    text-align: left;
     cursor: pointer;
-    transition: all 0.5s;
+    transition: transform var(--duration-fast) var(--ease-out),
+      box-shadow var(--duration-fast) var(--ease-out),
+      border-color var(--duration-fast) var(--ease-out);
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     user-select: none;
-    font-weight: 700;
-    color: #0f172a;
+    font-weight: 600;
+    color: var(--foreground);
     text-decoration: none;
   }
 
   .hover-glass-card:hover {
-    border: 1px solid black;
-    transform: scale(1.05);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
   }
 
   .hover-glass-card:active {
-    transform: scale(0.95) rotateZ(1.7deg);
+    transform: translateY(0);
   }
 
   .hover-glass-card-static {
@@ -580,7 +601,7 @@ html, body {
   .hover-glass-card-static:hover,
   .hover-glass-card-static:active {
     transform: none;
-    border-color: white;
+    box-shadow: var(--shadow-sm);
   }
 
   .inner-shadow {

@@ -9,7 +9,7 @@ const ROLE_OPTIONS = [
   { value: "org:admin", label: "Admin" },
 ] as const;
 
-const inputCls = "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition disabled:bg-slate-50 disabled:opacity-60";
+const inputCls = "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)] disabled:opacity-60";
 
 export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
   const router = useRouter();
@@ -57,7 +57,7 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
   if (!open) {
     return (
       <button onClick={handleOpen}
-        className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+        className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
         <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 16 16"
           stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v10M3 8h10" />
@@ -68,11 +68,11 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
   }
 
   return (
-    <div className="rounded-2xl bg-white card-shadow p-6">
+    <div className="rounded-2xl bg-[var(--card)] card-shadow p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900">Invite a new member</h3>
+        <h3 className="text-base font-semibold text-[var(--foreground)]">Invite a new member</h3>
         <button type="button" onClick={handleClose} aria-label="Close invite form"
-          className="rounded-xl p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+          className="rounded-xl p-1 text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--muted-foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
           <svg aria-hidden="true" className="h-5 w-5" fill="none" viewBox="0 0 20 20"
             stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 5l10 10M15 5L5 15" />
@@ -81,8 +81,8 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
       </div>
 
       {success ? (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-          <svg className="h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] px-4 py-3 text-sm text-[var(--success)]">
+          <svg className="h-4 w-4 shrink-0 text-[var(--success)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
           </svg>
@@ -93,7 +93,7 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
           {/* Email + role — stacked on mobile, side-by-side on sm+ */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 min-w-0">
-              <label htmlFor="invite-email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label htmlFor="invite-email" className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
                 Email address
               </label>
               <input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -102,7 +102,7 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
             </div>
 
             <div className="sm:w-36 sm:shrink-0">
-              <label htmlFor="invite-role" className="mb-1.5 block text-sm font-semibold text-slate-700">
+              <label htmlFor="invite-role" className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
                 Role
               </label>
               <select id="invite-role" value={role}
@@ -116,8 +116,8 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-700">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16"
+            <div className="flex items-start gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2.5 text-sm text-[var(--danger)]">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger)]" fill="none" viewBox="0 0 16 16"
                 stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 5v3M8 11h.01" />
               </svg>
@@ -127,16 +127,16 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
 
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={isPending}
-              className="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+              className="inline-flex items-center rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
               {isPending ? "Sending…" : "Send invitation"}
             </button>
             <button type="button" onClick={handleClose} disabled={isPending}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
               Cancel
             </button>
           </div>
 
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--muted-foreground)]">
             The recipient will receive a Clerk organisation invitation email and must accept it to gain access.
           </p>
         </form>

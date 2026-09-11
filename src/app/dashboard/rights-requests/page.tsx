@@ -12,6 +12,8 @@ import {
 } from "@/components/settings/rights-request-manager";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 // ---------------------------------------------------------------------------
 // Page — server component
@@ -93,56 +95,39 @@ export default async function RightsRequestsPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title">
-              Privacy Rights / Requests
-            </h1>
+      <PageHeader
+        title={
+          <span className="inline-flex flex-wrap items-center gap-3">
+            Privacy Rights / Requests
             {openCount > 0 && (
               <Badge variant="primary" size="sm">{openCount} open</Badge>
             )}
-          </div>
-          <p className="page-description">
-            Tenant-scoped DSAR workflow with identity verification, configured
-            jurisdiction targets, and evidence-preserving deletion. Deadlines are
-            configured targets, not a legal-compliance certification.
-          </p>
-        </div>
-      </div>
+          </span>
+        }
+        description="Tenant-scoped DSAR workflow with identity verification, configured jurisdiction targets, and evidence-preserving deletion. Deadlines are configured targets, not a legal-compliance certification."
+      />
 
       {/* SLA breach alerts */}
       {overdueAck > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" d="M8 2l6 12H2z" />
-            <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
-          </svg>
+        <StatusBanner variant="danger" role="alert">
           <p>
             <strong className="font-semibold">
               {overdueAck} request{overdueAck !== 1 ? "s" : ""} past the configured acknowledgement target.
             </strong>{" "}
             Open the request and move it into review. These targets are configured SLAs, not a legal-compliance certification.
           </p>
-        </div>
+        </StatusBanner>
       )}
 
       {overdueDue > 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
-            stroke="currentColor" strokeWidth={2} aria-hidden="true">
-            <path strokeLinecap="round" d="M8 2l6 12H2z" />
-            <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
-          </svg>
+        <StatusBanner variant="warning" role="alert">
           <p>
             <strong className="font-semibold">
               {overdueDue} request{overdueDue !== 1 ? "s" : ""} past the configured response target.
             </strong>{" "}
             Resolve and mark these completed or rejected as soon as possible. Deadlines are configured targets unless your legal configuration says otherwise.
           </p>
-        </div>
+        </StatusBanner>
       )}
 
       {/* API reference */}
@@ -150,21 +135,21 @@ export default async function RightsRequestsPage() {
         <CardContent className="pt-5 pb-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-700">Public intake endpoint</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-sm font-semibold text-[var(--foreground)]">Public intake endpoint</p>
+              <p className="mt-1 text-xs text-[var(--muted-foreground)]">
                 Data Principals submit requests to this endpoint from your website or privacy portal.
-                No authentication is required. Supply the <code className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">websiteId</code>{" "}
+                No authentication is required. Supply the <code className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted-foreground)]">websiteId</code>{" "}
                 of the website they are requesting about.
               </p>
             </div>
             <div className="shrink-0">
-              <code className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+              <code className="block rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 font-mono text-xs text-[var(--foreground)]">
                 POST /api/rights-request
               </code>
-              <code className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+              <code className="mt-1 block rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 font-mono text-xs text-[var(--foreground)]">
                 POST /api/rights-request/verify
               </code>
-              <code className="mt-1 block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
+              <code className="mt-1 block rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 font-mono text-xs text-[var(--foreground)]">
                 GET  /api/rights-request/status?token=
               </code>
             </div>

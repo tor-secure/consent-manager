@@ -16,6 +16,8 @@ import {
   type PendingInvitation,
 } from "@/components/settings/team-members-panel";
 import { InviteMemberForm } from "@/components/settings/invite-member-form";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 const MANAGE_ROLES = ["Owner", "Admin"];
 
@@ -31,23 +33,23 @@ function RolePermissionsCard({
   permissionNames: string[];
 }) {
   const colors: Record<string, string> = {
-    Owner: "border-purple-200 bg-purple-50",
-    Admin: "border-blue-200 bg-blue-50",
-    Member: "border-neutral-200 bg-neutral-50",
+    Owner: "border-[color-mix(in_srgb,var(--purple)_28%,transparent)] bg-[var(--info-soft)]",
+    Admin: "border-[color-mix(in_srgb,var(--info)_28%,transparent)] bg-[var(--info-soft)]",
+    Member: "border-[var(--border)] bg-[var(--muted)]",
   };
 
   return (
     <div className={`rounded-lg border p-4 ${colors[roleName] ?? colors.Member}`}>
-      <p className="mb-2 text-sm font-semibold text-neutral-900">{roleName}</p>
+      <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">{roleName}</p>
       {permissionNames.length === 0 ? (
-        <p className="text-xs text-neutral-400">No permissions assigned.</p>
+        <p className="text-xs text-[var(--muted-foreground)]">No permissions assigned.</p>
       ) : (
         <ul className="space-y-0.5">
           {permissionNames.map((p) => (
-            <li key={p} className="flex items-center gap-1.5 text-xs text-neutral-600">
+            <li key={p} className="flex items-center gap-1.5 text-xs text-[var(--muted-foreground)]">
               <svg
                 aria-hidden="true"
-                className="h-3 w-3 shrink-0 text-green-500"
+                className="h-3 w-3 shrink-0 text-[var(--success)]"
                 fill="none"
                 viewBox="0 0 12 12"
                 stroke="currentColor"
@@ -209,36 +211,32 @@ export default async function TeamPage() {
       {/* Breadcrumb */}
       <nav
         aria-label="Breadcrumb"
-        className="mb-6 flex items-center gap-2 text-sm text-neutral-500"
+        className="mb-6 flex items-center gap-2 text-sm text-[var(--muted-foreground)]"
       >
-        <Link href="/dashboard/settings/organization" className="hover:text-neutral-900">
+        <Link href="/dashboard/settings/organization" className="hover:text-[var(--foreground)]">
           Settings
         </Link>
         <span aria-hidden="true">/</span>
-        <span className="text-neutral-900">Team &amp; Roles</span>
+        <span className="text-[var(--foreground)]">Team &amp; Roles</span>
       </nav>
 
-      {/* Page header */}
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-neutral-900">
-            Team &amp; Roles
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
+      <PageHeader
+        title="Team & Roles"
+        description={
+          <>
             {activeCount} active member{activeCount !== 1 ? "s" : ""} in{" "}
-            <span className="font-medium text-neutral-700">{organization.name}</span>.
-          </p>
-        </div>
-
-        <InviteMemberForm canInvite={canManage} />
-      </div>
+            <span className="font-medium text-[var(--foreground)]">{organization.name}</span>.
+          </>
+        }
+        action={<InviteMemberForm canInvite={canManage} />}
+      />
 
       {/* Read-only notice for non-managers */}
       {!canManage && (
-        <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <StatusBanner variant="warning">
           You have <strong>read-only</strong> access. Only Owners and Admins can
           manage team members and roles.
-        </div>
+        </StatusBanner>
       )}
 
       <div className="space-y-8">
@@ -251,18 +249,18 @@ export default async function TeamPage() {
         />
 
         {/* Roles & permissions reference */}
-        <div className="rounded-lg border bg-white">
+        <div className="rounded-lg border bg-[var(--card)]">
           <div className="border-b px-6 py-4">
-            <h2 className="text-base font-semibold text-neutral-900">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">
               Roles &amp; permissions
             </h2>
-            <p className="mt-0.5 text-sm text-neutral-500">
+            <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
               Permissions assigned to each role in this organisation.
             </p>
           </div>
 
           {allPermissions.length === 0 && allRoles.length === 0 ? (
-            <div className="px-6 py-8 text-center text-sm text-neutral-400">
+            <div className="px-6 py-8 text-center text-sm text-[var(--muted-foreground)]">
               No roles or permissions have been configured yet.
             </div>
           ) : (
@@ -279,7 +277,7 @@ export default async function TeamPage() {
 
               {allPermissions.length > 0 && (
                 <div className="mt-6 border-t pt-5">
-                  <h3 className="mb-3 text-sm font-medium text-neutral-700">
+                  <h3 className="mb-3 text-sm font-medium text-[var(--foreground)]">
                     All permissions ({allPermissions.length})
                   </h3>
                   <div className="flex flex-wrap gap-2">
@@ -287,7 +285,7 @@ export default async function TeamPage() {
                       <span
                         key={p.id}
                         title={p.name}
-                        className="rounded-full bg-neutral-100 px-2.5 py-0.5 font-mono text-xs text-neutral-600"
+                        className="rounded-full bg-[var(--muted)] px-2.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]"
                       >
                         {p.key}
                       </span>

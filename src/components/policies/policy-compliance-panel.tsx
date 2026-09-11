@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { remediationLinkForRule } from "@/lib/compliance/remediation-links";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 type Issue = {
   code: string;
@@ -33,7 +34,7 @@ function IssueCard({
   const blocked = issue.severity === "error";
   const link = remediationLinkForRule(issue.code, policyId, websiteId);
   return (
-    <li className={`rounded-2xl px-4 py-3 ${blocked ? "bg-rose-50 text-rose-900" : "bg-amber-50 text-amber-900"}`}>
+    <li className={`rounded-2xl px-4 py-3 ${blocked ? "bg-[var(--danger-soft)] text-[var(--danger)]" : "bg-[var(--warning-soft)] text-[var(--warning)]"}`}>
       <p className="text-[11px] font-semibold uppercase tracking-wide">
         {issue.jurisdiction} · {issue.code}
       </p>
@@ -114,29 +115,31 @@ export function PolicyCompliancePanel({
   }, [policyId, onResult]);
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Checking configured compliance rules…</p>;
+    return <p className="text-sm text-[var(--muted-foreground)]">Checking configured compliance rules…</p>;
   }
   if (error) {
-    return <p className="text-sm text-rose-700">{error}</p>;
+    return <p className="text-sm text-[var(--danger)]">{error}</p>;
   }
   if (!result) return null;
 
   return (
     <div className="space-y-3">
       {result.errors.length > 0 ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
-          <p className="font-semibold">Publishing blocked</p>
-          <p>
-            {result.errors.length} compliance error{result.errors.length === 1 ? "" : "s"} must be fixed
-          </p>
-        </div>
+        <StatusBanner variant="danger" role="alert">
+          <div>
+            <p className="font-semibold">Publishing blocked</p>
+            <p>
+              {result.errors.length} compliance error{result.errors.length === 1 ? "" : "s"} must be fixed
+            </p>
+          </div>
+        </StatusBanner>
       ) : (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <StatusBanner variant="success">
           No blocking compliance errors. Warnings do not prevent publishing.
-        </div>
+        </StatusBanner>
       )}
       {result.jurisdictions.length > 0 && (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-[var(--muted-foreground)]">
           Applicable jurisdictions: {result.jurisdictions.map((key) => key.toUpperCase()).join(", ")}
         </p>
       )}
@@ -149,7 +152,7 @@ export function PolicyCompliancePanel({
       )}
       {result.warnings.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Warnings</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--warning)]">Warnings</p>
           <ul className="space-y-2">
             {result.warnings.map((item) => (
               <IssueCard key={`${item.code}-${item.field ?? ""}`} issue={item} policyId={policyId} websiteId={websiteId} />
@@ -157,7 +160,7 @@ export function PolicyCompliancePanel({
           </ul>
         </div>
       )}
-      <p className="text-[11px] text-slate-400">
+      <p className="text-[11px] text-[var(--muted-foreground)]">
         Technical configuration checks only. This is not legal advice or a compliance certification.
       </p>
     </div>

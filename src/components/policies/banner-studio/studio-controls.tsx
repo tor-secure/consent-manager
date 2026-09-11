@@ -1,100 +1,57 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  bannerUsesOverlay,
   type BannerConfiguration,
   type BannerPosition,
   type BannerLayout,
   type ConsentDefault,
 } from "@/lib/banner-config";
+import {
+  BANNER_PRESETS,
+  BANNER_PRESET_CATEGORIES,
+  type BannerPreset,
+  type BannerPresetCategory,
+} from "@/lib/banner-presets";
 import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
 
-// ---------------------------------------------------------------------------
-// Preset definitions
-// ---------------------------------------------------------------------------
+function PresetThumb({ preset }: { preset: BannerPreset }) {
+  const bg = preset.overrides.backgroundColor ?? "#ffffff";
+  const primary = preset.overrides.primaryColor ?? "#2c4a7c";
+  const text = preset.overrides.textColor ?? "#0f172a";
+  const layout = preset.overrides.layout ?? "bar";
+  const position = preset.overrides.position ?? "bottom";
+  const radius = Math.min(preset.overrides.borderRadius ?? 8, 8);
 
-export type PresetName =
-  | "bottom-bar"
-  | "top-bar"
-  | "center-modal"
-  | "bottom-sheet"
-  | "floating-panel";
+  const bannerPos: React.CSSProperties =
+    layout === "dialog" || position === "center"
+      ? { top: "22%", left: "18%", right: "18%", bottom: "28%", borderRadius: radius }
+      : layout === "box" && position === "bottom-right"
+        ? { right: 4, bottom: 4, width: "42%", height: "38%", borderRadius: radius }
+        : layout === "box" && position === "bottom-left"
+          ? { left: 4, bottom: 4, width: "42%", height: "38%", borderRadius: radius }
+          : layout === "box"
+            ? { left: "10%", right: "10%", bottom: 4, height: "36%", borderRadius: radius }
+            : position === "top"
+              ? { left: 0, right: 0, top: 0, height: "28%" }
+              : { left: 0, right: 0, bottom: 0, height: "28%" };
 
-type Preset = {
-  name: PresetName;
-  label: string;
-  description: string;
-  icon: React.ReactNode;
-  overrides: Partial<BannerConfiguration>;
-};
-
-const PRESETS: Preset[] = [
-  {
-    name: "bottom-bar",
-    label: "Bottom Bar",
-    description: "Full-width bar anchored to the bottom",
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.5}>
-        <rect x="1" y="14" width="18" height="5" rx="1" fill="currentColor" opacity={0.2} />
-        <rect x="1" y="14" width="18" height="5" rx="1" />
-        <rect x="1" y="1" width="18" height="11" rx="1" opacity={0.06} fill="currentColor" />
-      </svg>
-    ),
-    overrides: { layout: "bar", position: "bottom", borderRadius: 0, overlayEnabled: false, backgroundColor: "#ffffff", primaryColor: "#4f46e5", textColor: "#0f172a" },
-  },
-  {
-    name: "top-bar",
-    label: "Top Bar",
-    description: "Full-width notice bar at the top",
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.5}>
-        <rect x="1" y="1" width="18" height="5" rx="1" fill="currentColor" opacity={0.2} />
-        <rect x="1" y="1" width="18" height="5" rx="1" />
-        <rect x="1" y="8" width="18" height="11" rx="1" opacity={0.06} fill="currentColor" />
-      </svg>
-    ),
-    overrides: { layout: "bar", position: "top", borderRadius: 0, overlayEnabled: false, backgroundColor: "#1e1e2e", primaryColor: "#6366f1", textColor: "#ffffff" },
-  },
-  {
-    name: "center-modal",
-    label: "Center Modal",
-    description: "Centred dialog with overlay backdrop",
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.5}>
-        <rect x="1" y="1" width="18" height="18" rx="1" opacity={0.06} fill="currentColor" />
-        <rect x="4" y="5" width="12" height="10" rx="2" fill="currentColor" opacity={0.2} />
-        <rect x="4" y="5" width="12" height="10" rx="2" />
-      </svg>
-    ),
-    overrides: { layout: "dialog", position: "center", borderRadius: 16, overlayEnabled: true, backgroundColor: "#ffffff", primaryColor: "#4f46e5", textColor: "#111827", blockPageUntilConsent: true },
-  },
-  {
-    name: "bottom-sheet",
-    label: "Bottom Sheet",
-    description: "Rises from the bottom — mobile-friendly",
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.5}>
-        <rect x="1" y="1" width="18" height="18" rx="1" opacity={0.06} fill="currentColor" />
-        <rect x="1" y="10" width="18" height="9" rx="2" fill="currentColor" opacity={0.2} />
-        <rect x="1" y="10" width="18" height="9" rx="2" />
-      </svg>
-    ),
-    overrides: { layout: "box", position: "bottom", borderRadius: 20, overlayEnabled: true, backgroundColor: "#ffffff", primaryColor: "#0ea5e9", textColor: "#0f172a" },
-  },
-  {
-    name: "floating-panel",
-    label: "Floating Panel",
-    description: "Corner panel — low intrusion",
-    icon: (
-      <svg className="h-4 w-4" fill="none" viewBox="0 0 20 20" stroke="currentColor" strokeWidth={1.5}>
-        <rect x="1" y="1" width="18" height="18" rx="1" opacity={0.06} fill="currentColor" />
-        <rect x="10" y="11" width="8" height="7" rx="2" fill="currentColor" opacity={0.2} />
-        <rect x="10" y="11" width="8" height="7" rx="2" />
-      </svg>
-    ),
-    overrides: { layout: "box", position: "bottom-right", borderRadius: 14, overlayEnabled: false, backgroundColor: "#ffffff", primaryColor: "#10b981", textColor: "#064e3b" },
-  },
-];
+  return (
+    <div className="relative h-12 w-full overflow-hidden rounded-lg bg-[var(--muted)] ring-1 ring-[var(--border)]">
+      <div className="absolute inset-x-2 top-1.5 h-1 rounded-full bg-[var(--border)]" />
+      <div className="absolute inset-x-4 top-3.5 h-1 rounded-full bg-[var(--border)]/70" />
+      <div
+        className="absolute flex items-end justify-end gap-0.5 p-1"
+        style={{ ...bannerPos, background: bg }}
+      >
+        <span className="h-1.5 w-3 rounded-sm" style={{ background: primary }} />
+        <span className="h-1.5 w-2.5 rounded-sm" style={{ background: text, opacity: 0.25 }} />
+      </div>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -102,7 +59,7 @@ const PRESETS: Preset[] = [
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">
+    <p className="mb-2.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--muted-foreground)]">
       {children}
     </p>
   );
@@ -111,9 +68,9 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-xs font-semibold text-slate-600">{label}</label>
+      <label className="block text-xs font-semibold text-[var(--muted-foreground)]">{label}</label>
       {children}
-      {hint && <p className="text-[11px] text-slate-400">{hint}</p>}
+      {hint && <p className="text-[11px] text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
@@ -121,17 +78,17 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <label className="flex cursor-pointer items-center justify-between gap-3 py-1">
-      <span className="text-[13px] text-slate-700">{label}</span>
+      <span className="text-[13px] text-[var(--foreground)]">{label}</span>
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? "bg-indigo-600" : "bg-slate-200"
+          checked ? "bg-[var(--primary)]" : "bg-[var(--secondary)]"
         }`}
       >
-        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[var(--card)] shadow-sm transition-transform ${
           checked ? "translate-x-4" : "translate-x-0.5"
         }`} />
       </button>
@@ -148,7 +105,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
             type="color"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="h-8 w-8 cursor-pointer rounded-lg border border-slate-200 p-0.5 shadow-sm"
+            className="h-8 w-8 cursor-pointer rounded-lg border border-[var(--border)] p-0.5 shadow-sm"
           />
         </div>
         <input
@@ -156,15 +113,15 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
           onChange={(e) => onChange(e.target.value)}
           maxLength={7}
           placeholder="#000000"
-          className="flex-1 rounded-xl border border-slate-200 px-2.5 py-1.5 font-mono text-xs shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15"
+          className="flex-1 rounded-xl border border-[var(--border)] px-2.5 py-1.5 font-mono text-xs shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20"
         />
       </div>
     </Field>
   );
 }
 
-const inputCls = "w-full rounded-xl border border-slate-200 px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15";
-const selectCls = `${inputCls} bg-white`;
+const inputCls = "w-full rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
+const selectCls = `${inputCls} bg-[var(--card)]`;
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -207,38 +164,47 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 interface StudioControlsProps {
   config: BannerConfiguration;
   onChange: <K extends keyof BannerConfiguration>(key: K, value: BannerConfiguration[K]) => void;
-  onApplyPreset: (overrides: Partial<BannerConfiguration>) => void;
-  activePreset: PresetName | null;
+  onApplyPreset: (presetId: string) => void;
+  activePreset: string | null;
   saving: boolean;
   saveError: string | null;
   saveSuccess: boolean;
   onSave: () => void;
   onReset: () => void;
   hasVersion: boolean;
+  policyId: string;
+  websiteId: string | null;
+  liveIsBehind: boolean;
 }
 
 export function StudioControls({
   config, onChange, onApplyPreset, activePreset,
   saving, saveError, saveSuccess, onSave, onReset, hasVersion,
+  policyId, websiteId, liveIsBehind,
 }: StudioControlsProps) {
   const [tab, setTab] = useState<TabId>("presets");
+  const [presetCategory, setPresetCategory] = useState<BannerPresetCategory | "all">("all");
+  const visiblePresets = useMemo(
+    () => BANNER_PRESETS.filter((preset) => presetCategory === "all" || preset.category === presetCategory),
+    [presetCategory],
+  );
 
   return (
-    <div className="flex h-full flex-col bg-white">
+    <div className="flex h-full flex-col bg-[var(--card)]">
 
       {/* ── Tab bar ──────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-0.5 border-b border-slate-100 bg-slate-50/80 px-2 py-1.5">
+      <div className="flex shrink-0 items-center gap-0.5 border-b border-[var(--border)] bg-[var(--muted)]/80 px-2 py-1.5">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all ${
               tab === t.id
-                ? "bg-white text-indigo-700 shadow-sm ring-1 ring-slate-200"
-                : "text-slate-500 hover:bg-white/60 hover:text-slate-700"
+                ? "bg-[var(--card)] text-[var(--primary)] shadow-sm ring-1 ring-[var(--border)]"
+                : "text-[var(--muted-foreground)] hover:bg-[var(--card)]/60 hover:text-[var(--foreground)]"
             }`}
           >
-            <span className={tab === t.id ? "text-indigo-600" : "text-slate-400"}>
+            <span className={tab === t.id ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"}>
               {t.icon}
             </span>
             <span className="hidden sm:inline">{t.label}</span>
@@ -253,45 +219,61 @@ export function StudioControls({
           {/* ════ PRESETS ════ */}
           {tab === "presets" && (
             <div className="space-y-3">
-              <SectionLabel>Style presets</SectionLabel>
-              <div className="space-y-2">
-                {PRESETS.map((preset) => {
-                  const active = activePreset === preset.name;
+              <SectionLabel>Templates</SectionLabel>
+              <div className="flex flex-wrap gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPresetCategory("all")}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                    presetCategory === "all"
+                      ? "bg-[var(--primary)] text-white"
+                      : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  All
+                </button>
+                {BANNER_PRESET_CATEGORIES.map((category) => (
+                  <button
+                    key={category.id}
+                    type="button"
+                    onClick={() => setPresetCategory(category.id)}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                      presetCategory === category.id
+                        ? "bg-[var(--primary)] text-white"
+                        : "bg-[var(--muted)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                    }`}
+                  >
+                    {category.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {visiblePresets.map((preset) => {
+                  const active = activePreset === preset.id;
                   return (
                     <button
-                      key={preset.name}
+                      key={preset.id}
                       type="button"
-                      onClick={() => onApplyPreset(preset.overrides)}
-                      className={`flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition-all ${
+                      onClick={() => onApplyPreset(preset.id)}
+                      className={`rounded-2xl border p-2 text-left transition-all ${
                         active
-                          ? "border-indigo-200 bg-indigo-50 ring-1 ring-indigo-400/30"
-                          : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                          ? "border-[color-mix(in_srgb,var(--primary)_40%,transparent)] bg-[var(--info-soft)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]"
+                          : "border-[var(--border)] hover:bg-[var(--muted)]"
                       }`}
                     >
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
-                        active
-                          ? "border-indigo-200 bg-indigo-100 text-indigo-700"
-                          : "border-slate-200 bg-slate-100 text-slate-500"
-                      }`}>
-                        {preset.icon}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className={`text-xs font-semibold ${active ? "text-indigo-900" : "text-slate-800"}`}>
-                          {preset.label}
-                        </p>
-                        <p className="truncate text-[11px] text-slate-400">{preset.description}</p>
-                      </div>
-                      {active && (
-                        <svg className="h-4 w-4 shrink-0 text-indigo-600" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2.5}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5" />
-                        </svg>
-                      )}
+                      <PresetThumb preset={preset} />
+                      <p className={`mt-2 text-xs font-semibold ${active ? "text-[var(--primary)]" : "text-[var(--foreground)]"}`}>
+                        {preset.label}
+                      </p>
+                      <p className="mt-0.5 line-clamp-2 text-[10px] leading-snug text-[var(--muted-foreground)]">
+                        {preset.description}
+                      </p>
                     </button>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Presets apply a full style bundle. Refine individual settings in the other tabs.
+              <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+                Templates apply layout, colour, and notice copy. The live site uses the last published version — save, then publish, to match Verify installation.
               </p>
             </div>
           )}
@@ -317,8 +299,8 @@ export function StudioControls({
                         onClick={() => onChange("position", pos.value)}
                         className={`flex flex-col items-center gap-1 rounded-xl border py-2 text-xs transition-all ${
                           active
-                            ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                            : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                            ? "border-[var(--ring)] bg-[var(--primary)] text-white shadow-sm"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--border)] hover:bg-[var(--muted)]"
                         }`}>
                         <span className="text-base leading-none">{pos.icon}</span>
                         <span className="font-medium">{pos.label}</span>
@@ -341,22 +323,14 @@ export function StudioControls({
                     const active = config.layout === lay.value;
                     return (
                       <button key={lay.value} type="button"
-                        onClick={() => {
-                          if (lay.value === "dialog") {
-                            onApplyPreset({ layout: "dialog", position: "center", overlayEnabled: true });
-                          } else if (lay.value === "bar" && config.position === "center") {
-                            onApplyPreset({ layout: "bar", position: "bottom" });
-                          } else {
-                            onChange("layout", lay.value);
-                          }
-                        }}
+                        onClick={() => onChange("layout", lay.value)}
                         className={`flex flex-col items-center gap-0.5 rounded-xl border py-2.5 text-xs transition-all ${
                           active
-                            ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                            : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                            ? "border-[var(--ring)] bg-[var(--primary)] text-white shadow-sm"
+                            : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--border)] hover:bg-[var(--muted)]"
                         }`}>
                         <span className="font-semibold">{lay.label}</span>
-                        <span className={`text-[10px] ${active ? "text-white/70" : "text-slate-400"}`}>{lay.desc}</span>
+                        <span className={`text-[10px] ${active ? "text-white/70" : "text-[var(--muted-foreground)]"}`}>{lay.desc}</span>
                       </button>
                     );
                   })}
@@ -365,12 +339,17 @@ export function StudioControls({
 
               <div>
                 <SectionLabel>Overlay</SectionLabel>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 px-3 py-2">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-2">
                   <Toggle
-                    checked={config.overlayEnabled}
+                    checked={bannerUsesOverlay(config)}
                     onChange={(v) => onChange("overlayEnabled", v)}
                     label="Show semi-transparent overlay"
                   />
+                  {config.layout === "dialog" && (
+                    <p className="pb-1 text-[11px] text-[var(--muted-foreground)]">
+                      Dialogs always dim the page on the live site, matching this preview.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -393,9 +372,9 @@ export function StudioControls({
                 <div className="space-y-1.5">
                   <input type="range" min={0} max={24} value={config.borderRadius}
                     onChange={(e) => onChange("borderRadius", parseInt(e.target.value, 10))}
-                    className="w-full accent-indigo-600"
+                    className="w-full accent-[var(--primary)]"
                   />
-                  <div className="flex justify-between text-[10px] text-slate-400">
+                  <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
                     <span>Square</span><span>Rounded</span>
                   </div>
                 </div>
@@ -403,7 +382,7 @@ export function StudioControls({
 
               <div>
                 <SectionLabel>Buttons</SectionLabel>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 px-3 py-1 divide-y divide-slate-100">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-1 divide-y divide-[var(--border)]">
                   <Toggle checked={config.showAcceptAll}  onChange={(v) => onChange("showAcceptAll", v)}  label="Show Accept all"          />
                   <Toggle checked={config.showRejectAll}  onChange={(v) => onChange("showRejectAll", v)}  label="Show Reject all"          />
                   <Toggle checked={config.showCustomize}  onChange={(v) => onChange("showCustomize", v)}  label="Show Customize"           />
@@ -414,7 +393,7 @@ export function StudioControls({
 
               <div>
                 <SectionLabel>Preference center</SectionLabel>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 px-3 py-1 divide-y divide-slate-100">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-1 divide-y divide-[var(--border)]">
                   <Toggle checked={config.showPurposeDescriptions} onChange={(v) => onChange("showPurposeDescriptions", v)} label="Show purpose descriptions" />
                   <Toggle checked={config.showVendorList}           onChange={(v) => onChange("showVendorList", v)}           label="Show vendor list"          />
                   <Toggle checked={config.showLegalBasis}           onChange={(v) => onChange("showLegalBasis", v)}           label="Show legal basis"          />
@@ -473,7 +452,7 @@ export function StudioControls({
 
               <div>
                 <SectionLabel>Behaviour options</SectionLabel>
-                <div className="rounded-2xl border border-slate-200 bg-slate-50/50 px-3 py-1 divide-y divide-slate-100">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/50 px-3 py-1 divide-y divide-[var(--border)]">
                   <Toggle checked={config.respectDoNotTrack}    onChange={(v) => onChange("respectDoNotTrack", v)}    label="Respect Do Not Track"       />
                   <Toggle checked={config.closeOnOverlayClick}  onChange={(v) => onChange("closeOnOverlayClick", v)}  label="Close on overlay click"     />
                   <Toggle checked={config.blockPageUntilConsent} onChange={(v) => onChange("blockPageUntilConsent", v)} label="Block page until consent"  />
@@ -500,8 +479,8 @@ export function StudioControls({
                           onClick={() => onChange("preferenceWidgetPosition", pos.value)}
                           className={`rounded-xl border py-2 text-xs font-medium transition-all ${
                             active
-                              ? "border-indigo-300 bg-indigo-600 text-white shadow-sm"
-                              : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                              ? "border-[var(--ring)] bg-[var(--primary)] text-white shadow-sm"
+                              : "border-[var(--border)] text-[var(--muted-foreground)] hover:border-[var(--border)] hover:bg-[var(--muted)]"
                           }`}
                         >
                           {pos.label}
@@ -509,7 +488,7 @@ export function StudioControls({
                       );
                     })}
                   </div>
-                  <p className="mt-2 text-[11px] leading-relaxed text-slate-400">
+                  <p className="mt-2 text-[11px] leading-relaxed text-[var(--muted-foreground)]">
                     After someone chooses, a small icon stays on the site so they can change purposes later.
                   </p>
                 </div>
@@ -543,49 +522,60 @@ export function StudioControls({
       </div>
 
       {/* ── Footer save bar ──────────────────────────────────────────────── */}
-      <div className="shrink-0 border-t border-slate-100 bg-white p-3 space-y-2">
+      <div className="shrink-0 space-y-2 border-t border-[var(--border)] bg-[var(--card)] p-3">
         {saveError && (
-          <div className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+          <div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger)]">
             <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}><circle cx="8" cy="8" r="6"/><path strokeLinecap="round" d="M8 5v3M8 11h.01"/></svg>
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5"/></svg>
-            Configuration saved successfully.
+          <div className="rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] px-3 py-2 text-xs text-[var(--success)]">
+            Draft saved. Publish the policy to update the live banner and Verify installation.
           </div>
         )}
+        {liveIsBehind && !saveSuccess && (
+          <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+            This studio edits a draft. The live check still shows the last published version.{" "}
+            <Link href={`/dashboard/policies/${policyId}`} className="font-medium text-[var(--primary)] underline-offset-2 hover:underline">
+              Publish to go live
+            </Link>
+            .
+          </p>
+        )}
         {!hasVersion && (
-          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M8 2l6 12H2z"/><path strokeLinecap="round" d="M8 7v3M8 12h.01"/></svg>
+          <div className="flex items-center gap-2 rounded-xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-3 py-2 text-xs text-[var(--warning)]">
             No policy version — cannot save.
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={onSave}
             disabled={saving || !hasVersion}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-2xl bg-indigo-600 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
+            className="btn btn-primary flex h-10 flex-1 items-center justify-center text-sm disabled:opacity-50"
           >
-            {saving ? (
-              <>
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
-                Saving…
-              </>
-            ) : (
-              <>
-                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l3.5 3.5L13 4.5"/></svg>
-                Save configuration
-              </>
-            )}
+            {saving ? "Saving…" : "Save draft"}
           </button>
+          <Link
+            href={`/dashboard/policies/${policyId}#policy-publish`}
+            className="btn btn-outline flex h-10 items-center px-3 text-sm"
+          >
+            Publish
+          </Link>
+          {websiteId ? (
+            <Link
+              href={`/dashboard/websites/${websiteId}/installation`}
+              className="btn btn-outline flex h-10 items-center px-3 text-sm"
+            >
+              Install
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={onReset}
             title="Reset to defaults"
-            className="flex h-9 w-9 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
+            className="btn btn-outline flex h-10 w-10 items-center justify-center p-0"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" d="M2.5 8A5.5 5.5 0 118 13.5"/><path strokeLinecap="round" d="M2.5 5v3h3"/></svg>
           </button>
@@ -594,6 +584,3 @@ export function StudioControls({
     </div>
   );
 }
-
-export { PRESETS };
-export type { Preset };

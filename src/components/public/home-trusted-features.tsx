@@ -16,7 +16,7 @@ const featureCards = [
     title: "Granular Consent Management",
     description:
       "Collect consent for cookies, categories, purposes and vendors with ease.",
-    href: "/dashboard/purposes",
+    href: "#how-it-works",
     iconBg: "bg-[#EFF6FF]",
     iconColor: "text-[#2563EB]",
     icon: (
@@ -44,7 +44,7 @@ const featureCards = [
     title: "Easy Integration",
     description:
       "Integrate in minutes with our SDKs, plugins and APIs for any platform.",
-    href: "#resources",
+    href: "/sdk-demo",
     iconBg: "bg-[#F5F3FF]",
     iconColor: "text-[#7C3AED]",
     icon: <path d="m8.25 8.25-4.5 3.75 4.5 3.75M15.75 8.25l4.5 3.75-4.5 3.75" />,
@@ -53,7 +53,7 @@ const featureCards = [
     title: "Analytics & Insights",
     description:
       "Track consent rates, user preferences and performance with detailed reports.",
-    href: "/dashboard/analytics",
+    href: "#features",
     iconBg: "bg-[#FDF2F8]",
     iconColor: "text-[#DB2777]",
     icon: <path d="M5.25 18.75V12m6.75 6.75V5.25m6.75 13.5v-9" />,
@@ -62,7 +62,7 @@ const featureCards = [
     title: "Secure & Reliable",
     description:
       "Enterprise-grade security, scalability and 99.99% uptime you can trust.",
-    href: "#security",
+    href: "#features",
     iconBg: "bg-[#EFF6FF]",
     iconColor: "text-[#2563EB]",
     icon: (

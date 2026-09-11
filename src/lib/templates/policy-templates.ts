@@ -110,6 +110,101 @@ export const POLICY_TEMPLATES: PolicyTemplate[] = [
       showRejectAll: true,
     },
   },
+  {
+    id: "uk-gdpr",
+    name: "UK (UK GDPR)",
+    summary: "Necessary, functional, analytics, and advertising",
+    description:
+      "Opt-in notice for UK sites. Necessary cookies stay on; analytics and ads wait for a choice.",
+    regionLabel: "United Kingdom",
+    purposeKeys: ["necessary", "functional", "analytics", "advertising"],
+    banner: {
+      title: "Cookies on this site",
+      description:
+        "We use necessary cookies to make this site work. With your consent we also use analytics and advertising cookies. You can reject non-essential cookies or change your choices at any time.",
+      defaultConsent: "none",
+      layout: "bar",
+      position: "bottom",
+      region: "UK",
+      showRejectAll: true,
+    },
+  },
+  {
+    id: "canada-pipeda",
+    name: "Canada (PIPEDA)",
+    summary: "Necessary, functional, and analytics",
+    description:
+      "Notice-and-choice policy for Canadian sites. Advertising is omitted; visitors can still reject optional analytics.",
+    regionLabel: "Canada",
+    purposeKeys: ["necessary", "functional", "analytics"],
+    banner: {
+      title: "Privacy notice",
+      description:
+        "We use cookies needed to run this site. With your consent we also use cookies to remember preferences and measure how the site is used.",
+      defaultConsent: "none",
+      layout: "box",
+      position: "bottom",
+      region: "CA",
+      showRejectAll: true,
+    },
+  },
+  {
+    id: "australia-privacy",
+    name: "Australia (Privacy Act)",
+    summary: "Necessary, analytics, and advertising",
+    description:
+      "Clear notice for Australian sites with optional analytics and ads, plus a reject control.",
+    regionLabel: "Australia",
+    purposeKeys: ["necessary", "analytics", "advertising"],
+    banner: {
+      title: "How we use cookies",
+      description:
+        "We use essential cookies to operate this site. Optional analytics and advertising cookies are used only if you agree.",
+      defaultConsent: "none",
+      layout: "bar",
+      position: "bottom",
+      region: "AU",
+      showRejectAll: true,
+    },
+  },
+  {
+    id: "ecommerce",
+    name: "Ecommerce",
+    summary: "Full stack including personalization and ads",
+    description:
+      "Storefront-oriented policy with necessary, functional, analytics, advertising, and personalization purposes.",
+    regionLabel: "Any",
+    purposeKeys: ["necessary", "functional", "analytics", "advertising", "personalization"],
+    banner: {
+      title: "We use cookies to improve your shop",
+      description:
+        "Necessary cookies keep checkout and your cart working. Other cookies help us remember preferences, measure visits, and show relevant offers if you agree.",
+      defaultConsent: "none",
+      layout: "box",
+      position: "bottom",
+      region: "",
+      showRejectAll: true,
+    },
+  },
+  {
+    id: "content-site",
+    name: "Publisher / content",
+    summary: "Analytics, ads, and personalization for media sites",
+    description:
+      "Centered dialog for content sites that rely on measurement, advertising, and recommended articles.",
+    regionLabel: "Any",
+    purposeKeys: ["necessary", "analytics", "advertising", "personalization"],
+    banner: {
+      title: "Your privacy choices",
+      description:
+        "We use essential cookies to run this site. With your consent we also measure readership, personalise content, and fund the site with advertising.",
+      defaultConsent: "none",
+      layout: "dialog",
+      position: "center",
+      region: "",
+      showRejectAll: true,
+    },
+  },
 ];
 
 export function getPolicyTemplate(id: string): PolicyTemplate | undefined {

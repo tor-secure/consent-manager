@@ -105,7 +105,7 @@ export function CreatePolicyForm({
         title="Start from a template"
         description="Pick a ready-made policy, then edit the name, copy, and purposes before you create it."
       >
-        <div className="grid items-stretch gap-3 sm:grid-cols-2">
+        <div className="grid items-stretch gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {POLICY_TEMPLATES.map((tpl) => (
             <TemplateTile
               key={tpl.id}
@@ -194,13 +194,13 @@ export function CreatePolicyForm({
                     className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
                   />
                   <span>
-                    <span className="block text-sm font-medium text-slate-800">
+                    <span className="block text-sm font-medium text-[var(--foreground)]">
                       {p.name}
                       {p.isRequired ? (
-                        <span className="ml-2 text-[11px] font-semibold uppercase text-indigo-600">Required</span>
+                        <span className="ml-2 text-[11px] font-semibold uppercase text-[var(--primary)]">Required</span>
                       ) : null}
                     </span>
-                    <span className="mt-0.5 block text-xs text-slate-500">{p.summary}</span>
+                    <span className="mt-0.5 block text-xs text-[var(--muted-foreground)]">{p.summary}</span>
                   </span>
                 </label>
               ))}

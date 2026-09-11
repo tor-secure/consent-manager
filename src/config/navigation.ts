@@ -8,6 +8,8 @@ export type DashboardNavigationItem = {
 export type DashboardNavigationGroup = {
   title: string;
   items: DashboardNavigationItem[];
+  /** When true, the group starts collapsed unless it contains the current route. */
+  defaultCollapsed?: boolean;
 };
 
 export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
@@ -21,14 +23,14 @@ export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
     { title: "Transfers", href: "/dashboard/transfers", description: "Processing and cross-border transfers" },
     { title: "Trackers", href: "/dashboard/trackers", description: "Detected trackers" },
   ] },
-  { title: "Discovery & Monitoring", items: [
+  { title: "Discovery & Monitoring", defaultCollapsed: true, items: [
     { title: "Scanner", href: "/dashboard/scanner", description: "Scan websites" },
     { title: "Privacy drift", href: "/dashboard/monitoring", description: "Scan findings" },
     { title: "Privacy risk", href: "/dashboard/risk", description: "Risk overview" },
     { title: "Consent quality", href: "/dashboard/quality", description: "Operational quality score" },
     { title: "Analytics", href: "/dashboard/analytics", description: "Consent analytics" },
   ] },
-  { title: "Intelligence", items: [
+  { title: "Intelligence", defaultCollapsed: true, items: [
     { title: "Consent firewall", href: "/dashboard/firewall", description: "Tracker blocking preview" },
     { title: "Impact simulator", href: "/dashboard/simulator", description: "Quality what-if scenarios" },
     { title: "Experiments", href: "/dashboard/experiments", description: "Banner A/B tests" },
@@ -49,7 +51,7 @@ export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
     { title: "Privacy Rights", href: "/dashboard/rights-requests", description: "DSAR and rights-request workflow" },
   ] },
   { title: "Developer", items: [
-    { title: "API keys & SDK", href: "/dashboard/developers", description: "Credentials and installation" },
+    { title: "SDK & API keys", href: "/dashboard/developers", description: "Install snippets, site keys, and credentials" },
     { title: "Integrations", href: "/dashboard/integrations", description: "Connected tools" },
     { title: "Webhooks", href: "/dashboard/developers/webhooks", description: "Event delivery" },
   ] },
@@ -61,3 +63,12 @@ export const dashboardNavigationGroups: DashboardNavigationGroup[] = [
 ];
 
 export const dashboardNavigation = dashboardNavigationGroups.flatMap((group) => group.items);
+
+export const SETUP_NAV_HREFS = new Set([
+  "/dashboard",
+  "/dashboard/websites",
+  "/dashboard/policies",
+  "/dashboard/purposes",
+  "/dashboard/developers",
+  "/dashboard/analytics",
+]);

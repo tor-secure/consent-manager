@@ -63,18 +63,19 @@ export default async function RoiPage({
       />
 
       {sites.length === 0 ? (
-        <EmptyState title="No website available for ROI analysis" description="Add a website and collect consent analytics before estimating business impact." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+        <EmptyState title="No website available for ROI analysis" description="Add a website, publish a policy, and collect consent analytics before estimating business impact." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/roi" websites={sites.map((s) => ({ id: s.id, name: s.name }))} selected={websiteId} />
           {websiteId ? <RunIntelligenceButton websiteId={websiteId} engine="roi" /> : null}
 
           {!loaded || !baseline || !roiReport ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                ROI inputs are unavailable for this website.
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="ROI inputs are not ready"
+              description="Install the SDK and collect consent analytics, or run a scan so quality inputs exist."
+              actionLabel="Install SDK"
+              actionHref={websiteId ? `/dashboard/websites/${websiteId}/installation` : "/dashboard/developers"}
+            />
           ) : (
             <div className="space-y-6">
               <Card>

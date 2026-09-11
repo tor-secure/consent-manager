@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/sdk/copy-snippet";
+import { PageHeader } from "@/components/ui/page-header";
 
 type ProofPayload = {
   stored: { alg: string; hash: string; signature: string; signedAt: string } | null;
@@ -57,25 +58,23 @@ export default function ConsentProofPage() {
 
   return (
     <div className="page-wrap space-y-6">
-      <nav className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/consent" className="hover:text-slate-900">
+      <nav className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/consent" className="hover:text-[var(--foreground)]">
           Consent
         </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-slate-900">Cryptographic proof</span>
+        <span className="text-[var(--border)]">/</span>
+        <span className="text-[var(--foreground)]">Cryptographic proof</span>
       </nav>
 
-      <div>
-        <h1 className="page-title">Cryptographic consent proof</h1>
-        <p className="page-description">
-          SHA-256 over a canonical decision payload, then HMAC-SHA256. Tampering with stored decisions invalidates the hash.
-        </p>
-      </div>
+      <PageHeader
+        title="Cryptographic consent proof"
+        description="SHA-256 over a canonical decision payload, then HMAC-SHA256. Tampering with stored decisions invalidates the hash."
+      />
 
       {error ? (
-        <p className="text-sm text-rose-700">{error}</p>
+        <p className="text-sm text-[var(--danger)]">{error}</p>
       ) : !data?.evidence ? (
-        <p className="text-sm text-slate-500">Loading proof…</p>
+        <p className="text-sm text-[var(--muted-foreground)]">Loading proof…</p>
       ) : (
         <Card>
           <CardContent className="space-y-4 pt-6">
@@ -83,40 +82,40 @@ export default function ConsentProofPage() {
               <Badge variant={intact ? "success" : "danger"}>{intact ? "Intact" : "Not intact"}</Badge>
               <Badge variant="neutral">{data.evidence.status}</Badge>
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-[var(--muted-foreground)]">
               {data.evidence.website?.name} ({data.evidence.website?.domain}) ·{" "}
               {data.evidence.policyVersion
                 ? `${data.evidence.policyVersion.policyName ?? "Policy"} v${data.evidence.policyVersion.version}`
                 : "No policy version"}
             </p>
             <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Consent ID</p>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Consent ID</p>
               <code className="mt-1 block break-all font-mono text-xs">{data.evidence.consentId}</code>
             </div>
             {proof?.stored ? (
               <>
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">SHA-256</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">SHA-256</p>
                     <CopyButton text={proof.stored.hash} />
                   </div>
                   <code className="mt-1 block break-all font-mono text-xs">{proof.stored.hash}</code>
                 </div>
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">HMAC-SHA256</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">HMAC-SHA256</p>
                     <CopyButton text={proof.stored.signature} />
                   </div>
                   <code className="mt-1 block break-all font-mono text-xs">{proof.stored.signature}</code>
                 </div>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--muted-foreground)]">
                   Signed {proof.stored.signedAt || "—"}. Hash matches current record:{" "}
                   {proof.verification.hashMatches ? "yes" : "no"}. Signature valid:{" "}
                   {proof.verification.signatureValid ? "yes" : "no"}.
                 </p>
               </>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-[var(--muted-foreground)]">
                 This record was stored before proofs were signed. New consents include a hash and HMAC.
               </p>
             )}

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
@@ -6,6 +5,8 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { loadOrganizationVendorList } from "@/lib/processing/dashboard-queries";
 import { VendorList, type VendorRow } from "@/components/vendors/vendor-list";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 function IconPlus() {
   return (
@@ -39,45 +40,39 @@ export default async function VendorsPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">Vendors</h1>
-          <p className="page-description">
-            Third-party vendors and the purposes they serve in your organisation.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/vendors/new"
-          className="btn btn-primary"
-        >
-          <IconPlus />
-          Create vendor
-        </Link>
-      </div>
+      <PageHeader
+        title="Vendors"
+        description="Third-party vendors and the purposes they serve in your organisation."
+        action={
+          <PageHeaderLink href="/dashboard/vendors/new">
+            <IconPlus />
+            Create vendor
+          </PageHeaderLink>
+        }
+      />
 
       {schemaLimited && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <StatusBanner variant="warning">
           Vendor role and DPA columns are not in this database yet. The list still loads. Apply pending schema
           (npm run db:ensure-schema) before publishing policies that reference these vendors.
-        </div>
+        </StatusBanner>
       )}
 
       {/* ── Summary pills ───────────────────────────────────────────────── */}
       {total > 0 && (
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "Total",  value: total,  dot: "bg-slate-400"   },
-            { label: "Active", value: active, dot: "bg-emerald-500" },
-            ...(custom  > 0 ? [{ label: "Custom",  value: custom,  dot: "bg-slate-400"  }] : []),
-            ...(iab     > 0 ? [{ label: "IAB",     value: iab,     dot: "bg-violet-500" }] : []),
-            ...(google  > 0 ? [{ label: "Google",  value: google,  dot: "bg-sky-500"    }] : []),
+            { label: "Total",  value: total,  dot: "bg-[var(--muted-foreground)]"   },
+            { label: "Active", value: active, dot: "bg-[var(--success)]" },
+            ...(custom  > 0 ? [{ label: "Custom",  value: custom,  dot: "bg-[var(--muted-foreground)]"  }] : []),
+            ...(iab     > 0 ? [{ label: "IAB",     value: iab,     dot: "bg-[var(--purple)]" }] : []),
+            ...(google  > 0 ? [{ label: "Google",  value: google,  dot: "bg-[var(--info)]"    }] : []),
           ].map((s) => (
             <div key={s.label}
-              className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
+              className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
               <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-              <span className="font-semibold text-slate-800">{s.value}</span>
-              <span className="text-slate-500">{s.label}</span>
+              <span className="font-semibold text-[var(--foreground)]">{s.value}</span>
+              <span className="text-[var(--muted-foreground)]">{s.label}</span>
             </div>
           ))}
         </div>

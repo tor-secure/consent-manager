@@ -10,6 +10,8 @@ import { users } from "@/db/schema/users";
 import { AuditLogFilters } from "@/components/audit-logs/audit-log-filters";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 const PAGE_SIZE = 50;
 
@@ -52,16 +54,16 @@ function PaginationBar({
   }
 
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-sm text-slate-500">
+    <div className="flex items-center justify-between border-t border-[var(--border)] px-5 py-3 text-sm text-[var(--muted-foreground)]">
       <span>
         Page {page} of {totalPages}{" "}
-        <span className="text-slate-400">({totalCount.toLocaleString()} events)</span>
+        <span className="text-[var(--muted-foreground)]">({totalCount.toLocaleString()} events)</span>
       </span>
       <div className="flex items-center gap-2">
         {page > 1 && (
           <Link
             href={pageUrl(page - 1)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
           >
             ← Previous
           </Link>
@@ -69,7 +71,7 @@ function PaginationBar({
         {page < totalPages && (
           <Link
             href={pageUrl(page + 1)}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
           >
             Next →
           </Link>
@@ -152,13 +154,10 @@ export default async function AuditLogsPage({
   return (
     <div className="page-wrap space-y-6">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="page-title">Audit Logs</h1>
-        <p className="page-description">
-          A read-only record of all actions performed in your organisation.
-        </p>
-      </div>
+      <PageHeader
+        title="Audit Logs"
+        description="A read-only record of all actions performed in your organisation."
+      />
 
       {/* ── Filters ──────────────────────────────────────────────────────── */}
       <Suspense fallback={<div className="h-10" />}>
@@ -167,67 +166,47 @@ export default async function AuditLogsPage({
 
       {/* ── Empty state ──────────────────────────────────────────────────── */}
       {rows.length === 0 && (
-        <Card>
-          <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-                stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                className="text-slate-300">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No audit events found</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                {trimmedQ || days !== "all"
-                  ? "Try adjusting your search or date range."
-                  : "Audit events will appear here as actions are performed."}
-              </p>
-            </div>
-            {(trimmedQ || days !== "all") && (
-              <Link
-                href="/dashboard/audit-logs"
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                Clear filters
-              </Link>
-            )}
-          </div>
-        </Card>
+        <EmptyState
+          title="No audit events found"
+          description={
+            trimmedQ || days !== "all"
+              ? "Try adjusting your search or date range."
+              : "Audit events will appear here as actions are performed."
+          }
+          actionLabel={trimmedQ || days !== "all" ? "Clear filters" : undefined}
+          actionHref={trimmedQ || days !== "all" ? "/dashboard/audit-logs" : undefined}
+        />
       )}
 
       {/* ── Log table ────────────────────────────────────────────────────── */}
       {rows.length > 0 && (
         <Card>
           <div className="table-scroll scrollbar-thin">
-            <table className="min-w-full text-sm">
+            <table className="data-table min-w-full">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                   {["Timestamp", "Actor", "Action", "Resource", "Description", "IP"].map((h) => (
                     <th key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {rows.map((row) => {
                   const actor = row.userId ? userMap.get(row.userId) : null;
 
                   return (
-                    <tr key={row.id} className="group transition-colors hover:bg-slate-50/80">
+                    <tr key={row.id} className="group transition-colors hover:bg-[var(--muted)]/80">
 
                       {/* Timestamp */}
                       <td className="whitespace-nowrap px-5 py-3.5">
-                        <time dateTime={row.createdAt.toISOString()} className="text-xs text-slate-500">
+                        <time dateTime={row.createdAt.toISOString()} className="text-xs text-[var(--muted-foreground)]">
                           {row.createdAt.toLocaleDateString("en-GB", {
                             day: "numeric", month: "short", year: "numeric",
                           })}
-                          <span className="ml-1.5 text-slate-400">
+                          <span className="ml-1.5 text-[var(--muted-foreground)]">
                             {row.createdAt.toLocaleTimeString("en-GB", {
                               hour: "2-digit", minute: "2-digit", second: "2-digit",
                             })}
@@ -239,11 +218,11 @@ export default async function AuditLogsPage({
                       <td className="px-5 py-3.5">
                         {actor ? (
                           <div>
-                            <p className="font-medium text-slate-800">{actor.name}</p>
-                            <p className="text-xs text-slate-400">{actor.email}</p>
+                            <p className="font-medium text-[var(--foreground)]">{actor.name}</p>
+                            <p className="text-xs text-[var(--muted-foreground)]">{actor.email}</p>
                           </div>
                         ) : (
-                          <span className="text-xs text-slate-400">System</span>
+                          <span className="text-xs text-[var(--muted-foreground)]">System</span>
                         )}
                       </td>
 
@@ -262,23 +241,23 @@ export default async function AuditLogsPage({
                             {row.resourceType}
                           </Badge>
                         ) : (
-                          <span className="text-slate-300 text-xs">—</span>
+                          <span className="text-[var(--border)] text-xs">—</span>
                         )}
                       </td>
 
                       {/* Description */}
-                      <td className="max-w-xs px-5 py-3.5 text-xs text-slate-500">
+                      <td className="max-w-xs px-5 py-3.5 text-xs text-[var(--muted-foreground)]">
                         <p className="line-clamp-2">{row.description ?? "—"}</p>
                       </td>
 
                       {/* IP */}
                       <td className="px-5 py-3.5">
                         {row.ipAddress ? (
-                          <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-500">
+                          <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                             {String(row.ipAddress)}
                           </code>
                         ) : (
-                          <span className="text-slate-300 text-xs">—</span>
+                          <span className="text-[var(--border)] text-xs">—</span>
                         )}
                       </td>
                     </tr>

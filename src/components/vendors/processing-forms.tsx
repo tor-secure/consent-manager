@@ -7,7 +7,7 @@ import { notify } from "@/components/feedback/notify";
 import { TRANSFER_MECHANISMS, VENDOR_ROLES } from "@/lib/processing/types";
 
 const inputCls =
-  "h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15";
+  "h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
 
 export function TransferForm({
   vendors,
@@ -29,7 +29,7 @@ export function TransferForm({
 
   return (
     <form
-      className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 card-shadow"
+      className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow"
       onSubmit={(event) => {
         event.preventDefault();
         startTransition(async () => {
@@ -57,7 +57,7 @@ export function TransferForm({
         });
       }}
     >
-      <h2 className="text-base font-semibold text-slate-900">Add transfer record</h2>
+      <h2 className="text-base font-semibold text-[var(--foreground)]">Add transfer record</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">Vendor
           <select className={`${inputCls} mt-1`} value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
@@ -121,7 +121,7 @@ export function ProcessingActivityForm({
 
   return (
     <form
-      className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 card-shadow"
+      className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow"
       onSubmit={(event) => {
         event.preventDefault();
         startTransition(async () => {
@@ -152,7 +152,7 @@ export function ProcessingActivityForm({
         });
       }}
     >
-      <h2 className="text-base font-semibold text-slate-900">Add processing activity</h2>
+      <h2 className="text-base font-semibold text-[var(--foreground)]">Add processing activity</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">Vendor
           <select className={`${inputCls} mt-1`} value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>

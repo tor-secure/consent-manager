@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -45,8 +46,8 @@ function TrackerTable({
 }) {
   if (rules.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-6 text-center">
-        <p className="text-sm text-slate-400">None.</p>
+      <div className="rounded-2xl border border-dashed border-[var(--border)] px-5 py-6 text-center">
+        <p className="text-sm text-[var(--muted-foreground)]">None.</p>
       </div>
     );
   }
@@ -56,52 +57,52 @@ function TrackerTable({
       <div className="table-scroll scrollbar-thin">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50/60">
+            <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
               {["Tracker", "Type", "Domain / Identifier", "Required purpose", "Vendor", "Enforcement"].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                   {h}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--border)]">
             {rules.map((rule) => (
-              <tr key={rule.id} className="group transition-colors hover:bg-slate-50/80">
-                <td className="px-4 py-3 font-medium text-slate-900">{rule.name}</td>
+              <tr key={rule.id} className="group transition-colors hover:bg-[var(--muted)]/80">
+                <td className="px-4 py-3 font-medium text-[var(--foreground)]">{rule.name}</td>
                 <td className="px-4 py-3"><TypeBadge type={rule.type} /></td>
-                <td className="px-4 py-3 text-slate-500">
+                <td className="px-4 py-3 text-[var(--muted-foreground)]">
                   {rule.domain && (
-                    <code className="block font-mono text-xs text-slate-600 group-hover:text-indigo-600 transition-colors">
+                    <code className="block font-mono text-xs text-[var(--muted-foreground)] group-hover:text-[var(--primary)] transition-colors">
                       {rule.domain}
                     </code>
                   )}
                   {rule.identifier && (
-                    <code className="mt-0.5 block max-w-[200px] truncate font-mono text-xs text-slate-400">
+                    <code className="mt-0.5 block max-w-[200px] truncate font-mono text-xs text-[var(--muted-foreground)]">
                       {rule.identifier}
                     </code>
                   )}
-                  {!rule.domain && !rule.identifier && <span className="text-slate-300">—</span>}
+                  {!rule.domain && !rule.identifier && <span className="text-[var(--border)]">—</span>}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-[var(--muted-foreground)]">
                   {rule.purposeKey ? (
-                    <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600">
+                    <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                       {rule.purposeKey}
                     </code>
                   ) : rule.purposeId ? (
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-[var(--muted-foreground)]">
                       {purposeMap.get(rule.purposeId) ?? rule.purposeId.slice(0, 8)}
                     </span>
                   ) : (
-                    <span className="text-slate-300">—</span>
+                    <span className="text-[var(--border)]">—</span>
                   )}
                 </td>
-                <td className="px-4 py-3 text-slate-600">
+                <td className="px-4 py-3 text-[var(--muted-foreground)]">
                   {rule.vendorId ? (
                     vendorMap.get(rule.vendorId) ?? (
-                      <span className="text-xs text-slate-400">{rule.vendorId.slice(0, 8)}</span>
+                      <span className="text-xs text-[var(--muted-foreground)]">{rule.vendorId.slice(0, 8)}</span>
                     )
                   ) : (
-                    <span className="text-slate-300">—</span>
+                    <span className="text-[var(--border)]">—</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -207,30 +208,28 @@ export default async function EnforcementPage({
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Enforcement</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">Websites</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-[var(--foreground)]">{website.name}</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">Enforcement</span>
       </nav>
 
-      {/* Page header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">Tracker Enforcement</h1>
-          <p className="page-description">
+      <PageHeader
+        title="Tracker Enforcement"
+        description={
+          <>
             How the CMP SDK enforces consent for trackers on{" "}
-            <span className="font-medium text-slate-700">{website.domain}</span>.
-          </p>
-        </div>
-        <Link
-          href={`/dashboard/websites/${website.id}/installation`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          Installation guide
-        </Link>
-      </div>
+            <span className="font-medium text-[var(--foreground)]">{website.domain}</span>.
+          </>
+        }
+        action={
+          <PageHeaderLink href={`/dashboard/websites/${website.id}/installation`}>
+            Installation guide
+          </PageHeaderLink>
+        }
+      />
 
       {/* Summary stat cards */}
       <div className="grid gap-4 sm:grid-cols-3">
@@ -253,30 +252,30 @@ export default async function EnforcementPage({
       {rules.length > 0 && (
         <div className="space-y-8">
           <section>
-            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
+            <h2 className="mb-1.5 text-base font-semibold text-[var(--foreground)]">
               Blocked until consent ({consentRequired.length})
             </h2>
-            <p className="mb-3 text-sm text-slate-500">
+            <p className="mb-3 text-sm text-[var(--muted-foreground)]">
               Blocked by the SDK until the visitor grants the required purpose or vendor consent.
             </p>
             <TrackerTable rules={consentRequired} purposeMap={purposeNameMap} vendorMap={vendorMap} />
           </section>
 
           <section>
-            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
+            <h2 className="mb-1.5 text-base font-semibold text-[var(--foreground)]">
               Always blocked — unclassified ({unclassified.length})
             </h2>
-            <p className="mb-3 text-sm text-slate-500">
+            <p className="mb-3 text-sm text-[var(--muted-foreground)]">
               No purpose or vendor assigned. Assign a purpose to make them consent-controlled.
             </p>
             <TrackerTable rules={unclassified} purposeMap={purposeNameMap} vendorMap={vendorMap} />
           </section>
 
           <section>
-            <h2 className="mb-1.5 text-base font-semibold text-slate-900">
+            <h2 className="mb-1.5 text-base font-semibold text-[var(--foreground)]">
               Always allowed — essential ({essential.length})
             </h2>
-            <p className="mb-3 text-sm text-slate-500">
+            <p className="mb-3 text-sm text-[var(--muted-foreground)]">
               Essential trackers are never blocked regardless of consent state.
             </p>
             <TrackerTable rules={essential} purposeMap={purposeNameMap} vendorMap={vendorMap} />

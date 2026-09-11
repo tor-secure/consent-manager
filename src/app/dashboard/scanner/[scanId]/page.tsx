@@ -13,6 +13,8 @@ import { purposes } from "@/db/schema/purposes";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 // ---------------------------------------------------------------------------
 // Icons for stat cards
@@ -59,23 +61,23 @@ function IconPages() {
 // ---------------------------------------------------------------------------
 
 const TYPE_DOTS: Record<string, string> = {
-  cookie:      "bg-amber-500",
-  pixel:       "bg-sky-500",
-  script:      "bg-violet-500",
-  beacon:      "bg-pink-500",
-  fingerprint: "bg-rose-500",
-  storage:     "bg-teal-500",
-  other:       "bg-slate-400",
+  cookie:      "bg-[var(--warning)]",
+  pixel:       "bg-[var(--info)]",
+  script:      "bg-[var(--purple)]",
+  beacon:      "bg-[var(--pink)]",
+  fingerprint: "bg-[var(--danger)]",
+  storage:     "bg-[var(--teal)]",
+  other:       "bg-[var(--muted-foreground)]",
 };
 
 const TYPE_BADGE: Record<string, string> = {
-  cookie:      "bg-amber-50  text-amber-700  ring-1 ring-amber-500/20",
-  pixel:       "bg-sky-50    text-sky-700    ring-1 ring-sky-500/20",
-  script:      "bg-violet-50 text-violet-700 ring-1 ring-violet-500/20",
-  beacon:      "bg-pink-50   text-pink-700   ring-1 ring-pink-500/20",
-  fingerprint: "bg-rose-50   text-rose-700   ring-1 ring-rose-500/20",
-  storage:     "bg-teal-50   text-teal-700   ring-1 ring-teal-500/20",
-  other:       "bg-slate-100 text-slate-600  ring-1 ring-slate-200",
+  cookie:      "bg-[var(--warning-soft)]  text-[var(--warning)]  ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]",
+  pixel:       "bg-[var(--info-soft)]    text-[var(--info)]    ring-1 ring-[color-mix(in_srgb,var(--info)_22%,transparent)]",
+  script:      "bg-[var(--info-soft)] text-[var(--purple)] ring-1 ring-[color-mix(in_srgb,var(--purple)_22%,transparent)]",
+  beacon:      "bg-[var(--danger-soft)] text-[var(--pink)] ring-1 ring-[color-mix(in_srgb,var(--pink)_22%,transparent)]",
+  fingerprint: "bg-[var(--danger-soft)]   text-[var(--danger)]   ring-1 ring-[color-mix(in_srgb,var(--danger)_22%,transparent)]",
+  storage:     "bg-[var(--success-soft)] text-[var(--teal)] ring-1 ring-[color-mix(in_srgb,var(--teal)_22%,transparent)]",
+  other:       "bg-[var(--secondary)] text-[var(--muted-foreground)]  ring-1 ring-[var(--border)]",
 };
 
 function TypeBadge({ type }: { type: string }) {
@@ -196,60 +198,58 @@ export default async function ScanDetailPage({
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
         <Link href="/dashboard/scanner"
-          className="transition hover:text-slate-900">Scanner</Link>
-        <span aria-hidden="true" className="text-slate-300">/</span>
-        <span className="text-slate-900">{website?.name ?? scanId.slice(0, 8)}</span>
+          className="transition hover:text-[var(--foreground)]">Scanner</Link>
+        <span aria-hidden="true" className="text-[var(--border)]">/</span>
+        <span className="text-[var(--foreground)]">{website?.name ?? scanId.slice(0, 8)}</span>
       </nav>
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title">
-              Scan results
-            </h1>
+      <PageHeader
+        title={
+          <span className="inline-flex flex-wrap items-center gap-3">
+            Scan results
             <ScanStatusBadge status={scan.status} />
             {duration && <Badge variant="neutral" size="sm">{duration}</Badge>}
-          </div>
-          <p className="page-description">
+          </span>
+        }
+        description={
+          <>
             {website?.name}
-            {website?.domain && <span className="text-slate-400"> · {website.domain}</span>}
+            {website?.domain && <span className="text-[var(--muted-foreground)]"> · {website.domain}</span>}
             {scan.startedAt && <span> · {fmt(scan.startedAt)}</span>}
-          </p>
-        </div>
-        <Link
-          href="/dashboard/scanner"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-        >
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <path d="M10 3L5 8l5 5" />
-          </svg>
-          Back to scanner
-        </Link>
-      </div>
+          </>
+        }
+        action={
+          <Link href="/dashboard/scanner" className="btn btn-outline">
+            Back to scanner
+          </Link>
+        }
+      />
 
       {/* ── Error state ──────────────────────────────────────────────────── */}
       {scan.status === "failed" && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-800">
-          <p className="font-semibold">Scan failed</p>
-          <p className="mt-0.5 text-rose-700">{scan.errorMessage ?? "Unknown error"}</p>
-        </div>
+        <StatusBanner variant="danger" role="alert">
+          <div>
+            <p className="font-semibold">Scan failed</p>
+            <p className="mt-0.5">{scan.errorMessage ?? "Unknown error"}</p>
+          </div>
+        </StatusBanner>
       )}
 
       {unmapped > 0 && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-          <p className="font-semibold">{unmapped} unmapped detection{unmapped === 1 ? "" : "s"}</p>
-          <p className="mt-1">
-            Optional trackers without a purpose and vendor block policy publish. Map them in{" "}
-            <Link href="/dashboard/trackers" className="font-semibold underline underline-offset-2">
-              Trackers
-            </Link>
-            .
-          </p>
-        </div>
+        <StatusBanner variant="warning">
+          <div>
+            <p className="font-semibold">{unmapped} unmapped detection{unmapped === 1 ? "" : "s"}</p>
+            <p className="mt-1">
+              Optional trackers without a purpose and vendor block policy publish. Map them in{" "}
+              <Link href="/dashboard/trackers" className="font-semibold underline underline-offset-2">
+                Trackers
+              </Link>
+              .
+            </p>
+          </div>
+        </StatusBanner>
       )}
 
       {/* ── Stat cards ───────────────────────────────────────────────────── */}
@@ -290,10 +290,10 @@ export default async function ScanDetailPage({
             .sort(([, a], [, b]) => b - a)
             .map(([type, count]) => (
               <div key={type}
-                className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
-                <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[type] ?? "bg-slate-400"}`} />
-                <span className="font-semibold text-slate-800">{count}</span>
-                <span className="capitalize text-slate-500">{type}</span>
+                className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
+                <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[type] ?? "bg-[var(--muted-foreground)]"}`} />
+                <span className="font-semibold text-[var(--foreground)]">{count}</span>
+                <span className="capitalize text-[var(--muted-foreground)]">{type}</span>
               </div>
             ))}
         </div>
@@ -303,15 +303,15 @@ export default async function ScanDetailPage({
       {scan.status === "completed" && results.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-soft)]">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-                stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
                 <polyline points="22 4 12 14.01 9 11.01" />
               </svg>
             </div>
             <div>
-              <p className="text-base font-semibold text-slate-700">No trackers detected</p>
+              <p className="text-base font-semibold text-[var(--foreground)]">No trackers detected</p>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 No third-party scripts, pixels, or tracking patterns were found.
               </p>
@@ -333,24 +333,24 @@ export default async function ScanDetailPage({
           <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                   {["Name", "Type", "Domain", "Matched tracker", "Purpose", "Vendor", "Status"].map((h) => (
                     <th key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {results.map((r) => (
-                  <tr key={r.id} className="group transition-colors hover:bg-slate-50/80">
+                  <tr key={r.id} className="group transition-colors hover:bg-[var(--muted)]/80">
 
                     {/* Name */}
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2.5">
-                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPE_DOTS[r.type] ?? "bg-slate-400"}`} />
-                        <span className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
+                        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${TYPE_DOTS[r.type] ?? "bg-[var(--muted-foreground)]"}`} />
+                        <span className="font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
                           {r.name}
                         </span>
                       </div>
@@ -365,26 +365,26 @@ export default async function ScanDetailPage({
                     {/* Domain */}
                     <td className="px-5 py-4">
                       {r.domain ? (
-                        <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                        <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)] group-hover:bg-[var(--info-soft)] group-hover:text-[var(--primary)] transition-colors">
                           {r.domain}
                         </code>
-                      ) : <span className="text-slate-400">—</span>}
+                      ) : <span className="text-[var(--muted-foreground)]">—</span>}
                     </td>
 
                     {/* Identifier */}
                     <td className="px-5 py-4">
                       {r.identifier ? (
-                        <code className="block max-w-[200px] truncate rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-500">
+                        <code className="block max-w-[200px] truncate rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                           {r.identifier}
                         </code>
-                      ) : <span className="text-slate-400">—</span>}
+                      ) : <span className="text-[var(--muted-foreground)]">—</span>}
                     </td>
 
                     <td className="px-5 py-4">
                       {((r.details as Record<string, unknown>)?.matchedTrackerName as string | undefined) || r.name}
                     </td>
-                    <td className="px-5 py-4">{r.purposeName ?? <span className="text-slate-400">—</span>}</td>
-                    <td className="px-5 py-4">{r.vendorName ?? <span className="text-slate-400">—</span>}</td>
+                    <td className="px-5 py-4">{r.purposeName ?? <span className="text-[var(--muted-foreground)]">—</span>}</td>
+                    <td className="px-5 py-4">{r.vendorName ?? <span className="text-[var(--muted-foreground)]">—</span>}</td>
                     <td className="px-5 py-4">
                       <Badge
                         variant={r.purposeName || r.vendorName || r.classificationStatus === "mapped" ? "success" : "warning"}
@@ -393,7 +393,7 @@ export default async function ScanDetailPage({
                         {r.purposeName || r.vendorName || r.classificationStatus === "mapped" ? "Configured" : "Unmapped"}
                       </Badge>
                       {!(r.purposeName || r.vendorName) && (
-                        <Link href="/dashboard/trackers" className="mt-1 block text-xs font-medium text-indigo-600">
+                        <Link href="/dashboard/trackers" className="mt-1 block text-xs font-medium text-[var(--primary)]">
                           Assign vendor + purpose
                         </Link>
                       )}

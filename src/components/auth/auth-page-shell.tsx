@@ -233,12 +233,33 @@ function BrandPanel({
   );
 }
 
+const modeCopy = {
+  "sign-in": {
+    badge: "Welcome back 👋",
+    title: "Log in to your ConsentFlow account",
+    description: "Access your dashboard and manage consent with confidence.",
+    showPlus: false,
+  },
+  "sign-up": {
+    badge: "Create your account ✨",
+    title: "Get started with ConsentFlow",
+    description: "Create your account and start managing consent the right way.",
+    showPlus: true,
+  },
+  "create-org": {
+    badge: "Name your workspace",
+    title: "Create a ConsentFlow organization",
+    description: "Add a workspace so you can create websites, publish a policy, and install the banner.",
+    showPlus: true,
+  },
+} as const;
+
 export function AuthPageShell({
   children,
   mode,
 }: {
   children: React.ReactNode;
-  mode: "sign-in" | "sign-up";
+  mode: "sign-in" | "sign-up" | "create-org";
 }) {
   useEffect(() => {
     const root = document.documentElement;
@@ -253,7 +274,7 @@ export function AuthPageShell({
     };
   }, []);
 
-  const isSignIn = mode === "sign-in";
+  const copy = modeCopy[mode];
 
   return (
     <div
@@ -271,18 +292,25 @@ export function AuthPageShell({
               <span className="text-[17px] font-bold tracking-tight text-[#111827]">ConsentFlow</span>
             </Link>
 
-            {isSignIn ? (
+            {mode === "sign-in" ? (
               <p className="text-sm text-[#4B5563]">
                 Don&apos;t have an account?{" "}
                 <Link href="/sign-up" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
                   Sign up
                 </Link>
               </p>
-            ) : (
+            ) : mode === "sign-up" ? (
               <p className="text-sm text-[#4B5563]">
                 Already have an account?{" "}
                 <Link href="/sign-in" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
                   Log in
+                </Link>
+              </p>
+            ) : (
+              <p className="text-sm text-[#4B5563]">
+                Already have a workspace?{" "}
+                <Link href="/dashboard" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
+                  Open dashboard
                 </Link>
               </p>
             )}
@@ -290,18 +318,10 @@ export function AuthPageShell({
 
           <div className="grid flex-1 lg:grid-cols-[0.95fr_1.05fr]">
             <BrandPanel
-              badge={isSignIn ? "Welcome back 👋" : "Create your account ✨"}
-              title={
-                isSignIn
-                  ? "Log in to your ConsentFlow account"
-                  : "Get started with ConsentFlow"
-              }
-              description={
-                isSignIn
-                  ? "Access your dashboard and manage consent with confidence."
-                  : "Create your account and start managing consent the right way."
-              }
-              showPlus={!isSignIn}
+              badge={copy.badge}
+              title={copy.title}
+              description={copy.description}
+              showPlus={copy.showPlus}
             />
 
             <div className="flex items-center justify-center bg-[#F9FAFB] px-5 py-8 sm:px-8 lg:px-10">
@@ -336,13 +356,9 @@ export function AuthPageShell({
         </div>
 
         <p className="mt-5 text-center text-xs text-[#6B7280]">
-          By continuing, you agree to our{" "}
-          <Link href="#" className="font-medium text-[#2c4a7c] hover:underline">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
-          <Link href="#" className="font-medium text-[#2c4a7c] hover:underline">
-            Privacy Policy
+          By continuing, you start a ConsentFlow workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#2c4a7c] hover:underline">
+            See how it works
           </Link>
           .
         </p>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { eq, inArray } from "drizzle-orm";
 
@@ -12,6 +11,8 @@ import { TrackerManager, type ManagedTracker, type UnmappedTracker } from "@/com
 import { isUnmappedForReview } from "@/lib/trackers/management";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -56,29 +57,19 @@ function IconBlocked() {
   );
 }
 
-function IconEmpty() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-      stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-      className="text-slate-300">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Type breakdown mini-card
 // ---------------------------------------------------------------------------
 
 const TYPE_DOTS: Record<string, string> = {
-  cookie:      "bg-amber-500",
-  pixel:       "bg-sky-500",
-  script:      "bg-violet-500",
-  iframe:      "bg-indigo-500",
-  beacon:      "bg-pink-500",
-  fingerprint: "bg-rose-500",
-  storage:     "bg-teal-500",
-  other:       "bg-slate-400",
+  cookie:      "bg-[var(--warning)]",
+  pixel:       "bg-[var(--info)]",
+  script:      "bg-[var(--purple)]",
+  iframe:      "bg-[var(--primary)]",
+  beacon:      "bg-[var(--pink)]",
+  fingerprint: "bg-[var(--danger)]",
+  storage:     "bg-[var(--teal)]",
+  other:       "bg-[var(--muted-foreground)]",
 };
 
 // ---------------------------------------------------------------------------
@@ -218,43 +209,28 @@ export default async function TrackersPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">Trackers</h1>
-          <p className="page-description">
-            Map cookies and tracking technologies to vendors and purposes. Changes update the live SDK configuration without a rebuild.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/scanner"
-          className="btn btn-primary"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-          </svg>
-          Run scan
-        </Link>
-      </div>
+      <PageHeader
+        title="Trackers"
+        description="Map cookies and tracking technologies to vendors and purposes. Changes update the live SDK configuration without a rebuild."
+        action={
+          <PageHeaderLink href="/dashboard/scanner">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            Run scan
+          </PageHeaderLink>
+        }
+      />
 
       {/* ── No websites ─────────────────────────────────────────────────── */}
       {websiteIds.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <IconEmpty />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website and run a scan to detect trackers.</p>
-            </div>
-            <Link href="/dashboard/websites/new"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
-              Add a website
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No websites yet"
+          description="Add a website and run a scan to detect trackers."
+          actionLabel="Add a website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
       {/* ── Has data: stat cards + type breakdown + table ───────────────── */}
@@ -299,10 +275,10 @@ export default async function TrackersPage() {
                 .sort((a, b) => b[1] - a[1])
                 .map(([type, count]) => (
                   <div key={type}
-                    className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
-                    <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[type] ?? "bg-slate-400"}`} />
-                    <span className="font-semibold text-slate-800">{count}</span>
-                    <span className="capitalize text-slate-500">{type}</span>
+                    className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
+                    <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[type] ?? "bg-[var(--muted-foreground)]"}`} />
+                    <span className="font-semibold text-[var(--foreground)]">{count}</span>
+                    <span className="capitalize text-[var(--muted-foreground)]">{type}</span>
                   </div>
                 ))}
             </div>

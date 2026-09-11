@@ -97,7 +97,7 @@ export default async function ConsentGraphPage({
                     </thead>
                     <tbody>
                       {snapshot.trackers.map((tracker) => (
-                        <tr key={tracker.id} className="border-t border-slate-100">
+                        <tr key={tracker.id} className="border-t border-[var(--border)]">
                           <td className="py-2 pr-4">
                             {tracker.name}
                             {tracker.isEssential ? (

@@ -9,6 +9,7 @@ import { notifications } from "@/db/schema/notifications";
 import { NotificationActions } from "@/components/notifications/notification-actions";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -87,45 +88,35 @@ export default async function NotificationsPage() {
   return (
     <div className="page-wrap space-y-6">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="page-title">
-              Notifications
-            </h1>
+      <PageHeader
+        title={
+          <span className="inline-flex flex-wrap items-center gap-3">
+            Notifications
             {unreadCount > 0 && (
               <Badge variant="danger" size="sm">
                 {unreadCount} unread
               </Badge>
             )}
-          </div>
-          <p className="page-description">
-            Updates and alerts for your organisation.
-          </p>
-        </div>
-
-        {unreadCount > 0 && (
-          <div className="shrink-0">
-            <NotificationActions hasUnread={true} />
-          </div>
-        )}
-      </div>
+          </span>
+        }
+        description="Updates and alerts for your organisation."
+        action={unreadCount > 0 ? <NotificationActions hasUnread={true} /> : undefined}
+      />
 
       {/* ── Empty state ──────────────────────────────────────────────────── */}
       {rows.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--muted)]">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"
                 stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                className="text-slate-300">
+                className="text-[var(--border)]">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 01-3.46 0" />
               </svg>
             </div>
             <div>
-              <p className="text-base font-semibold text-slate-700">No notifications yet</p>
+              <p className="text-base font-semibold text-[var(--foreground)]">No notifications yet</p>
               <p className="mt-1 text-sm text-[var(--muted-foreground)]">
                 Updates will appear here as actions are performed in your organisation.
               </p>
@@ -145,24 +136,24 @@ export default async function NotificationsPage() {
             return (
               <div
                 key={n.id}
-                className={`rounded-2xl border bg-white transition ${
+                className={`rounded-2xl border bg-[var(--card)] transition ${
                   !n.isRead
-                    ? "border-indigo-200 bg-indigo-50/30"
-                    : "border-slate-200"
+                    ? "border-[color-mix(in_srgb,var(--primary)_28%,transparent)] bg-[var(--info-soft)]/30"
+                    : "border-[var(--border)]"
                 }`}
               >
                 <div className="flex items-start gap-4 px-5 py-4">
                   {/* Unread dot */}
                   <div className="mt-1.5 shrink-0 w-2">
                     {!n.isRead && (
-                      <span className="block h-2 w-2 rounded-full bg-indigo-500" />
+                      <span className="block h-2 w-2 rounded-full bg-[var(--primary)]" />
                     )}
                   </div>
 
                   {/* Content */}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className={`text-sm font-semibold ${n.isRead ? "text-slate-600" : "text-slate-900"}`}>
+                      <p className={`text-sm font-semibold ${n.isRead ? "text-[var(--muted-foreground)]" : "text-[var(--foreground)]"}`}>
                         {n.title}
                       </p>
                       <Badge variant={typeVariant(n.type)} size="sm" className="capitalize">
@@ -178,7 +169,7 @@ export default async function NotificationsPage() {
                     <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">{n.message}</p>
 
                     <div className="mt-2 flex flex-wrap items-center gap-3">
-                      <time dateTime={n.createdAt.toISOString()} className="text-xs text-slate-400">
+                      <time dateTime={n.createdAt.toISOString()} className="text-xs text-[var(--muted-foreground)]">
                         {n.createdAt.toLocaleDateString("en-GB", {
                           day: "numeric", month: "short", year: "numeric",
                         })}{" "}
@@ -190,7 +181,7 @@ export default async function NotificationsPage() {
                       {link && (
                         <Link
                           href={link}
-                          className="text-xs font-medium text-indigo-600 transition hover:text-indigo-800"
+                          className="text-xs font-medium text-[var(--primary)] transition hover:text-[var(--primary)]"
                         >
                           View {n.resourceType?.replace(/_/g, " ")} →
                         </Link>

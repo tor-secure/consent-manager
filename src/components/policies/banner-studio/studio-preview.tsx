@@ -2,9 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { BannerConfiguration } from "@/lib/banner-config";
-import { BannerRenderer, PreferenceWidgetPreview } from "./banner-renderer";
+import {
+  BannerOverlay,
+  BannerRenderer,
+  CmpScrollStyles,
+  PreferenceCenterPreview,
+} from "./banner-renderer";
 
 type Viewport = "desktop" | "mobile";
+type PreviewSurface = "banner" | "preferences";
 
 interface StudioPreviewProps {
   config: BannerConfiguration;
@@ -20,35 +26,37 @@ interface StudioPreviewProps {
 function FallbackMockPage({
   config,
   reason,
+  surface,
 }: {
   config: BannerConfiguration;
   reason: "no-url" | "blocked" | "error";
+  surface: PreviewSurface;
 }) {
   return (
-    <div className="relative h-full w-full overflow-hidden bg-white">
+    <div className="relative h-full w-full overflow-hidden bg-[var(--card)]">
 
       {/* Nav */}
-      <div className="flex items-center gap-3 border-b border-slate-100 bg-white px-6 py-3">
+      <div className="flex items-center gap-3 border-b border-[var(--border)] bg-[var(--card)] px-6 py-3">
         <div className="h-6 w-6 rounded-lg bg-slate-800" />
-        <div className="h-5 w-20 rounded-md bg-slate-200" />
+        <div className="h-5 w-20 rounded-md bg-[var(--secondary)]" />
         <div className="flex-1" />
-        <div className="h-4 w-10 rounded bg-slate-100" />
-        <div className="h-4 w-10 rounded bg-slate-100" />
-        <div className="h-4 w-10 rounded bg-slate-100" />
-        <div className="h-7 w-18 rounded-full bg-slate-900" />
+        <div className="h-4 w-10 rounded bg-[var(--secondary)]" />
+        <div className="h-4 w-10 rounded bg-[var(--secondary)]" />
+        <div className="h-4 w-10 rounded bg-[var(--secondary)]" />
+        <div className="h-7 w-18 rounded-full bg-[var(--foreground)]" />
       </div>
 
       {/* Hero */}
       <div className="px-8 pt-10 pb-6">
         <div className="mx-auto max-w-xl">
           <div className="mb-2 h-2.5 w-20 rounded-full bg-indigo-200" />
-          <div className="mb-3 h-7 w-4/5 rounded-lg bg-slate-200" />
-          <div className="mb-1.5 h-3.5 w-full rounded-md bg-slate-100" />
-          <div className="mb-1.5 h-3.5 w-5/6 rounded-md bg-slate-100" />
-          <div className="mb-6 h-3.5 w-4/5 rounded-md bg-slate-100" />
+          <div className="mb-3 h-7 w-4/5 rounded-lg bg-[var(--secondary)]" />
+          <div className="mb-1.5 h-3.5 w-full rounded-md bg-[var(--secondary)]" />
+          <div className="mb-1.5 h-3.5 w-5/6 rounded-md bg-[var(--secondary)]" />
+          <div className="mb-6 h-3.5 w-4/5 rounded-md bg-[var(--secondary)]" />
           <div className="flex gap-3">
-            <div className="h-9 w-28 rounded-full bg-slate-900" />
-            <div className="h-9 w-28 rounded-full border border-slate-300" />
+            <div className="h-9 w-28 rounded-full bg-[var(--foreground)]" />
+            <div className="h-9 w-28 rounded-full border border-[var(--border)]" />
           </div>
         </div>
       </div>
@@ -56,31 +64,31 @@ function FallbackMockPage({
       {/* Card grid */}
       <div className="grid grid-cols-3 gap-4 px-8 pb-8">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-            <div className="mb-3 h-20 rounded-xl bg-slate-200" />
-            <div className="mb-2 h-3.5 w-3/4 rounded bg-slate-200" />
-            <div className="h-3 rounded bg-slate-100" />
+          <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-4">
+            <div className="mb-3 h-20 rounded-xl bg-[var(--secondary)]" />
+            <div className="mb-2 h-3.5 w-3/4 rounded bg-[var(--secondary)]" />
+            <div className="h-3 rounded bg-[var(--secondary)]" />
           </div>
         ))}
       </div>
 
       {/* Blocked notice */}
       {reason !== "no-url" && (
-        <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 shadow-sm whitespace-nowrap">
+        <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-full border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium text-[var(--warning)] shadow-sm whitespace-nowrap">
           {reason === "blocked"
             ? "Site blocks embedding — showing mock preview"
             : "Could not load site — showing mock preview"}
         </div>
       )}
 
-      {/* Overlay */}
-      {config.overlayEnabled && (
-        <div className="pointer-events-none absolute inset-0 bg-black/40" aria-hidden="true" />
+      {surface === "banner" ? (
+        <>
+          <BannerOverlay config={config} />
+          <BannerRenderer config={config} />
+        </>
+      ) : (
+        <PreferenceCenterPreview config={config} />
       )}
-
-      {/* Banner */}
-      <BannerRenderer config={config} />
-      <PreferenceWidgetPreview config={config} />
     </div>
   );
 }
@@ -90,11 +98,12 @@ function FallbackMockPage({
 // ---------------------------------------------------------------------------
 
 function IframePreview({
-  url, config, onBlock,
+  url, config, onBlock, surface,
 }: {
   url: string;
   config: BannerConfiguration;
   onBlock: () => void;
+  surface: PreviewSurface;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -126,8 +135,8 @@ function IframePreview({
       />
 
       {!loaded && (
-        <div className="flex h-full w-full items-center justify-center bg-slate-50">
-          <div className="flex flex-col items-center gap-3 text-slate-400">
+        <div className="flex h-full w-full items-center justify-center bg-[var(--muted)]">
+          <div className="flex flex-col items-center gap-3 text-[var(--muted-foreground)]">
             <svg className="h-8 w-8 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
@@ -139,13 +148,18 @@ function IframePreview({
 
       {loaded && (
         <div className="pointer-events-none absolute inset-0">
-          {config.overlayEnabled && (
-            <div className="absolute inset-0 bg-black/40" aria-hidden="true" />
+          {surface === "banner" ? (
+            <>
+              <BannerOverlay config={config} />
+              <div className="pointer-events-auto absolute inset-0">
+                <BannerRenderer config={config} />
+              </div>
+            </>
+          ) : (
+            <div className="pointer-events-auto absolute inset-0">
+              <PreferenceCenterPreview config={config} />
+            </div>
           )}
-          <div className="pointer-events-auto">
-            <BannerRenderer config={config} />
-          </div>
-          <PreferenceWidgetPreview config={config} />
         </div>
       )}
     </div>
@@ -162,6 +176,7 @@ export function StudioPreview({
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [urlInput, setUrlInput]           = useState(websiteUrl ?? "");
   const [activeUrl, setActiveUrl]         = useState<string | null>(websiteUrl);
+  const [surface, setSurface]             = useState<PreviewSurface>("banner");
 
   function handleUrlSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,19 +187,20 @@ export function StudioPreview({
     setIframeBlocked(false);
   }
 
-  const previewWidth = viewport === "mobile" ? "360px" : "720px";
-  const previewHeight = viewport === "mobile" ? "580px" : "400px";
+  const previewWidth = viewport === "mobile" ? "360px" : "100%";
+  const previewHeight = viewport === "mobile" ? "640px" : "100%";
 
   return (
     <div className="flex h-full flex-col">
+      <CmpScrollStyles color={config.primaryColor} />
 
       {/* ── Toolbar ─────────────────────────────────────────────────────── */}
-      <div className="flex shrink-0 items-center gap-2.5 border-b border-slate-200 bg-white px-4 py-2.5">
+      <div className="flex shrink-0 items-center gap-2.5 border-b border-[var(--border)] bg-[var(--card)] px-4 py-2.5">
 
         {/* URL bar */}
         <form onSubmit={handleUrlSubmit} className="flex flex-1 items-center gap-2 min-w-0">
-          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-1.5 shadow-sm min-w-0 transition focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-500/15">
-            <svg className="h-3.5 w-3.5 shrink-0 text-slate-400" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
+          <div className="flex flex-1 items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-3 py-1.5 shadow-sm min-w-0 transition focus-within:border-[var(--ring)] focus-within:ring-2 focus-within:ring-[var(--ring)]/20">
+            <svg className="h-3.5 w-3.5 shrink-0 text-[var(--muted-foreground)]" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
               <circle cx="8" cy="8" r="6" />
               <path strokeLinecap="round" d="M8 2c-1 2-1 8 0 12M2 8h12" />
             </svg>
@@ -193,22 +209,47 @@ export function StudioPreview({
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="Enter website URL to preview…"
-              className="flex-1 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400 min-w-0"
+              className="flex-1 bg-transparent text-xs text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)] min-w-0"
             />
           </div>
           <button
             type="submit"
-            className="shrink-0 rounded-2xl bg-indigo-600 px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="shrink-0 rounded-2xl bg-[var(--primary)] px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
           >
             Load
           </button>
         </form>
 
         {/* Separator */}
-        <div className="h-5 w-px bg-slate-200" />
+        <div className="h-5 w-px bg-[var(--secondary)]" />
+
+        <div className="flex items-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">
+          {(
+            [
+              { id: "banner" as PreviewSurface, label: "Banner" },
+              { id: "preferences" as PreviewSurface, label: "Preferences" },
+            ]
+          ).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setSurface(item.id)}
+              aria-pressed={surface === item.id}
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                surface === item.id
+                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="h-5 w-px bg-[var(--secondary)]" />
 
         {/* Viewport toggle */}
-        <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5 shadow-sm">
+        <div className="flex items-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">
           {[
             {
               id: "desktop" as Viewport,
@@ -238,8 +279,8 @@ export function StudioPreview({
               aria-pressed={viewport === v.id}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
                 viewport === v.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-400 hover:text-slate-600"
+                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]"
               }`}
             >
               {v.icon}
@@ -251,35 +292,37 @@ export function StudioPreview({
 
       {/* ── Canvas ──────────────────────────────────────────────────────── */}
       <div
-        className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-6"
-        style={{ background: "repeating-linear-gradient(45deg,#f1f5f9,#f1f5f9 10px,#e2e8f0 10px,#e2e8f0 11px)" }}
+        className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-5"
+        style={{
+          background:
+            "repeating-linear-gradient(45deg,var(--muted),var(--muted) 10px,color-mix(in srgb,var(--border) 70%,transparent) 10px,color-mix(in srgb,var(--border) 70%,transparent) 11px)",
+        }}
       >
         <div
-          className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-slate-200/80 transition-[width,height] duration-300"
+          className="relative overflow-hidden rounded-2xl bg-[var(--card)] shadow-xl ring-1 ring-[var(--border)]/80 transition-[width,height] duration-300"
           style={{
             width: previewWidth,
             height: previewHeight,
             maxWidth: "100%",
             maxHeight: "100%",
-            background: "white",
           }}
         >
-          {/* Mobile notch decoration */}
           {viewport === "mobile" && (
             <div className="absolute left-1/2 top-2.5 z-30 -translate-x-1/2 flex items-center gap-1">
-              <div className="h-1.5 w-10 rounded-full bg-slate-900/10" />
+              <div className="h-1.5 w-10 rounded-full bg-[var(--foreground)]/10" />
             </div>
           )}
 
           {!activeUrl ? (
-            <FallbackMockPage config={config} reason="no-url" />
+            <FallbackMockPage config={config} reason="no-url" surface={surface} />
           ) : iframeBlocked ? (
-            <FallbackMockPage config={config} reason="blocked" />
+            <FallbackMockPage config={config} reason="blocked" surface={surface} />
           ) : (
             <IframePreview
               url={activeUrl}
               config={config}
               onBlock={() => setIframeBlocked(true)}
+              surface={surface}
             />
           )}
         </div>

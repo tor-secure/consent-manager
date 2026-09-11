@@ -66,14 +66,14 @@ function ConsentToggle({
       onClick={() => !disabled && onChange(!checked)}
       className={[
         "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1",
-        checked ? "bg-neutral-900" : "bg-neutral-200",
+        checked ? "bg-[var(--foreground)]" : "bg-[var(--secondary)]",
         disabled ? "cursor-not-allowed opacity-60" : "",
-        "focus:ring-neutral-900",
+        "focus:ring-[var(--ring)]",
       ].join(" ")}
     >
       <span
         className={[
-          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+          "pointer-events-none inline-block h-4 w-4 transform rounded-full bg-[var(--card)] shadow transition-transform",
           checked ? "translate-x-4" : "translate-x-0",
         ].join(" ")}
       />
@@ -286,8 +286,8 @@ export function PreferenceCenter({
               className={[
                 "flex-1 py-2.5 text-sm font-medium transition",
                 activeTab === tab
-                  ? "border-b-2 border-neutral-900 text-neutral-900"
-                  : "text-neutral-500 hover:text-neutral-700",
+                  ? "border-b-2 border-[var(--foreground)] text-[var(--foreground)]"
+                  : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]",
               ].join(" ")}
               style={
                 activeTab === tab
@@ -315,7 +315,7 @@ export function PreferenceCenter({
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium">{purpose.name}</p>
                   {purpose.isRequired && (
-                    <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
+                    <span className="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                       Required
                     </span>
                   )}
@@ -377,12 +377,12 @@ export function PreferenceCenter({
 
       {/* Error */}
       {error && (
-        <div className="mx-6 mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <div className="mx-6 mb-3 rounded-md border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger)]">
           {error}
         </div>
       )}
       {confirmation && (
-        <div className="mx-6 mb-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        <div className="mx-6 mb-3 rounded-md border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] px-3 py-2 text-xs text-[var(--success)]">
           {confirmation}
         </div>
       )}
@@ -410,7 +410,7 @@ export function PreferenceCenter({
             disabled={saving}
             onClick={() => submitConsent("granular")}
             style={{ borderRadius: cfg.borderRadius }}
-            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50"
+            className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-[var(--muted)] disabled:opacity-50"
           >
             {cfg.savePreferencesLabel || "Save preferences"}
           </button>
@@ -434,7 +434,7 @@ export function PreferenceCenter({
             type="button"
             disabled={withdrawing}
             onClick={withdrawConsent}
-            className="ml-auto text-xs text-red-500 underline underline-offset-2 hover:text-red-700 disabled:opacity-40"
+            className="ml-auto text-xs text-[var(--danger)] underline underline-offset-2 hover:text-[var(--danger)] disabled:opacity-40"
           >
             {withdrawing ? "Withdrawing…" : "Withdraw consent"}
           </button>

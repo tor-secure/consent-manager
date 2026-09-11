@@ -173,7 +173,7 @@ export default async function ExperimentsPage({
                           </thead>
                           <tbody>
                             {stats.map((row) => (
-                              <tr key={row.variantId} className="border-t border-slate-100">
+                              <tr key={row.variantId} className="border-t border-[var(--border)]">
                                 <td className="py-2 pr-4">{row.variantId}</td>
                                 <td className="py-2 pr-4">{row.total}</td>
                                 <td className="py-2 pr-4">{row.acceptAll}</td>

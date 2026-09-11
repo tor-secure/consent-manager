@@ -38,7 +38,18 @@ export function CreateWebsiteForm() {
         },
       );
       if (!result.ok) return;
-      router.push("/dashboard/websites");
+      const websiteId =
+        typeof result.data === "object" &&
+        result.data !== null &&
+        "website" in result.data &&
+        typeof (result.data as { website?: { id?: unknown } }).website?.id === "string"
+          ? (result.data as { website: { id: string } }).website.id
+          : null;
+      router.push(
+        websiteId
+          ? `/dashboard/policies/new?websiteId=${encodeURIComponent(websiteId)}`
+          : "/dashboard/policies/new",
+      );
       router.refresh();
     });
   }

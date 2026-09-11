@@ -52,7 +52,7 @@ function NumberField({
         disabled={disabled}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 disabled:bg-slate-50"
+        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:bg-[var(--muted)]"
       />
     </Field>
   );
@@ -72,7 +72,7 @@ function ToggleField({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label htmlFor={id} className="flex items-center gap-2 text-sm text-slate-700">
+    <label htmlFor={id} className="flex items-center gap-2 text-sm text-[var(--foreground)]">
       <input
         id={id}
         type="checkbox"
@@ -110,7 +110,7 @@ export function DataRetentionPanel({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      <div className="rounded-2xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning)]">
         Historical consent evidence is immutable and independent of current consent state.
         Changing retention configuration does not rewrite existing evidence. Deleting current
         consent state does not delete historical consent evidence. Retention periods are
@@ -230,7 +230,7 @@ export function DataRetentionPanel({
                   id="hold-type"
                   value={holdForm.resourceType}
                   onChange={(event) => setHoldForm((current) => ({ ...current, resourceType: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                 >
                   <option value="consent_evidence">Consent evidence</option>
                   <option value="consent_record">Current consent record</option>
@@ -243,7 +243,7 @@ export function DataRetentionPanel({
                   id="hold-id"
                   value={holdForm.resourceId}
                   onChange={(event) => setHoldForm((current) => ({ ...current, resourceId: event.target.value }))}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-mono"
+                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-mono"
                 />
               </Field>
               <div className="sm:col-span-2">
@@ -252,7 +252,7 @@ export function DataRetentionPanel({
                     id="hold-reason"
                     value={holdForm.reason}
                     onChange={(event) => setHoldForm((current) => ({ ...current, reason: event.target.value }))}
-                    className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                    className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                   />
                 </Field>
               </div>
@@ -288,7 +288,7 @@ export function DataRetentionPanel({
           <div className="overflow-x-auto">
             <table className="min-w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-500">
+                <tr className="border-b border-[var(--border)] text-[var(--muted-foreground)]">
                   <th className="py-2 pr-3 font-medium">Resource</th>
                   <th className="py-2 pr-3 font-medium">Status</th>
                   <th className="py-2 pr-3 font-medium">Reason</th>
@@ -298,13 +298,13 @@ export function DataRetentionPanel({
               <tbody>
                 {holds.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="py-4 text-slate-500">No legal holds.</td>
+                    <td colSpan={4} className="py-4 text-[var(--muted-foreground)]">No legal holds.</td>
                   </tr>
                 ) : holds.map((hold) => (
-                  <tr key={hold.id} className="border-b border-slate-100">
+                  <tr key={hold.id} className="border-b border-[var(--border)]">
                     <td className="py-2 pr-3">
                       <div>{hold.resourceType}</div>
-                      <code className="text-xs text-slate-500">{hold.resourceId}</code>
+                      <code className="text-xs text-[var(--muted-foreground)]">{hold.resourceId}</code>
                     </td>
                     <td className="py-2 pr-3 capitalize">{hold.status}</td>
                     <td className="py-2 pr-3">{hold.reason}</td>
@@ -347,13 +347,13 @@ export function DataRetentionPanel({
             </table>
           </div>
           {selectedHold ? (
-            <div className="rounded-xl bg-slate-50 p-4 text-sm">
-              <p className="font-medium text-slate-900">Hold details</p>
-              <p className="mt-1 text-slate-600">Created {new Date(selectedHold.createdAt).toLocaleString()}</p>
+            <div className="rounded-xl bg-[var(--muted)] p-4 text-sm">
+              <p className="font-medium text-[var(--foreground)]">Hold details</p>
+              <p className="mt-1 text-[var(--muted-foreground)]">Created {new Date(selectedHold.createdAt).toLocaleString()}</p>
               {selectedHold.releasedAt ? (
-                <p className="text-slate-600">Released {new Date(selectedHold.releasedAt).toLocaleString()}</p>
+                <p className="text-[var(--muted-foreground)]">Released {new Date(selectedHold.releasedAt).toLocaleString()}</p>
               ) : null}
-              <p className="mt-2 text-slate-700">{selectedHold.reason}</p>
+              <p className="mt-2 text-[var(--foreground)]">{selectedHold.reason}</p>
             </div>
           ) : null}
         </div>

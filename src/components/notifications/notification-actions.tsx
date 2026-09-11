@@ -60,7 +60,7 @@ export function NotificationActions({
         type="button"
         disabled={isPending}
         onClick={markAll}
-        className="shrink-0 rounded-md border bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50 disabled:opacity-50"
+        className="shrink-0 rounded-md border bg-[var(--card)] px-3 py-1.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] disabled:opacity-50"
       >
         {isPending ? "Marking…" : "Mark all as read"}
       </button>
@@ -76,7 +76,7 @@ export function NotificationActions({
       disabled={isPending}
       onClick={markOne}
       title="Mark as read"
-      className="shrink-0 rounded px-2 py-1 text-xs text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 disabled:opacity-40"
+      className="shrink-0 rounded px-2 py-1 text-xs text-[var(--muted-foreground)] hover:bg-[var(--hover)] hover:text-[var(--foreground)] disabled:opacity-40"
     >
       {isPending ? "…" : "Mark read"}
     </button>

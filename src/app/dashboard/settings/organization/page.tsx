@@ -11,6 +11,8 @@ import {
   OrganizationSettingsForm,
   type OrgSettingsData,
 } from "@/components/settings/organization-settings-form";
+import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/ui/card";
 
 // Roles that may edit settings.
 const EDIT_ROLES = ["Owner", "Admin"];
@@ -69,46 +71,45 @@ export default async function OrganizationSettingsPage() {
 
   return (
     <div className="page-wrap space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="page-title">
-          Organization settings
-        </h1>
-        <p className="page-description">
-          Manage the configuration for{" "}
-          <span className="font-medium text-slate-700">{organization.name}</span>.
-        </p>
-      </div>
+      <PageHeader
+        title="Organization settings"
+        description={
+          <>
+            Manage the configuration for{" "}
+            <span className="font-medium text-[var(--foreground)]">{organization.name}</span>.
+          </>
+        }
+      />
 
       {/* Read-only identity block */}
-      <div className="max-w-2xl rounded-2xl bg-white card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Identity</h2>
+      <Card className="max-w-2xl">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Identity</h2>
         </div>
-        <dl className="divide-y divide-slate-100 px-6 text-sm">
+        <dl className="divide-y divide-[var(--border)] px-6 text-sm">
           <div className="flex items-center justify-between py-2.5">
-            <dt className="text-slate-500">Organization ID</dt>
+            <dt className="text-[var(--muted-foreground)]">Organization ID</dt>
             <dd>
-              <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
+              <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                 {organization.id}
               </code>
             </dd>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <dt className="text-slate-500">Slug</dt>
+            <dt className="text-[var(--muted-foreground)]">Slug</dt>
             <dd>
-              <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
+              <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                 {organization.slug}
               </code>
             </dd>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <dt className="text-slate-500">Status</dt>
-            <dd className="capitalize text-slate-700">{organization.status}</dd>
+            <dt className="text-[var(--muted-foreground)]">Status</dt>
+            <dd className="capitalize text-[var(--foreground)]">{organization.status}</dd>
           </div>
           <div className="flex items-center justify-between py-2.5">
-            <dt className="text-slate-500">Created</dt>
-            <dd className="text-slate-700">
+            <dt className="text-[var(--muted-foreground)]">Created</dt>
+            <dd className="text-[var(--foreground)]">
               {organization.createdAt.toLocaleDateString("en-GB", {
                 day: "numeric",
                 month: "short",
@@ -117,7 +118,7 @@ export default async function OrganizationSettingsPage() {
             </dd>
           </div>
         </dl>
-      </div>
+      </Card>
 
       {/* Settings form */}
       <div className="max-w-2xl">

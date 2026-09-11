@@ -55,7 +55,7 @@ export default async function DataFlowMapPage({
                 </thead>
                 <tbody>
                   {hops.map((hop) => (
-                    <tr key={hop.trackerId} className="border-t border-slate-100 align-top">
+                    <tr key={hop.trackerId} className="border-t border-[var(--border)] align-top">
                       <td className="py-2 pr-4">
                         <span className="font-medium">{hop.tracker}</span>
                         <span className="block text-xs text-[var(--muted-foreground)]">

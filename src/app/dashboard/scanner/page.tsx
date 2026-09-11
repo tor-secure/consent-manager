@@ -12,6 +12,8 @@ import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -48,15 +50,6 @@ function IconFailed() {
       stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" />
-    </svg>
-  );
-}
-function IconEmpty() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-      stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-      className="text-slate-300">
-      <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
     </svg>
   );
 }
@@ -164,37 +157,27 @@ export default async function ScannerPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="page-title">Scanner</h1>
-        <p className="page-description">
-          Scan your websites for cookies, scripts, pixels, and tracking technologies.
-        </p>
-      </div>
+      <PageHeader
+        title="Scanner"
+        description="Scan your websites for cookies, scripts, pixels, and tracking technologies."
+      />
 
       {/* ── No websites empty state ──────────────────────────────────────── */}
       {orgWebsites.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <IconEmpty />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website before running a scan.</p>
-            </div>
-            <Link href="/dashboard/websites/new"
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700">
-              Add a website
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No websites yet"
+          description="Add a website before running a scan."
+          actionLabel="Add a website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
       {orgWebsites.length > 0 && (
         <>
           {/* ── Start scan form ─────────────────────────────────────────── */}
-          <StartScanForm websites={orgWebsites} />
+          <div id="start-scan">
+            <StartScanForm websites={orgWebsites} />
+          </div>
 
           <ScanSchedulePanel
             schedules={orgWebsites.map((site) => {
@@ -249,17 +232,12 @@ export default async function ScannerPage() {
 
           {/* ── Scan history ─────────────────────────────────────────────── */}
           {scanHistory.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center gap-4 py-14 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-                  <IconEmpty />
-                </div>
-                <div>
-                  <p className="text-base font-semibold text-slate-700">No scans yet</p>
-                  <p className="mt-1 text-sm text-[var(--muted-foreground)]">Run your first scan to detect cookies and tracking technologies.</p>
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="No scans yet"
+              description="Use the form above to run your first scan and detect cookies and tracking technologies."
+              actionLabel="Start a scan"
+              actionHref="#start-scan"
+            />
           ) : (
             <Card>
               <div className="card-section-header">
@@ -272,16 +250,16 @@ export default async function ScannerPage() {
               <div className="table-scroll scrollbar-thin">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                       {["Website", "Type", "Trigger", "Status", "Items", "Started", "Duration", ""].map((h) => (
                         <th key={h}
-                          className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--border)]">
                     {scanHistory.map((scan) => {
                       const site = websiteMap.get(scan.websiteId);
                       const duration =
@@ -290,14 +268,14 @@ export default async function ScannerPage() {
                           : "—";
 
                       return (
-                        <tr key={scan.id} className="group transition-colors hover:bg-slate-50/80">
+                        <tr key={scan.id} className="group transition-colors hover:bg-[var(--muted)]/80">
                           {/* Website */}
                           <td className="px-5 py-4">
-                            <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
+                            <p className="font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
                               {site?.name ?? "—"}
                             </p>
                             {site?.domain && (
-                              <p className="text-xs text-slate-400">{site.domain}</p>
+                              <p className="text-xs text-[var(--muted-foreground)]">{site.domain}</p>
                             )}
                           </td>
 
@@ -319,7 +297,7 @@ export default async function ScannerPage() {
                             <div className="space-y-1">
                               <ScanStatusBadge status={scan.status} />
                               {scan.errorMessage && (
-                                <p className="max-w-[200px] truncate text-xs text-rose-500">
+                                <p className="max-w-[200px] truncate text-xs text-[var(--danger)]">
                                   {scan.errorMessage}
                                 </p>
                               )}
@@ -329,21 +307,21 @@ export default async function ScannerPage() {
                           {/* Items */}
                           <td className="px-5 py-4">
                             {scan.status === "completed" ? (
-                              <span className="font-semibold text-slate-800">{scan.itemsDetected}</span>
+                              <span className="font-semibold text-[var(--foreground)]">{scan.itemsDetected}</span>
                             ) : (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-[var(--muted-foreground)]">—</span>
                             )}
                           </td>
 
                           {/* Started */}
-                          <td className="px-5 py-4 text-slate-500">{fmt(scan.startedAt)}</td>
+                          <td className="px-5 py-4 text-[var(--muted-foreground)]">{fmt(scan.startedAt)}</td>
 
                           {/* Duration */}
                           <td className="px-5 py-4">
                             {scan.startedAt && scan.completedAt ? (
                               <Badge variant="neutral" size="sm">{duration}</Badge>
                             ) : (
-                              <span className="text-slate-400">—</span>
+                              <span className="text-[var(--muted-foreground)]">—</span>
                             )}
                           </td>
 
@@ -352,7 +330,7 @@ export default async function ScannerPage() {
                             {scan.status === "completed" && (
                               <Link
                                 href={`/dashboard/scanner/${scan.id}`}
-                                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700"
+                                className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:border-[var(--ring)] hover:bg-[var(--info-soft)] hover:text-[var(--primary)]"
                               >
                                 View results →
                               </Link>

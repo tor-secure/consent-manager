@@ -17,7 +17,7 @@ export default async function DataRedactionPage() {
       />
 
       {sites.length === 0 ? (
-        <EmptyState title="No analytics source available" description="Add a website and collect consent activity before previewing consent-based data redaction." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+        <EmptyState title="No analytics source available" description="Add a website, publish a policy, and install the SDK so a consent record exists before previewing redaction." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <DataRedactionTool websites={sites.map((s) => ({ id: s.id, name: s.name }))} />
       )}

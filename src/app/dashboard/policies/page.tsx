@@ -8,7 +8,10 @@ import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { IconText } from "@/components/ui/icon-text";
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -32,19 +35,6 @@ function IconPlus() {
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round">
       <path d="M7.5 2v11M2 7.5h11" />
-    </svg>
-  );
-}
-
-function IconEmpty() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-      stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-      className="text-slate-300">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
     </svg>
   );
 }
@@ -132,127 +122,99 @@ export default async function PoliciesPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">
-            Consent Policies
-          </h1>
-          <p className="page-description">
-            All consent policies across your websites.
-          </p>
-        </div>
-        {orgWebsites.length > 0 && (
-          <Link
-            href="/dashboard/policies/new"
-            className="btn btn-primary"
-          >
-            <IconPlus />
-            Create policy
-          </Link>
-        )}
-      </div>
+      <PageHeader
+        title="Consent Policies"
+        description="All consent policies across your websites."
+        action={
+          orgWebsites.length > 0 ? (
+            <PageHeaderLink href="/dashboard/policies/new">
+              <IconPlus />
+              Create policy
+            </PageHeaderLink>
+          ) : undefined
+        }
+      />
 
       {/* ── Summary pills ───────────────────────────────────────────────── */}
       {total > 0 && (
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "Total",     value: total,     dot: "bg-slate-400"   },
-            { label: "Active",    value: active,    dot: "bg-emerald-500" },
-            { label: "Draft",     value: draft,     dot: "bg-amber-400"   },
+            { label: "Total",     value: total,     dot: "bg-[var(--muted-foreground)]"   },
+            { label: "Active",    value: active,    dot: "bg-[var(--success)]" },
+            { label: "Draft",     value: draft,     dot: "bg-[var(--warning)]"   },
             { label: "Published", value: published, dot: "bg-[var(--primary)]"  },
           ].map((s) => (
             <div key={s.label}
-              className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
+              className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
               <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-              <span className="font-semibold text-slate-800">{s.value}</span>
-              <span className="text-slate-500">{s.label}</span>
+              <span className="font-semibold text-[var(--foreground)]">{s.value}</span>
+              <span className="text-[var(--muted-foreground)]">{s.label}</span>
             </div>
           ))}
         </div>
       )}
 
-      {/* ── No websites ─────────────────────────────────────────────────── */}
       {orgWebsites.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <IconEmpty />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website before creating consent policies.</p>
-            </div>
-            <Link href="/dashboard/websites/new"
-              className="btn btn-primary">
-              Add a website
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No websites yet"
+          description="Add a website before creating consent policies."
+          actionLabel="Add a website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
-      {/* ── No policies ─────────────────────────────────────────────────── */}
       {orgWebsites.length > 0 && policies.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <IconEmpty />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No policies yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-                Create your first consent policy to start collecting visitor consent.
-              </p>
-            </div>
-            <Link href="/dashboard/policies/new"
-              className="btn btn-primary">
-              <IconPlus />
-              Create policy
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No policies yet"
+          description="Create your first consent policy to start collecting visitor consent."
+          actionLabel="Create policy"
+          actionHref="/dashboard/policies/new"
+        />
       )}
 
       {/* ── Policy table ────────────────────────────────────────────────── */}
       {policies.length > 0 && (
         <Card>
           <div className="table-scroll scrollbar-thin">
-            <table className="min-w-full text-sm">
+            <table className="data-table min-w-full">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                   {["Policy", "Website", "Status", "Version", "Default", "Created"].map((h) => (
                     <th key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {policies.map((policy) => {
                   const site = websiteMap.get(policy.websiteId);
                   const ver  = versionMap.get(policy.id);
                   return (
-                    <tr key={policy.id} className="group transition-colors hover:bg-slate-50/80">
+                    <tr key={policy.id} className="group transition-colors hover:bg-[var(--muted)]/80">
                       {/* Policy name */}
                       <td className="px-5 py-4">
-                        <div className="icon-text-row">
-                          <div data-icon-tile className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--info-soft)] text-[var(--primary)]">
-                            <IconPolicy />
-                          </div>
-                          <div className="icon-text-body">
+                        <IconText
+                          size="sm"
+                          icon={<IconPolicy />}
+                          iconClassName="bg-[var(--info-soft)] text-[var(--primary)]"
+                          title={
                             <Link
                               href={`/dashboard/policies/${policy.id}`}
-                              className="font-medium leading-snug text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]">
+                              className="font-medium leading-snug text-[var(--foreground)] transition-colors group-hover:text-[var(--primary)]"
+                            >
                               {policy.name}
                             </Link>
-                            {policy.description && (
+                          }
+                          description={
+                            policy.description ? (
                               <p className="mt-0.5 max-w-xs truncate text-xs text-[var(--muted-foreground)]">
                                 {policy.description}
                               </p>
-                            )}
-                          </div>
-                        </div>
+                            ) : undefined
+                          }
+                        />
                       </td>
                       {/* Website */}
                       <td className="px-5 py-4">
@@ -260,9 +222,9 @@ export default async function PoliciesPage() {
                           <Link href={`/dashboard/websites/${site.id}`}
                             className="text-[var(--secondary-foreground)] transition-colors hover:text-[var(--primary)]">
                             <p className="font-medium">{site.name}</p>
-                            <p className="text-xs text-slate-400">{site.domain}</p>
+                            <p className="text-xs text-[var(--muted-foreground)]">{site.domain}</p>
                           </Link>
-                        ) : <span className="text-slate-400">—</span>}
+                        ) : <span className="text-[var(--muted-foreground)]">—</span>}
                       </td>
                       {/* Status */}
                       <td className="px-5 py-4">
@@ -283,10 +245,10 @@ export default async function PoliciesPage() {
                       <td className="px-5 py-4">
                         {policy.isDefault
                           ? <Badge variant="primary" size="sm">Default</Badge>
-                          : <span className="text-slate-400">—</span>}
+                          : <span className="text-[var(--muted-foreground)]">—</span>}
                       </td>
                       {/* Created */}
-                      <td className="px-5 py-4 text-slate-500">
+                      <td className="px-5 py-4 text-[var(--muted-foreground)]">
                         {policy.createdAt.toLocaleDateString("en-GB", {
                           day: "numeric", month: "short", year: "numeric",
                         })}

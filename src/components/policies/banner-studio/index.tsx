@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { notify } from "@/components/feedback/notify";
 import {
   defaultBannerConfig,
+  parseBannerConfig,
   type BannerConfiguration,
 } from "@/lib/banner-config";
-import { StudioControls, PRESETS, type PresetName } from "./studio-controls";
+import {
+  BANNER_PRESETS,
+  findMatchingPreset,
+  presetMatchesConfig,
+} from "@/lib/banner-presets";
+import { StudioControls } from "./studio-controls";
 import { StudioPreview } from "./studio-preview";
 
 export interface BannerStudioProps {
@@ -17,6 +23,8 @@ export interface BannerStudioProps {
   latestVersionId: string | null;
   initialConfig: BannerConfiguration;
   websiteDomain: string | null;
+  websiteId: string | null;
+  liveIsBehind: boolean;
 }
 
 export function BannerStudio({
@@ -25,43 +33,57 @@ export function BannerStudio({
   latestVersionId,
   initialConfig,
   websiteDomain,
+  websiteId,
+  liveIsBehind,
 }: BannerStudioProps) {
   const router = useRouter();
 
-  const [config, setConfig]           = useState<BannerConfiguration>(initialConfig);
-  const [activePreset, setActivePreset] = useState<PresetName | null>(null);
-  const [viewport, setViewport]       = useState<"desktop" | "mobile">("desktop");
-  const [saving, setSaving]           = useState(false);
-  const [saveError, setSaveError]     = useState<string | null>(null);
+  const [config, setConfig] = useState<BannerConfiguration>(initialConfig);
+  const [pinnedPreset, setPinnedPreset] = useState<string | null>(
+    () => findMatchingPreset(initialConfig)?.id ?? null,
+  );
+  const activePreset = useMemo(() => {
+    if (pinnedPreset) {
+      const preferred = BANNER_PRESETS.find((preset) => preset.id === pinnedPreset);
+      if (preferred && presetMatchesConfig(preferred, config)) return pinnedPreset;
+    }
+    return findMatchingPreset(config)?.id ?? null;
+  }, [config, pinnedPreset]);
+  const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
   const handleChange = useCallback(
     <K extends keyof BannerConfiguration>(key: K, value: BannerConfiguration[K]) => {
-      setConfig((prev) => ({ ...prev, [key]: value }));
-      setActivePreset((prev) => {
-        if (!prev) return null;
-        const preset = PRESETS.find((p) => p.name === prev);
-        if (!preset) return null;
-        return (key in (preset.overrides as object)) ? null : prev;
+      setConfig((prev) => {
+        const draft: BannerConfiguration = { ...prev, [key]: value };
+        if (key === "layout" && value === "dialog") {
+          draft.position = "center";
+          draft.overlayEnabled = true;
+        }
+        if (key === "layout" && value === "bar" && prev.position === "center") {
+          draft.position = "bottom";
+        }
+        return key === "layout" || key === "position"
+          ? parseBannerConfig(draft as unknown as Record<string, unknown>)
+          : draft;
       });
     },
     [],
   );
 
-  const handleApplyPreset = useCallback(
-    (overrides: Partial<BannerConfiguration>) => {
-      setConfig((prev) => ({ ...prev, ...overrides }));
-      const matched = PRESETS.find(
-        (p) => JSON.stringify(p.overrides) === JSON.stringify(overrides),
-      );
-      setActivePreset(matched?.name ?? null);
-    },
-    [],
-  );
+  const handleApplyPreset = useCallback((presetId: string) => {
+    const preset = BANNER_PRESETS.find((item) => item.id === presetId);
+    if (!preset) return;
+    setConfig((prev) => parseBannerConfig({ ...prev, ...preset.overrides } as Record<string, unknown>));
+    setPinnedPreset(presetId);
+  }, []);
 
   const handleReset = useCallback(() => {
-    setConfig(defaultBannerConfig());
-    setActivePreset(null);
+    const next = defaultBannerConfig();
+    setConfig(next);
+    setPinnedPreset(findMatchingPreset(next)?.id ?? null);
     setSaveError(null);
     setSaveSuccess(false);
   }, []);
@@ -83,10 +105,10 @@ export function BannerStudio({
         notify.error("Unable to save banner. Please try again.");
         setSaveError("Unable to save banner. Please try again.");
       } else {
-        notify.success("Banner saved successfully");
+        notify.success("Banner draft saved");
         setSaveSuccess(true);
         router.refresh();
-        setTimeout(() => setSaveSuccess(false), 3000);
+        setTimeout(() => setSaveSuccess(false), 4000);
       }
     } catch {
       notify.error("Unable to connect. Please try again.");
@@ -101,14 +123,11 @@ export function BannerStudio({
     : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden" style={{ background: "#f1f5f9" }}>
-
-      {/* ── Top bar ──────────────────────────────────────────────────────── */}
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200/80 bg-white/90 px-4 backdrop-blur-sm shadow-sm">
-        {/* Back chevron */}
+    <div className="flex h-screen flex-col overflow-hidden bg-[var(--muted)]">
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--card)] px-4 shadow-sm">
         <Link
           href={`/dashboard/policies/${policyId}`}
-          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
           aria-label="Back to policy"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2}>
@@ -116,50 +135,38 @@ export function BannerStudio({
           </svg>
         </Link>
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-1.5 text-sm min-w-0">
-          <span className="text-slate-400 hidden sm:block">Policies</span>
-          <span className="text-slate-300 hidden sm:block">/</span>
-          <span className="max-w-[140px] truncate font-medium text-slate-600 xl:max-w-xs">
+        <div className="flex min-w-0 items-center gap-1.5 text-sm">
+          <span className="hidden text-[var(--muted-foreground)] sm:block">Policies</span>
+          <span className="hidden text-[var(--border)] sm:block">/</span>
+          <span className="max-w-[140px] truncate font-medium text-[var(--muted-foreground)] xl:max-w-xs">
             {policyName}
           </span>
-          <span className="text-slate-300">/</span>
-          <div className="flex items-center gap-1.5">
-            <div className="flex h-5 w-5 items-center justify-center rounded-md bg-indigo-600">
-              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 12 12" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" d="M2 9l2.5-2.5L6 8l4-4" />
-              </svg>
-            </div>
-            <span className="font-semibold text-slate-900">Banner Studio</span>
-          </div>
+          <span className="text-[var(--border)]">/</span>
+          <span className="font-semibold text-[var(--foreground)]">Banner Studio</span>
         </div>
 
-        {/* Right side */}
         <div className="ml-auto flex items-center gap-2.5">
-          {/* Live indicator */}
-          <div className="hidden items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-emerald-500/20 sm:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Live preview
+          <div className="hidden items-center gap-1.5 rounded-full bg-[var(--info-soft)] px-3 py-1 text-xs font-medium text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)] sm:flex">
+            Studio preview
           </div>
-
-          {/* Version badge */}
-          {latestVersionId ? (
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700 ring-1 ring-indigo-500/20">
-              Version ready
+          {liveIsBehind ? (
+            <span className="rounded-full bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]">
+              Draft — not live yet
+            </span>
+          ) : latestVersionId ? (
+            <span className="rounded-full bg-[var(--success-soft)] px-3 py-1 text-xs font-medium text-[var(--success)] ring-1 ring-[color-mix(in_srgb,var(--success)_22%,transparent)]">
+              Matches published
             </span>
           ) : (
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700 ring-1 ring-amber-500/20">
+            <span className="rounded-full bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]">
               No version
             </span>
           )}
         </div>
       </header>
 
-      {/* ── Main split ───────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 overflow-hidden">
-
-        {/* Left — controls panel */}
-        <aside className="flex w-72 shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white shadow-sm xl:w-80">
+        <aside className="flex w-80 shrink-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--card)] shadow-sm xl:w-96">
           <StudioControls
             config={config}
             onChange={handleChange}
@@ -171,10 +178,12 @@ export function BannerStudio({
             onSave={handleSave}
             onReset={handleReset}
             hasVersion={!!latestVersionId}
+            policyId={policyId}
+            websiteId={websiteId}
+            liveIsBehind={liveIsBehind}
           />
         </aside>
 
-        {/* Right — live preview */}
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           <StudioPreview
             config={config}

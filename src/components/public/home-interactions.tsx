@@ -8,9 +8,10 @@ const anchorTargets: Record<string, string> = {
   solutions: "solutions",
   resources: "resources",
   pricing: "pricing",
+  "how-it-works": "how-it-works",
   company: "company",
   legal: "legal",
-  security: "security",
+  security: "features",
 };
 
 function getScrollOffset() {

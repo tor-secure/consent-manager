@@ -65,15 +65,15 @@ export default async function PurposesPage() {
       {total > 0 && (
         <div className="flex flex-wrap gap-2">
           {[
-            { label: "Total",    value: total,    dot: "bg-slate-400"   },
-            { label: "Active",   value: active,   dot: "bg-emerald-500" },
-            { label: "Required", value: required, dot: "bg-indigo-500"  },
+            { label: "Total",    value: total,    dot: "bg-[var(--muted-foreground)]"   },
+            { label: "Active",   value: active,   dot: "bg-[var(--success)]" },
+            { label: "Required", value: required, dot: "bg-[var(--primary)]"  },
           ].map((s) => (
             <div key={s.label}
-              className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
+              className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
               <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-              <span className="font-semibold text-slate-800">{s.value}</span>
-              <span className="text-slate-500">{s.label}</span>
+              <span className="font-semibold text-[var(--foreground)]">{s.value}</span>
+              <span className="text-[var(--muted-foreground)]">{s.label}</span>
             </div>
           ))}
         </div>

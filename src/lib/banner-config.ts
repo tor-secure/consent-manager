@@ -174,6 +174,11 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   return merged;
 }
 
+/** First-layer overlay rules used by both Studio and the live SDK. */
+export function bannerUsesOverlay(config: Pick<BannerConfiguration, "overlayEnabled" | "blockPageUntilConsent" | "layout">): boolean {
+  return !!(config.overlayEnabled || config.blockPageUntilConsent || config.layout === "dialog");
+}
+
 function publicEntityMap(value: unknown): Record<string, { name?: string; description?: string }> | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const out: Record<string, { name?: string; description?: string }> = {};

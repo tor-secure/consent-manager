@@ -32,15 +32,15 @@ export type VendorEditorModel = {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-neutral-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-neutral-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
 
 const inputCls =
-  "h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15";
+  "h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
 
 function isoDate(value: Date | string | null): string {
   if (!value) return "";
@@ -116,10 +116,10 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
         startTransition(() => save());
       }}
     >
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">Identity and role</h2>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow space-y-4">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">Identity and role</h2>
         {role === "unknown" ? (
-          <p className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <p className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-3 py-2 text-sm text-[var(--warning)]">
             This vendor still has role unknown. Set a real role (for example independent controller) and save before you publish a policy that uses it.
           </p>
         ) : null}
@@ -151,16 +151,16 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
         </Field>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">Public URLs</h2>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow space-y-4">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">Public URLs</h2>
         <Field label="Domain"><input className={inputCls} value={domain} onChange={(e) => setDomain(e.target.value)} /></Field>
         <Field label="Website URL"><input className={inputCls} value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} /></Field>
         <Field label="Privacy policy URL"><input className={inputCls} value={privacyPolicyUrl} onChange={(e) => setPrivacyPolicyUrl(e.target.value)} /></Field>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">DPA and downstream DSAR</h2>
-        <p className="text-xs text-slate-500">Recording a DPA status here is not proof that a DPA exists or is legally sufficient.</p>
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow space-y-4">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">DPA and downstream DSAR</h2>
+        <p className="text-xs text-[var(--muted-foreground)]">Recording a DPA status here is not proof that a DPA exists or is legally sufficient.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="DPA status">
             <select className={inputCls} value={dpaStatus} onChange={(e) => setDpaStatus(e.target.value)}>
@@ -178,9 +178,9 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow space-y-4">
-        <h2 className="text-base font-semibold text-slate-900">California sale / sharing</h2>
-        <p className="text-xs text-slate-500">
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 card-shadow space-y-4">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">California sale / sharing</h2>
+        <p className="text-xs text-[var(--muted-foreground)]">
           Classify whether this vendor participates in sale, sharing, or sensitive PI processing. Unknown is not treated as a sale.
         </p>
         <div className="grid gap-4 sm:grid-cols-3">

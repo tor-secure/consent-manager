@@ -42,8 +42,17 @@ export default async function NewPolicyPage({
         backLabel="Policies"
         current="New policy"
         title="Create consent policy"
-        description="Start from a template or a blank draft. You can still edit purposes and publish later."
+        description="Start from a template or a blank draft. After you create it, review the checklist and publish."
       />
+
+      {defaultWebsiteId ? (
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Next: create a policy for this site.{" "}
+          <Link href={`/dashboard/websites/${defaultWebsiteId}/installation`} className="font-medium text-[var(--primary)] underline-offset-2 hover:underline">
+            Install later
+          </Link>
+        </p>
+      ) : null}
 
       <CreateFormShell>
         {orgWebsites.length === 0 ? (

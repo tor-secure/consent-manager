@@ -295,7 +295,7 @@ export function WebsiteRegulationForm({
             <input type="checkbox" checked={googleEnabled} onChange={(event) => setGoogleEnabled(event.target.checked)} />
           </label>
           {tcfEnabled && !(iabReadiness.registered && iabReadiness.gvlVersion) ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning)]">
               IAB TCF is enabled but production strings stay blocked. This app is not IAB-certified.
               Set a registered CMP ID, sync the official GVL, and complete purpose/vendor mappings before treating TCF output as live.
             </div>

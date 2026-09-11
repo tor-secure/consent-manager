@@ -16,8 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2.5 text-sm">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-800">{value}</dd>
+      <dt className="text-[var(--muted-foreground)]">{label}</dt>
+      <dd className="text-right text-[var(--foreground)]">{value}</dd>
     </div>
   );
 }
@@ -60,12 +60,12 @@ export default async function WebsiteDetailPage({
 
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/websites" className="transition hover:text-slate-900">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">
           Websites
         </Link>
-        <span aria-hidden="true" className="text-slate-300">/</span>
-        <span className="text-slate-900">{website.name}</span>
+        <span aria-hidden="true" className="text-[var(--border)]">/</span>
+        <span className="text-[var(--foreground)]">{website.name}</span>
       </nav>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -97,25 +97,25 @@ export default async function WebsiteDetailPage({
         <div className="flex shrink-0 flex-wrap items-center gap-2">
           <Link
             href={`/dashboard/websites/${website.id}/child-protection`}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="btn btn-outline"
           >
             Child protection
           </Link>
           <Link
             href={`/dashboard/websites/${website.id}/enforcement`}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="btn btn-outline"
           >
             Enforcement
           </Link>
           <Link
             href={`/dashboard/websites/${website.id}/regulations`}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="btn btn-outline"
           >
             Regulations
           </Link>
           <Link
             href={`/dashboard/websites/${website.id}/settings`}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="btn btn-outline"
           >
             Settings
           </Link>
@@ -124,16 +124,16 @@ export default async function WebsiteDetailPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Website details</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Website details</h2>
+            <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
               Configuration and identity information for this website.
             </p>
           </div>
           <div className="px-6">
-            <dl className="divide-y divide-slate-100">
+            <dl className="divide-y divide-[var(--border)]">
               <InfoRow label="Domain" value={
-                <span className="font-mono text-xs text-slate-700">{website.domain}</span>
+                <span className="font-mono text-xs text-[var(--foreground)]">{website.domain}</span>
               } />
               <InfoRow label="Environment" value={
                 <Badge variant="neutral" size="sm" className="capitalize">
@@ -146,7 +146,7 @@ export default async function WebsiteDetailPage({
               <InfoRow label="Default region" value={
                 website.defaultRegion
                   ? <Badge variant="neutral" size="sm">{website.defaultRegion}</Badge>
-                  : <span className="text-slate-400">—</span>
+                  : <span className="text-[var(--muted-foreground)]">—</span>
               } />
               <InfoRow label="Verification" value={
                 website.verified
@@ -154,12 +154,12 @@ export default async function WebsiteDetailPage({
                   : <Badge variant="neutral" size="sm">Not verified</Badge>
               } />
               <InfoRow label="Site key" value={
-                <code className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600">
+                <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
                   {website.siteKey}
                 </code>
               } />
               <InfoRow label="Added" value={
-                <span className="text-slate-500">
+                <span className="text-[var(--muted-foreground)]">
                   {website.createdAt.toLocaleDateString("en-GB", {
                     day: "numeric", month: "short", year: "numeric",
                   })}
@@ -170,9 +170,9 @@ export default async function WebsiteDetailPage({
         </Card>
 
         <Card>
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Domain verification</h2>
-            <p className="mt-0.5 text-sm text-slate-500">
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Domain verification</h2>
+            <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
               Confirm you control {website.domain} with DNS, a meta tag, or a well-known file.
             </p>
           </div>
@@ -189,32 +189,32 @@ export default async function WebsiteDetailPage({
       </div>
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">SDK Installation</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">SDK Installation</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Embed the CMP banner on your website using the JavaScript SDK.
           </p>
         </div>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+              <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
                 Site key
               </p>
-              <code className="mt-0.5 block truncate font-mono text-sm text-slate-700">
+              <code className="mt-0.5 block truncate font-mono text-sm text-[var(--foreground)]">
                 {website.siteKey}
               </code>
             </div>
           </div>
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
-            <p className="text-xs font-medium text-indigo-700">Quick install</p>
-            <code className="mt-1 block whitespace-pre-wrap text-xs text-indigo-600 leading-relaxed break-all">
+          <div className="rounded-2xl border border-[color-mix(in_srgb,var(--primary)_18%,transparent)] bg-[var(--info-soft)] px-4 py-3">
+            <p className="text-xs font-medium text-[var(--primary)]">Quick install</p>
+            <code className="mt-1 block whitespace-pre-wrap text-xs text-[var(--primary)] leading-relaxed break-all">
               {htmlSnippet}
             </code>
           </div>
           <Link
             href={`/dashboard/websites/${website.id}/installation`}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
+            className="btn btn-primary"
           >
             View installation guide
           </Link>
@@ -227,18 +227,18 @@ export default async function WebsiteDetailPage({
       </Suspense>
 
       <Card>
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Integrations</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Integrations</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Connect third-party tools and tag managers.
           </p>
         </div>
         <CardContent>
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <p className="text-sm font-medium text-slate-600">Manage integrations</p>
+            <p className="text-sm font-medium text-[var(--muted-foreground)]">Manage integrations</p>
             <Link
               href="/dashboard/integrations"
-              className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              className="btn btn-outline"
             >
               View integrations →
             </Link>

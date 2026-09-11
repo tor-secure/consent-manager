@@ -62,9 +62,9 @@ function CategoryBadge({ category }: { category: string }) {
 
 function OfficialBadge() {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-600/20">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[var(--success-soft)] px-2 py-0.5 text-xs font-medium text-[var(--success)] ring-1 ring-[color-mix(in_srgb,var(--success)_22%,transparent)]">
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
-        <circle cx="5" cy="5" r="4.25" fill="#16a34a" />
+        <circle cx="5" cy="5" r="4.25" fill="var(--success)" />
         <path d="M3 5l1.5 1.5 2.5-3" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       Official
@@ -161,26 +161,26 @@ function IntegrationCard({
 
       {/* Description */}
       {integration.description && (
-        <p className="mt-3 text-sm text-slate-500">{integration.description}</p>
+        <p className="mt-3 text-sm text-[var(--muted-foreground)]">{integration.description}</p>
       )}
 
       {/* Connected websites */}
       {integration.connections.length > 0 && (
         <div className="mt-4">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
             Connected ({integration.connections.length})
           </p>
           <ul role="list" className="space-y-1.5">
             {integration.connections.map((c) => (
               <li
                 key={c.connectionId}
-                className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm"
+                className="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm"
               >
                 <div className="min-w-0 flex-1">
-                  <span className="font-medium text-slate-800">{c.websiteName}</span>
-                  <span className="ml-1.5 text-xs text-slate-400 hidden sm:inline">{c.websiteDomain}</span>
+                  <span className="font-medium text-[var(--foreground)]">{c.websiteName}</span>
+                  <span className="ml-1.5 text-xs text-[var(--muted-foreground)] hidden sm:inline">{c.websiteDomain}</span>
                   {c.connectedAt && (
-                    <span className="ml-2 text-xs text-slate-400 hidden sm:inline">
+                    <span className="ml-2 text-xs text-[var(--muted-foreground)] hidden sm:inline">
                       since {c.connectedAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
                     </span>
                   )}
@@ -189,7 +189,7 @@ function IntegrationCard({
                   type="button"
                   disabled={isPending || busyId === c.connectionId}
                   onClick={() => disconnect(c.connectionId)}
-                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-40"
+                  className="shrink-0 rounded-lg border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-2 py-1 text-xs font-medium text-[var(--danger)] transition hover:bg-[var(--danger-soft)] disabled:opacity-40"
                 >
                   {busyId === c.connectionId ? "…" : "Disconnect"}
                 </button>
@@ -205,7 +205,7 @@ function IntegrationCard({
           <select
             value={selectedWebsiteId}
             onChange={(e) => setSelectedWebsiteId(e.target.value)}
-            className="h-9 flex-1 rounded-xl border border-slate-200 bg-white px-2.5 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
+            className="h-9 flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
           >
             {unconnected.map((w) => (
               <option key={w.id} value={w.id}>
@@ -217,7 +217,7 @@ function IntegrationCard({
             type="button"
             disabled={isPending || busyId === "connect" || !selectedWebsiteId}
             onClick={connect}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50"
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[var(--primary)] px-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50"
           >
             {busyId === "connect" ? "…" : "Connect"}
           </button>
@@ -225,12 +225,12 @@ function IntegrationCard({
       )}
 
       {unconnected.length === 0 && websites.length > 0 && (
-        <p className="mt-4 text-xs text-slate-400">Connected to all your websites.</p>
+        <p className="mt-4 text-xs text-[var(--muted-foreground)]">Connected to all your websites.</p>
       )}
 
       {/* Error */}
       {error && (
-        <p className="mt-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+        <p className="mt-2 rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-3 py-2 text-xs text-[var(--danger)]">
           {error}
         </p>
       )}
@@ -241,7 +241,7 @@ function IntegrationCard({
           href={integration.documentationUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-auto pt-4 text-xs text-slate-400 underline underline-offset-2 transition hover:text-slate-600"
+          className="mt-auto pt-4 text-xs text-[var(--muted-foreground)] underline underline-offset-2 transition hover:text-[var(--muted-foreground)]"
         >
           Documentation →
         </a>
@@ -280,10 +280,10 @@ export function IntegrationCatalog({
               key={cat}
               type="button"
               onClick={() => setCategoryFilter(cat)}
-              className={`rounded-2xl px-3 py-1.5 text-xs font-medium capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              className={`rounded-2xl px-3 py-1.5 text-xs font-medium capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
                 categoryFilter === cat
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 soft-shadow"
+                  ? "bg-[var(--primary)] text-white shadow-sm"
+                  : "bg-[var(--card)] text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--muted)] soft-shadow"
               }`}
             >
               {cat === "all" ? `All (${integrations.length})` : cat.replace(/-/g, " ")}
@@ -294,10 +294,10 @@ export function IntegrationCatalog({
 
       {/* Summary pill */}
       {totalConnections > 0 && (
-        <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow self-start">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          <span className="font-semibold text-slate-800">{totalConnections}</span>
-          <span className="text-slate-500">active connection{totalConnections !== 1 ? "s" : ""}</span>
+        <div className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow self-start">
+          <span className="h-2 w-2 rounded-full bg-[var(--success)]" />
+          <span className="font-semibold text-[var(--foreground)]">{totalConnections}</span>
+          <span className="text-[var(--muted-foreground)]">active connection{totalConnections !== 1 ? "s" : ""}</span>
         </div>
       )}
 
@@ -305,16 +305,16 @@ export function IntegrationCatalog({
       {integrations.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-14 text-center">
-            <p className="text-sm font-semibold text-slate-700">No integrations available</p>
-            <p className="text-xs text-slate-400">Integration catalog entries will appear here once added.</p>
+            <p className="text-sm font-semibold text-[var(--foreground)]">No integrations available</p>
+            <p className="text-xs text-[var(--muted-foreground)]">Integration catalog entries will appear here once added.</p>
           </CardContent>
         </Card>
       )}
 
       {/* Empty — no websites */}
       {integrations.length > 0 && websites.length === 0 && (
-        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-start gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-5 py-4 text-sm text-[var(--warning)]">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--warning)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <path strokeLinecap="round" d="M8 2l6 12H2z" />
             <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
@@ -327,11 +327,11 @@ export function IntegrationCatalog({
       {integrations.length > 0 && filtered.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-            <p className="text-sm text-slate-500">No integrations in this category.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No integrations in this category.</p>
             <button
               type="button"
               onClick={() => setCategoryFilter("all")}
-              className="text-sm font-medium text-indigo-600 transition hover:text-indigo-800"
+              className="text-sm font-medium text-[var(--primary)] transition hover:text-[var(--primary)]"
             >
               Show all
             </button>

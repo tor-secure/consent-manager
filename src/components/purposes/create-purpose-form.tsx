@@ -107,7 +107,7 @@ function DataCategoriesInput({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); remove(cat); }}
-              className="ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-indigo-400 hover:bg-indigo-200 hover:text-indigo-700 transition"
+              className="ml-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full text-[var(--primary)] hover:bg-[var(--info-soft)] hover:text-[var(--primary)] transition"
               aria-label={`Remove ${cat}`}
             >
               ×
@@ -123,7 +123,7 @@ function DataCategoriesInput({
           onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
           onKeyDown={handleKeyDown}
           placeholder={value.length === 0 ? "Type a category and press Enter…" : ""}
-          className="min-w-[140px] flex-1 bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+          className="min-w-[140px] flex-1 bg-transparent text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
         />
       </div>
 
@@ -140,7 +140,7 @@ function DataCategoriesInput({
                 key={s}
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); add(s); }}
-                className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600 transition hover:bg-indigo-50 hover:border-indigo-200 hover:text-indigo-700"
+                className="rounded-full border border-[var(--border)] bg-[var(--muted)] px-2.5 py-0.5 text-xs text-[var(--muted-foreground)] transition hover:bg-[var(--info-soft)] hover:border-[color-mix(in_srgb,var(--primary)_28%,transparent)] hover:text-[var(--primary)]"
               >
                 + {s}
               </button>
@@ -148,9 +148,9 @@ function DataCategoriesInput({
         </div>
       )}
 
-      <p className="text-xs text-slate-400">
-        Press <kbd className="rounded border border-slate-200 bg-slate-100 px-1 font-mono text-[10px]">Enter</kbd>{" "}
-        or <kbd className="rounded border border-slate-200 bg-slate-100 px-1 font-mono text-[10px]">,</kbd>{" "}
+      <p className="text-xs text-[var(--muted-foreground)]">
+        Press <kbd className="rounded border border-[var(--border)] bg-[var(--secondary)] px-1 font-mono text-[10px]">Enter</kbd>{" "}
+        or <kbd className="rounded border border-[var(--border)] bg-[var(--secondary)] px-1 font-mono text-[10px]">,</kbd>{" "}
         to add. Click a suggestion to insert it. Max 20 categories.
       </p>
     </div>

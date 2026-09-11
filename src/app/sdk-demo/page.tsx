@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Script from "next/script";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -280,6 +281,16 @@ function SdkDemoInner() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+      <nav className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2.5 text-sm">
+          <Link href="/" className="font-medium text-slate-700 hover:text-slate-900">
+            Home
+          </Link>
+          <Link href="/sign-up" className="font-semibold text-indigo-600 hover:text-indigo-700">
+            Sign up
+          </Link>
+        </div>
+      </nav>
       <header className="border-b border-slate-200 bg-white/70 backdrop-blur">
         <div className="mx-auto max-w-6xl px-6 py-5 flex items-center justify-between">
           <div>

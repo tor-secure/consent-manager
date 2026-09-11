@@ -57,8 +57,8 @@ export default async function RecommendationsPage({
           <WebsiteFilter action="/dashboard/recommendations" websites={sites} selected={websiteId} />
           <div className="space-y-3">
             {items.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="flex flex-wrap items-start justify-between gap-3 p-5">
+              <Card key={item.id} className="p-5 sm:p-6">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="text-base font-semibold">{item.title}</h2>
@@ -66,13 +66,10 @@ export default async function RecommendationsPage({
                     </div>
                     <p className="mt-1 text-sm text-[var(--muted-foreground)]">{item.detail}</p>
                   </div>
-                  <Link
-                    href={item.href}
-                    className="inline-flex h-9 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                  >
+                  <Link href={item.href} className="btn btn-outline">
                     Open
                   </Link>
-                </CardContent>
+                </div>
               </Card>
             ))}
             {items.length === 0 ? (

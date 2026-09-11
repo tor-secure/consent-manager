@@ -36,7 +36,7 @@ export type TrackerRow = {
 
 function IconSearch() {
   return (
-    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+    <svg className="h-4 w-4 text-[var(--muted-foreground)]" viewBox="0 0 15 15" fill="none" aria-hidden="true">
       <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
       <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
@@ -47,7 +47,7 @@ function IconEmpty() {
   return (
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
       stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-      className="text-slate-300">
+      className="text-[var(--border)]">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
@@ -67,25 +67,25 @@ function IconClear() {
 // ---------------------------------------------------------------------------
 
 const TYPE_STYLES: Record<string, string> = {
-  cookie:      "bg-amber-50  text-amber-700  ring-amber-500/20",
-  pixel:       "bg-sky-50    text-sky-700    ring-sky-500/20",
-  script:      "bg-violet-50 text-violet-700 ring-violet-500/20",
-  iframe:      "bg-indigo-50 text-indigo-700 ring-indigo-500/20",
-  beacon:      "bg-pink-50   text-pink-700   ring-pink-500/20",
-  fingerprint: "bg-rose-50   text-rose-700   ring-rose-500/20",
-  storage:     "bg-teal-50   text-teal-700   ring-teal-500/20",
-  other:       "bg-slate-100 text-slate-600  ring-slate-200",
+  cookie:      "bg-[var(--warning-soft)]  text-[var(--warning)]  ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]",
+  pixel:       "bg-[var(--info-soft)]    text-[var(--info)]    ring-[color-mix(in_srgb,var(--info)_22%,transparent)]",
+  script:      "bg-[var(--info-soft)] text-[var(--purple)] ring-[color-mix(in_srgb,var(--purple)_22%,transparent)]",
+  iframe:      "bg-[var(--info-soft)] text-[var(--primary)] ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]",
+  beacon:      "bg-[var(--danger-soft)] text-[var(--pink)] ring-[color-mix(in_srgb,var(--pink)_22%,transparent)]",
+  fingerprint: "bg-[var(--danger-soft)]   text-[var(--danger)]   ring-[color-mix(in_srgb,var(--danger)_22%,transparent)]",
+  storage:     "bg-[var(--success-soft)] text-[var(--teal)] ring-[color-mix(in_srgb,var(--teal)_22%,transparent)]",
+  other:       "bg-[var(--secondary)] text-[var(--muted-foreground)]  ring-[var(--border)]",
 };
 
 const TYPE_DOTS: Record<string, string> = {
-  cookie:      "bg-amber-500",
-  pixel:       "bg-sky-500",
-  script:      "bg-violet-500",
-  iframe:      "bg-indigo-500",
-  beacon:      "bg-pink-500",
-  fingerprint: "bg-rose-500",
-  storage:     "bg-teal-500",
-  other:       "bg-slate-400",
+  cookie:      "bg-[var(--warning)]",
+  pixel:       "bg-[var(--info)]",
+  script:      "bg-[var(--purple)]",
+  iframe:      "bg-[var(--primary)]",
+  beacon:      "bg-[var(--pink)]",
+  fingerprint: "bg-[var(--danger)]",
+  storage:     "bg-[var(--teal)]",
+  other:       "bg-[var(--muted-foreground)]",
 };
 
 function TypeBadge({ type }: { type: string }) {
@@ -104,7 +104,7 @@ function TypeBadge({ type }: { type: string }) {
 function DetectionPill({ method }: { method: string }) {
   const label: Record<string, string> = { manual: "Manual", scan: "Scan", api: "API" };
   return (
-    <span className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs text-slate-500">
+    <span className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
       {label[method] ?? method}
     </span>
   );
@@ -143,12 +143,12 @@ export function TrackerList({
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--muted)]">
             <IconEmpty />
           </div>
           <div>
-            <p className="text-base font-semibold text-slate-700">No trackers yet</p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="text-base font-semibold text-[var(--foreground)]">No trackers yet</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Trackers are detected by running a website scan.
             </p>
           </div>
@@ -171,7 +171,7 @@ export function TrackerList({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name, domain, or vendor…"
-            className="h-10 w-full rounded-2xl border border-slate-200 bg-white pl-9 pr-4 text-sm text-slate-800 shadow-sm outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
+            className="h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-4 text-sm text-[var(--foreground)] shadow-sm outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
           />
         </div>
 
@@ -183,8 +183,8 @@ export function TrackerList({
               onClick={() => setTypeFilter("all")}
               className={`rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                 typeFilter === "all"
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  ? "bg-[var(--foreground)] text-white shadow-sm"
+                  : "bg-[var(--card)] text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--muted)]"
               }`}
             >
               All
@@ -196,11 +196,11 @@ export function TrackerList({
                 onClick={() => setTypeFilter(typeFilter === t ? "all" : t)}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition ${
                   typeFilter === t
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                    ? "bg-[var(--foreground)] text-white shadow-sm"
+                    : "bg-[var(--card)] text-[var(--muted-foreground)] border border-[var(--border)] hover:bg-[var(--muted)]"
                 }`}
               >
-                <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[t] ?? "bg-slate-400"}`} />
+                <span className={`h-2 w-2 rounded-full ${TYPE_DOTS[t] ?? "bg-[var(--muted-foreground)]"}`} />
                 {t.charAt(0).toUpperCase() + t.slice(1)}
               </button>
             ))}
@@ -213,11 +213,11 @@ export function TrackerList({
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <IconEmpty />
-            <p className="text-sm text-slate-500">No trackers match your filters.</p>
+            <p className="text-sm text-[var(--muted-foreground)]">No trackers match your filters.</p>
             <button
               type="button"
               onClick={() => { setQuery(""); setTypeFilter("all"); }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
             >
               <IconClear />
               Clear filters
@@ -232,7 +232,7 @@ export function TrackerList({
           <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                   {[
                     "Tracker",
                     ...(showWebsite ? ["Website"] : []),
@@ -245,36 +245,36 @@ export function TrackerList({
                   ].map((h) => (
                     <th
                       key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500"
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
                     >
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {filtered.map((t) => (
-                  <tr key={t.id} className="group transition-colors hover:bg-slate-50/80">
+                  <tr key={t.id} className="group transition-colors hover:bg-[var(--muted)]/80">
 
                     {/* Tracker name + domain + identifier */}
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-3">
                         {/* Type-coloured dot tile */}
-                        <div className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${TYPE_DOTS[t.type] ?? "bg-slate-400"}`} />
+                        <div className={`mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full ${TYPE_DOTS[t.type] ?? "bg-[var(--muted-foreground)]"}`} />
                         <div className="min-w-0">
-                          <p className="font-medium text-slate-900 group-hover:text-indigo-600 transition-colors">
+                          <p className="font-medium text-[var(--foreground)] group-hover:text-[var(--primary)] transition-colors">
                             {t.name}
                           </p>
                           {t.domain && (
-                            <p className="mt-0.5 truncate text-xs text-slate-400">{t.domain}</p>
+                            <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{t.domain}</p>
                           )}
                           {t.identifier && (
-                            <code className="mt-0.5 block max-w-[200px] truncate rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                            <code className="mt-0.5 block max-w-[200px] truncate rounded bg-[var(--secondary)] px-1 py-0.5 font-mono text-[10px] text-[var(--muted-foreground)] group-hover:bg-[var(--info-soft)] group-hover:text-[var(--primary)] transition-colors">
                               {t.identifier}
                             </code>
                           )}
                           {(t.category || t.party || t.cookieNames?.length) && (
-                            <p className="mt-1 text-[10px] text-slate-400">
+                            <p className="mt-1 text-[10px] text-[var(--muted-foreground)]">
                               {[t.category, t.party, t.cookieNames?.length
                                 ? `${t.cookieNames.length} cookie pattern${t.cookieNames.length === 1 ? "" : "s"}`
                                 : null]
@@ -291,13 +291,13 @@ export function TrackerList({
                       <td className="px-5 py-4">
                         {t.websiteName ? (
                           <div>
-                            <p className="font-medium text-slate-700">{t.websiteName}</p>
+                            <p className="font-medium text-[var(--foreground)]">{t.websiteName}</p>
                             {t.websiteDomain && (
-                              <p className="text-xs text-slate-400">{t.websiteDomain}</p>
+                              <p className="text-xs text-[var(--muted-foreground)]">{t.websiteDomain}</p>
                             )}
                           </div>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-[var(--muted-foreground)]">—</span>
                         )}
                       </td>
                     )}
@@ -310,9 +310,9 @@ export function TrackerList({
                     {/* Vendor */}
                     <td className="px-5 py-4">
                       {t.vendorName ? (
-                        <span className="text-slate-700">{t.vendorName}</span>
+                        <span className="text-[var(--foreground)]">{t.vendorName}</span>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-[var(--muted-foreground)]">—</span>
                       )}
                     </td>
 
@@ -321,7 +321,7 @@ export function TrackerList({
                       {t.purposeName ? (
                         <Badge variant="primary" size="sm">{t.purposeName}</Badge>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-[var(--muted-foreground)]">—</span>
                       )}
                     </td>
 
@@ -329,8 +329,8 @@ export function TrackerList({
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <span className={`h-2 w-2 rounded-full ${
-                          t.status === "active"  ? "bg-emerald-500" :
-                          t.status === "blocked" ? "bg-rose-500"    : "bg-slate-300"
+                          t.status === "active"  ? "bg-[var(--success)]" :
+                          t.status === "blocked" ? "bg-[var(--danger)]"    : "bg-[var(--border)]"
                         }`} />
                         <Badge
                           variant={
@@ -355,12 +355,12 @@ export function TrackerList({
                     </td>
 
                     {/* Last seen */}
-                    <td className="px-5 py-4 text-slate-500">
+                    <td className="px-5 py-4 text-[var(--muted-foreground)]">
                       {t.lastSeenAt
                         ? t.lastSeenAt.toLocaleDateString("en-GB", {
                             day: "numeric", month: "short", year: "numeric",
                           })
-                        : <span className="text-slate-400">—</span>}
+                        : <span className="text-[var(--muted-foreground)]">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -369,8 +369,8 @@ export function TrackerList({
           </div>
 
           {/* Footer count */}
-          <div className="border-t border-slate-100 px-5 py-3">
-            <p className="text-xs text-slate-400">
+          <div className="border-t border-[var(--border)] px-5 py-3">
+            <p className="text-xs text-[var(--muted-foreground)]">
               {filtered.length} tracker{filtered.length !== 1 ? "s" : ""}
               {filtered.length < trackers.length && ` (filtered from ${trackers.length})`}
             </p>

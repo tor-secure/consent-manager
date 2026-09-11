@@ -8,6 +8,9 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHelpLink, DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { loadHomeDashboardCounts } from "@/lib/dashboard/home-queries";
+import { SetupGuideHeaderButton } from "@/components/dashboard/setup-guide";
+import { isSetupComplete } from "@/lib/dashboard/get-live-path";
 
 function HeaderLeft() {
   return (
@@ -33,10 +36,11 @@ function HeaderCenter() {
   return <DashboardSearch />;
 }
 
-function HeaderRight() {
+function HeaderRight({ setupComplete }: { setupComplete: boolean }) {
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
-      <ThemeToggle className="h-10 w-10 lg:h-11 lg:w-11" />
+      <SetupGuideHeaderButton complete={setupComplete} />
+      <ThemeToggle />
       <NotificationBell />
       <DashboardHelpLink />
       <div className="mx-0.5 hidden h-8 w-px bg-[var(--border)] md:block" />
@@ -45,7 +49,7 @@ function HeaderRight() {
           elements: {
             rootBox: "flex items-center",
             userButtonTrigger:
-              "h-10 lg:h-11 rounded-xl px-1.5 sm:px-2 py-1 bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] transition-all duration-200 gap-2",
+              "h-10 rounded-xl px-1.5 sm:px-2 py-1 bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] transition-all duration-200 gap-2",
             userButtonAvatarBox: "h-8 w-8 rounded-xl",
             userButtonOuterIdentifier: "hidden lg:block max-w-[7rem] truncate",
           },
@@ -72,12 +76,16 @@ export default async function DashboardLayout({
     redirect("/create-organization");
   }
 
+  const counts = await loadHomeDashboardCounts(context.organization.id);
+  const setupComplete = isSetupComplete(counts);
+
   return (
     <DashboardProviders>
       <DashboardShell
         headerLeft={<HeaderLeft />}
         headerCenter={<HeaderCenter />}
-        headerRight={<HeaderRight />}
+        headerRight={<HeaderRight setupComplete={setupComplete} />}
+        setupMode={!setupComplete}
       >
         {children}
       </DashboardShell>

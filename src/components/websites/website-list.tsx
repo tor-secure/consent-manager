@@ -5,6 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HoverGlassCard } from "@/components/ui/hover-glass-card";
 
+export type WebsiteNextAction = {
+  label: string;
+  href: string;
+};
+
 export type WebsiteRow = {
   id: string;
   name: string;
@@ -15,6 +20,7 @@ export type WebsiteRow = {
   defaultRegion: string | null;
   verified: boolean;
   createdAt: Date;
+  nextAction?: WebsiteNextAction;
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -30,9 +36,9 @@ function StatusBadge({ status }: { status: string }) {
 function VerifiedBadge({ verified }: { verified: boolean }) {
   if (verified) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--success)]">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <circle cx="7" cy="7" r="6" fill="#10b981" />
+          <circle cx="7" cy="7" r="6" fill="var(--success)" />
           <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         Verified
@@ -40,10 +46,10 @@ function VerifiedBadge({ verified }: { verified: boolean }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400">
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[var(--muted-foreground)]">
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-        <circle cx="7" cy="7" r="6" stroke="#cbd5e1" strokeWidth="1.4" fill="none" />
-        <path d="M4.5 7h5" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" />
+        <circle cx="7" cy="7" r="6" stroke="var(--border)" strokeWidth="1.4" fill="none" />
+        <path d="M4.5 7h5" stroke="var(--border)" strokeWidth="1.8" strokeLinecap="round" />
       </svg>
       Not verified
     </span>
@@ -67,7 +73,7 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
       {websites.length > 0 && (
         <div className="relative mb-7 max-w-md">
           <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
             width="16"
             height="16"
             viewBox="0 0 24 24"
@@ -97,14 +103,14 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
       )}
 
       {websites.length > 0 && filtered.length === 0 && (
-        <div className="rounded-3xl card-shadow bg-white p-10 text-center border-2 border-dashed border-slate-200">
-          <p className="text-sm font-medium text-slate-700">
-            No websites match &ldquo;<span className="text-slate-900">{query}</span>&rdquo;
+        <div className="rounded-3xl card-shadow bg-[var(--card)] p-10 text-center border-2 border-dashed border-[var(--border)]">
+          <p className="text-sm font-medium text-[var(--foreground)]">
+            No websites match &ldquo;<span className="text-[var(--foreground)]">{query}</span>&rdquo;
           </p>
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="mt-3 text-sm text-indigo-600 font-medium hover:text-indigo-700 underline underline-offset-4"
+            className="mt-3 text-sm text-[var(--primary)] font-medium hover:text-[var(--primary)] underline underline-offset-4"
           >
             Clear search
           </button>
@@ -121,10 +127,10 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
               >
                 <div className="flex w-full items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate text-base font-bold text-slate-900">
+                    <p className="truncate text-base font-bold text-[var(--foreground)]">
                       {website.name}
                     </p>
-                    <p className="mt-0.5 truncate text-sm font-medium text-slate-600">
+                    <p className="mt-0.5 truncate text-sm font-medium text-[var(--muted-foreground)]">
                       {website.domain}
                     </p>
                   </div>
@@ -133,27 +139,32 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
 
                 <dl className="mt-5 w-full space-y-2 text-sm font-medium">
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-500">Environment</dt>
-                    <dd className="capitalize text-slate-800">
+                    <dt className="text-[var(--muted-foreground)]">Environment</dt>
+                    <dd className="capitalize text-[var(--foreground)]">
                       {website.environment}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-500">Region</dt>
-                    <dd className="text-slate-800">
+                    <dt className="text-[var(--muted-foreground)]">Region</dt>
+                    <dd className="text-[var(--foreground)]">
                       {website.defaultRegion ?? "—"}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between">
-                    <dt className="text-slate-500">Language</dt>
-                    <dd className="uppercase tracking-wide text-slate-800">
+                    <dt className="text-[var(--muted-foreground)]">Language</dt>
+                    <dd className="uppercase tracking-wide text-[var(--foreground)]">
                       {website.defaultLanguage}
                     </dd>
                   </div>
                 </dl>
 
-                <div className="mt-auto w-full border-t border-white/70 pt-4">
+                <div className="mt-auto w-full space-y-3 border-t border-[var(--border)] pt-4">
                   <VerifiedBadge verified={website.verified} />
+                  {website.nextAction ? (
+                    <span className="inline-flex rounded-full bg-[var(--info-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--primary)]">
+                      Next: {website.nextAction.label}
+                    </span>
+                  ) : null}
                 </div>
               </HoverGlassCard>
             </li>
@@ -164,7 +175,7 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
               className="h-full min-h-[254px] w-full flex-col gap-2 p-5 font-bold sm:p-6"
             >
               <span className="text-lg">Add website</span>
-              <span className="text-sm font-medium text-slate-600">Click me</span>
+              <span className="text-sm font-medium text-[var(--muted-foreground)]">Click me</span>
             </HoverGlassCard>
           </li>
         </ul>

@@ -347,29 +347,29 @@ export function TrackerManager({
         <div className="table-scroll scrollbar-thin">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/60">
+              <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                 {["Tracker", "Vendor", "Purpose", "Category", "Essential", "Status", "Domains", "Last Updated", "Actions"].map((heading) => (
-                  <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                     {heading}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--border)]">
               {visible.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-[var(--muted-foreground)]">
                     No trackers to manage yet.
                   </td>
                 </tr>
               ) : visible.map((tracker) => (
                 <tr key={tracker.id} className="align-top">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{tracker.name}</p>
-                    <p className="text-xs capitalize text-slate-400">{tracker.type}</p>
+                    <p className="font-medium text-[var(--foreground)]">{tracker.name}</p>
+                    <p className="text-xs capitalize text-[var(--muted-foreground)]">{tracker.type}</p>
                   </td>
-                  <td className="px-4 py-3">{tracker.vendorName ?? <span className="text-slate-300">—</span>}</td>
-                  <td className="px-4 py-3">{tracker.purposeName ?? <span className="text-slate-300">—</span>}</td>
+                  <td className="px-4 py-3">{tracker.vendorName ?? <span className="text-[var(--border)]">—</span>}</td>
+                  <td className="px-4 py-3">{tracker.purposeName ?? <span className="text-[var(--border)]">—</span>}</td>
                   <td className="px-4 py-3 capitalize">{tracker.category ?? "—"}</td>
                   <td className="px-4 py-3">
                     <Badge variant={tracker.isEssential ? "success" : "neutral"} size="sm">
@@ -386,9 +386,9 @@ export function TrackerManager({
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <code className="text-xs text-slate-500">{tracker.domain || tracker.identifier || "—"}</code>
+                    <code className="text-xs text-[var(--muted-foreground)]">{tracker.domain || tracker.identifier || "—"}</code>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{fmt(tracker.updatedAt)}</td>
+                  <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">{fmt(tracker.updatedAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1.5">
                       <Button type="button" size="sm" variant="outline" onClick={() => { setSelected(tracker); setPanel("details"); }}>
@@ -430,14 +430,14 @@ export function TrackerManager({
           <CardContent>
             {panel === "details" && selected ? (
               <div className="space-y-3 text-sm">
-                <p><span className="text-slate-500">Vendor:</span> {selected.vendorName ?? "Unmapped"}</p>
-                <p><span className="text-slate-500">Purpose:</span> {selected.purposeName ?? "Unmapped"}</p>
-                <p><span className="text-slate-500">Enforcement:</span> {selected.isEssential ? "Allowed without optional consent" : selected.purposeName ? `Blocked until ${selected.purposeName} consent` : "Blocked until mapped and consented"}</p>
-                <p><span className="text-slate-500">Cookies:</span> {selected.cookieNames.join(", ") || "—"}</p>
-                <p><span className="text-slate-500">Script patterns:</span> {selected.scriptUrlPatterns.join(", ") || "—"}</p>
-                <p><span className="text-slate-500">Iframe patterns:</span> {selected.iframeUrlPatterns.join(", ") || "—"}</p>
-                <p><span className="text-slate-500">Pixel patterns:</span> {selected.pixelUrlPatterns.join(", ") || "—"}</p>
-                <p><span className="text-slate-500">Deletion:</span> {selected.deletionBehavior || "—"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Vendor:</span> {selected.vendorName ?? "Unmapped"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Purpose:</span> {selected.purposeName ?? "Unmapped"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Enforcement:</span> {selected.isEssential ? "Allowed without optional consent" : selected.purposeName ? `Blocked until ${selected.purposeName} consent` : "Blocked until mapped and consented"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Cookies:</span> {selected.cookieNames.join(", ") || "—"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Script patterns:</span> {selected.scriptUrlPatterns.join(", ") || "—"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Iframe patterns:</span> {selected.iframeUrlPatterns.join(", ") || "—"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Pixel patterns:</span> {selected.pixelUrlPatterns.join(", ") || "—"}</p>
+                <p><span className="text-[var(--muted-foreground)]">Deletion:</span> {selected.deletionBehavior || "—"}</p>
                 <Button type="button" variant="outline" onClick={() => setPanel("none")}>Close</Button>
               </div>
             ) : (
@@ -494,18 +494,18 @@ function UnmappedRow({
   const [vendorId, setVendorId] = useState("");
   const [purposeId, setPurposeId] = useState("");
   return (
-    <div className="rounded-2xl border border-slate-200 p-4">
+    <div className="rounded-2xl border border-[var(--border)] p-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="font-medium text-slate-900">{item.name}</p>
-          <p className="text-xs text-slate-500">
+          <p className="font-medium text-[var(--foreground)]">{item.name}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">
             {item.type} · {item.domain || item.identifier || "unknown"} · {item.detectionCount} detection{item.detectionCount === 1 ? "" : "s"}
           </p>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
             First {fmt(item.firstDetected)} · Last {fmt(item.lastDetected)}
             {item.pages[0] ? ` · ${item.pages[0]}` : ""}
           </p>
-          <p className="mt-1 text-xs text-amber-700">{item.recommendedAction}</p>
+          <p className="mt-1 text-xs text-[var(--warning)]">{item.recommendedAction}</p>
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:w-[420px]">
           <Select value={vendorId} onChange={(event) => setVendorId(event.target.value)}>

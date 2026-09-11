@@ -67,13 +67,13 @@ function SigningSecretBanner({
   }
 
   return (
-    <div className="mb-6 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+    <div className="mb-6 rounded-2xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--success-soft)] p-5">
       <div className="mb-3 flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-emerald-800">
+          <p className="text-sm font-semibold text-[var(--success)]">
             Webhook signing secret — copy it now
           </p>
-          <p className="mt-0.5 text-xs text-emerald-700">
+          <p className="mt-0.5 text-xs text-[var(--success)]">
             &ldquo;{name}&rdquo; — Shown only once. Use it to verify webhook signatures on your server.
           </p>
         </div>
@@ -81,7 +81,7 @@ function SigningSecretBanner({
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss"
-          className="shrink-0 rounded-xl p-1.5 text-emerald-600 transition hover:bg-emerald-100"
+          className="shrink-0 rounded-xl p-1.5 text-[var(--success)] transition hover:bg-[var(--success-soft)]"
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2 2l10 10M12 2 2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -89,13 +89,13 @@ function SigningSecretBanner({
         </button>
       </div>
       <div className="flex items-center gap-2">
-        <code className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-emerald-200 bg-white px-3 py-2 font-mono text-sm text-slate-900 select-all">
+        <code className="min-w-0 flex-1 overflow-x-auto rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--card)] px-3 py-2 font-mono text-sm text-[var(--foreground)] select-all">
           {secret}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="shrink-0 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-sm font-medium text-emerald-800 transition hover:bg-emerald-50"
+          className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--success)] transition hover:bg-[var(--success-soft)]"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
@@ -126,7 +126,7 @@ function EndpointCard({
       <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-900">{endpoint.name}</p>
+            <p className="font-semibold text-[var(--foreground)]">{endpoint.name}</p>
             <Badge variant={isActive ? "success" : "neutral"} size="sm" className="capitalize">
               {endpoint.status}
             </Badge>
@@ -134,13 +134,13 @@ function EndpointCard({
               <Badge variant="primary" size="sm">Verified</Badge>
             )}
           </div>
-          <code className="mt-1 block truncate font-mono text-xs text-slate-500">
+          <code className="mt-1 block truncate font-mono text-xs text-[var(--muted-foreground)]">
             {endpoint.url}
           </code>
           {endpoint.description && (
-            <p className="mt-1 text-sm text-slate-500">{endpoint.description}</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">{endpoint.description}</p>
           )}
-          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-[var(--muted-foreground)]">
             <span>Created {fmt(endpoint.createdAt)}</span>
             {endpoint.lastDeliveryAt && (
               <span>Last delivery {fmt(endpoint.lastDeliveryAt)}</span>
@@ -154,7 +154,7 @@ function EndpointCard({
             type="button"
             disabled={busyId === endpoint.id}
             onClick={() => onToggle(endpoint.id, isActive ? "disabled" : "active")}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-40"
+            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-40"
           >
             {busyId === endpoint.id ? "…" : isActive ? "Disable" : "Enable"}
           </button>
@@ -163,25 +163,25 @@ function EndpointCard({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-xl border border-rose-200 bg-white px-3 py-1.5 text-xs font-medium text-rose-600 shadow-sm transition hover:bg-rose-50"
+              className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--danger)] shadow-sm transition hover:bg-[var(--danger-soft)]"
             >
               Delete
             </button>
           ) : (
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-xs text-slate-500">Confirm?</span>
+              <span className="text-xs text-[var(--muted-foreground)]">Confirm?</span>
               <button
                 type="button"
                 disabled={busyId === endpoint.id}
                 onClick={() => onDelete(endpoint.id)}
-                className="rounded-xl bg-rose-600 px-2.5 py-1.5 text-xs font-medium text-white transition hover:bg-rose-700 disabled:opacity-40"
+                className="rounded-xl bg-[var(--danger)] px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40"
               >
                 {busyId === endpoint.id ? "Deleting..." : "Yes, delete"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-600 transition hover:bg-slate-50"
+                className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]"
               >
                 Cancel
               </button>
@@ -192,15 +192,15 @@ function EndpointCard({
 
       {/* Subscribed events */}
       {endpoint.subscribedEvents.length > 0 && (
-        <div className="border-t border-slate-100 px-5 py-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="border-t border-[var(--border)] px-5 py-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
             Subscribed events ({endpoint.subscribedEvents.length})
           </p>
           <div className="flex flex-wrap gap-1.5">
             {endpoint.subscribedEvents.map((ev) => (
               <code
                 key={ev}
-                className="rounded-lg bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600"
+                className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]"
               >
                 {ev}
               </code>
@@ -210,11 +210,11 @@ function EndpointCard({
       )}
 
       {/* Delivery history */}
-      <div className="border-t border-slate-100 px-5 py-3">
+      <div className="border-t border-[var(--border)] px-5 py-3">
         <button
           type="button"
           onClick={() => setShowDeliveries((v) => !v)}
-          className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 rounded-lg"
+          className="flex items-center gap-1.5 text-sm font-medium text-[var(--muted-foreground)] transition hover:text-[var(--foreground)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-1 rounded-lg"
         >
           <svg
             width="14" height="14" viewBox="0 0 14 14" fill="none"
@@ -229,24 +229,24 @@ function EndpointCard({
         {showDeliveries && (
           <div className="mt-3">
             {endpoint.deliveries.length === 0 ? (
-              <p className="text-xs text-slate-400">No deliveries yet.</p>
+              <p className="text-xs text-[var(--muted-foreground)]">No deliveries yet.</p>
             ) : (
-              <div className="table-scroll scrollbar-thin rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-100 text-xs">
-                  <thead className="bg-slate-50/60">
+              <div className="table-scroll scrollbar-thin rounded-xl border border-[var(--border)]">
+                <table className="min-w-full divide-y divide-[var(--border)] text-xs">
+                  <thead className="bg-[var(--muted)]/60">
                     <tr>
                       {["Event", "Status", "HTTP", "Attempt", "Sent"].map((h) => (
-                        <th key={h} className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-slate-500">
+                        <th key={h} className="px-3 py-2 text-left font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 bg-white">
+                  <tbody className="divide-y divide-[var(--border)] bg-[var(--card)]">
                     {endpoint.deliveries.map((d) => (
-                      <tr key={d.id} className="hover:bg-slate-50/80">
+                      <tr key={d.id} className="hover:bg-[var(--muted)]/80">
                         <td className="px-3 py-2">
-                          <code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">
+                          <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[var(--muted-foreground)]">
                             {d.eventType}
                           </code>
                         </td>
@@ -264,9 +264,9 @@ function EndpointCard({
                             {d.status}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2 text-slate-600">{d.responseStatusCode ?? "—"}</td>
-                        <td className="px-3 py-2 text-slate-500">#{d.attemptNumber}</td>
-                        <td className="px-3 py-2 text-slate-400 whitespace-nowrap">{fmtTime(d.sentAt)}</td>
+                        <td className="px-3 py-2 text-[var(--muted-foreground)]">{d.responseStatusCode ?? "—"}</td>
+                        <td className="px-3 py-2 text-[var(--muted-foreground)]">#{d.attemptNumber}</td>
+                        <td className="px-3 py-2 text-[var(--muted-foreground)] whitespace-nowrap">{fmtTime(d.sentAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -344,13 +344,13 @@ export function WebhookEndpointManager({
 
       {/* Global error */}
       {error && (
-        <div className="flex items-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <svg className="h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-center gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+          <svg className="h-4 w-4 shrink-0 text-[var(--danger)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 5v3M8 11h.01" />
           </svg>
           {error}
-          <button onClick={() => setError("")} className="ml-auto shrink-0 text-rose-400 hover:text-rose-600">✕</button>
+          <button onClick={() => setError("")} className="ml-auto shrink-0 text-[var(--danger)] hover:text-[var(--danger)]">✕</button>
         </div>
       )}
 
@@ -364,9 +364,9 @@ export function WebhookEndpointManager({
 
       {/* Empty state */}
       {initialEndpoints.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-          <p className="text-sm font-medium text-slate-600">No webhook endpoints yet</p>
-          <p className="mt-1 text-sm text-slate-400">
+        <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center">
+          <p className="text-sm font-medium text-[var(--muted-foreground)]">No webhook endpoints yet</p>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             Create an endpoint to start receiving webhook events.
           </p>
         </div>

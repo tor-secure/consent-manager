@@ -11,6 +11,7 @@ import {
   type IntegrationEntry,
   type WebsiteOption,
 } from "@/components/integrations/integration-catalog";
+import { PageHeader } from "@/components/ui/page-header";
 
 // Auth + bootstrap guaranteed by the dashboard layout.
 export default async function IntegrationsPage() {
@@ -112,11 +113,10 @@ export default async function IntegrationsPage() {
 
   return (
     <div className="page-wrap space-y-6">
-      {/* Page header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">Integrations</h1>
-          <p className="page-description">
+      <PageHeader
+        title="Integrations"
+        description={
+          <>
             Connect third-party tools and tag managers to your websites.
             {catalogRows.length > 0 && (
               <>
@@ -125,9 +125,9 @@ export default async function IntegrationsPage() {
                 {totalConnections > 0 && ` (${totalConnections} connection${totalConnections !== 1 ? "s" : ""})`}.
               </>
             )}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       <IntegrationCatalog integrations={integrationEntries} websites={websiteOptions} />
     </div>

@@ -55,18 +55,19 @@ export default async function DigitalTwinPage({
       />
 
       {sites.length === 0 ? (
-        <EmptyState title="No website available for a digital twin" description="Add a website and run a scan to create the first immutable consent snapshot." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+        <EmptyState title="No website available for a digital twin" description="Add a website, then run a scan to create the first immutable consent snapshot." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/digital-twin" websites={sites.map((s) => ({ id: s.id, name: s.name }))} selected={websiteId} />
           {websiteId ? <RunIntelligenceButton websiteId={websiteId} engine="digital_twin" /> : null}
 
           {!websiteId || !snapshot || !loaded || !baseline ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                Digital twin inputs are unavailable for this website.
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="Digital twin inputs are not ready"
+              description="Run a scan and publish a policy so this page can snapshot the current consent graph."
+              actionLabel="Open scanner"
+              actionHref={websiteId ? `/dashboard/scanner?website=${websiteId}` : "/dashboard/scanner"}
+            />
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">

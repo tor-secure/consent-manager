@@ -10,6 +10,8 @@ import {
   WebhookEndpointManager,
   type WebhookEndpointRow,
 } from "@/components/webhooks/webhook-endpoint-manager";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 const DELIVERIES_PER_ENDPOINT = 20;
 
@@ -104,40 +106,35 @@ export default async function WebhooksPage() {
   return (
     <div className="page-wrap space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/developers" className="transition hover:text-slate-900">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/developers" className="transition hover:text-[var(--foreground)]">
           API Keys
         </Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Webhooks</span>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">Webhooks</span>
       </nav>
 
-      {/* Page header */}
-      <div>
-        <h1 className="page-title">Webhooks</h1>
-        <p className="page-description">
-          Receive real-time event notifications at your endpoints.
-          {endpointRows.length > 0 && (
-            <> {activeCount} active endpoint{activeCount !== 1 ? "s" : ""}.</>
-          )}
-        </p>
-      </div>
+      <PageHeader
+        title="Webhooks"
+        description={
+          <>
+            Receive real-time event notifications at your endpoints.
+            {endpointRows.length > 0 && (
+              <> {activeCount} active endpoint{activeCount !== 1 ? "s" : ""}.</>
+            )}
+          </>
+        }
+      />
 
-      {/* Security notice */}
-      <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
-        <svg className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" viewBox="0 0 16 16"
-          stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <path strokeLinecap="round" d="M8 2l6 12H2z" />
-          <path strokeLinecap="round" d="M8 7v3M8 12h.01" />
-        </svg>
+      <StatusBanner variant="warning">
         <p>
           <strong className="font-semibold">Verify signatures:</strong> Every delivery includes a{" "}
-          <code className="rounded-md bg-amber-100 px-1.5 py-0.5 font-mono text-xs">
+          <code className="rounded-md bg-[var(--warning-soft)] px-1.5 py-0.5 font-mono text-xs">
             X-CMP-Signature
           </code>{" "}
           header. Use your endpoint&apos;s signing secret to verify the payload has not been tampered with.
         </p>
-      </div>
+      </StatusBanner>
 
       <WebhookEndpointManager initialEndpoints={endpoints} />
     </div>

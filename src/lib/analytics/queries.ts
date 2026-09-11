@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -51,9 +52,12 @@ function optionalUuid(value: string | null | undefined): string | null {
   return UUID_RE.test(value) ? value : null;
 }
 
-export async function loadConsentAnalytics(
+export type ConsentAnalyticsMode = "full" | "charts" | "overview" | "breakdowns";
+
+async function loadConsentAnalyticsImpl(
   organizationId: string,
   filters: ConsentAnalyticsFilters,
+  mode: ConsentAnalyticsMode = "full",
 ) {
   const period = parseAnalyticsPeriod({
     days: filters.days,
@@ -107,9 +111,17 @@ export async function loadConsentAnalytics(
 
   const recordsWhereWithPurpose = and(recordsWhere, purposeExists);
 
+  const includeCharts = mode === "full" || mode === "charts" || mode === "overview";
+  const includeOverview = mode === "full" || mode === "overview";
+  const includeBreakdowns = mode === "full" || mode === "breakdowns";
+
   if (scopedWebsiteIds.length === 0) {
     return emptyAnalytics(period.label, orgWebsites);
   }
+
+  const emptyTotals = [
+    { total: 0, accepted: 0, rejected: 0, partial: 0, withdrawn: 0, pending: 0 },
+  ];
 
   const [
     recordTotals,
@@ -122,162 +134,180 @@ export async function loadConsentAnalytics(
     browserRows,
     policyRows,
   ] = await Promise.all([
-    db
-      .select({
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-        pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
-      })
-      .from(consentRecords)
-      .where(recordsWhereWithPurpose),
-    db
-      .select({
-        websiteId: consentRecords.websiteId,
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-      })
-      .from(consentRecords)
-      .where(recordsWhereWithPurpose)
-      .groupBy(consentRecords.websiteId)
-      .orderBy(sql`count(*) desc`),
-    db
-      .select({
-        purposeId: consentDecisions.purposeId,
-        purposeName: purposes.name,
-        purposeKey: purposes.key,
-        total: sql<number>`count(*)::int`,
-        granted: sql<number>`count(*) filter (where ${consentDecisions.granted} = true)::int`,
-        denied: sql<number>`count(*) filter (where ${consentDecisions.granted} = false)::int`,
-      })
-      .from(consentDecisions)
-      .innerJoin(consentRecords, eq(consentDecisions.consentRecordId, consentRecords.id))
-      .innerJoin(purposes, eq(consentDecisions.purposeId, purposes.id))
-      .where(
-        and(
-          recordsWhere,
-          eq(purposes.organizationId, organizationId),
-          sql`${consentDecisions.purposeId} IS NOT NULL`,
-          purposeId ? eq(consentDecisions.purposeId, purposeId) : undefined,
-        ),
-      )
-      .groupBy(consentDecisions.purposeId, purposes.name, purposes.key)
-      .orderBy(sql`count(*) desc`)
-      .limit(20),
-    db
-      .select({
-        eventType: consentEvents.eventType,
-        count: sql<number>`count(*)::int`,
-      })
-      .from(consentEvents)
-      .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
-      .where(
-        and(
-          recordsWhereWithPurpose,
-          period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
-          period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
-        ),
-      )
-      .groupBy(consentEvents.eventType)
-      .orderBy(sql`count(*) desc`),
-    db
-      .select({
-        day: sql<string>`to_char(date_trunc('day', ${consentEvents.occurredAt}), 'YYYY-MM-DD')`,
-        interactions: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed','consent.withdrawn'))::int`,
-        acceptAll: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'accept-all')::int`,
-        rejectAll: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'reject-all')::int`,
-        granular: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'granular')::int`,
-        withdrawals: sql<number>`count(*) filter (where ${consentEvents.eventType} = 'consent.withdrawn')::int`,
-      })
-      .from(consentEvents)
-      .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
-      .where(
-        and(
-          recordsWhereWithPurpose,
-          period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
-          period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
-        ),
-      )
-      .groupBy(sql`date_trunc('day', ${consentEvents.occurredAt})`)
-      .orderBy(sql`date_trunc('day', ${consentEvents.occurredAt})`),
-    db
-      .select({
-        country: countryExpr,
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-      })
-      .from(consentRecords)
-      .where(recordsWhereWithPurpose)
-      .groupBy(countryExpr)
-      .orderBy(sql`count(*) desc`)
-      .limit(25),
-    db
-      .select({
-        device: deviceExpr,
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-      })
-      .from(consentRecords)
-      .where(recordsWhereWithPurpose)
-      .groupBy(deviceExpr)
-      .orderBy(sql`count(*) desc`),
-    db
-      .select({
-        browser: browserExpr,
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-      })
-      .from(consentRecords)
-      .where(recordsWhereWithPurpose)
-      .groupBy(browserExpr)
-      .orderBy(sql`count(*) desc`),
-    db
-      .select({
-        policyVersionId: consentRecords.policyVersionId,
-        websiteId: consentRecords.websiteId,
-        version: consentPolicyVersions.version,
-        policyName: consentPolicies.name,
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-      })
-      .from(consentRecords)
-      .innerJoin(
-        consentPolicyVersions,
-        eq(consentRecords.policyVersionId, consentPolicyVersions.id),
-      )
-      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
-      .innerJoin(websites, eq(consentPolicies.websiteId, websites.id))
-      .where(
-        and(
-          recordsWhereWithPurpose,
-          eq(websites.organizationId, organizationId),
-        ),
-      )
-      .groupBy(
-        consentRecords.policyVersionId,
-        consentRecords.websiteId,
-        consentPolicyVersions.version,
-        consentPolicies.name,
-      )
-      .orderBy(sql`count(*) desc`)
-      .limit(20),
+    includeOverview
+      ? db
+          .select({
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+            pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
+          })
+          .from(consentRecords)
+          .where(recordsWhereWithPurpose)
+      : Promise.resolve(emptyTotals),
+    includeOverview
+      ? db
+          .select({
+            websiteId: consentRecords.websiteId,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+          })
+          .from(consentRecords)
+          .where(recordsWhereWithPurpose)
+          .groupBy(consentRecords.websiteId)
+          .orderBy(sql`count(*) desc`)
+      : Promise.resolve([]),
+    includeCharts
+      ? db
+          .select({
+            purposeId: consentDecisions.purposeId,
+            purposeName: purposes.name,
+            purposeKey: purposes.key,
+            total: sql<number>`count(*)::int`,
+            granted: sql<number>`count(*) filter (where ${consentDecisions.granted} = true)::int`,
+            denied: sql<number>`count(*) filter (where ${consentDecisions.granted} = false)::int`,
+          })
+          .from(consentDecisions)
+          .innerJoin(consentRecords, eq(consentDecisions.consentRecordId, consentRecords.id))
+          .innerJoin(purposes, eq(consentDecisions.purposeId, purposes.id))
+          .where(
+            and(
+              recordsWhere,
+              eq(purposes.organizationId, organizationId),
+              sql`${consentDecisions.purposeId} IS NOT NULL`,
+              purposeId ? eq(consentDecisions.purposeId, purposeId) : undefined,
+            ),
+          )
+          .groupBy(consentDecisions.purposeId, purposes.name, purposes.key)
+          .orderBy(sql`count(*) desc`)
+          .limit(20)
+      : Promise.resolve([]),
+    includeOverview
+      ? db
+          .select({
+            eventType: consentEvents.eventType,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(consentEvents)
+          .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
+          .where(
+            and(
+              recordsWhereWithPurpose,
+              period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
+              period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
+            ),
+          )
+          .groupBy(consentEvents.eventType)
+          .orderBy(sql`count(*) desc`)
+      : Promise.resolve([]),
+    includeCharts
+      ? db
+          .select({
+            day: sql<string>`to_char(date_trunc('day', ${consentEvents.occurredAt}), 'YYYY-MM-DD')`,
+            interactions: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed','consent.withdrawn'))::int`,
+            acceptAll: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'accept-all')::int`,
+            rejectAll: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'reject-all')::int`,
+            granular: sql<number>`count(*) filter (where ${consentEvents.eventType} in ('consent.created','consent.updated','consent.expired_and_renewed') and ${consentEvents.eventData}->>'choice' = 'granular')::int`,
+            withdrawals: sql<number>`count(*) filter (where ${consentEvents.eventType} = 'consent.withdrawn')::int`,
+          })
+          .from(consentEvents)
+          .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
+          .where(
+            and(
+              recordsWhereWithPurpose,
+              period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
+              period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
+            ),
+          )
+          .groupBy(sql`date_trunc('day', ${consentEvents.occurredAt})`)
+          .orderBy(sql`date_trunc('day', ${consentEvents.occurredAt})`)
+      : Promise.resolve([]),
+    includeBreakdowns
+      ? db
+          .select({
+            country: countryExpr,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+          })
+          .from(consentRecords)
+          .where(recordsWhereWithPurpose)
+          .groupBy(countryExpr)
+          .orderBy(sql`count(*) desc`)
+          .limit(25)
+      : Promise.resolve([]),
+    includeBreakdowns
+      ? db
+          .select({
+            device: deviceExpr,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+          })
+          .from(consentRecords)
+          .where(recordsWhereWithPurpose)
+          .groupBy(deviceExpr)
+          .orderBy(sql`count(*) desc`)
+      : Promise.resolve([]),
+    includeBreakdowns
+      ? db
+          .select({
+            browser: browserExpr,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+          })
+          .from(consentRecords)
+          .where(recordsWhereWithPurpose)
+          .groupBy(browserExpr)
+          .orderBy(sql`count(*) desc`)
+      : Promise.resolve([]),
+    includeBreakdowns
+      ? db
+          .select({
+            policyVersionId: consentRecords.policyVersionId,
+            websiteId: consentRecords.websiteId,
+            version: consentPolicyVersions.version,
+            policyName: consentPolicies.name,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+          })
+          .from(consentRecords)
+          .innerJoin(
+            consentPolicyVersions,
+            eq(consentRecords.policyVersionId, consentPolicyVersions.id),
+          )
+          .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+          .innerJoin(websites, eq(consentPolicies.websiteId, websites.id))
+          .where(
+            and(
+              recordsWhereWithPurpose,
+              eq(websites.organizationId, organizationId),
+            ),
+          )
+          .groupBy(
+            consentRecords.policyVersionId,
+            consentRecords.websiteId,
+            consentPolicyVersions.version,
+            consentPolicies.name,
+          )
+          .orderBy(sql`count(*) desc`)
+          .limit(20)
+      : Promise.resolve([]),
   ]);
 
   const totals = recordTotals[0] ?? {
@@ -398,6 +428,8 @@ export async function loadConsentAnalytics(
     },
   };
 }
+
+export const loadConsentAnalytics = cache(loadConsentAnalyticsImpl);
 
 function emptyAnalytics(period: string, websites: { id: string; name: string; domain: string }[]) {
   return {

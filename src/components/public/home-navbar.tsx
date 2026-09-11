@@ -7,22 +7,13 @@ import { useState } from "react";
 const navItems: Array<{
   label: string;
   href: string;
-  hasDropdown?: boolean;
 }> = [
-  { label: "Product", href: "#product", hasDropdown: true },
-  { label: "Solutions", href: "#solutions", hasDropdown: true },
+  { label: "Product", href: "#product" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "Solutions", href: "#solutions" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Resources", href: "#resources", hasDropdown: true },
-  { label: "Developers", href: "#resources" },
+  { label: "Developers", href: "/sdk-demo" },
 ];
-
-function ChevronDown() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="ml-1 opacity-70">
-      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 function ShieldLogo({ className = "h-9 w-9" }: { className?: string }) {
   return (
@@ -80,7 +71,6 @@ export function HomeNavbar() {
               className="inline-flex items-center rounded-lg px-3 py-2 text-[14px] font-medium text-[#374151] transition hover:bg-[#F3F4F6] hover:text-[#111827]"
             >
               {item.label}
-              {item.hasDropdown ? <ChevronDown /> : null}
             </Link>
           ))}
         </div>

@@ -43,7 +43,7 @@ export function IconText({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <div className="flex w-full flex-wrap items-start gap-x-2 gap-y-1">
           {typeof title === "string" ? (
             <p className="text-sm font-semibold leading-snug text-[var(--foreground)]">{title}</p>
           ) : (

@@ -25,7 +25,7 @@ import { localeLabel } from "@/lib/i18n/locale-registry";
 // ---------------------------------------------------------------------------
 
 const inputCls =
-  "w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition";
+  "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition";
 
 function Field({
   label,
@@ -38,9 +38,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
@@ -62,14 +62,14 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-          checked ? "bg-indigo-600" : "bg-slate-200"
+          checked ? "bg-[var(--primary)]" : "bg-[var(--secondary)]"
         }`}
       >
-        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-[var(--card)] shadow-sm transition-transform ${
           checked ? "translate-x-4" : "translate-x-0.5"
         }`} />
       </button>
-      <span className="text-sm text-slate-700">{label}</span>
+      <span className="text-sm text-[var(--foreground)]">{label}</span>
     </label>
   );
 }
@@ -95,15 +95,15 @@ function BannerPreview({ config, locale }: { config: BannerConfiguration; locale
 
   return (
     <div
-      className="relative h-48 w-full overflow-hidden rounded-xl border bg-slate-100"
+      className="relative h-48 w-full overflow-hidden rounded-xl border bg-[var(--secondary)]"
       aria-label="Banner preview"
       role="img"
     >
       <div className="absolute inset-0 p-3 opacity-20">
-        <div className="mb-2 h-2 w-3/4 rounded bg-slate-400" />
-        <div className="mb-1.5 h-1.5 rounded bg-slate-300" />
-        <div className="mb-1.5 h-1.5 w-5/6 rounded bg-slate-300" />
-        <div className="mb-1.5 h-1.5 w-4/5 rounded bg-slate-300" />
+        <div className="mb-2 h-2 w-3/4 rounded bg-[var(--muted-foreground)]" />
+        <div className="mb-1.5 h-1.5 rounded bg-[var(--border)]" />
+        <div className="mb-1.5 h-1.5 w-5/6 rounded bg-[var(--border)]" />
+        <div className="mb-1.5 h-1.5 w-4/5 rounded bg-[var(--border)]" />
       </div>
       {config.overlayEnabled && <div className="absolute inset-0 bg-black/30" />}
       <div className={`absolute ${positionClass[config.position]} ${config.position === "center" ? "" : "p-2"}`} style={{ zIndex: 10 }} dir={resolved.direction} lang={resolved.resolvedLocale}>
@@ -189,33 +189,33 @@ function TranslationSection({
   const filledCount = fields.filter((f) => !!translation[f.key]).length;
 
   return (
-    <details className="group rounded-2xl border border-slate-200 bg-white">
+    <details className="group rounded-2xl border border-[var(--border)] bg-[var(--card)]">
       <summary className="flex cursor-pointer list-none items-center justify-between px-5 py-3.5 select-none">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold text-slate-900">{langLabel}</span>
-          <code className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-500">{langCode}</code>
+          <span className="text-sm font-semibold text-[var(--foreground)]">{langLabel}</span>
+          <code className="rounded-md bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">{langCode}</code>
         </div>
         <div className="flex items-center gap-2">
           {filledCount > 0 && (
-            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[11px] font-medium text-indigo-700 ring-1 ring-indigo-500/20">
+            <span className="rounded-full bg-[var(--info-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)]">
               {statusLabel} · {filledCount}/{fields.length}
             </span>
           )}
           <svg
-            className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180"
+            className="h-4 w-4 text-[var(--muted-foreground)] transition-transform group-open:rotate-180"
             fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" d="M4 6l4 4 4-4" />
           </svg>
         </div>
       </summary>
 
-      <div className="border-t border-slate-100 px-5 pb-5 pt-4 space-y-4">
-        <p className="text-xs text-slate-400">
+      <div className="border-t border-[var(--border)] px-5 pb-5 pt-4 space-y-4">
+        <p className="text-xs text-[var(--muted-foreground)]">
           Leave a field blank to fall back to the English default shown as placeholder text.
         </p>
         {fields.map((f) => (
           <div key={f.key}>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-600">{f.label}</label>
+            <label className="mb-1.5 block text-xs font-semibold text-[var(--muted-foreground)]">{f.label}</label>
             {f.multiline ? (
               <textarea
                 value={translation[f.key] ?? ""}
@@ -317,8 +317,8 @@ export function BannerConfigForm({
 
   if (!latestVersionId) {
     return (
-      <div className="rounded-2xl border border-dashed border-slate-200 px-5 py-8 text-center">
-        <p className="text-sm text-slate-400">
+      <div className="rounded-2xl border border-dashed border-[var(--border)] px-5 py-8 text-center">
+        <p className="text-sm text-[var(--muted-foreground)]">
           No policy version found. A version is required before configuring the banner.
         </p>
       </div>
@@ -331,7 +331,7 @@ export function BannerConfigForm({
         {/* Left — tabbed form */}
         <div className="min-w-0 space-y-5">
           {/* Tab bar */}
-          <div className="flex flex-wrap gap-0.5 rounded-2xl border border-slate-200 bg-slate-50 p-0.5">
+          <div className="flex flex-wrap gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-0.5">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -339,13 +339,13 @@ export function BannerConfigForm({
                 onClick={() => setTab(t.id)}
                 className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-medium transition ${
                   activeTab === t.id
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
+                    ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                    : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
                 }`}
               >
                 {t.label}
                 {t.id === "translations" && translatedLangs > 0 && (
-                  <span className="rounded-full bg-indigo-100 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                  <span className="rounded-full bg-[var(--info-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--primary)]">
                     {translatedLangs}
                   </span>
                 )}
@@ -355,7 +355,7 @@ export function BannerConfigForm({
 
           {/* ── TEXT ─────────────────────────────────────────────────────── */}
           {activeTab === "text" && (
-            <div className="rounded-2xl bg-white card-shadow p-6 space-y-5">
+            <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-5">
               <Field label="Banner title">
                 <input value={config.title} onChange={(e) => update("title", e.target.value)} maxLength={255} className={inputCls} />
               </Field>
@@ -383,7 +383,7 @@ export function BannerConfigForm({
 
           {/* ── CONTROLS ─────────────────────────────────────────────────── */}
           {activeTab === "controls" && (
-            <div className="rounded-2xl bg-white card-shadow p-6 space-y-4">
+            <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-4">
               <div className="space-y-3">
                 <Toggle checked={config.showAcceptAll} onChange={(v) => update("showAcceptAll", v)} label="Show Accept all button" />
                 <Toggle checked={config.showRejectAll} onChange={(v) => update("showRejectAll", v)} label="Show Reject all button" />
@@ -391,8 +391,8 @@ export function BannerConfigForm({
                 <Toggle checked={config.showCloseButton} onChange={(v) => update("showCloseButton", v)} label="Show close ✕ button" />
                 <Toggle checked={config.showPoweredBy} onChange={(v) => update("showPoweredBy", v)} label="Show powered-by attribution" />
               </div>
-              <div className="border-t border-slate-100 pt-4 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Preference center</p>
+              <div className="border-t border-[var(--border)] pt-4 space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)]">Preference center</p>
                 <Toggle checked={config.showPurposeDescriptions} onChange={(v) => update("showPurposeDescriptions", v)} label="Show purpose descriptions" />
                 <Toggle checked={config.showVendorList} onChange={(v) => update("showVendorList", v)} label="Show vendor list" />
                 <Toggle checked={config.showLegalBasis} onChange={(v) => update("showLegalBasis", v)} label="Show legal basis for each purpose" />
@@ -402,7 +402,7 @@ export function BannerConfigForm({
 
           {/* ── BEHAVIOR ─────────────────────────────────────────────────── */}
           {activeTab === "behavior" && (
-            <div className="rounded-2xl bg-white card-shadow p-6 space-y-5">
+            <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-5">
               <Field label="Default consent">
                 <select value={config.defaultConsent} onChange={(e) => update("defaultConsent", e.target.value as ConsentDefault)} className={inputCls}>
                   <option value="none">Blocked until server-confirmed choice</option>
@@ -446,7 +446,7 @@ export function BannerConfigForm({
 
           {/* ── APPEARANCE ───────────────────────────────────────────────── */}
           {activeTab === "appearance" && (
-            <div className="rounded-2xl bg-white card-shadow p-6 space-y-5">
+            <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Layout">
                   <select value={config.layout} onChange={(e) => update("layout", e.target.value as BannerLayout)} className={inputCls}>
@@ -470,13 +470,13 @@ export function BannerConfigForm({
                   <Field key={key} label={{ primaryColor: "Primary colour", backgroundColor: "Background", textColor: "Text colour" }[key]}>
                     <div className="flex items-center gap-2">
                       <input type="color" value={config[key]} onChange={(e) => update(key, e.target.value)} className="h-9 w-10 cursor-pointer rounded-xl border p-0.5" />
-                      <input value={config[key]} onChange={(e) => update(key, e.target.value)} maxLength={7} className="flex-1 rounded-xl border border-slate-200 px-2 py-2 font-mono text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15" />
+                      <input value={config[key]} onChange={(e) => update(key, e.target.value)} maxLength={7} className="flex-1 rounded-xl border border-[var(--border)] px-2 py-2 font-mono text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20" />
                     </div>
                   </Field>
                 ))}
               </div>
               <Field label={`Border radius — ${config.borderRadius}px`} hint="0 = square, 24 = pill">
-                <input type="range" min={0} max={24} value={config.borderRadius} onChange={(e) => update("borderRadius", parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                <input type="range" min={0} max={24} value={config.borderRadius} onChange={(e) => update("borderRadius", parseInt(e.target.value, 10))} className="w-full accent-[var(--primary)]" />
               </Field>
               <Toggle checked={config.overlayEnabled} onChange={(v) => update("overlayEnabled", v)} label="Show semi-transparent overlay behind banner" />
             </div>
@@ -486,18 +486,18 @@ export function BannerConfigForm({
           {activeTab === "translations" && (
             <div className="space-y-4">
               {/* Header info */}
-              <div className="flex items-start gap-3 rounded-2xl border border-indigo-100 bg-indigo-50 px-5 py-4">
-                <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+              <div className="flex items-start gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--primary)_18%,transparent)] bg-[var(--info-soft)] px-5 py-4">
+                <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--primary)]" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 7v4M8 5h.01" />
                 </svg>
-                <div className="text-sm text-indigo-800">
+                <div className="text-sm text-[var(--primary)]">
                   <strong className="font-semibold">DPDP Rules 2025 Rule 3 — multilingual notice.</strong>{" "}
                   Add translations for visitor-facing banner and preference-center text. Leave a field blank to use fallback copy. Languages can be published partially. Locale selection does not change regulation or consent decisions.
                 </div>
               </div>
 
               {/* Language picker */}
-              <div className="rounded-2xl bg-white card-shadow p-5">
+              <div className="rounded-2xl bg-[var(--card)] card-shadow p-5">
                 <Field
                   label="Supported languages"
                   hint="Optional allowlist for the public banner. Leave empty to accept any registered locale, then fall back as documented."
@@ -516,11 +516,11 @@ export function BannerConfigForm({
                   </select>
                 </Field>
                 <div className="mb-4 mt-5 flex flex-wrap items-center gap-3">
-                  <label className="text-sm font-semibold text-slate-700 shrink-0">Edit translation for:</label>
+                  <label className="text-sm font-semibold text-[var(--foreground)] shrink-0">Edit translation for:</label>
                   <select
                     value={selectedLang}
                     onChange={(e) => setSelectedLang(e.target.value)}
-                    className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition max-w-xs"
+                    className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition max-w-xs"
                   >
                     {SUPPORTED_LANGUAGES.filter((l) => l.code !== "en").map((l) => (
                       <option key={l.code} value={l.code}>{l.label}</option>
@@ -541,8 +541,8 @@ export function BannerConfigForm({
 
               {/* Already-translated languages summary */}
               {translatedLangs > 0 && (
-                <div className="rounded-2xl bg-white card-shadow p-5">
-                  <p className="mb-3 text-sm font-semibold text-slate-700">All translated languages</p>
+                <div className="rounded-2xl bg-[var(--card)] card-shadow p-5">
+                  <p className="mb-3 text-sm font-semibold text-[var(--foreground)]">All translated languages</p>
                   <div className="flex flex-wrap gap-2">
                     {Object.keys(config.translations ?? {})
                       .filter((code) => {
@@ -562,12 +562,12 @@ export function BannerConfigForm({
                             onClick={() => setSelectedLang(code)}
                             className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium transition ${
                               selectedLang === code
-                                ? "bg-indigo-600 text-white"
-                                : "bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-700"
+                                ? "bg-[var(--primary)] text-white"
+                                : "bg-[var(--secondary)] text-[var(--muted-foreground)] hover:bg-[var(--info-soft)] hover:text-[var(--primary)]"
                             }`}
                           >
                             {lang?.label ?? localeLabel(code)}
-                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${selectedLang === code ? "bg-white/20 text-white" : "bg-indigo-100 text-indigo-700"}`}>
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${selectedLang === code ? "bg-[var(--card)]/20 text-white" : "bg-[var(--info-soft)] text-[var(--primary)]"}`}>
                               {statusText}
                             </span>
                           </button>
@@ -581,8 +581,8 @@ export function BannerConfigForm({
 
           {/* Feedback + actions */}
           {error && (
-            <div className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+            <div className="flex items-start gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+              <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger)]" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 5v3M8 11h.01" />
               </svg>
               {error}
@@ -591,11 +591,11 @@ export function BannerConfigForm({
 
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={saving} aria-busy={saving || undefined}
-              className="inline-flex items-center rounded-2xl bg-indigo-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
+              className="inline-flex items-center rounded-2xl bg-[var(--primary)] px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
               {saving ? "Saving..." : "Save draft"}
             </button>
             <button type="button" onClick={() => { setConfig(parseBannerConfig({})); setError(""); }}
-              className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
               Reset to defaults
             </button>
           </div>
@@ -603,10 +603,10 @@ export function BannerConfigForm({
 
         {/* Right — sticky preview */}
         <div className="xl:sticky xl:top-6 xl:self-start">
-          <div className="rounded-2xl bg-white card-shadow p-5">
-            <p className="mb-3 text-sm font-semibold text-slate-900">Live preview</p>
-            <p className="mb-4 text-xs text-slate-400">Reflects current text, appearance, and the selected preview language.</p>
-            <label className="mb-2 block text-xs font-semibold text-slate-600">Preview language</label>
+          <div className="rounded-2xl bg-[var(--card)] card-shadow p-5">
+            <p className="mb-3 text-sm font-semibold text-[var(--foreground)]">Live preview</p>
+            <p className="mb-4 text-xs text-[var(--muted-foreground)]">Reflects current text, appearance, and the selected preview language.</p>
+            <label className="mb-2 block text-xs font-semibold text-[var(--muted-foreground)]">Preview language</label>
             <select
               value={activeTab === "translations" ? selectedLang : config.language}
               onChange={(e) => {
@@ -622,7 +622,7 @@ export function BannerConfigForm({
               config={config}
               locale={activeTab === "translations" ? selectedLang : config.language}
             />
-            <dl className="mt-4 space-y-1 text-xs text-slate-500">
+            <dl className="mt-4 space-y-1 text-xs text-[var(--muted-foreground)]">
               {[
                 ["Layout",    config.layout],
                 ["Position",  config.position],
@@ -632,7 +632,7 @@ export function BannerConfigForm({
                 ["Languages", translatedLangs > 0 ? `EN + ${translatedLangs} translated` : "English only"],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between">
-                  <dt>{k}</dt><dd className="text-slate-700 capitalize">{v}</dd>
+                  <dt>{k}</dt><dd className="text-[var(--foreground)] capitalize">{v}</dd>
                 </div>
               ))}
             </dl>

@@ -25,7 +25,7 @@ export type PurposeRow = {
 
 function IconSearch() {
   return (
-    <svg className="h-4 w-4 text-slate-400" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+    <svg className="h-4 w-4 text-[var(--muted-foreground)]" viewBox="0 0 15 15" fill="none" aria-hidden="true">
       <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
       <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
@@ -36,7 +36,7 @@ function IconEmpty() {
   return (
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true"
       stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"
-      className="text-slate-300">
+      className="text-[var(--border)]">
       <circle cx="12" cy="12" r="10" />
       <path d="M12 8v4l2 2" />
     </svg>
@@ -59,7 +59,7 @@ function IconClearFilters() {
 function StatusDot({ status }: { status: string }) {
   return (
     <span className={`inline-block h-2 w-2 rounded-full ${
-      status === "active" ? "bg-emerald-500" : "bg-slate-300"
+      status === "active" ? "bg-[var(--success)]" : "bg-[var(--border)]"
     }`} />
   );
 }
@@ -86,12 +86,12 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--muted)]">
             <IconEmpty />
           </div>
           <div>
-            <p className="text-base font-semibold text-slate-700">No purposes yet</p>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="text-base font-semibold text-[var(--foreground)]">No purposes yet</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
               Create your first purpose to start building consent policies.
             </p>
           </div>
@@ -127,13 +127,13 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
         <Card>
           <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
             <IconEmpty />
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-[var(--muted-foreground)]">
               No purposes match &ldquo;{query}&rdquo;
             </p>
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
             >
               <IconClearFilters />
               Clear search
@@ -148,18 +148,18 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
           <div className="table-scroll scrollbar-thin">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/60">
+                <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                   {["Name", "Key", "Status", "Required", "Created"].map((h) => (
                     <th key={h}
-                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {filtered.map((p) => (
-                  <tr key={p.id} className="group transition-colors hover:bg-slate-50/80">
+                  <tr key={p.id} className="group transition-colors hover:bg-[var(--muted)]/80">
                     {/* Name */}
                     <td className="px-5 py-4">
                       <div className="flex items-start gap-2.5">
@@ -169,7 +169,7 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
                             <Link href={`/dashboard/purposes/${p.id}`}>{p.name}</Link>
                           </p>
                           {p.description && (
-                            <p className="mt-0.5 max-w-xs truncate text-xs text-slate-400">
+                            <p className="mt-0.5 max-w-xs truncate text-xs text-[var(--muted-foreground)]">
                               {p.description}
                             </p>
                           )}
@@ -196,11 +196,11 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
                       {p.isRequired ? (
                         <Badge variant="primary" size="sm">Required</Badge>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className="text-[var(--muted-foreground)]">—</span>
                       )}
                     </td>
                     {/* Created */}
-                    <td className="px-5 py-4 text-slate-500">
+                    <td className="px-5 py-4 text-[var(--muted-foreground)]">
                       {p.createdAt.toLocaleDateString("en-GB", {
                         day: "numeric", month: "short", year: "numeric",
                       })}

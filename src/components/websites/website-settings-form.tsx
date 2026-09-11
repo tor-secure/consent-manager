@@ -22,9 +22,9 @@ const inputCls = "field-input";
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
@@ -32,11 +32,11 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 function ReadOnlyField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="mb-1.5 text-sm font-semibold text-slate-700">{label}</p>
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-        <code className="block overflow-x-auto font-mono text-sm text-slate-500">{value}</code>
+      <p className="mb-1.5 text-sm font-semibold text-[var(--foreground)]">{label}</p>
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
+        <code className="block overflow-x-auto font-mono text-sm text-[var(--muted-foreground)]">{value}</code>
       </div>
-      <p className="mt-1 text-xs text-slate-400">Cannot be changed after creation.</p>
+      <p className="mt-1 text-xs text-[var(--muted-foreground)]">Cannot be changed after creation.</p>
     </div>
   );
 }
@@ -83,8 +83,8 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* General */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">General</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">General</h2>
         </div>
         <div className="space-y-5 p-6">
           <Field label="Website name">
@@ -105,8 +105,8 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
 
       {/* Locale */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Locale defaults</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Locale defaults</h2>
         </div>
         <div className="grid gap-5 p-6 sm:grid-cols-2">
           <Field label="Default language">
@@ -130,8 +130,8 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
 
       {/* Identity (read-only) */}
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-slate-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-slate-900">Identity</h2>
+        <div className="border-b border-[var(--border)] px-6 py-4">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Identity</h2>
         </div>
         <div className="space-y-5 p-6">
           <ReadOnlyField label="Domain" value={website.domain} />
@@ -141,8 +141,8 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
 
       {/* Feedback */}
       {error && (
-        <div className="flex items-start gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          <svg className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" fill="none" viewBox="0 0 16 16"
+        <div className="flex items-start gap-2 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
+          <svg className="mt-0.5 h-4 w-4 shrink-0 text-[var(--danger)]" fill="none" viewBox="0 0 16 16"
             stroke="currentColor" strokeWidth={2} aria-hidden="true">
             <circle cx="8" cy="8" r="6" /><path strokeLinecap="round" d="M8 5v3M8 11h.01" />
           </svg>
@@ -156,7 +156,7 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
           {saving ? "Saving..." : "Save changes"}
         </Button>
         <button type="button" onClick={() => router.back()}
-          className="rounded-2xl border border-slate-200 bg-white px-5 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
           Cancel
         </button>
       </div>

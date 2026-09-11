@@ -69,7 +69,7 @@ export default async function ConsentFirewallPage({
                 className={`h-9 rounded-xl px-3 text-sm font-medium ${
                   scenario === value
                     ? "bg-[var(--primary)] text-white"
-                    : "border border-slate-200 bg-white text-slate-700"
+                    : "border border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
                 }`}
               >
                 {scenarioLabel(value)}

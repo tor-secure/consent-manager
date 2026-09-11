@@ -23,9 +23,9 @@ export type PolicyVendor = {
 
 function SourceBadge({ source }: { source: string }) {
   const styles: Record<string, string> = {
-    custom: "bg-neutral-100 text-neutral-600",
-    iab: "bg-purple-50 text-purple-700",
-    google: "bg-blue-50 text-blue-700",
+    custom: "bg-[var(--muted)] text-[var(--muted-foreground)]",
+    iab: "bg-[var(--info-soft)] text-[var(--purple)]",
+    google: "bg-[var(--info-soft)] text-[var(--info)]",
   };
   return (
     <span
@@ -54,18 +54,18 @@ export function PolicyVendorsPanel({
   void policyId; // reserved for future per-policy vendor overrides
 
   return (
-    <div className="rounded-lg border bg-white p-6">
+    <div className="rounded-lg border bg-[var(--card)] p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-base font-semibold text-neutral-900">Vendors</h2>
-          <p className="mt-0.5 text-sm text-neutral-500">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Vendors</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Third-party vendors that operate under this policy&apos;s purposes.
           </p>
         </div>
 
         <Link
           href="/dashboard/vendors"
-          className="shrink-0 text-sm font-medium text-neutral-700 underline underline-offset-2 hover:text-neutral-900"
+          className="shrink-0 text-sm font-medium text-[var(--foreground)] underline underline-offset-2 hover:text-[var(--foreground)]"
         >
           Manage vendors
         </Link>
@@ -73,7 +73,7 @@ export function PolicyVendorsPanel({
 
       {!latestVersionId && (
         <div className="rounded-md border border-dashed px-4 py-6 text-center">
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--muted-foreground)]">
             No policy version found.
           </p>
         </div>
@@ -81,14 +81,14 @@ export function PolicyVendorsPanel({
 
       {latestVersionId && vendors.length === 0 && (
         <div className="rounded-md border border-dashed px-4 py-6 text-center">
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-[var(--muted-foreground)]">
             No vendors are linked to the purposes attached to this policy.
           </p>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p className="mt-1 text-xs text-[var(--muted-foreground)]">
             Link vendors to purposes from the{" "}
             <Link
               href="/dashboard/vendors"
-              className="underline underline-offset-2 hover:text-neutral-700"
+              className="underline underline-offset-2 hover:text-[var(--foreground)]"
             >
               Vendors page
             </Link>
@@ -107,17 +107,17 @@ export function PolicyVendorsPanel({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-neutral-900">{v.name}</span>
+                    <span className="font-medium text-[var(--foreground)]">{v.name}</span>
                     <SourceBadge source={v.source} />
                     {v.status === "inactive" && (
-                      <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500">
+                      <span className="inline-flex items-center rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]">
                         Inactive
                       </span>
                     )}
                   </div>
 
                   {v.domain && (
-                    <p className="mt-0.5 text-xs text-neutral-400">{v.domain}</p>
+                    <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">{v.domain}</p>
                   )}
 
                   {v.purposeNames.length > 0 && (
@@ -125,7 +125,7 @@ export function PolicyVendorsPanel({
                       {v.purposeNames.map((p) => (
                         <span
                           key={p}
-                          className="rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-500"
+                          className="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs text-[var(--muted-foreground)]"
                         >
                           {p}
                         </span>
@@ -139,7 +139,7 @@ export function PolicyVendorsPanel({
                     href={v.privacyPolicyUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-xs text-neutral-500 underline underline-offset-2 hover:text-neutral-900"
+                    className="shrink-0 text-xs text-[var(--muted-foreground)] underline underline-offset-2 hover:text-[var(--foreground)]"
                   >
                     Privacy policy
                   </a>

@@ -196,7 +196,7 @@ export function DashboardSearch() {
             window.setTimeout(() => setOpen(false), 120);
           }}
           onKeyDown={onInputKeyDown}
-          className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-11 pr-16 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none transition-[box-shadow,border-color] duration-200 focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/30 lg:h-11"
+          className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-11 pr-16 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none transition-[box-shadow,border-color] duration-200 focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/30"
         />
         <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] lg:inline">
           Ctrl K
@@ -263,7 +263,7 @@ export function DashboardHelpLink() {
       href="/dashboard/developers"
       aria-label="Help and SDK installation"
       title="Help and SDK installation"
-      className="relative hidden h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] sm:flex lg:h-11 lg:w-11"
+      className="relative hidden h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)] sm:flex"
     >
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10" />

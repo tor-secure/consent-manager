@@ -22,6 +22,8 @@ import {
   type PCPurpose,
   type PCVendor,
 } from "@/components/consent/preference-center";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
 
 // Auth + bootstrap guaranteed by the dashboard layout.
 // This page lets org users preview the preference center for a policy.
@@ -175,43 +177,36 @@ export default async function PreferenceCenterPreviewPage({
   return (
     <div className="page-wrap space-y-6">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/policies" className="transition hover:text-slate-900">Policies</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <Link href={`/dashboard/policies/${policy.id}`} className="transition hover:text-slate-900">
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/policies" className="transition hover:text-[var(--foreground)]">Policies</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <Link href={`/dashboard/policies/${policy.id}`} className="transition hover:text-[var(--foreground)]">
           {policy.name}
         </Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Preference Center</span>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">Preference Center</span>
       </nav>
 
-      {/* Page header */}
-      <div>
-        <h1 className="page-title">
-          Preference Center Preview
-        </h1>
-        <p className="page-description">
-          How the preference center appears to visitors of{" "}
-          <span className="font-medium text-slate-700">
-            {website?.name ?? "this website"}
-          </span>{" "}
-          using policy version v{latestVersion.version}
-          {latestVersion.isPublished ? " (published)" : " (draft)"}.
-        </p>
-      </div>
+      <PageHeader
+        title="Preference Center Preview"
+        description={
+          <>
+            How the preference center appears to visitors of{" "}
+            <span className="font-medium text-[var(--foreground)]">
+              {website?.name ?? "this website"}
+            </span>{" "}
+            using policy version v{latestVersion.version}
+            {latestVersion.isPublished ? " (published)" : " (draft)"}.
+          </>
+        }
+      />
 
-      {/* Preview notice */}
-      <div className="flex items-start gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm text-indigo-800">
-        <svg className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" fill="none" viewBox="0 0 16 16"
-          stroke="currentColor" strokeWidth={2} aria-hidden="true">
-          <circle cx="8" cy="8" r="6" />
-          <path strokeLinecap="round" d="M8 7v4M8 5h.01" />
-        </svg>
+      <StatusBanner variant="info">
         <p>
           <strong className="font-semibold">Preview mode.</strong>{" "}
           Submitting here creates a real consent record scoped to this website. Use this to test the flow end-to-end.
         </p>
-      </div>
+      </StatusBanner>
 
       {/* Preference Center */}
       <PreferenceCenter

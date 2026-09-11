@@ -35,8 +35,8 @@ import { parseBannerConfig } from "@/lib/banner-config";
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2.5 text-sm">
-      <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right text-slate-800">{value}</dd>
+      <dt className="text-[var(--muted-foreground)]">{label}</dt>
+      <dd className="text-right text-[var(--foreground)]">{value}</dd>
     </div>
   );
 }
@@ -248,10 +248,10 @@ export default async function PolicyDetailPage({
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       {/* ── Breadcrumb ───────────────────────────────────────────────────── */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/policies" className="transition hover:text-slate-900">Policies</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">{policy.name}</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/policies" className="transition hover:text-[var(--foreground)]">Policies</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">{policy.name}</span>
       </nav>
 
       {/* ── Page header ──────────────────────────────────────────────────── */}
@@ -289,9 +289,18 @@ export default async function PolicyDetailPage({
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!isPublished ? (
+            <a href="#policy-publish" className="btn btn-primary">
+              Review & publish
+            </a>
+          ) : website ? (
+            <Link href={`/dashboard/websites/${website.id}/installation`} className="btn btn-primary">
+              Install SDK
+            </Link>
+          ) : null}
           <Link
             href={`/dashboard/policies/${policy.id}/studio`}
-            className="btn btn-primary"
+            className={!isPublished ? "btn btn-outline" : "btn btn-primary"}
           >
             <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16"
               stroke="currentColor" strokeWidth={1.5}>
@@ -302,7 +311,7 @@ export default async function PolicyDetailPage({
           </Link>
           <Link
             href={`/dashboard/policies/${policy.id}/preference-center`}
-            className="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="btn btn-outline"
           >
             Preview
           </Link>
@@ -316,18 +325,18 @@ export default async function PolicyDetailPage({
 
         {/* Policy details */}
         <Card>
-          <div className="border-b border-slate-100 px-6 py-4">
-            <h2 className="text-base font-semibold text-slate-900">Policy details</h2>
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Policy details</h2>
           </div>
           <div className="px-6">
-            <dl className="divide-y divide-slate-100">
+            <dl className="divide-y divide-[var(--border)]">
               <InfoRow label="Website" value={
                 website ? (
                   <Link href={`/dashboard/websites/${website.id}`}
                     className="font-medium text-[var(--foreground)] transition hover:text-[var(--primary)]">
                     {website.name}
                   </Link>
-                ) : <span className="text-slate-400">—</span>
+                ) : <span className="text-[var(--muted-foreground)]">—</span>
               } />
               <InfoRow label="Status" value={
                 <Badge variant={policyStatusVariant[policy.status] ?? "neutral"} size="sm" className="capitalize">
@@ -337,27 +346,27 @@ export default async function PolicyDetailPage({
               <InfoRow label="Default policy" value={
                 policy.isDefault
                   ? <Badge variant="primary" size="sm">Yes</Badge>
-                  : <span className="text-slate-400">No</span>
+                  : <span className="text-[var(--muted-foreground)]">No</span>
               } />
               <InfoRow label="Current version" value={
                 latestVersion
                   ? <Badge variant="neutral" size="sm">v{latestVersion.version}</Badge>
-                  : <span className="text-slate-400">—</span>
+                  : <span className="text-[var(--muted-foreground)]">—</span>
               } />
               <InfoRow label="Published version" value={
                 publishedVer
                   ? <Badge variant="success" size="sm">v{publishedVer.version}</Badge>
-                  : <span className="text-slate-400">Not published</span>
+                  : <span className="text-[var(--muted-foreground)]">Not published</span>
               } />
               <InfoRow label="Created" value={
-                <span className="text-slate-500">
+                <span className="text-[var(--muted-foreground)]">
                   {policy.createdAt.toLocaleDateString("en-GB", {
                     day: "numeric", month: "short", year: "numeric",
                   })}
                 </span>
               } />
               <InfoRow label="Last updated" value={
-                <span className="text-slate-500">
+                <span className="text-[var(--muted-foreground)]">
                   {policy.updatedAt.toLocaleDateString("en-GB", {
                     day: "numeric", month: "short", year: "numeric",
                   })}
@@ -379,25 +388,25 @@ export default async function PolicyDetailPage({
           </div>
           <CardContent className="space-y-4">
             {versions.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 py-8 text-center">
-                <p className="text-sm text-slate-400">No versions yet</p>
+              <div className="rounded-2xl border border-dashed border-[var(--border)] py-8 text-center">
+                <p className="text-sm text-[var(--muted-foreground)]">No versions yet</p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-slate-100">
+              <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
                 <table className="min-w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/60">
+                    <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
                       {["Version", "Status", "Published", "Created"].map((h) => (
                         <th key={h}
-                          className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                           {h}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-[var(--border)]">
                     {versions.map((v) => (
-                      <tr key={v.id} className="transition-colors hover:bg-slate-50/80">
+                      <tr key={v.id} className="transition-colors hover:bg-[var(--muted)]/80">
                         <td className="px-4 py-2.5">
                           <Badge variant="neutral" size="sm">v{v.version}</Badge>
                         </td>
@@ -410,14 +419,14 @@ export default async function PolicyDetailPage({
                             </Badge>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-slate-500 text-xs">
+                        <td className="px-4 py-2.5 text-[var(--muted-foreground)] text-xs">
                           {v.publishedAt
                             ? v.publishedAt.toLocaleDateString("en-GB", {
                                 day: "numeric", month: "short", year: "numeric",
                               })
-                            : <span className="text-slate-300">—</span>}
+                            : <span className="text-[var(--border)]">—</span>}
                         </td>
-                        <td className="px-4 py-2.5 text-slate-500 text-xs">
+                        <td className="px-4 py-2.5 text-[var(--muted-foreground)] text-xs">
                           {v.createdAt.toLocaleDateString("en-GB", {
                             day: "numeric", month: "short", year: "numeric",
                           })}
@@ -439,6 +448,7 @@ export default async function PolicyDetailPage({
               isPublished={isPublished}
               publishedAt={latestVersion?.publishedAt ?? null}
               hasPurposes={hasPurposes}
+              blockers={setupItems}
             />
             </div>
           </CardContent>
@@ -475,15 +485,15 @@ export default async function PolicyDetailPage({
               </svg>
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-900">Banner configuration</h2>
-              <p className="mt-0.5 max-w-lg text-sm text-slate-500">
+              <h2 className="text-base font-semibold text-[var(--foreground)]">Banner configuration</h2>
+              <p className="mt-0.5 max-w-lg text-sm text-[var(--muted-foreground)]">
                 Design your consent banner visually — pick a preset, customise colours,
                 layout, text, and behaviour, and see changes live overlaid on your real website.
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {["Presets", "Colors", "Typography", "Layout", "Behavior", "Live preview"].map((f) => (
                   <span key={f}
-                    className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
+                    className="inline-flex items-center rounded-full bg-[var(--secondary)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
                     {f}
                   </span>
                 ))}

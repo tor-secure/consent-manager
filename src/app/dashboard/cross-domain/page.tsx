@@ -16,8 +16,8 @@ export default async function CrossDomainPage() {
         description="Export an integrity-checked consent bundle from one website, then import it onto another website’s active policy. This enables portable consent across domains/devices inside the same CMP account."
       />
 
-      {sites.length === 0 ? (
-        <EmptyState title="Add two websites to exchange consent" description="Portable consent needs an active source website and a distinct target in this organization." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+      {sites.length < 2 ? (
+        <EmptyState title="Add two websites to exchange consent" description="Portable consent needs two sites, a published policy, and an active consent record on the source website." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <PortableConsentTool websites={sites} />
       )}

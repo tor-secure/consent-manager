@@ -65,9 +65,9 @@ function SlaChip({ label, deadline, unit }: { label: string; deadline: Date; uni
 
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-      overdue ? "bg-rose-100 text-rose-700 ring-1 ring-rose-500/20"
-      : urgent ? "bg-amber-50 text-amber-700 ring-1 ring-amber-500/20"
-      : "bg-slate-100 text-slate-600 ring-1 ring-slate-200"
+      overdue ? "bg-[var(--danger-soft)] text-[var(--danger)] ring-1 ring-[color-mix(in_srgb,var(--danger)_22%,transparent)]"
+      : urgent ? "bg-[var(--warning-soft)] text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]"
+      : "bg-[var(--secondary)] text-[var(--muted-foreground)] ring-1 ring-[var(--border)]"
     }`}>
       {overdue ? "Overdue" : `${label}: ${remaining} ${unit} left`}
     </span>
@@ -176,12 +176,12 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
   }
 
   return (
-    <div className="rounded-2xl bg-white card-shadow overflow-hidden">
+    <div className="rounded-2xl bg-[var(--card)] card-shadow overflow-hidden">
       {/* Summary row — always visible */}
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-slate-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-inset"
+        className="flex w-full items-start gap-4 px-5 py-4 text-left transition hover:bg-[var(--muted)]/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-inset"
         aria-expanded={expanded}
       >
         {/* Type + Status */}
@@ -192,15 +192,15 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
 
         {/* Requester + website */}
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold text-slate-900">{request.requesterName}</p>
-          <p className="truncate text-xs text-slate-500">{request.requesterEmail}</p>
-          <p className="truncate text-[11px] uppercase text-slate-400">
+          <p className="truncate font-semibold text-[var(--foreground)]">{request.requesterName}</p>
+          <p className="truncate text-xs text-[var(--muted-foreground)]">{request.requesterEmail}</p>
+          <p className="truncate text-[11px] uppercase text-[var(--muted-foreground)]">
             {request.jurisdiction} · {request.verificationStatus} · {request.requesterReference ?? request.id.slice(0, 8)}
           </p>
           {request.websiteName && (
-            <p className="mt-0.5 truncate text-xs text-slate-400">{request.websiteName}</p>
+            <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{request.websiteName}</p>
           )}
-          <p className="mt-0.5 truncate text-[11px] text-slate-400">
+          <p className="mt-0.5 truncate text-[11px] text-[var(--muted-foreground)]">
             Assigned: {request.assignedToName ?? "Unassigned"}
           </p>
         </div>
@@ -213,12 +213,12 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
           {!isTerminal && (
             <SlaChip label="Due" deadline={request.dueAt} unit="days" />
           )}
-          <p className="text-xs text-slate-400">{fmt(request.receivedAt)}</p>
+          <p className="text-xs text-[var(--muted-foreground)]">{fmt(request.receivedAt)}</p>
         </div>
 
         {/* Chevron */}
         <svg
-          className={`mt-1 h-4 w-4 shrink-0 text-slate-400 transition-transform ${expanded ? "rotate-180" : ""}`}
+          className={`mt-1 h-4 w-4 shrink-0 text-[var(--muted-foreground)] transition-transform ${expanded ? "rotate-180" : ""}`}
           fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6l4 4 4-4" />
         </svg>
@@ -226,43 +226,43 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
 
       {/* Expanded detail */}
       {expanded && (
-        <div className="border-t border-slate-100 px-5 py-5 space-y-5">
+        <div className="border-t border-[var(--border)] px-5 py-5 space-y-5">
           {/* Requester details */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Requester</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">Requester</p>
               <dl className="space-y-1 text-sm">
-                <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Name:</dt><dd className="text-slate-800 break-all">{request.requesterName}</dd></div>
-                <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Email:</dt><dd className="text-slate-800 break-all">{request.requesterEmail}</dd></div>
+                <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Name:</dt><dd className="text-[var(--foreground)] break-all">{request.requesterName}</dd></div>
+                <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Email:</dt><dd className="text-[var(--foreground)] break-all">{request.requesterEmail}</dd></div>
                 {request.requesterPhone && (
-                  <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Phone:</dt><dd className="text-slate-800">{request.requesterPhone}</dd></div>
+                  <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Phone:</dt><dd className="text-[var(--foreground)]">{request.requesterPhone}</dd></div>
                 )}
                 {request.consentId && (
-                  <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Consent&nbsp;ID:</dt>
-                    <dd><code className="rounded-lg bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-600 break-all">{request.consentId}</code></dd>
+                  <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Consent&nbsp;ID:</dt>
+                    <dd><code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)] break-all">{request.consentId}</code></dd>
                   </div>
                 )}
               </dl>
             </div>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">SLA Deadlines</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] mb-2">SLA Deadlines</p>
               <dl className="space-y-1 text-sm">
-                <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Received:</dt><dd className="text-slate-700">{fmt(request.receivedAt)}</dd></div>
-                <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Ack. by:</dt>
-                  <dd className={new Date(request.acknowledgeBy) < new Date() && !request.acknowledgedAt ? "text-rose-600 font-semibold" : "text-slate-700"}>
+                <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Received:</dt><dd className="text-[var(--foreground)]">{fmt(request.receivedAt)}</dd></div>
+                <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Ack. by:</dt>
+                  <dd className={new Date(request.acknowledgeBy) < new Date() && !request.acknowledgedAt ? "text-[var(--danger)] font-semibold" : "text-[var(--foreground)]"}>
                     {fmt(request.acknowledgeBy)}
                   </dd>
                 </div>
                 {request.acknowledgedAt && (
-                  <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Acknowledged:</dt><dd className="text-emerald-700">{fmt(request.acknowledgedAt)}</dd></div>
+                  <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Acknowledged:</dt><dd className="text-[var(--success)]">{fmt(request.acknowledgedAt)}</dd></div>
                 )}
-                <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Due by:</dt>
-                  <dd className={new Date(request.dueAt) < new Date() && !request.completedAt ? "text-rose-600 font-semibold" : "text-slate-700"}>
+                <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Due by:</dt>
+                  <dd className={new Date(request.dueAt) < new Date() && !request.completedAt ? "text-[var(--danger)] font-semibold" : "text-[var(--foreground)]"}>
                     {fmt(request.dueAt)}
                   </dd>
                 </div>
                 {request.completedAt && (
-                  <div className="flex gap-2"><dt className="text-slate-500 shrink-0">Completed:</dt><dd className="text-emerald-700">{fmt(request.completedAt)}</dd></div>
+                  <div className="flex gap-2"><dt className="text-[var(--muted-foreground)] shrink-0">Completed:</dt><dd className="text-[var(--success)]">{fmt(request.completedAt)}</dd></div>
                 )}
               </dl>
             </div>
@@ -270,14 +270,14 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
 
           {/* Request description */}
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Request description</p>
-            <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap">{request.description}</p>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Request description</p>
+            <p className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--foreground)] whitespace-pre-wrap">{request.description}</p>
           </div>
 
           {/* Response notes + status update */}
           {!isTerminal && (
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Response / Resolution notes</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Response / Resolution notes</p>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -285,48 +285,48 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
                 maxLength={10000}
                 disabled={isPending}
                 placeholder="Internal notes visible only to your team…"
-                className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition disabled:bg-slate-50"
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)]"
               />
 
               {/* Feedback */}
               {error && (
-                <p className="text-xs text-rose-600">{error}</p>
+                <p className="text-xs text-[var(--danger)]">{error}</p>
               )}
               {success && (
-                <p className="text-xs text-emerald-600">{success}</p>
+                <p className="text-xs text-[var(--success)]">{success}</p>
               )}
 
               {/* Action buttons */}
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/dashboard/rights-requests/${request.id}`}
-                  className="inline-flex items-center rounded-2xl bg-indigo-600 px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-indigo-700"
+                  className="inline-flex items-center rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
                 >
                   Open workflow
                 </Link>
                 {needsAck && status !== "verification_pending" && status !== "in_review" && (
                   <button type="button" disabled={isPending}
                     onClick={() => save(status === "verified" ? "in_review" : "acknowledged")}
-                    className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
                     Move to review
                   </button>
                 )}
                 {status === "acknowledged" || status === "in_review" ? (
                   <button type="button" disabled={isPending}
                     onClick={() => save("in_progress")}
-                    className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
                     Mark in progress
                   </button>
                 ) : null}
                 <button type="button" disabled={isPending}
                   onClick={() => save("rejected")}
-                  className="inline-flex items-center rounded-2xl border border-rose-200 bg-white px-4 py-2 text-xs font-medium text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:opacity-50">
+                  className="inline-flex items-center rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--danger)] shadow-sm transition hover:bg-[var(--danger-soft)] disabled:opacity-50">
                   Reject
                 </button>
                 {notes !== (request.responseNotes ?? "") && (
                   <button type="button" disabled={isPending}
                     onClick={() => save(undefined)}
-                    className="inline-flex items-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50">
+                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
                     Save notes only
                   </button>
                 )}
@@ -337,8 +337,8 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
           {/* Completed / rejected — show notes read-only */}
           {isTerminal && request.responseNotes && (
             <div>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">Resolution notes</p>
-              <p className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 whitespace-pre-wrap">{request.responseNotes}</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Resolution notes</p>
+              <p className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3 text-sm text-[var(--foreground)] whitespace-pre-wrap">{request.responseNotes}</p>
             </div>
           )}
         </div>
@@ -379,42 +379,42 @@ export function RightsRequestManager({
       {/* Summary pills */}
       <div className="flex flex-wrap gap-2">
         {[
-          { label: "Total",   value: requests.length,  dot: "bg-slate-400"   },
-          { label: "Open",    value: openCount,         dot: "bg-indigo-500"  },
+          { label: "Total",   value: requests.length,  dot: "bg-[var(--muted-foreground)]"   },
+          { label: "Open",    value: openCount,         dot: "bg-[var(--primary)]"  },
           ...(overdueAckCount > 0
-            ? [{ label: "Overdue ack.", value: overdueAckCount, dot: "bg-rose-500" }]
+            ? [{ label: "Overdue ack.", value: overdueAckCount, dot: "bg-[var(--danger)]" }]
             : []),
         ].map((s) => (
-          <div key={s.label} className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
+          <div key={s.label} className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
             <span className={`h-2 w-2 rounded-full ${s.dot}`} />
-            <span className="font-semibold text-slate-800">{s.value}</span>
-            <span className="text-slate-500">{s.label}</span>
+            <span className="font-semibold text-[var(--foreground)]">{s.value}</span>
+            <span className="text-[var(--muted-foreground)]">{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
-        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
           <option value="all">All types</option>
           {["access", "correction", "erasure", "portability", "objection", "restriction", "withdraw_consent", "grievance", "nomination"].map((type) => (
             <option key={type} value={type}>{type}</option>
           ))}
         </select>
-        <select value={jurisdictionFilter} onChange={(event) => setJurisdictionFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+        <select value={jurisdictionFilter} onChange={(event) => setJurisdictionFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
           <option value="all">All jurisdictions</option>
           {["dpdp", "gdpr", "ccpa", "lgpd"].map((key) => (
             <option key={key} value={key}>{key.toUpperCase()}</option>
           ))}
         </select>
-        <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value)} className="rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs">
+        <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
           <option value="all">All verification</option>
           {["pending", "verified", "failed", "expired", "unverified"].map((key) => (
             <option key={key} value={key}>{key}</option>
           ))}
         </select>
       </div>
-      <div className="flex gap-0.5 rounded-2xl border border-slate-200 bg-slate-50 p-0.5 self-start soft-shadow w-fit">
+      <div className="flex gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-0.5 self-start soft-shadow w-fit">
         {(["open", "all", "completed", "overdue"] as const).map((f) => (
           <button
             key={f}
@@ -422,8 +422,8 @@ export function RightsRequestManager({
             onClick={() => setFilter(f)}
             className={`rounded-xl px-4 py-1.5 text-xs font-medium capitalize transition ${
               filter === f
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-700"
+                ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
             }`}
           >
             {f}
@@ -433,20 +433,20 @@ export function RightsRequestManager({
 
       {/* Empty state */}
       {filtered.length === 0 && (
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-slate-200 py-14 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-50">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--muted)]">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"
               stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-              className="text-slate-300">
+              className="text-[var(--border)]">
               <path d="M9 12l2 2 4-4" />
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-700">
+            <p className="text-sm font-semibold text-[var(--foreground)]">
               {filter === "open" ? "No open requests" : "No requests found"}
             </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-[var(--muted-foreground)]">
               Requests submitted via the public API will appear here.
             </p>
           </div>

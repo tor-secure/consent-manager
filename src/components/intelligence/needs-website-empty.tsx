@@ -31,3 +31,37 @@ export function NeedsPolicyEmpty({
     />
   );
 }
+
+export function NeedsScanEmpty({
+  websiteId,
+  description = "Run a scan so this tool can read trackers, findings, and quality inputs. Publish a policy if you have not already.",
+}: {
+  websiteId?: string | null;
+  description?: string;
+}) {
+  return (
+    <EmptyState
+      title="Run a scan first"
+      description={description}
+      actionLabel="Open scanner"
+      actionHref={websiteId ? `/dashboard/scanner?website=${websiteId}` : "/dashboard/scanner"}
+    />
+  );
+}
+
+export function NeedsInstallEmpty({
+  websiteId,
+  description = "Install the SDK and collect a visitor choice before this tool has live consent data.",
+}: {
+  websiteId?: string | null;
+  description?: string;
+}) {
+  return (
+    <EmptyState
+      title="Install the SDK first"
+      description={description}
+      actionLabel="Install SDK"
+      actionHref={websiteId ? `/dashboard/websites/${websiteId}/installation` : "/dashboard/developers"}
+    />
+  );
+}

@@ -45,7 +45,7 @@ export function AnalyticsFilters({
 
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <div className="flex items-center gap-1 rounded-md border bg-white p-1">
+      <div className="flex items-center gap-1 rounded-md border bg-[var(--card)] p-1">
         {RANGES.map((range) => {
           const active = currentDays === range.value;
           return (
@@ -57,8 +57,8 @@ export function AnalyticsFilters({
               className={[
                 "rounded px-3 py-1.5 text-xs font-medium transition",
                 active
-                  ? "bg-neutral-900 text-white"
-                  : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900",
+                  ? "bg-[var(--foreground)] text-white"
+                  : "text-[var(--muted-foreground)] hover:bg-[var(--hover)] hover:text-[var(--foreground)]",
               ].join(" ")}
             >
               {range.label}
@@ -127,13 +127,13 @@ function FilterSelect({
 }) {
   if (options.length === 0) return null;
   return (
-    <label className="text-xs font-medium text-slate-600">
+    <label className="text-xs font-medium text-[var(--muted-foreground)]">
       {label}
       <select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 block h-9 min-w-[140px] rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-800"
+        className="mt-1 block h-9 min-w-[140px] rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 text-sm text-[var(--foreground)]"
       >
         <option value="">All</option>
         {options.map((option) => (

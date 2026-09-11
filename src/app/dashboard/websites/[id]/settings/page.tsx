@@ -9,6 +9,7 @@ import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
 import { db } from "@/db";
 import { websiteScanSchedules } from "@/db/schema/website-scan-schedules";
 import { and, eq } from "drizzle-orm";
+import { PageHeader } from "@/components/ui/page-header";
 
 export default async function WebsiteSettingsPage({
   params,
@@ -50,18 +51,18 @@ export default async function WebsiteSettingsPage({
 
   return (
     <div className="page-wrap space-y-6">
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-slate-500">
-        <Link href="/dashboard/websites" className="transition hover:text-slate-900">Websites</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-slate-900">{website.name}</Link>
-        <span className="text-slate-300" aria-hidden="true">/</span>
-        <span className="text-slate-900">Settings</span>
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">Websites</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-[var(--foreground)]">{website.name}</Link>
+        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <span className="text-[var(--foreground)]">Settings</span>
       </nav>
 
-      <div>
-        <h1 className="page-title">Website settings</h1>
-        <p className="page-description">Update how this website is identified in the CMP.</p>
-      </div>
+      <PageHeader
+        title="Website settings"
+        description="Update how this website is identified in the CMP."
+      />
 
       <WebsiteSettingsForm website={settingsData} />
 

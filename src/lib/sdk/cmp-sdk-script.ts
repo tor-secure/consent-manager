@@ -1829,6 +1829,45 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     parent.appendChild(wrap);
   }
 
+  function hexToRgbList(hex) {
+    var h = String(hex || '').replace('#', '');
+    if (h.length === 3) h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2);
+    if (h.length !== 6) return '44,74,124';
+    var r = parseInt(h.slice(0, 2), 16);
+    var g = parseInt(h.slice(2, 4), 16);
+    var b = parseInt(h.slice(4, 6), 16);
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '44,74,124';
+    return r + ',' + g + ',' + b;
+  }
+
+  function injectCmpScrollStyles(cfg) {
+    var id = '__cmp_ui_css__';
+    var el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('style');
+      el.id = id;
+      (document.head || document.documentElement).appendChild(el);
+    }
+    var rgb = hexToRgbList((cfg && (cfg.primaryColor || cfg.textColor)) || '#2c4a7c');
+    el.textContent =
+      '#__cmp_pc__ [data-cmp-scroll],#__cmp_banner__ [data-cmp-scroll]{' +
+        'scrollbar-width:thin;' +
+        'scrollbar-color:rgba(' + rgb + ',0.5) transparent;' +
+      '}' +
+      '#__cmp_pc__ [data-cmp-scroll]::-webkit-scrollbar,' +
+      '#__cmp_banner__ [data-cmp-scroll]::-webkit-scrollbar{width:8px;height:8px;}' +
+      '#__cmp_pc__ [data-cmp-scroll]::-webkit-scrollbar-track,' +
+      '#__cmp_banner__ [data-cmp-scroll]::-webkit-scrollbar-track{background:rgba(15,23,42,0.06);border-radius:999px;margin:8px 2px;}' +
+      '#__cmp_pc__ [data-cmp-scroll]::-webkit-scrollbar-thumb,' +
+      '#__cmp_banner__ [data-cmp-scroll]::-webkit-scrollbar-thumb{' +
+        'background:rgba(' + rgb + ',0.42);border-radius:999px;border:2px solid transparent;background-clip:content-box;' +
+      '}' +
+      '#__cmp_pc__ [data-cmp-scroll]::-webkit-scrollbar-thumb:hover,' +
+      '#__cmp_banner__ [data-cmp-scroll]::-webkit-scrollbar-thumb:hover{' +
+        'background:rgba(' + rgb + ',0.75);border:2px solid transparent;background-clip:content-box;' +
+      '}';
+  }
+
   function renderBanner() {
     if (!_config || !_config.bannerConfig) return;
     var cfg = _config.bannerConfig;
@@ -1845,6 +1884,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (layout === 'dialog') position = 'center';
     var overlayOn = !!(cfg.overlayEnabled || cfg.blockPageUntilConsent || layout === 'dialog');
     var overlayTint = !!(cfg.overlayEnabled || layout === 'dialog');
+    injectCmpScrollStyles(cfg);
 
     if (overlayOn) {
       var overlay = document.createElement('div');
@@ -1884,7 +1924,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       + 'text-align:start;box-sizing:border-box;'
       + (layout === 'bar'
         ? 'display:flex;flex-wrap:wrap;align-items:center;gap:12px;'
-        : 'display:flex;flex-direction:column;gap:14px;')
+        : 'display:flex;flex-direction:column;gap:14px;max-height:min(86vh,640px);overflow:hidden;')
     );
 
     if (cfg.showCloseButton) {
@@ -1901,8 +1941,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     if (cfg.title || cfg.description) {
       var text = document.createElement('div');
-      text.style.flex = layout === 'bar' ? '1' : 'unset';
+      text.style.flex = layout === 'bar' ? '1' : '1 1 auto';
       text.style.minWidth = layout === 'bar' ? '200px' : '0';
+      if (layout !== 'bar') {
+        text.setAttribute('data-cmp-scroll', '');
+        text.style.minHeight = '0';
+        text.style.overflowY = 'auto';
+        text.style.overscrollBehavior = 'contain';
+        text.style.scrollbarWidth = 'thin';
+        text.style.paddingRight = '4px';
+      }
       if (cfg.title) {
         var h = document.createElement(layout === 'bar' ? 'strong' : 'p');
         h.textContent = cfg.title;
@@ -2118,6 +2166,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function renderPreferenceCenter() {
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
+    injectCmpScrollStyles(cfg);
     removePreferenceWidget();
     _hostScroll.beginTransition();
     removePreferenceCenterNodes();
@@ -2199,8 +2248,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     // Body (scrollable)
     var body = document.createElement('div');
+    body.setAttribute('data-cmp-scroll', '');
     body.setAttribute('style',
-      'flex:1 1 auto;overflow-y:auto;padding:10px 24px 20px 24px;scrollbar-width:thin;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;'
+      'flex:1 1 auto;min-height:0;overflow-y:auto;padding:10px 20px 20px 18px;scrollbar-width:thin;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;'
     );
 
     // Track local toggles independently so we can cancel.

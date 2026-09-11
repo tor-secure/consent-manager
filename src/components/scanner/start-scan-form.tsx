@@ -45,7 +45,7 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
   }
 
   return (
-    <div className="rounded-2xl bg-white card-shadow p-6">
+    <div className="rounded-2xl bg-[var(--card)] card-shadow p-6">
       {/* Header row */}
       <div className="mb-5 flex items-start gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl stat-icon-blue">
@@ -56,8 +56,8 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
           </svg>
         </div>
         <div>
-          <h2 className="text-base font-semibold text-slate-900">Run a new scan</h2>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Run a new scan</h2>
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             Fetches your website&apos;s homepage and analyses it for cookies, scripts, pixels, and tracking technologies.
           </p>
         </div>
@@ -65,14 +65,14 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
 
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] flex-1">
-          <label className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
             Website
           </label>
           <select
             value={websiteId}
             onChange={(e) => setWebsiteId(e.target.value)}
             required
-            className="h-10 w-full rounded-2xl border border-slate-200 bg-white px-3 text-sm text-slate-800 shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 transition"
+            className="h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
           >
             {websites.map((w) => (
               <option key={w.id} value={w.id}>
@@ -88,7 +88,7 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
       </form>
 
       {error && (
-        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="mt-4 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
           {error}
         </div>
       )}

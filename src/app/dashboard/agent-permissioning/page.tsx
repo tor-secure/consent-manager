@@ -17,7 +17,7 @@ export default async function AgentPermissioningPage() {
       />
 
       {sites.length === 0 ? (
-        <EmptyState title="No website available for permission checks" description="Add a website and collect a consent record before evaluating agent access." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+        <EmptyState title="No website available for permission checks" description="Add a website, install the SDK, and collect a consent record before evaluating agent access." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <AgentPermissionTool websites={sites.map((s) => ({ id: s.id, name: s.name }))} />
       )}

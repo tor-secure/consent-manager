@@ -6,6 +6,9 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { loadTransfersPage } from "@/lib/processing/dashboard-queries";
 import { ProcessingActivityForm, TransferForm } from "@/components/vendors/processing-forms";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBanner } from "@/components/ui/status-banner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default async function TransfersPage() {
   const { orgId } = await auth();
@@ -22,68 +25,74 @@ export default async function TransfersPage() {
 
   return (
     <div className="page-wrap space-y-6">
-      <div>
-        <h1 className="page-title">Transfers and processing</h1>
-        <p className="page-description">
-          Record processing activities and cross-border transfers. Publication uses this inventory; published policy snapshots stay frozen after go-live.
-        </p>
-      </div>
+      <PageHeader
+        title="Transfers and processing"
+        description="Record processing activities and cross-border transfers. Publication uses this inventory; published policy snapshots stay frozen after go-live."
+      />
       {schemaLimited && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <StatusBanner variant="warning">
           Transfer and processing tables are not in this database yet. Apply pending schema
           (npm run db:ensure-schema) before recording transfers.
-        </div>
+        </StatusBanner>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow">
-        <h2 className="text-base font-semibold text-slate-900">Transfer records</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Transfer records</CardTitle>
+        </CardHeader>
+        <CardContent>
         {transferRows.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No transfers recorded yet.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">No transfers recorded yet.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="min-w-full text-sm">
+          <div className="table-scroll">
+            <table className="data-table min-w-full">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-500">
-                  <th className="py-2">Vendor</th>
-                  <th className="py-2">Route</th>
-                  <th className="py-2">Mechanism</th>
-                  <th className="py-2">Status</th>
+                <tr>
+                  <th>Vendor</th>
+                  <th>Route</th>
+                  <th>Mechanism</th>
+                  <th>Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {transferRows.map((row) => (
                   <tr key={row.id}>
-                    <td className="py-2">
-                      <Link className="text-indigo-600 hover:underline" href={`/dashboard/vendors/${row.vendorId}`}>Open vendor</Link>
+                    <td>
+                      <Link className="text-[var(--primary)] hover:underline" href={`/dashboard/vendors/${row.vendorId}`}>Open vendor</Link>
                     </td>
-                    <td className="py-2">{row.sourceCountry ?? "?"} → {row.destinationCountry || row.destinationRegion || "?"}</td>
-                    <td className="py-2">{row.mechanism}</td>
-                    <td className="py-2">{row.status}</td>
+                    <td>{row.sourceCountry ?? "?"} → {row.destinationCountry || row.destinationRegion || "?"}</td>
+                    <td>{row.mechanism}</td>
+                    <td>{row.status}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </section>
+        </CardContent>
+      </Card>
 
       <TransferForm vendors={orgVendors} websites={orgWebsites} />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 card-shadow">
-        <h2 className="text-base font-semibold text-slate-900">Processing activities</h2>
+      <Card>
+        <CardHeader>
+          <CardTitle>Processing activities</CardTitle>
+        </CardHeader>
+        <CardContent>
         {activityRows.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No processing activities recorded yet.</p>
+          <p className="text-sm text-[var(--muted-foreground)]">No processing activities recorded yet.</p>
         ) : (
-          <ul className="mt-3 space-y-2 text-sm">
+          <ul className="space-y-2 text-sm">
             {activityRows.map((row) => (
-              <li key={row.id} className="rounded-xl bg-slate-50 px-3 py-2">
-                <Link className="text-indigo-600 hover:underline" href={`/dashboard/vendors/${row.vendorId}`}>Vendor</Link>
+              <li key={row.id} className="rounded-xl bg-[var(--muted)] px-3 py-2">
+                <Link className="text-[var(--primary)] hover:underline" href={`/dashboard/vendors/${row.vendorId}`}>Vendor</Link>
                 {" · "}{row.processingRole} · {(row.dataCategories ?? []).join(", ") || "no categories"} · {row.status}
               </li>
             ))}
           </ul>
         )}
-      </section>
+        </CardContent>
+      </Card>
 
       <ProcessingActivityForm vendors={orgVendors} websites={orgWebsites} purposes={orgPurposes} />
     </div>

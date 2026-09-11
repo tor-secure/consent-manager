@@ -1,23 +1,7 @@
 "use client";
 
 import type { BannerConfiguration, BannerPosition } from "@/lib/banner-config";
-
-// ---------------------------------------------------------------------------
-// BannerRenderer
-//
-// Renders a full-fidelity, interactive-looking consent banner from a
-// BannerConfiguration. Used both inside the studio live preview (overlaid on
-// the iframe / mock page) and as a standalone preview thumbnail.
-//
-// Props:
-//   config      — the current BannerConfiguration
-//   scale       — optional CSS scale transform (e.g. 0.85) applied to the
-//                 banner wrapper so it fits inside the preview viewport without
-//                 clipping. Defaults to 1.
-//   onAccept    — optional click handler for the Accept button (preview only)
-//   onReject    — optional click handler for the Reject button
-//   onCustomize — optional click handler for the Customize link
-// ---------------------------------------------------------------------------
+import { bannerUsesOverlay } from "@/lib/banner-config";
 
 interface BannerRendererProps {
   config: BannerConfiguration;
@@ -27,7 +11,6 @@ interface BannerRendererProps {
   onCustomize?: () => void;
 }
 
-// Map position → Tailwind absolute-positioning classes for the outer wrapper.
 const POSITION_STYLES: Record<BannerPosition, React.CSSProperties> = {
   bottom: {
     position: "absolute",
@@ -45,13 +28,13 @@ const POSITION_STYLES: Record<BannerPosition, React.CSSProperties> = {
     position: "absolute",
     bottom: 16,
     left: 16,
-    maxWidth: 380,
+    maxWidth: 400,
   },
   "bottom-right": {
     position: "absolute",
     bottom: 16,
     right: 16,
-    maxWidth: 380,
+    maxWidth: 400,
   },
   center: {
     position: "absolute",
@@ -59,7 +42,7 @@ const POSITION_STYLES: Record<BannerPosition, React.CSSProperties> = {
     left: "50%",
     transform: "translate(-50%, -50%)",
     maxWidth: 480,
-    width: "90%",
+    width: "calc(100% - 32px)",
   },
 };
 
@@ -75,7 +58,7 @@ function resolvedPositionStyle(config: BannerConfiguration): React.CSSProperties
         left: "50%",
         transform: "translateX(-50%)",
         maxWidth: 420,
-        width: "90%",
+        width: "calc(100% - 32px)",
       };
     }
     if (config.position === "center") return POSITION_STYLES.center;
@@ -87,10 +70,61 @@ function resolvedPositionStyle(config: BannerConfiguration): React.CSSProperties
       left: "50%",
       transform: "translateX(-50%)",
       maxWidth: 420,
-      width: "90%",
+      width: "calc(100% - 32px)",
     };
   }
   return POSITION_STYLES[config.position] ?? POSITION_STYLES.bottom;
+}
+
+function hexToRgb(hex: string): string {
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return "44,74,124";
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  if ([r, g, b].some((n) => Number.isNaN(n))) return "44,74,124";
+  return `${r},${g},${b}`;
+}
+
+export function CmpScrollStyles({ color }: { color: string }) {
+  const rgb = hexToRgb(color);
+  return (
+    <style>{`
+      [data-cmp-scroll] {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(${rgb}, 0.5) transparent;
+      }
+      [data-cmp-scroll]::-webkit-scrollbar { width: 8px; height: 8px; }
+      [data-cmp-scroll]::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.04);
+        border-radius: 999px;
+        margin: 8px 2px;
+      }
+      [data-cmp-scroll]::-webkit-scrollbar-thumb {
+        background: rgba(${rgb}, 0.4);
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+      [data-cmp-scroll]::-webkit-scrollbar-thumb:hover {
+        background: rgba(${rgb}, 0.72);
+        border: 2px solid transparent;
+        background-clip: content-box;
+      }
+    `}</style>
+  );
+}
+
+export function BannerOverlay({ config }: { config: BannerConfiguration }) {
+  if (!bannerUsesOverlay(config)) return null;
+  const tint = config.overlayEnabled || config.layout === "dialog";
+  return (
+    <div
+      className="pointer-events-none absolute inset-0"
+      style={{ background: tint ? "rgba(15,23,42,0.45)" : "transparent" }}
+      aria-hidden="true"
+    />
+  );
 }
 
 export function BannerRenderer({
@@ -102,37 +136,42 @@ export function BannerRenderer({
 }: BannerRendererProps) {
   const isBar = config.layout === "bar";
   const isDialog = config.layout === "dialog";
-  const isBox = config.layout === "box";
-
   const posStyle = resolvedPositionStyle(config);
 
   const bannerStyle: React.CSSProperties = {
     backgroundColor: config.backgroundColor,
     color: config.textColor,
     borderRadius: config.borderRadius,
-    padding: isBar ? "12px 20px" : isDialog ? "28px" : "20px",
-    boxShadow: "0 4px 24px rgba(0,0,0,0.13), 0 1.5px 6px rgba(0,0,0,0.07)",
-    border: `1px solid ${config.backgroundColor === "#ffffff" ? "#e5e7eb" : "transparent"}`,
-    fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    padding: isBar ? "16px 24px" : isDialog ? "28px" : "20px",
+    boxShadow: "0 8px 32px rgba(15,23,42,0.18)",
+    fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
     fontSize: 14,
     lineHeight: 1.55,
     width: "100%",
-    boxSizing: "border-box" as const,
+    boxSizing: "border-box",
+    position: "relative",
+    display: "flex",
+    flexDirection: isBar ? "row" : "column",
+    flexWrap: isBar ? "wrap" : undefined,
+    alignItems: isBar ? "center" : undefined,
+    gap: isBar ? 12 : 14,
+    maxHeight: isBar ? undefined : "min(86vh, 640px)",
+    overflow: isBar ? undefined : "hidden",
+    textAlign: "start",
   };
 
   const btnBase: React.CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "7px 16px",
+    padding: "8px 16px",
     borderRadius: Math.max(4, config.borderRadius - 2),
     fontSize: 13,
     fontWeight: 600,
     cursor: "pointer",
-    whiteSpace: "nowrap" as const,
+    whiteSpace: "normal",
+    maxWidth: "100%",
     border: "none",
-    transition: "opacity 0.15s",
   };
 
   const btnPrimary: React.CSSProperties = {
@@ -154,7 +193,7 @@ export function BannerRenderer({
     border: "none",
     color: config.primaryColor,
     textDecoration: "underline",
-    padding: "7px 8px",
+    padding: 8,
     fontWeight: 400,
   };
 
@@ -174,144 +213,309 @@ export function BannerRenderer({
       .join(" "),
   };
 
+  const actionButtons = (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      {config.showAcceptAll && (
+        <button type="button" style={btnPrimary} onClick={onAccept}>
+          {config.acceptAllLabel || "Accept all"}
+        </button>
+      )}
+      {config.showRejectAll && (
+        <button type="button" style={btnOutline} onClick={onReject}>
+          {config.rejectAllLabel || "Reject all"}
+        </button>
+      )}
+      {config.showCustomize && (
+        <button type="button" style={btnGhost} onClick={onCustomize}>
+          {config.customizeLabel || "Customize"}
+        </button>
+      )}
+    </div>
+  );
+
   return (
     <div style={scaledWrapper} aria-label="Consent banner preview">
-      <div style={{ ...bannerStyle, position: "relative" }}>
-        {/* Close button */}
+      <div style={bannerStyle}>
         {config.showCloseButton && (
           <button
-            aria-label="Close"
+            type="button"
+            aria-label={config.closeLabel || "Close"}
             style={{
               position: "absolute",
-              top: 10,
-              right: 12,
+              top: 8,
+              right: 10,
               background: "none",
               border: "none",
               cursor: "pointer",
-              color: config.textColor,
+              color: "inherit",
               opacity: 0.5,
-              fontSize: 18,
+              fontSize: 20,
               lineHeight: 1,
               padding: 0,
             }}
           >
-            ✕
+            ×
           </button>
         )}
 
-        {/* Bar layout — horizontal */}
-        {isBar ? (
+        {(config.title || config.description) && (
           <div
+            data-cmp-scroll={isBar ? undefined : ""}
             style={{
-              display: "flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: 12,
+              flex: isBar ? 1 : "1 1 auto",
+              minWidth: isBar ? 200 : 0,
+              minHeight: isBar ? undefined : 0,
+              overflowY: isBar ? undefined : "auto",
+              overscrollBehavior: "contain",
+              scrollbarWidth: isBar ? undefined : "thin",
+              paddingRight: isBar ? undefined : 4,
             }}
           >
-            <div style={{ flex: 1, minWidth: 160 }}>
-              {config.title && (
-                <span style={{ fontWeight: 600, marginRight: 6 }}>
-                  {config.title}
-                </span>
-              )}
-              <span style={{ opacity: 0.75, fontSize: 13 }}>
-                {config.description.length > 120
-                  ? config.description.slice(0, 120) + "…"
-                  : config.description}
-              </span>
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              {config.showAcceptAll && (
-                <button style={btnPrimary} onClick={onAccept}>
-                  {config.acceptAllLabel || "Accept all"}
-                </button>
-              )}
-              {config.showRejectAll && (
-                <button style={btnOutline} onClick={onReject}>
-                  {config.rejectAllLabel || "Reject all"}
-                </button>
-              )}
-              {config.showCustomize && (
-                <button style={btnGhost} onClick={onCustomize}>
-                  {config.customizeLabel || "Customize"}
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* Box / Dialog layout — vertical */
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {config.title && (
-              <p style={{ fontWeight: 700, fontSize: isDialog ? 18 : 15, margin: 0 }}>
-                {config.title}
-              </p>
+              isBar ? (
+                <strong style={{ display: "block", margin: "0 0 6px 0", fontWeight: 700, fontSize: 15 }}>
+                  {config.title}
+                </strong>
+              ) : (
+                <p style={{ fontWeight: 700, fontSize: isDialog ? 18 : 15, margin: "0 0 6px 0" }}>
+                  {config.title}
+                </p>
+              )
             )}
             {config.description && (
-              <p style={{ opacity: 0.75, fontSize: 13, margin: 0, lineHeight: 1.6 }}>
-                {config.description.length > (isBox ? 180 : 300)
-                  ? config.description.slice(0, isBox ? 180 : 300) + "…"
-                  : config.description}
-              </p>
-            )}
-            {config.privacyPolicyUrl && config.privacyPolicyText && (
-              <a
-                href={config.privacyPolicyUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: config.primaryColor, fontSize: 12, textDecoration: "underline" }}
-              >
-                {config.privacyPolicyText}
-              </a>
-            )}
-            <div
-              style={{
-                display: "flex",
-                gap: 8,
-                flexWrap: "wrap",
-                alignItems: "center",
-                marginTop: 2,
-              }}
-            >
-              {config.showAcceptAll && (
-                <button style={btnPrimary} onClick={onAccept}>
-                  {config.acceptAllLabel || "Accept all"}
-                </button>
-              )}
-              {config.showRejectAll && (
-                <button style={btnOutline} onClick={onReject}>
-                  {config.rejectAllLabel || "Reject all"}
-                </button>
-              )}
-              {config.showCustomize && (
-                <button style={btnGhost} onClick={onCustomize}>
-                  {config.customizeLabel || "Customize"}
-                </button>
-              )}
-            </div>
-            {config.showPoweredBy && config.poweredByText && (
-              <p
+              <span
                 style={{
-                  opacity: 0.35,
-                  fontSize: 11,
-                  margin: 0,
-                  textAlign: "right",
+                  opacity: 0.75,
+                  fontSize: 13,
+                  display: "block",
+                  lineHeight: 1.55,
+                  overflowWrap: "anywhere",
                 }}
               >
-                {config.poweredByText}
-              </p>
+                {config.description}
+              </span>
             )}
           </div>
         )}
 
-        {/* Bar powered-by */}
-        {isBar && config.showPoweredBy && config.poweredByText && (
-          <span
-            style={{ fontSize: 11, opacity: 0.35, marginLeft: "auto", display: "block", textAlign: "right", marginTop: 4 }}
+        {config.privacyPolicyUrl && config.privacyPolicyText && (
+          <a
+            href={config.privacyPolicyUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "block",
+              color: config.primaryColor,
+              fontSize: 12,
+              textDecoration: "underline",
+            }}
+          >
+            {config.privacyPolicyText}
+          </a>
+        )}
+
+        {actionButtons}
+
+        {config.showPoweredBy && config.poweredByText && (
+          <div
+            style={{
+              fontSize: 11,
+              opacity: 0.4,
+              textAlign: "end",
+              width: isBar ? "100%" : undefined,
+            }}
           >
             {config.poweredByText}
-          </span>
+          </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+const PREVIEW_PURPOSES = [
+  { name: "Necessary", required: true, description: "Required for security, login, and storing this consent choice." },
+  { name: "Functional", required: false, description: "Remembers language, region, and other site preferences." },
+  { name: "Analytics", required: false, description: "Helps us understand how visitors use the site so we can improve it." },
+  { name: "Advertising", required: false, description: "Used to show relevant ads and measure campaigns." },
+  { name: "Personalization", required: false, description: "Shows more relevant content and recommendations." },
+];
+
+export function PreferenceCenterPreview({ config }: { config: BannerConfiguration }) {
+  return (
+    <div className="absolute inset-0 z-20" aria-label="Preference center preview">
+      <div className="absolute inset-0" style={{ background: "rgba(15,23,42,0.45)" }} />
+      <div
+        role="dialog"
+        aria-modal="true"
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(620px, calc(100% - 24px))",
+          maxHeight: "min(82%, 720px)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          background: config.backgroundColor,
+          color: config.textColor,
+          borderRadius: config.borderRadius,
+          boxShadow: "0 30px 80px -20px rgba(15,23,42,0.35), 0 10px 30px -10px rgba(15,23,42,0.2)",
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+          fontSize: 14,
+        }}
+      >
+        <div
+          style={{
+            padding: "22px 24px 14px 24px",
+            borderBottom: "1px solid rgba(15,23,42,0.08)",
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 16,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
+              {config.preferenceCenterTitle || "Manage your preferences"}
+            </h2>
+            <p style={{ margin: "6px 0 0 0", fontSize: 13, opacity: 0.7, lineHeight: 1.5 }}>
+              {config.preferenceCenterDescription ||
+                "Customize which purposes and vendors you allow. You can change your choices at any time."}
+            </p>
+          </div>
+          {config.showCloseButton !== false && (
+            <span
+              aria-hidden="true"
+              style={{
+                flexShrink: 0,
+                width: 36,
+                height: 36,
+                borderRadius: 12,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: 0.55,
+              }}
+            >
+              ×
+            </span>
+          )}
+        </div>
+
+        <div
+          data-cmp-scroll=""
+          style={{
+            flex: "1 1 auto",
+            minHeight: 0,
+            overflowY: "auto",
+            padding: "10px 20px 20px 18px",
+            scrollbarWidth: "thin",
+            overscrollBehavior: "contain",
+          }}
+        >
+          <p
+            style={{
+              margin: "12px 0 10px 0",
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              opacity: 0.6,
+            }}
+          >
+            {config.purposesHeading || "Purposes"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {PREVIEW_PURPOSES.map((purpose) => (
+              <div
+                key={purpose.name}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 14,
+                  padding: "12px 14px",
+                  borderRadius: 14,
+                  border: "1px solid rgba(15,23,42,0.08)",
+                  background: "rgba(15,23,42,0.03)",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{purpose.name}</span>
+                    {purpose.required && (
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "2px 8px",
+                          borderRadius: 999,
+                          background: "rgba(15,23,42,0.08)",
+                        }}
+                      >
+                        {config.requiredLabel || "Required"}
+                      </span>
+                    )}
+                  </div>
+                  {config.showPurposeDescriptions && (
+                    <p style={{ margin: "4px 0 0 0", fontSize: 12, opacity: 0.7, lineHeight: 1.45 }}>
+                      {purpose.description}
+                    </p>
+                  )}
+                </div>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 36,
+                    height: 20,
+                    borderRadius: 999,
+                    background: purpose.required ? config.primaryColor : "rgba(15,23,42,0.18)",
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div
+          style={{
+            padding: "14px 24px 22px 24px",
+            borderTop: "1px solid rgba(15,23,42,0.08)",
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          {config.showRejectAll && (
+            <span
+              style={{
+                borderRadius: 12,
+                padding: "10px 16px",
+                fontSize: 13.5,
+                fontWeight: 600,
+                border: `1.5px solid ${config.primaryColor}`,
+                color: config.primaryColor,
+              }}
+            >
+              {config.rejectAllLabel || "Reject all"}
+            </span>
+          )}
+          <span
+            style={{
+              borderRadius: 12,
+              padding: "10px 16px",
+              fontSize: 13.5,
+              fontWeight: 600,
+              background: config.primaryColor,
+              color: "#fff",
+            }}
+          >
+            {config.savePreferencesLabel || "Save preferences"}
+          </span>
+        </div>
       </div>
     </div>
   );

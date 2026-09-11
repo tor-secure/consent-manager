@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { eq, desc, inArray } from "drizzle-orm";
+import { and, eq, desc, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
@@ -11,6 +10,8 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
 
 // ---------------------------------------------------------------------------
 // Icons
@@ -53,15 +54,6 @@ function IconWithdrawn() {
   );
 }
 
-function IconEmpty() {
-  return (
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300">
-      <path d="M9 12l2 2 4-4" />
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-    </svg>
-  );
-}
-
 // ---------------------------------------------------------------------------
 // Status badge mapped to the design system Badge component
 // ---------------------------------------------------------------------------
@@ -96,15 +88,15 @@ function fmt(date: Date | null) {
 }
 
 function OptInRate({ accepted, total }: { accepted: number; total: number }) {
-  if (total === 0) return <span className="text-slate-400">—</span>;
+  if (total === 0) return <span className="text-[var(--muted-foreground)]">—</span>;
   const pct = Math.round((accepted / total) * 100);
-  const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-rose-500";
+  const color = pct >= 70 ? "bg-[var(--success)]" : pct >= 40 ? "bg-[var(--warning)]" : "bg-[var(--danger)]";
   return (
     <div className="flex items-center gap-2.5">
-      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-slate-100">
+      <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[var(--secondary)]">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs font-medium text-slate-600">{pct}%</span>
+      <span className="text-xs font-medium text-[var(--muted-foreground)]">{pct}%</span>
     </div>
   );
 }
@@ -114,16 +106,7 @@ function OptInRate({ accepted, total }: { accepted: number; total: number }) {
 // ---------------------------------------------------------------------------
 
 export default async function ConsentRecordsPage() {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
-  const [localOrg] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-
-  if (!localOrg) return null;
+  const { organization: localOrg } = await requireDashboardContext();
 
   const orgWebsites = await db
     .select({ id: websites.id, name: websites.name, domain: websites.domain })
@@ -133,9 +116,44 @@ export default async function ConsentRecordsPage() {
   const websiteIds = orgWebsites.map((w) => w.id);
   const websiteMap = new Map(orgWebsites.map((w) => [w.id, w]));
 
-  const records =
+  const LIST_LIMIT = 50;
+
+  const emptyTotals = {
+    total: 0,
+    accepted: 0,
+    rejected: 0,
+    withdrawn: 0,
+    partial: 0,
+    pending: 0,
+  };
+
+  const [statusRows, websiteStatRows, records, publishedPolicyRows] = await Promise.all([
     websiteIds.length > 0
-      ? await db
+      ? db
+          .select({
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
+            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
+            pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
+          })
+          .from(consentRecords)
+          .where(inArray(consentRecords.websiteId, websiteIds))
+      : Promise.resolve([emptyTotals]),
+    websiteIds.length > 0
+      ? db
+          .select({
+            websiteId: consentRecords.websiteId,
+            total: sql<number>`count(*)::int`,
+            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
+          })
+          .from(consentRecords)
+          .where(inArray(consentRecords.websiteId, websiteIds))
+          .groupBy(consentRecords.websiteId)
+      : Promise.resolve([]),
+    websiteIds.length > 0
+      ? db
           .select({
             id: consentRecords.id,
             consentId: consentRecords.consentId,
@@ -153,8 +171,22 @@ export default async function ConsentRecordsPage() {
           .from(consentRecords)
           .where(inArray(consentRecords.websiteId, websiteIds))
           .orderBy(desc(consentRecords.createdAt))
-          .limit(200)
-      : [];
+          .limit(LIST_LIMIT)
+      : Promise.resolve([]),
+    websiteIds.length > 0
+      ? db
+          .select({ id: consentPolicyVersions.id })
+          .from(consentPolicyVersions)
+          .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+          .where(
+            and(
+              inArray(consentPolicies.websiteId, websiteIds),
+              eq(consentPolicyVersions.isPublished, true),
+            ),
+          )
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
 
   const versionIds = [...new Set(records.map((r) => r.policyVersionId))];
   const versionRows =
@@ -180,59 +212,44 @@ export default async function ConsentRecordsPage() {
 
   const versionMap = new Map(versionRows.map((v) => [v.id, v]));
   const policyMap = new Map(policyRows.map((p) => [p.id, p]));
+  const websiteStats = new Map(websiteStatRows.map((row) => [row.websiteId, row]));
 
-  // Summary counts
-  const total = records.length;
-  const accepted = records.filter((r) => r.status === "accepted").length;
-  const rejected = records.filter((r) => r.status === "rejected").length;
-  const withdrawn = records.filter((r) => r.status === "withdrawn").length;
-  const partial = records.filter((r) => r.status === "partial").length;
-  const pending = records.filter((r) => r.status === "pending").length;
+  const totals = statusRows[0] ?? emptyTotals;
+  const total = totals.total;
+  const accepted = totals.accepted;
+  const rejected = totals.rejected;
+  const withdrawn = totals.withdrawn;
+  const partial = totals.partial;
+  const pending = totals.pending;
 
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
 
-      {/* ── Page header ──────────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">
-            Consent Records
-          </h1>
-          <p className="page-description">
-            Visitor consent records across all your websites.
-          </p>
-        </div>
-        {total > 0 && (
-          <div className="flex items-center gap-1.5 self-start rounded-2xl bg-white px-4 py-2 text-sm font-medium text-slate-600 soft-shadow">
-            <span className="h-2 w-2 rounded-full bg-indigo-500" />
-            {total.toLocaleString()} record{total !== 1 ? "s" : ""}
-          </div>
-        )}
-      </div>
+      <PageHeader
+        title="Consent Records"
+        description="Visitor consent records across all your websites."
+        action={
+          total > 0 ? (
+            <div className="flex items-center gap-1.5 self-start rounded-2xl bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] soft-shadow">
+              <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />
+              {total.toLocaleString()} record{total !== 1 ? "s" : ""}
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* ── No websites empty state ──────────────────────────────────────── */}
       {websiteIds.length === 0 && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-              <IconEmpty />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-slate-700">No websites yet</p>
-              <p className="mt-1 text-sm text-[var(--muted-foreground)]">Add a website to start collecting consent records.</p>
-            </div>
-            <Link
-              href="/dashboard/websites/new"
-              className="mt-1 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
-            >
-              Add a website
-            </Link>
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="No websites yet"
+          description="Add a website to start collecting consent records."
+          actionLabel="Add a website"
+          actionHref="/dashboard/websites/new"
+        />
       )}
 
       {/* ── Has websites, no records yet ─────────────────────────────────── */}
-      {websiteIds.length > 0 && records.length === 0 && (
+      {websiteIds.length > 0 && total === 0 && (
         <>
           {/* Still show zeroed stat cards */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -242,28 +259,25 @@ export default async function ConsentRecordsPage() {
             <StatCard label="Withdrawn" value={0} icon={<IconWithdrawn />} iconColor="amber" />
           </div>
 
-          <Card>
-            <CardContent className="flex flex-col items-center gap-4 py-16 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-50">
-                <IconEmpty />
-              </div>
-              <div>
-                <p className="text-base font-semibold text-slate-700">No consent records yet</p>
-                <p className="mt-1 text-sm text-[var(--muted-foreground)]">Records appear here as visitors interact with your consent banner.</p>
-              </div>
-              <Link
-                href="/dashboard/policies"
-                className="mt-1 inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700"
-              >
-                View policies
-              </Link>
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="No consent records yet"
+            description={
+              publishedPolicyRows.length > 0
+                ? "A policy is published. Install the SDK so visitors can see the banner and leave a record."
+                : "Publish a policy, then install the SDK. Records appear after a visitor makes a choice."
+            }
+            actionLabel={publishedPolicyRows.length > 0 ? "Install SDK" : "Review and publish"}
+            actionHref={
+              publishedPolicyRows.length > 0
+                ? `/dashboard/websites/${orgWebsites[0].id}/installation`
+                : "/dashboard/policies"
+            }
+          />
         </>
       )}
 
       {/* ── Records present ───────────────────────────────────────────────── */}
-      {records.length > 0 && (
+      {total > 0 && (
         <>
           {/* Stat cards */}
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -309,17 +323,17 @@ export default async function ConsentRecordsPage() {
           {(partial > 0 || pending > 0) && (
             <div className="flex flex-wrap items-center gap-2">
               {partial > 0 && (
-                <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
-                  <span className="h-2 w-2 rounded-full bg-indigo-400" />
-                  <span className="font-medium text-slate-700">{partial}</span>
-                  <span className="text-slate-500">partial</span>
+                <div className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
+                  <span className="h-2 w-2 rounded-full bg-[var(--primary)]" />
+                  <span className="font-medium text-[var(--foreground)]">{partial}</span>
+                  <span className="text-[var(--muted-foreground)]">partial</span>
                 </div>
               )}
               {pending > 0 && (
-                <div className="flex items-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm soft-shadow">
-                  <span className="h-2 w-2 rounded-full bg-amber-400" />
-                  <span className="font-medium text-slate-700">{pending}</span>
-                  <span className="text-slate-500">pending</span>
+                <div className="flex items-center gap-2 rounded-2xl bg-[var(--card)] px-4 py-2 text-sm soft-shadow">
+                  <span className="h-2 w-2 rounded-full bg-[var(--warning)]" />
+                  <span className="font-medium text-[var(--foreground)]">{pending}</span>
+                  <span className="text-[var(--muted-foreground)]">pending</span>
                 </div>
               )}
             </div>
@@ -331,20 +345,23 @@ export default async function ConsentRecordsPage() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Opt-in rate by website</CardTitle>
               </CardHeader>
-              <CardContent className="pt-0">
+              <CardContent>
                 <div className="space-y-3">
                   {orgWebsites.map((site) => {
-                    const siteRecords = records.filter((r) => r.websiteId === site.id);
-                    const siteAccepted = siteRecords.filter((r) => r.status === "accepted").length;
+                    const stats = websiteStats.get(site.id);
+                    const siteTotal = stats?.total ?? 0;
+                    const siteAccepted = stats?.accepted ?? 0;
                     return (
-                      <div key={site.id} className="flex items-center gap-4">
+                      <div key={site.id} className="flex items-start gap-4">
                         <div className="w-36 min-w-0 shrink-0">
-                          <p className="truncate text-sm font-medium text-slate-700">{site.name}</p>
-                          <p className="truncate text-xs text-slate-400">{site.domain}</p>
+                          <p className="truncate text-sm font-medium leading-snug text-[var(--foreground)]">{site.name}</p>
+                          <p className="mt-0.5 truncate text-xs text-[var(--muted-foreground)]">{site.domain}</p>
                         </div>
-                        <OptInRate accepted={siteAccepted} total={siteRecords.length} />
-                        <span className="ml-auto text-xs text-slate-400">
-                          {siteRecords.length.toLocaleString()} records
+                        <div className="mt-0.5 min-w-0 flex-1">
+                          <OptInRate accepted={siteAccepted} total={siteTotal} />
+                        </div>
+                        <span className="mt-0.5 ml-auto text-xs text-[var(--muted-foreground)]">
+                          {siteTotal.toLocaleString()} records
                         </span>
                       </div>
                     );
@@ -356,45 +373,45 @@ export default async function ConsentRecordsPage() {
 
           {/* Records table */}
           <Card>
-            <CardHeader className="border-b border-slate-100 pb-4">
+            <CardHeader className="border-b border-[var(--border)] pb-4">
               <div className="flex items-center justify-between gap-4">
                 <CardTitle className="text-base">Recent records</CardTitle>
-                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
-                  {total > 200 ? "200 of " + total.toLocaleString() : total.toLocaleString()} shown
+                <span className="rounded-full bg-[var(--secondary)] px-2.5 py-0.5 text-xs font-medium text-[var(--muted-foreground)]">
+                  {total > LIST_LIMIT ? `${LIST_LIMIT} of ${total.toLocaleString()}` : total.toLocaleString()} shown
                 </span>
               </div>
             </CardHeader>
             <div className="table-scroll scrollbar-thin">
               <table className="min-w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50/60">
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Consent ID
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Website
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Policy
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Status
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Source
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Jurisdiction
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Consented
                     </th>
-                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
                       Expires
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-[var(--border)]">
                   {records.map((record) => {
                     const site = websiteMap.get(record.websiteId);
                     const ver = versionMap.get(record.policyVersionId);
@@ -403,16 +420,16 @@ export default async function ConsentRecordsPage() {
                     return (
                       <tr
                         key={record.id}
-                        className="group transition-colors hover:bg-slate-50/80"
+                        className="group transition-colors hover:bg-[var(--muted)]/80"
                       >
                         {/* Consent ID */}
                         <td className="px-5 py-3.5">
-                          <code className="rounded-lg bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600 group-hover:bg-indigo-50 group-hover:text-indigo-700 transition-colors">
+                          <code className="rounded-lg bg-[var(--secondary)] px-2 py-1 font-mono text-xs text-[var(--muted-foreground)] group-hover:bg-[var(--info-soft)] group-hover:text-[var(--primary)] transition-colors">
                             {record.consentId.slice(0, 18)}…
                           </code>
                           <Link
                             href={`/dashboard/consent/${record.consentId}`}
-                            className="mt-1 block text-[11px] font-medium text-indigo-600 hover:text-indigo-700"
+                            className="mt-1 block text-[11px] font-medium text-[var(--primary)] hover:text-[var(--primary)]"
                           >
                             Proof
                           </Link>
@@ -425,13 +442,13 @@ export default async function ConsentRecordsPage() {
                               href={`/dashboard/websites/${site.id}`}
                               className="group/link"
                             >
-                              <p className="font-medium text-slate-800 group-hover/link:text-indigo-600 transition-colors">
+                              <p className="font-medium text-[var(--foreground)] group-hover/link:text-[var(--primary)] transition-colors">
                                 {site.name}
                               </p>
-                              <p className="text-xs text-slate-400">{site.domain}</p>
+                              <p className="text-xs text-[var(--muted-foreground)]">{site.domain}</p>
                             </Link>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-[var(--muted-foreground)]">—</span>
                           )}
                         </td>
 
@@ -439,7 +456,7 @@ export default async function ConsentRecordsPage() {
                         <td className="px-5 py-3.5">
                           {pol ? (
                             <div>
-                              <p className="font-medium text-slate-700">{pol.name}</p>
+                              <p className="font-medium text-[var(--foreground)]">{pol.name}</p>
                               {ver && (
                                 <Badge variant="neutral" size="sm" className="mt-0.5">
                                   v{ver.version}
@@ -447,7 +464,7 @@ export default async function ConsentRecordsPage() {
                               )}
                             </div>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-[var(--muted-foreground)]">—</span>
                           )}
                         </td>
 
@@ -458,7 +475,7 @@ export default async function ConsentRecordsPage() {
 
                         {/* Source */}
                         <td className="px-5 py-3.5">
-                          <span className="capitalize text-slate-500">{record.source ?? "—"}</span>
+                          <span className="capitalize text-[var(--muted-foreground)]">{record.source ?? "—"}</span>
                         </td>
 
                         {/* Jurisdiction */}
@@ -468,12 +485,12 @@ export default async function ConsentRecordsPage() {
                               {record.jurisdiction}
                             </Badge>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-[var(--muted-foreground)]">—</span>
                           )}
                         </td>
 
                         {/* Consented */}
-                        <td className="px-5 py-3.5 text-slate-500">
+                        <td className="px-5 py-3.5 text-[var(--muted-foreground)]">
                           {fmt(record.consentedAt)}
                         </td>
 
@@ -482,14 +499,14 @@ export default async function ConsentRecordsPage() {
                           {record.withdrawnAt ? (
                             <div>
                               <Badge variant="neutral" size="sm">Withdrawn</Badge>
-                              <p className="mt-0.5 text-xs text-slate-400">
+                              <p className="mt-0.5 text-xs text-[var(--muted-foreground)]">
                                 {fmt(record.withdrawnAt)}
                               </p>
                             </div>
                           ) : record.expiresAt ? (
-                            <span className="text-slate-500">{fmt(record.expiresAt)}</span>
+                            <span className="text-[var(--muted-foreground)]">{fmt(record.expiresAt)}</span>
                           ) : (
-                            <span className="text-slate-400">—</span>
+                            <span className="text-[var(--muted-foreground)]">—</span>
                           )}
                         </td>
                       </tr>
@@ -499,10 +516,10 @@ export default async function ConsentRecordsPage() {
               </table>
             </div>
 
-            {total > 200 && (
-              <div className="border-t border-slate-100 px-5 py-3 text-center">
-                <p className="text-xs text-slate-400">
-                  Showing the 200 most recent records. Use the API to export all records.
+            {total > LIST_LIMIT && (
+              <div className="border-t border-[var(--border)] px-5 py-3 text-center">
+                <p className="text-xs text-[var(--muted-foreground)]">
+                  Showing the {LIST_LIMIT} most recent records. Use the API to export all records.
                 </p>
               </div>
             )}

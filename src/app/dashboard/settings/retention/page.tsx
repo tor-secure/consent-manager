@@ -13,6 +13,7 @@ import {
   DataRetentionPanel,
   type LegalHoldRow,
 } from "@/components/settings/data-retention-panel";
+import { PageHeader } from "@/components/ui/page-header";
 
 const EDIT_ROLES = ["Owner", "Admin"];
 
@@ -67,13 +68,10 @@ export default async function DataRetentionPage() {
 
   return (
     <div className="page-wrap space-y-6">
-      <div>
-        <h1 className="page-title">Data retention</h1>
-        <p className="page-description">
-          Configure how long {organization.name} keeps historical evidence versus current operational data.
-          Retention periods are selected by the organization; this product does not prescribe a legally required period.
-        </p>
-      </div>
+      <PageHeader
+        title="Data retention"
+        description={`Configure how long ${organization.name} keeps historical evidence versus current operational data. Retention periods are selected by the organization; this product does not prescribe a legally required period.`}
+      />
       <DataRetentionPanel
         canEdit={canEdit}
         initial={{

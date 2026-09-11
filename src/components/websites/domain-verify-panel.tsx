@@ -54,10 +54,10 @@ export function DomainVerifyPanel({
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-slate-800">
+          <p className="text-sm font-medium text-[var(--foreground)]">
             {verified ? "This domain is verified" : "Prove you control this domain"}
           </p>
-          <p className="mt-0.5 text-sm text-slate-500">
+          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
             {verified
               ? verifiedAt
                 ? `Verified ${new Date(verifiedAt).toLocaleDateString("en-GB", {
@@ -81,31 +81,31 @@ export function DomainVerifyPanel({
       ) : null}
 
       <ol className="space-y-3 text-sm">
-        <li className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-slate-800">1. DNS TXT record</p>
+            <p className="font-medium text-[var(--foreground)]">1. DNS TXT record</p>
             <CopyButton text={txtRecord} />
           </div>
-          <p className="mt-1 text-slate-500">
+          <p className="mt-1 text-[var(--muted-foreground)]">
             Host <span className="font-mono text-xs">@</span> on{" "}
             <span className="font-mono text-xs">{domain}</span>
           </p>
-          <code className="mt-2 block break-all font-mono text-xs text-slate-700">{txtRecord}</code>
+          <code className="mt-2 block break-all font-mono text-xs text-[var(--foreground)]">{txtRecord}</code>
         </li>
-        <li className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-slate-800">2. Homepage meta tag</p>
+            <p className="font-medium text-[var(--foreground)]">2. Homepage meta tag</p>
             <CopyButton text={metaTag} />
           </div>
-          <p className="mt-1 text-slate-500">Paste into the &lt;head&gt; of the homepage.</p>
-          <code className="mt-2 block break-all font-mono text-xs text-slate-700">{metaTag}</code>
+          <p className="mt-1 text-[var(--muted-foreground)]">Paste into the &lt;head&gt; of the homepage.</p>
+          <code className="mt-2 block break-all font-mono text-xs text-[var(--foreground)]">{metaTag}</code>
         </li>
-        <li className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
+        <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
           <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-slate-800">3. Well-known file</p>
+            <p className="font-medium text-[var(--foreground)]">3. Well-known file</p>
             <CopyButton text={token} />
           </div>
-          <p className="mt-1 text-slate-500">
+          <p className="mt-1 text-[var(--muted-foreground)]">
             Serve the token as plain text at{" "}
             <span className="font-mono text-xs">{fileUrl}</span>
           </p>

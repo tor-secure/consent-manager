@@ -68,7 +68,7 @@ export default async function NegotiationPage({
       />
 
       {sites.length === 0 ? (
-        <EmptyState title="No website available for negotiation" description="Add a website and generate quality inputs before building a target-based remediation plan." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
+        <EmptyState title="No website available for negotiation" description="Add a website, run a scan, and publish a policy before building a target-based remediation plan." actionLabel="Add a website" actionHref="/dashboard/websites/new" />
       ) : (
         <>
           <WebsiteFilter action="/dashboard/negotiation" websites={sites.map((s) => ({ id: s.id, name: s.name }))} selected={websiteId} />
@@ -86,11 +86,12 @@ export default async function NegotiationPage({
           </FormCard>
 
           {!loaded || !baseline || !plan ? (
-            <Card>
-              <CardContent className="p-8 text-sm text-[var(--muted-foreground)]">
-                Negotiation inputs are unavailable for this website.
-              </CardContent>
-            </Card>
+            <EmptyState
+              title="Negotiation inputs are not ready"
+              description="Run a scan so quality inputs exist, then return here to build a target-based plan."
+              actionLabel="Open scanner"
+              actionHref={websiteId ? `/dashboard/scanner?website=${websiteId}` : "/dashboard/scanner"}
+            />
           ) : (
             <div className="space-y-6">
               <Card>

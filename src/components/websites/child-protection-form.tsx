@@ -11,9 +11,9 @@ const inputCls = "field-input";
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-slate-700">{label}</label>
+      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
@@ -93,16 +93,16 @@ export function ChildProtectionForm({
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6">
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
+        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
           <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
           Enable child protection
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
           <input type="checkbox" checked={childDirected} onChange={(event) => setChildDirected(event.target.checked)} />
           Website is child-directed
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
           <input
             type="checkbox"
             checked={ageAssuranceRequired || childDirected}
@@ -113,7 +113,7 @@ export function ChildProtectionForm({
         <Field label="Minimum age threshold" hint="Set per website/jurisdiction. Do not assume one global age.">
           <input className={inputCls} value={minimumAge} onChange={(event) => setMinimumAge(event.target.value)} inputMode="numeric" />
         </Field>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
           <input
             type="checkbox"
             checked={guardianConsentRequired}
@@ -140,13 +140,13 @@ export function ChildProtectionForm({
             <option value="self_declaration">Self-declaration only (not verified)</option>
           </select>
         </Field>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save child protection"}</Button>
       </form>
 
-      <form onSubmit={handleAttest} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6">
-        <h2 className="text-base font-semibold text-slate-900">Staff attestation</h2>
-        <p className="text-sm text-slate-500">
+      <form onSubmit={handleAttest} className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
+        <h2 className="text-base font-semibold text-[var(--foreground)]">Staff attestation</h2>
+        <p className="text-sm text-[var(--muted-foreground)]">
           Enter a session ID only. This page does not list child or guardian identities.
           Email token success is not legal guardian authority.
         </p>

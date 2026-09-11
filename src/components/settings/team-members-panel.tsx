@@ -43,7 +43,7 @@ function Avatar({ name, avatarUrl }: { name: string; avatarUrl: string | null })
     return <img src={avatarUrl} alt={name} className="h-8 w-8 shrink-0 rounded-full object-cover" />;
   }
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--info-soft)] text-xs font-semibold text-[var(--primary)]">
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -123,10 +123,10 @@ export function TeamMembersPanel({
     <div className="space-y-6">
       {/* Feedback */}
       {error && (
-        <div className="flex items-start justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="flex items-start justify-between gap-3 rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--danger-soft)] px-4 py-3 text-sm text-[var(--danger)]">
           <span>{error}</span>
           <button onClick={() => setError(null)} aria-label="Dismiss error"
-            className="shrink-0 text-rose-400 transition hover:text-rose-600">✕</button>
+            className="shrink-0 text-[var(--danger)] transition hover:text-[var(--danger)]">✕</button>
         </div>
       )}
 
@@ -144,15 +144,15 @@ export function TeamMembersPanel({
         <div className="table-scroll scrollbar-thin">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100 bg-slate-50/60">
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Member</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Role</th>
-                <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 sm:table-cell">Status</th>
-                <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 md:table-cell">Joined</th>
-                {canManage && <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500" />}
+              <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Member</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">Role</th>
+                <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] sm:table-cell">Status</th>
+                <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)] md:table-cell">Joined</th>
+                {canManage && <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]" />}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--border)]">
               {members.map((member) => {
                 const isChangingThis = changingRoleId === member.membershipId;
                 const isRemovingThis = removingId === member.membershipId;
@@ -160,7 +160,7 @@ export function TeamMembersPanel({
 
                 return (
                   <tr key={member.membershipId}
-                    className={`group transition-colors hover:bg-slate-50/80 ${isRemovingThis ? "opacity-50" : ""}`}>
+                    className={`group transition-colors hover:bg-[var(--muted)]/80 ${isRemovingThis ? "opacity-50" : ""}`}>
                     <td className="px-6 py-4">
                       <div className="icon-text-row">
                         <div data-icon-tile>
@@ -182,7 +182,7 @@ export function TeamMembersPanel({
                           onChange={(e) => handleRoleChange(member, e.target.value)}
                           disabled={isChangingThis || isPending}
                           aria-label={`Change ${member.name}'s role`}
-                          className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 shadow-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/15 disabled:opacity-50 transition">
+                          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-xs text-[var(--foreground)] shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-50 transition">
                           {availableRoles.map((r) => (
                             <option key={r.id} value={r.id}>{r.name}</option>
                           ))}
@@ -202,7 +202,7 @@ export function TeamMembersPanel({
                       </Badge>
                     </td>
 
-                    <td className="hidden px-6 py-4 text-slate-500 md:table-cell">
+                    <td className="hidden px-6 py-4 text-[var(--muted-foreground)] md:table-cell">
                       {member.joinedAt
                         ? new Date(member.joinedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
                         : "—"}
@@ -214,7 +214,7 @@ export function TeamMembersPanel({
                           <button onClick={() => setConfirmRemoveMember(member)}
                             disabled={isRemovingThis || isPending}
                             aria-label={`Remove ${member.name}`}
-                            className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+                            className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:border-[color-mix(in_srgb,var(--danger)_28%,transparent)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
                             {isRemovingThis ? "Removing…" : "Remove"}
                           </button>
                         )}
@@ -234,12 +234,12 @@ export function TeamMembersPanel({
           <div className="card-section-header">
             <h2 className="text-base font-semibold leading-snug text-[var(--foreground)]">
               Pending invitations
-              <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-normal text-amber-700">
+              <span className="ml-2 rounded-full bg-[var(--warning-soft)] px-2 py-0.5 text-xs font-normal text-[var(--warning)]">
                 {pendingInvitations.length}
               </span>
             </h2>
           </div>
-          <ul role="list" className="divide-y divide-slate-100">
+          <ul role="list" className="divide-y divide-[var(--border)]">
             {pendingInvitations.map((inv) => {
               const isRevokingThis = revokingId === inv.id;
               const roleLabel = inv.role === "org:admin" ? "Admin" : inv.role === "org:member" ? "Member" : inv.role;
@@ -247,15 +247,15 @@ export function TeamMembersPanel({
                 <li key={inv.id}
                   className={`flex flex-wrap items-center justify-between gap-3 px-6 py-3 ${isRevokingThis ? "opacity-50" : ""}`}>
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-slate-300 text-slate-400">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-dashed border-[var(--border)] text-[var(--muted-foreground)]">
                       <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 16 16"
                         stroke="currentColor" strokeWidth={1.5}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M8 3v10M3 8h10" />
                       </svg>
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-700">{inv.email}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="truncate text-sm font-medium text-[var(--foreground)]">{inv.email}</p>
+                      <p className="text-xs text-[var(--muted-foreground)]">
                         Invited as <span className="font-medium">{roleLabel}</span>
                         {" · "}
                         {new Date(inv.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
@@ -268,7 +268,7 @@ export function TeamMembersPanel({
                       <button onClick={() => handleRevokeInvite(inv)}
                         disabled={isRevokingThis || isPending}
                         aria-label={`Revoke invitation to ${inv.email}`}
-                        className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400">
+                        className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:border-[color-mix(in_srgb,var(--danger)_28%,transparent)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
                         {isRevokingThis ? "Revoking…" : "Revoke"}
                       </button>
                     )}
@@ -284,21 +284,21 @@ export function TeamMembersPanel({
       {confirmRemoveMember && (
         <div role="dialog" aria-modal="true" aria-labelledby="confirm-remove-title"
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-            <h3 id="confirm-remove-title" className="text-base font-semibold text-slate-900">
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 shadow-xl">
+            <h3 id="confirm-remove-title" className="text-base font-semibold text-[var(--foreground)]">
               Remove member?
             </h3>
-            <p className="mt-2 text-sm text-slate-500">
-              <strong className="text-slate-700">{confirmRemoveMember.name}</strong>{" "}
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+              <strong className="text-[var(--foreground)]">{confirmRemoveMember.name}</strong>{" "}
               ({confirmRemoveMember.email}) will lose access immediately. You can re-invite them later.
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
               <button onClick={() => setConfirmRemoveMember(null)} disabled={isPending}
-                className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
+                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
                 Cancel
               </button>
               <button onClick={() => handleRemove(confirmRemoveMember)} disabled={isPending}
-                className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-rose-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
+                className="rounded-2xl bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
                 {isPending ? "Removing…" : "Remove member"}
               </button>
             </div>

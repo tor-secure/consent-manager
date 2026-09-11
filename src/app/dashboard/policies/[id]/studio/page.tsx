@@ -78,22 +78,22 @@ export default async function BannerStudioPage({
     .orderBy(consentPolicyVersions.version);
 
   const latestVersion = allVersions[allVersions.length - 1] ?? null;
-  const liveVersion =
-    [...allVersions].reverse().find((version) => version.isPublished) ?? latestVersion;
+  const publishedVersion = [...allVersions].reverse().find((version) => version.isPublished) ?? null;
+  const liveIsBehind = Boolean(latestVersion && !latestVersion.isPublished);
 
   const initialConfig = parseBannerConfig(
-    (liveVersion?.configuration ?? latestVersion?.configuration ?? {}) as Record<string, unknown>,
+    (latestVersion?.configuration ?? publishedVersion?.configuration ?? {}) as Record<string, unknown>,
   );
 
   return (
-    // The BannerStudio component manages its own full-viewport layout.
-    // We render it without extra wrapper padding so it fills the content area.
     <BannerStudio
       policyId={policy.id}
       policyName={policy.name}
       latestVersionId={latestVersion?.id ?? null}
       initialConfig={initialConfig}
       websiteDomain={website?.domain ?? null}
+      websiteId={policy.websiteId}
+      liveIsBehind={liveIsBehind}
     />
   );
 }

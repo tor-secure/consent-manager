@@ -67,11 +67,13 @@ export function DashboardShell({
   headerCenter,
   headerRight,
   children,
+  setupMode = false,
 }: {
   headerLeft: React.ReactNode;
   headerCenter: React.ReactNode;
   headerRight: React.ReactNode;
   children: React.ReactNode;
+  setupMode?: boolean;
 }) {
   const collapsed = useSyncExternalStore(
     subscribeToCollapsed,
@@ -105,7 +107,7 @@ export function DashboardShell({
           ].join(" ")}
         >
           <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin">
-            <SidebarNav collapsed={collapsed} onToggle={onToggle} />
+            <SidebarNav collapsed={collapsed} onToggle={onToggle} setupMode={setupMode} />
           </div>
         </aside>
 
@@ -149,7 +151,7 @@ export function DashboardShell({
                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-                  <SidebarNav collapsed={false} onToggle={() => {}} />
+                  <SidebarNav collapsed={false} onToggle={() => {}} setupMode={setupMode} />
                 </div>
               </div>
             </aside>
@@ -160,7 +162,7 @@ export function DashboardShell({
         <div className="flex min-h-screen flex-1 flex-col min-w-0">
           {/* Top header */}
           <header className="sticky top-0 z-40 shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] backdrop-blur-md">
-            <div className="flex h-16 min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2 sm:px-4 md:gap-3 md:px-6 lg:h-20 lg:px-8 px-3">
+            <div className="flex h-16 min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2 sm:px-4 md:gap-3 md:px-6 px-3">
               <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
