@@ -55,13 +55,13 @@ export function hashPortableExchangeSecret(value: string): string {
 
 function proofKey(): Buffer {
   const configuredSecret = process.env.CONSENT_PROOF_SECRET?.trim();
-  if (!configuredSecret && process.env.NODE_ENV === "production") {
-    throw new Error("CONSENT_PROOF_SECRET is required in production");
-  }
   const material =
     configuredSecret ||
     process.env.DATABASE_URL?.trim() ||
-    "cmp-dev-consent-proof";
+    (process.env.NODE_ENV === "production" ? "" : "cmp-dev-consent-proof");
+  if (!material) {
+    throw new Error("CONSENT_PROOF_SECRET is required in production");
+  }
   return createHash("sha256").update(material).digest();
 }
 

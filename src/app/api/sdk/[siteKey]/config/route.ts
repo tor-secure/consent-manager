@@ -339,7 +339,16 @@ export async function GET(
     });
 
     const integrations = parseConsentIntegrations(website.consentIntegrations);
-    const currentGvl = await getCurrentGvl();
+    let currentGvl: { version: number } | null = null;
+    try {
+      currentGvl = await getCurrentGvl();
+    } catch (error) {
+      logger.warn("SDK config skipped IAB GVL cache", {
+        route: "GET /api/sdk/[siteKey]/config",
+        operation: "sdk.config.gvl",
+        error,
+      });
+    }
     const purposeMappings = versionPurposes.map((purpose) =>
       purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter(Number.isInteger);
     const vendorMappings = resolvedVendors.map((vendor) =>
@@ -368,14 +377,23 @@ export async function GET(
       showCustomize: resolved.legalEngine.ux.preferenceCenterRequired && localizedConfig.showCustomize,
       consentModel: resolved.legalEngine.ux.consentModel,
     };
-    const [negotiation] = await db
-      .select({
-        enabled: negotiationConfigurations.enabled,
-        offers: negotiationConfigurations.offers,
-      })
-      .from(negotiationConfigurations)
-      .where(eq(negotiationConfigurations.websiteId, website.id))
-      .limit(1);
+    let negotiation: { enabled: boolean; offers: unknown } | undefined;
+    try {
+      [negotiation] = await db
+        .select({
+          enabled: negotiationConfigurations.enabled,
+          offers: negotiationConfigurations.offers,
+        })
+        .from(negotiationConfigurations)
+        .where(eq(negotiationConfigurations.websiteId, website.id))
+        .limit(1);
+    } catch (error) {
+      logger.warn("SDK config skipped negotiation offers", {
+        route: "GET /api/sdk/[siteKey]/config",
+        operation: "sdk.config.negotiation",
+        error,
+      });
+    }
     const negotiationOffers = publicNegotiationOffers({
       enabled: negotiation?.enabled ?? false,
       offers: negotiation?.offers ?? [],
@@ -472,10 +490,19 @@ export async function GET(
         : [],
     );
 
-    const childSnapshot = await publicChildSnapshot({
-      organizationId: website.organizationId,
-      websiteId: website.id,
-    });
+    let childSnapshot: Awaited<ReturnType<typeof publicChildSnapshot>> = null;
+    try {
+      childSnapshot = await publicChildSnapshot({
+        organizationId: website.organizationId,
+        websiteId: website.id,
+      });
+    } catch (error) {
+      logger.warn("SDK config skipped child-protection snapshot", {
+        route: "GET /api/sdk/[siteKey]/config",
+        operation: "sdk.config.child",
+        error,
+      });
+    }
     const childConfig = parseChildProtectionConfig(website.childProtection);
     const childView = childSnapshot?.view;
     const childNotice = !childView?.enabled

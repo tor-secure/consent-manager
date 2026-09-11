@@ -122,3 +122,53 @@ assert.equal(
   }),
   false,
 );
+
+{
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousPolicySecret = process.env.POLICY_CONTEXT_SECRET;
+  const previousProofSecret = process.env.CONSENT_PROOF_SECRET;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+  process.env.NODE_ENV = "production";
+  delete process.env.POLICY_CONTEXT_SECRET;
+  delete process.env.CONSENT_PROOF_SECRET;
+  delete process.env.DATABASE_URL;
+  assert.throws(
+    () =>
+      issuePolicyContext({
+        organizationId: ids.organizationA,
+        websiteId: ids.websiteA,
+        siteKey: "site_policy_context_test",
+        policyId: ids.policyA,
+        policyVersionId: ids.version1,
+        policyVersionNumber: 1,
+        jurisdiction: "gdpr",
+        locale: "en-GB",
+        variantId: null,
+        noticeSnapshot,
+      }),
+    /POLICY_CONTEXT_SECRET or CONSENT_PROOF_SECRET is required/,
+  );
+  process.env.DATABASE_URL = "postgres://local-fallback";
+  const fallback = issuePolicyContext({
+    organizationId: ids.organizationA,
+    websiteId: ids.websiteA,
+    siteKey: "site_policy_context_test",
+    policyId: ids.policyA,
+    policyVersionId: ids.version1,
+    policyVersionNumber: 1,
+    jurisdiction: "gdpr",
+    locale: "en-GB",
+    variantId: null,
+    noticeSnapshot,
+  });
+  assert.equal(typeof fallback.token, "string");
+  assert.ok(fallback.token.includes("."));
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
+  if (previousPolicySecret === undefined) delete process.env.POLICY_CONTEXT_SECRET;
+  else process.env.POLICY_CONTEXT_SECRET = previousPolicySecret;
+  if (previousProofSecret === undefined) delete process.env.CONSENT_PROOF_SECRET;
+  else process.env.CONSENT_PROOF_SECRET = previousProofSecret;
+  if (previousDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = previousDatabaseUrl;
+}

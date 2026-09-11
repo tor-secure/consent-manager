@@ -80,13 +80,17 @@ function contextSecret(): Buffer {
   const configured =
     process.env.POLICY_CONTEXT_SECRET?.trim() ||
     process.env.CONSENT_PROOF_SECRET?.trim();
-  if (!configured && process.env.NODE_ENV === "production") {
+  const material =
+    configured ||
+    process.env.DATABASE_URL?.trim() ||
+    (process.env.NODE_ENV === "production" ? "" : "cmp-dev-policy-context");
+  if (!material) {
     throw new Error(
       "POLICY_CONTEXT_SECRET or CONSENT_PROOF_SECRET is required in production",
     );
   }
   return createHash("sha256")
-    .update(configured || process.env.DATABASE_URL?.trim() || "cmp-dev-policy-context")
+    .update(material)
     .digest();
 }
 
