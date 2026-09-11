@@ -300,7 +300,7 @@ export default async function PolicyDetailPage({
           ) : null}
           <Link
             href={`/dashboard/policies/${policy.id}/studio`}
-            className={!isPublished ? "btn btn-outline" : "btn btn-primary"}
+            className="btn btn-outline"
           >
             <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 16 16"
               stroke="currentColor" strokeWidth={1.5}>
@@ -502,7 +502,7 @@ export default async function PolicyDetailPage({
           </div>
           <Link
             href={`/dashboard/policies/${policy.id}/studio`}
-            className="btn btn-primary"
+            className="btn btn-outline"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

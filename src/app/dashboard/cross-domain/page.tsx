@@ -1,6 +1,7 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadOrgWebsites } from "@/lib/intelligence/org-websites";
 import PortableConsentTool from "@/components/cross-domain/portable-consent-tool";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -11,7 +12,7 @@ export default async function CrossDomainPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Consent"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Cross-domain & cross-device consent"
         description="Export an integrity-checked consent bundle from one website, then import it onto another website’s active policy. This enables portable consent across domains/devices inside the same CMP account."
       />

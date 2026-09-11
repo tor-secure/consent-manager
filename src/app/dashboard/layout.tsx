@@ -8,9 +8,8 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { DashboardHelpLink, DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-import { loadHomeDashboardCounts } from "@/lib/dashboard/home-queries";
+import { loadSetupComplete } from "@/lib/dashboard/home-queries";
 import { SetupGuideHeaderButton } from "@/components/dashboard/setup-guide";
-import { isSetupComplete } from "@/lib/dashboard/get-live-path";
 
 function HeaderLeft() {
   return (
@@ -76,8 +75,7 @@ export default async function DashboardLayout({
     redirect("/create-organization");
   }
 
-  const counts = await loadHomeDashboardCounts(context.organization.id);
-  const setupComplete = isSetupComplete(counts);
+  const setupComplete = await loadSetupComplete(context.organization.id);
 
   return (
     <DashboardProviders>

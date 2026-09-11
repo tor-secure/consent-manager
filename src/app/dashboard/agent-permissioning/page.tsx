@@ -1,6 +1,7 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadOrgWebsites } from "@/lib/intelligence/org-websites";
 import AgentPermissionTool from "@/components/agent-permissioning/agent-permission-tool";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -11,7 +12,7 @@ export default async function AgentPermissioningPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="AI"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="AI-agent permissioning"
         description="Permission-checking for AI agents that want to access data categorized by consent purposes and vendor domains."
       />

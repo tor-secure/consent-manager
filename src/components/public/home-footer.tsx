@@ -93,12 +93,12 @@ export function HomeFooter() {
               </div>
               <div>
                 <h2 className="text-balance text-2xl font-bold tracking-tight text-[#111827] sm:text-[1.7rem]">
-                  Stay updated on privacy and{" "}
-                  <span className="text-[#5850EC]">product updates</span>
+                  Start a workspace and{" "}
+                  <span className="text-[#5850EC]">go live</span>
                 </h2>
                 <p className="mt-2 max-w-lg text-sm leading-6 text-[#6B7280]">
-                  Subscribe to our newsletter and get the latest insights, regulation updates, and
-                  product news.
+                  Create an account, add a website, and publish a consent banner. A public mailing
+                  list is not open yet.
                 </p>
               </div>
             </div>

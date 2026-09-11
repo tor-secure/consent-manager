@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -25,7 +26,7 @@ export default async function ConsentGraphPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent dependency graph"
         description="How purposes, vendors, and trackers connect for this website. Unmapped trackers stay blocked by default."
       />

@@ -16,10 +16,6 @@ import {
   userCoreSelect,
 } from "@/lib/schema-selects";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export type BootstrapContext = {
   user: typeof users.$inferSelect;
   organization: typeof organizations.$inferSelect;
@@ -34,9 +30,7 @@ export type BootstrapContextNoOrg = {
 
 export type BootstrapResult = BootstrapContext | BootstrapContextNoOrg;
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const LOGIN_TOUCH_MS = 60 * 60 * 1000;
 
 function buildOrgSlug(name: string, clerkId: string): string {
   const base = name
@@ -48,45 +42,59 @@ function buildOrgSlug(name: string, clerkId: string): string {
   return `${base || "organization"}-${clerkId.slice(-8)}`;
 }
 
-// ---------------------------------------------------------------------------
-// bootstrapCurrentContext
-//
-// Call once per /dashboard request (from the layout).
-// Guarantees:
-//   1. Clerk user is authenticated
-//   2. Local user row exists and is up-to-date
-//   3. If an active Clerk org exists:
-//      a. Clerk org details are fetched
-//      b. Local organization row exists
-//      c. Owner role exists
-//      d. Membership for this user+org exists
-//
-// Throws an Error if the user is not authenticated — the caller (layout)
-// is responsible for redirecting to /sign-in.
-// Returns { organization: null, membership: null } when there is no active
-// Clerk org — the caller (layout) should redirect to /create-organization.
-// ---------------------------------------------------------------------------
+async function ensureOwnerMembership(organizationId: string, userId: string) {
+  return db.transaction(async (tx) => {
+    let [ownerRole] = await tx
+      .select()
+      .from(roles)
+      .where(eq(roles.name, "Owner"))
+      .limit(1);
 
+    if (!ownerRole) {
+      [ownerRole] = await tx
+        .insert(roles)
+        .values({
+          name: "Owner",
+          description: "Full access to the organization and its resources.",
+        })
+        .returning();
+    }
+
+    const [newMembership] = await tx
+      .insert(memberships)
+      .values({
+        organizationId,
+        userId,
+        roleId: ownerRole.id,
+        status: "active",
+        joinedAt: new Date(),
+      })
+      .returning();
+
+    return newMembership;
+  });
+}
+
+/**
+ * Call once per /dashboard request (from the layout).
+ * Cached per request. The hot path is a local user + org + membership read
+ * without Clerk organization fetches or a lastLoginAt write.
+ */
 export const bootstrapCurrentContext = cache(async function bootstrapCurrentContext(): Promise<BootstrapResult> {
-  // --------------------------------------------------
-  // 1. AUTHENTICATE
-  // --------------------------------------------------
-
   const { isAuthenticated, userId, orgId } = await auth();
 
   if (!isAuthenticated || !userId) {
     throw new Error("User is not authenticated");
   }
 
-  const clerkUser = await currentUser();
+  const [clerkUser, existingUserRows] = await Promise.all([
+    currentUser(),
+    db.select(userCoreSelect).from(users).where(eq(users.clerkUserId, userId)).limit(1),
+  ]);
 
   if (!clerkUser) {
     throw new Error("Clerk user not found");
   }
-
-  // --------------------------------------------------
-  // 2. RESOLVE PRIMARY EMAIL
-  // --------------------------------------------------
 
   const primaryEmailObj = clerkUser.emailAddresses.find(
     (e) => e.id === clerkUser.primaryEmailAddressId,
@@ -97,7 +105,6 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
   }
 
   const email = primaryEmailObj.emailAddress;
-
   const name =
     [clerkUser.firstName, clerkUser.lastName]
       .filter(Boolean)
@@ -105,19 +112,10 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
       .trim() ||
     clerkUser.username ||
     email;
+  const isEmailVerified = primaryEmailObj.verification?.status === "verified";
+  const avatarUrl = clerkUser.imageUrl ?? null;
 
-  const isEmailVerified =
-    primaryEmailObj.verification?.status === "verified";
-
-  // --------------------------------------------------
-  // 3. SYNC LOCAL USER (upsert)
-  // --------------------------------------------------
-
-  let [localUser] = await db
-    .select(userCoreSelect)
-    .from(users)
-    .where(eq(users.clerkUserId, userId))
-    .limit(1);
+  let localUser = existingUserRows[0];
 
   if (!localUser) {
     [localUser] = await db
@@ -126,7 +124,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
         clerkUserId: userId,
         email,
         name,
-        avatarUrl: clerkUser.imageUrl ?? null,
+        avatarUrl,
         status: "active",
         timezone: "UTC",
         locale: "en",
@@ -136,29 +134,32 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
       })
       .returning(userCoreSelect);
   } else {
-    [localUser] = await db
-      .update(users)
-      .set({
-        email,
-        name,
-        avatarUrl: clerkUser.imageUrl ?? null,
-        lastLoginAt: new Date(),
-        // Only set emailVerifiedAt when Clerk says verified; never clear it
-        // once set so we don't lose historical verification state.
-        emailVerifiedAt: isEmailVerified
-          ? (localUser.emailVerifiedAt ?? new Date())
-          : localUser.emailVerifiedAt,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.clerkUserId, userId))
-      .returning(userCoreSelect);
-  }
+    const profileChanged =
+      localUser.email !== email ||
+      localUser.name !== name ||
+      localUser.avatarUrl !== avatarUrl ||
+      (isEmailVerified && !localUser.emailVerifiedAt);
+    const loginStale =
+      !localUser.lastLoginAt ||
+      Date.now() - localUser.lastLoginAt.getTime() > LOGIN_TOUCH_MS;
 
-  // --------------------------------------------------
-  // 4. RESOLVE ACTIVE ORGANIZATION
-  //    A fresh login often has a Clerk user but no session orgId yet.
-  //    Fall back to the user's first Clerk membership, then a local membership.
-  // --------------------------------------------------
+    if (profileChanged || loginStale) {
+      [localUser] = await db
+        .update(users)
+        .set({
+          email,
+          name,
+          avatarUrl,
+          lastLoginAt: loginStale ? new Date() : localUser.lastLoginAt,
+          emailVerifiedAt: isEmailVerified
+            ? (localUser.emailVerifiedAt ?? new Date())
+            : localUser.emailVerifiedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.clerkUserId, userId))
+        .returning(userCoreSelect);
+    }
+  }
 
   const clerkMemberships =
     (
@@ -168,6 +169,42 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
     ).organizationMemberships ?? [];
 
   let resolvedOrgId = orgId ?? clerkMemberships[0]?.organization?.id ?? null;
+
+  if (resolvedOrgId) {
+    const [existingOrg] = await db
+      .select(organizationCoreSelect)
+      .from(organizations)
+      .where(eq(organizations.clerkOrganizationId, resolvedOrgId))
+      .limit(1);
+
+    if (existingOrg) {
+      const [existingMembership] = await db
+        .select()
+        .from(memberships)
+        .where(
+          and(
+            eq(memberships.organizationId, existingOrg.id),
+            eq(memberships.userId, localUser.id),
+          ),
+        )
+        .limit(1);
+
+      if (existingMembership) {
+        return {
+          user: localUser,
+          organization: toOrganizationRow(existingOrg),
+          membership: existingMembership,
+        };
+      }
+
+      const membership = await ensureOwnerMembership(existingOrg.id, localUser.id);
+      return {
+        user: localUser,
+        organization: toOrganizationRow(existingOrg),
+        membership,
+      };
+    }
+  }
 
   if (!resolvedOrgId) {
     try {
@@ -200,30 +237,13 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
     };
   }
 
-  // --------------------------------------------------
-  // 5. FETCH CLERK ORGANIZATION
-  // --------------------------------------------------
-
-  const client = await clerkClient();
-
-  const clerkOrg = await client.organizations.getOrganization({
-    organizationId: resolvedOrgId,
-  });
-
-  // --------------------------------------------------
-  // 6. FIND OR CREATE LOCAL ORG + OWNER ROLE + MEMBERSHIP
-  //    All three writes happen inside a single transaction
-  //    so the database never ends up in a half-initialized state.
-  // --------------------------------------------------
-
   const [existingOrg] = await db
     .select(organizationCoreSelect)
     .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, clerkOrg.id))
+    .where(eq(organizations.clerkOrganizationId, resolvedOrgId))
     .limit(1);
 
   if (existingOrg) {
-    // Org already exists — just ensure the membership exists.
     const [existingMembership] = await db
       .select()
       .from(memberships)
@@ -243,39 +263,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
       };
     }
 
-    // Membership missing — ensure Owner role exists then create membership.
-    const membership = await db.transaction(async (tx) => {
-      let [ownerRole] = await tx
-        .select()
-        .from(roles)
-        .where(eq(roles.name, "Owner"))
-        .limit(1);
-
-      if (!ownerRole) {
-        [ownerRole] = await tx
-          .insert(roles)
-          .values({
-            name: "Owner",
-            description:
-              "Full access to the organization and its resources.",
-          })
-          .returning();
-      }
-
-      const [newMembership] = await tx
-        .insert(memberships)
-        .values({
-          organizationId: existingOrg.id,
-          userId: localUser.id,
-          roleId: ownerRole.id,
-          status: "active",
-          joinedAt: new Date(),
-        })
-        .returning();
-
-      return newMembership;
-    });
-
+    const membership = await ensureOwnerMembership(existingOrg.id, localUser.id);
     return {
       user: localUser,
       organization: toOrganizationRow(existingOrg),
@@ -283,11 +271,13 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
     };
   }
 
-  // Org does not exist — create org + role + membership atomically.
+  const client = await clerkClient();
+  const clerkOrg = await client.organizations.getOrganization({
+    organizationId: resolvedOrgId,
+  });
+
   const { organization, membership } = await db.transaction(async (tx) => {
-    const slug =
-      clerkOrg.slug ||
-      buildOrgSlug(clerkOrg.name, clerkOrg.id);
+    const slug = clerkOrg.slug || buildOrgSlug(clerkOrg.name, clerkOrg.id);
 
     const [newOrg] = await tx
       .insert(organizations)

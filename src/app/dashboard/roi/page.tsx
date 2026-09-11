@@ -6,6 +6,7 @@ import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { computeConsentRoi } from "@/lib/roi/roi-engine";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
 import { db } from "@/db";
@@ -25,15 +26,25 @@ export default async function RoiPage({
   const sites = await loadOrgWebsites(context.organization.id);
   const websiteId = pickWebsiteId(sites, params.website);
 
-  const loaded = websiteId ? await loadQualityScoreInput(websiteId) : null;
-  const baseline = loaded ? calculateConsentQualityScore(loaded.input) : null;
-  const scenarios = loaded ? simulatePrivacyImpact(loaded.input) : [];
-  const [roiConfig, analytics] = websiteId
+  const [loaded, roiConfig, analytics] = websiteId
     ? await Promise.all([
-        db.select().from(roiConfigurations).where(and(eq(roiConfigurations.organizationId, context.organization.id), eq(roiConfigurations.websiteId, websiteId))).limit(1).then((rows) => rows[0] ?? null),
+        loadQualityScoreInput(websiteId),
+        db
+          .select()
+          .from(roiConfigurations)
+          .where(
+            and(
+              eq(roiConfigurations.organizationId, context.organization.id),
+              eq(roiConfigurations.websiteId, websiteId),
+            ),
+          )
+          .limit(1)
+          .then((rows) => rows[0] ?? null),
         loadConsentAnalytics(context.organization.id, { websiteId, days: "30" }),
       ])
-    : [null, null];
+    : [null, null, null];
+  const baseline = loaded ? calculateConsentQualityScore(loaded.input) : null;
+  const scenarios = loaded ? simulatePrivacyImpact(loaded.input) : [];
 
   const roiReport =
     baseline && scenarios.length
@@ -57,7 +68,7 @@ export default async function RoiPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent ROI engine"
         description="Uses measured aggregates and configured business inputs when available; otherwise labels results as low-confidence relative estimates."
       />

@@ -24,7 +24,7 @@ export function EmptyState({
           </svg>
         )}
       </div>
-      <p className="mt-4 text-base font-semibold text-[var(--foreground)]">{title}</p>
+      <h2 className="mt-4 text-base font-semibold text-[var(--foreground)]">{title}</h2>
       <p className="mt-1.5 mx-auto max-w-md text-sm text-[var(--muted-foreground)]">{description}</p>
       {actionLabel && actionHref ? (
         <div className="mt-5">

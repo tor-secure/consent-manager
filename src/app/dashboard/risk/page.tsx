@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { loadOrgRiskSnapshot } from "@/lib/monitoring/privacy-intelligence";
 import {
@@ -94,7 +95,7 @@ export default async function PrivacyRiskPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Discovery & Monitoring"
+        eyebrow={<SectionEyebrow href="/dashboard/discovery">Discovery & Monitoring</SectionEyebrow>}
         title="Privacy risk"
         description="Operational view of open drift and shadow-tracker findings for this organization. This is not a legal compliance score."
       />

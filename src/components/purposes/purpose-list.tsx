@@ -113,7 +113,9 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
         <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
           <IconSearch />
         </span>
+        <label htmlFor="purpose-search" className="sr-only">Search purposes</label>
         <input
+          id="purpose-search"
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

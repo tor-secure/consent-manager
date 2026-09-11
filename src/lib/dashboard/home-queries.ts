@@ -137,3 +137,37 @@ export type HomeDashboardCounts = Awaited<ReturnType<typeof loadHomeDashboardCou
 export const loadHomeChartAnalytics = cache(async (organizationId: string) => {
   return loadConsentAnalytics(organizationId, { days: "30" }, "charts");
 });
+
+/** Cheap existence checks for layout setup-mode. Not a substitute for home counts. */
+export const loadSetupComplete = cache(async (organizationId: string) => {
+  const orgWebsiteIds = db
+    .select({ id: websites.id })
+    .from(websites)
+    .where(eq(websites.organizationId, organizationId));
+
+  const [websiteRows, publishedRows, consentRows] = await Promise.all([
+    db
+      .select({ id: websites.id })
+      .from(websites)
+      .where(eq(websites.organizationId, organizationId))
+      .limit(1),
+    db
+      .select({ id: consentPolicyVersions.id })
+      .from(consentPolicyVersions)
+      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+      .where(
+        and(
+          inArray(consentPolicies.websiteId, orgWebsiteIds),
+          eq(consentPolicyVersions.isPublished, true),
+        ),
+      )
+      .limit(1),
+    db
+      .select({ id: consentRecords.id })
+      .from(consentRecords)
+      .where(eq(consentRecords.organizationId, organizationId))
+      .limit(1),
+  ]);
+
+  return websiteRows.length > 0 && publishedRows.length > 0 && consentRows.length > 0;
+});

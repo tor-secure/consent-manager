@@ -136,6 +136,7 @@ export function HomeNavbar() {
 
       <div
         id="mobile-navigation"
+        hidden={!mobileOpen}
         className={`grid border-t border-[#E5E7EB] bg-white transition-[grid-template-rows,opacity] duration-300 lg:hidden ${
           mobileOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
         }`}

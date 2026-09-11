@@ -7,6 +7,7 @@ import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { buildConsentNegotiationPlan } from "@/lib/intelligence/negotiation-engine";
 import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
 import { NegotiationSettingsForm } from "@/components/intelligence/negotiation-settings-form";
@@ -62,7 +63,7 @@ export default async function NegotiationPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="AI"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent negotiation engine"
         description="Operator remediation planning with cumulative recomputation. Visitor offers are separate, optional, transparent, and never change required purposes."
       />

@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 import { computeWebsiteQualityScore } from "@/lib/monitoring/privacy-intelligence";
@@ -35,7 +36,7 @@ export default async function ConsentQualityPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Discovery & Monitoring"
+        eyebrow={<SectionEyebrow href="/dashboard/discovery">Discovery & Monitoring</SectionEyebrow>}
         title="Consent quality"
         description="Operational product score from CMP configuration, scan inventory, and open findings. It is not a legal compliance percentage."
       />

@@ -181,7 +181,7 @@ export function HomeUseCasesCta() {
                   Ready to build trust and stay compliant?
                 </h3>
                 <p className="mt-2 max-w-xl text-sm leading-6 text-white/85 sm:text-[15px]">
-                  Join thousands of businesses using ConsentFlow to manage consent the right way.
+                  Create a workspace, publish a template policy, and install the SDK when you are ready.
                 </p>
               </div>
             </div>
@@ -199,14 +199,14 @@ export function HomeUseCasesCta() {
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  No credit card required
+                  Free workspace
                 </span>
                 <span className="hidden h-3 w-px bg-white/35 sm:block" aria-hidden="true" />
                 <span className="inline-flex items-center gap-1.5">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  14-day free trial
+                  Billing is not enabled yet
                 </span>
               </div>
             </div>

@@ -10,6 +10,7 @@ import { users } from "@/db/schema/users";
 import { AuditLogFilters } from "@/components/audit-logs/audit-log-filters";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -155,6 +156,7 @@ export default async function AuditLogsPage({
     <div className="page-wrap space-y-6">
 
       <PageHeader
+        eyebrow={<SectionEyebrow href="/dashboard/governance">Security & Governance</SectionEyebrow>}
         title="Audit Logs"
         description="A read-only record of all actions performed in your organisation."
       />

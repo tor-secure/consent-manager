@@ -1,4 +1,4 @@
-import { dashboardNavigation } from "../config/navigation";
+import { dashboardFeaturePages, dashboardNavigation } from "../config/navigation";
 
 export type DashboardSearchHit = {
   id: string;
@@ -14,14 +14,19 @@ const secondaryPages: DashboardSearchHit[] = [
   { id: "page:policies-new", type: "page", title: "Create policy", subtitle: "New consent policy", href: "/dashboard/policies/new" },
 ];
 
-export const DASHBOARD_PAGES: DashboardSearchHit[] = [
-  ...dashboardNavigation.map((item) => ({
+function toSearchHit(item: { title: string; description: string; href: string }): DashboardSearchHit {
+  return {
     id: `page:${item.href.replace(/^\/dashboard\/?/, "").replaceAll("/", ":") || "dashboard"}`,
-    type: "page" as const,
+    type: "page",
     title: item.title,
     subtitle: item.description,
     href: item.href,
-  })),
+  };
+}
+
+export const DASHBOARD_PAGES: DashboardSearchHit[] = [
+  ...dashboardNavigation.map(toSearchHit),
+  ...dashboardFeaturePages.map(toSearchHit),
   ...secondaryPages,
 ];
 

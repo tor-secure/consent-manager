@@ -1,3 +1,4 @@
+import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
@@ -10,19 +11,19 @@ import Link from "next/link";
 
 const trustItems = [
   {
-    label: "No credit card required",
+    label: "Free workspace — billing not enabled",
     icon: (
       <path d="M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v10.5a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V6.75a1.5 1.5 0 0 1 1.5-1.5Z" />
     ),
   },
   {
-    label: "14-day free trial",
+    label: "Publish a banner and install the SDK",
     icon: (
       <path d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75ZM9.75 12.75l1.5 1.5 3.75-3.75" />
     ),
   },
   {
-    label: "Cancel anytime",
+    label: "Try the live SDK demo",
     icon: (
       <path d="M12 6v6l3.75 2.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     ),
@@ -32,9 +33,10 @@ const trustItems = [
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-[#111827]">
+      <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
-      <main>
+      <main id="main-content">
         <section
           className="home-section relative overflow-hidden"
           style={{
@@ -80,10 +82,10 @@ export default function Home() {
                   />
                 </svg>
                 <span className="font-semibold text-[#5850EC]">GDPR, CCPA, LGPD & more</span>
-                <span className="text-[#9CA3AF]" aria-hidden="true">
+                <span className="text-[#6B7280]" aria-hidden="true">
                   •
                 </span>
-                <span className="truncate text-[#6B7280]">Compliance made simple</span>
+                <span className="truncate text-[#4B5563]">Compliance made simple</span>
               </div>
 
               <h1 className="text-balance text-[2.35rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl lg:text-[3.4rem]">

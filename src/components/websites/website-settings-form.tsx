@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
@@ -19,11 +19,15 @@ export type WebsiteSettingsData = {
 
 const inputCls = "field-input";
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  const fieldId = `website-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<{ id?: string }>, { id: fieldId })
+    : children;
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
-      {children}
+      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
+      {control}
       {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );

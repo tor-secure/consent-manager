@@ -151,7 +151,9 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
         <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
           <IconSearch />
         </span>
+        <label htmlFor="vendor-search" className="sr-only">Search vendors</label>
         <input
+          id="vendor-search"
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { SkipLink } from "@/components/ui/skip-link";
 
 export const clerkAuthAppearance = {
   variables: {
@@ -119,9 +120,9 @@ function BrandPanel({
         <span className="inline-flex rounded-full border border-[#C7D2FE] bg-white px-3 py-1 text-[12px] font-semibold text-[#243e68]">
           {badge}
         </span>
-        <h1 className="mt-4 max-w-md text-balance text-[1.85rem] font-bold leading-tight tracking-tight text-[#111827] sm:text-[2.05rem]">
+        <p className="mt-4 max-w-md text-balance text-[1.85rem] font-bold leading-tight tracking-tight text-[#111827] sm:text-[2.05rem]">
           {title}
-        </h1>
+        </p>
         <p className="mt-3 max-w-md text-sm leading-6 text-[#4B5563]">{description}</p>
 
         <ul className="mt-8 space-y-4">
@@ -284,6 +285,7 @@ export function AuthPageShell({
           "radial-gradient(ellipse 55% 35% at 15% 0%, rgba(79,70,229,0.09), transparent 55%), linear-gradient(180deg, #F3F4F6 0%, #EEF2FF 100%)",
       }}
     >
+      <SkipLink href="#auth-form" />
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1100px] flex-col">
         <div className="flex flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)]">
           <header className="flex items-center justify-between border-b border-[#F3F4F6] px-6 py-4 sm:px-8">
@@ -325,7 +327,7 @@ export function AuthPageShell({
             />
 
             <div className="flex items-center justify-center bg-[#F9FAFB] px-5 py-8 sm:px-8 lg:px-10">
-              <div key={mode} className="cmp-auth-form-enter w-full max-w-[420px]">
+              <div id="auth-form" key={mode} className="cmp-auth-form-enter w-full max-w-[420px]" tabIndex={-1}>
                 {children}
                 <p className="mt-5 flex items-start gap-2 text-[12px] leading-5 text-[#6B7280]">
                   <svg
@@ -348,7 +350,7 @@ export function AuthPageShell({
                       strokeLinecap="round"
                     />
                   </svg>
-                  Your data is protected with industry-leading security and 99.99% uptime.
+                  Your workspace data stays in your organization. Do not share API keys or site keys.
                 </p>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites"
 import { simulatePrivacyImpact } from "@/lib/intelligence/simulator";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsScanEmpty, NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -33,7 +34,7 @@ export default async function PrivacyImpactSimulatorPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Privacy impact simulator"
         description="Estimates how the operational quality score would change if you mapped trackers, resolved findings, published a policy, or covered scan items. This is not a legal assessment."
       />

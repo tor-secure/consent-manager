@@ -7,6 +7,7 @@ import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
 import { diffTwinPayloads, listDigitalTwinSnapshots } from "@/lib/intelligence/service";
@@ -36,9 +37,13 @@ export default async function DigitalTwinPage({
   const sites = await loadOrgWebsites(context.organization.id);
   const websiteId = pickWebsiteId(sites, params.website);
 
-  const snapshot = websiteId ? await loadConsentGraph(context.organization.id, websiteId) : null;
-  const loaded = websiteId ? await loadQualityScoreInput(websiteId) : null;
-  const history = websiteId ? await listDigitalTwinSnapshots(context.organization.id, websiteId) : [];
+  const [snapshot, loaded, history] = websiteId
+    ? await Promise.all([
+        loadConsentGraph(context.organization.id, websiteId),
+        loadQualityScoreInput(websiteId),
+        listDigitalTwinSnapshots(context.organization.id, websiteId),
+      ])
+    : [null, null, []];
   const before = history.find((item) => item.id === params.before);
   const after = history.find((item) => item.id === params.after);
   const comparison = before && after ? diffTwinPayloads(before.inputPayload, after.inputPayload) : [];
@@ -49,7 +54,7 @@ export default async function DigitalTwinPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent digital twin"
         description="A combined view of the current consent dependency graph and the projected impact of configuration changes."
       />

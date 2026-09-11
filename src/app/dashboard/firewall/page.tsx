@@ -6,6 +6,7 @@ import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { evaluateFirewall, grantsForScenario, type FirewallScenario } from "@/lib/intelligence/firewall";
 import { graphToTrackerRules, loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -48,7 +49,7 @@ export default async function ConsentFirewallPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent firewall"
         description="Preview which trackers the SDK would block or allow for a visitor choice, using the live tracker map."
       />

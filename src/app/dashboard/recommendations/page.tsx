@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -45,7 +46,7 @@ export default async function RecommendationsPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent recommendations"
         description="Configuration gaps from the tracker graph, quality score, and open findings. No generated legal policy text."
       />

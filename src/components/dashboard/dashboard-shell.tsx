@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
+import { SkipLink } from "@/components/ui/skip-link";
 
 const SIDEBAR_STORAGE_KEY = "cmp:sidebar:collapsed";
 const SIDEBAR_EVENT = "cmp-sidebar-change";
@@ -95,6 +96,7 @@ export function DashboardShell({
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
+      <SkipLink />
       <div className="flex min-h-screen">
         {/* Desktop Sidebar */}
         <aside
@@ -123,7 +125,10 @@ export function DashboardShell({
               className="absolute inset-0 bg-[color-mix(in_srgb,var(--foreground)_40%,transparent)] animate-fade-in"
               onClick={() => setMobileOpen(false)}
             />
-            <aside className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-[var(--card)] shadow-[var(--shadow-md)] border-r border-[var(--border)] animate-slide-in">
+            <aside
+              id="dashboard-mobile-sidebar"
+              className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-[var(--card)] shadow-[var(--shadow-md)] border-r border-[var(--border)] animate-slide-in"
+            >
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border)]">
                   <div className="flex items-center gap-3 px-1">
@@ -134,8 +139,8 @@ export function DashboardShell({
                       </svg>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-bold tracking-tight text-[var(--foreground)]">Consent</p>
-                      <p className="text-[13px] font-semibold text-[var(--muted-foreground)] leading-none">Manager</p>
+                      <p className="text-sm font-bold tracking-tight text-[var(--foreground)]">ConsentFlow</p>
+                      <p className="text-[13px] font-semibold text-[var(--muted-foreground)] leading-none">Workspace</p>
                     </div>
                   </div>
                   <button
@@ -169,8 +174,8 @@ export function DashboardShell({
                   onClick={onMobileToggle}
                   aria-label="Open sidebar"
                   aria-expanded={mobileOpen}
-                  aria-controls="dashboard-sidebar"
-                  className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] lg:hidden"
+                  aria-controls="dashboard-mobile-sidebar"
+                  className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] lg:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                 >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="3" y1="6" x2="21" y2="6" />
@@ -197,7 +202,7 @@ export function DashboardShell({
           </header>
 
           {/* Page content — no wrapper padding; each page owns its own spacing */}
-          <main className="flex-1 min-w-0 overflow-x-hidden animate-fade-in">
+          <main id="main-content" className="flex-1 min-w-0 overflow-x-hidden animate-fade-in">
             {children}
           </main>
         </div>

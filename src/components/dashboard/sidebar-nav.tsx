@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { dashboardNavigationGroups, SETUP_NAV_HREFS } from "@/config/navigation";
+import { dashboardNavigationGroups, isPathActive, SETUP_NAV_HREFS } from "@/config/navigation";
 
 type NavItem = {
   label: string;
@@ -16,6 +16,7 @@ type NavGroup = {
   label: string;
   items: NavItem[];
   defaultCollapsed?: boolean;
+  hideHeading?: boolean;
 };
 
 function IconOverview() {
@@ -48,57 +49,6 @@ function IconConsent() {
   );
 }
 
-function IconPolicies() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="9" y1="13" x2="15" y2="13" />
-      <line x1="9" y1="17" x2="13" y2="17" />
-    </svg>
-  );
-}
-
-function IconPurposes() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="4" />
-    </svg>
-  );
-}
-
-function IconVendors() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-      <polyline points="9 22 9 12 15 12 15 22" />
-    </svg>
-  );
-}
-
-function IconTrackers() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20" />
-      <path d="M2 12h20" />
-    </svg>
-  );
-}
-
-function IconScanner() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 7V5a2 2 0 012-2h2" />
-      <path d="M17 3h2a2 2 0 012 2v2" />
-      <path d="M21 17v2a2 2 0 01-2 2h-2" />
-      <path d="M7 21H5a2 2 0 01-2-2v-2" />
-      <line x1="7" y1="12" x2="17" y2="12" />
-    </svg>
-  );
-}
-
 function IconAnalytics() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -109,60 +59,10 @@ function IconAnalytics() {
   );
 }
 
-function IconRightsRequests() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 11l3 3L22 4" />
-      <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
-    </svg>
-  );
-}
-
-function IconAuditLogs() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-      <polyline points="10 9 9 9 8 9" />
-    </svg>
-  );
-}
-
-function IconNotifications() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 01-3.46 0" />
-    </svg>
-  );
-}
-
 function IconApiKeys() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
-    </svg>
-  );
-}
-
-function IconIntegrations() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="18" cy="5" r="3" />
-      <circle cx="6" cy="12" r="3" />
-      <circle cx="18" cy="19" r="3" />
-      <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-      <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-    </svg>
-  );
-}
-
-function IconWebhooks() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z" />
     </svg>
   );
 }
@@ -177,13 +77,28 @@ function IconOrganization() {
   );
 }
 
-function IconTeam() {
+function IconIntelligence() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
+      <path d="M12 3a6 6 0 016 6c0 2.2-1.2 4.1-3 5.2V17a1 1 0 01-1 1h-4a1 1 0 01-1-1v-2.8C7.2 13.1 6 11.2 6 9a6 6 0 016-6z" />
+      <path d="M9 21h6" />
+    </svg>
+  );
+}
+
+function IconDiscovery() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="M21 21l-4.3-4.3" />
+    </svg>
+  );
+}
+
+function IconGovernance() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
 }
@@ -191,26 +106,19 @@ function IconTeam() {
 function iconForHref(href: string) {
   if (href === "/dashboard") return <IconOverview />;
   if (href === "/dashboard/websites") return <IconWebsites />;
-  if (href === "/dashboard/consent") return <IconConsent />;
-  if (href === "/dashboard/policies") return <IconPolicies />;
-  if (href === "/dashboard/purposes") return <IconPurposes />;
-  if (href === "/dashboard/vendors") return <IconVendors />;
-  if (href === "/dashboard/trackers") return <IconTrackers />;
-  if (href === "/dashboard/scanner") return <IconScanner />;
-  if (href === "/dashboard/audit-logs") return <IconAuditLogs />;
-  if (href === "/dashboard/notifications") return <IconNotifications />;
-  if (href === "/dashboard/rights-requests") return <IconRightsRequests />;
-  if (href === "/dashboard/developers") return <IconApiKeys />;
-  if (href === "/dashboard/integrations") return <IconIntegrations />;
-  if (href === "/dashboard/developers/webhooks") return <IconWebhooks />;
-  if (href === "/dashboard/settings/organization") return <IconOrganization />;
-  if (href === "/dashboard/settings/team") return <IconTeam />;
+  if (href === "/dashboard/consent-management") return <IconConsent />;
+  if (href === "/dashboard/discovery") return <IconDiscovery />;
+  if (href === "/dashboard/intelligence") return <IconIntelligence />;
+  if (href === "/dashboard/governance") return <IconGovernance />;
+  if (href === "/dashboard/developer") return <IconApiKeys />;
+  if (href === "/dashboard/administration") return <IconOrganization />;
   return <IconAnalytics />;
 }
 
 const ALL_NAV_GROUPS: NavGroup[] = dashboardNavigationGroups.map((group) => ({
   label: group.title,
   defaultCollapsed: group.defaultCollapsed,
+  hideHeading: group.hideHeading,
   items: group.items.map((item) => ({
     label: item.title,
     href: item.href,
@@ -250,7 +158,7 @@ function SidebarItem({
 }) {
   const pathname = usePathname();
 
-  const isActive = isItemActive(item.href, pathname);
+  const isActive = isPathActive(item.href, pathname);
   const isPending = pendingHref === item.href && !isActive;
   const showActive = isActive || isPending;
 
@@ -293,13 +201,8 @@ function SidebarItem({
 
 const SIDEBAR_GROUPS_KEY = "cmp.sidebar.open-groups";
 
-function isItemActive(href: string, pathname: string) {
-  if (href === "/dashboard") return pathname === "/dashboard";
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 function groupContainsPath(group: NavGroup, pathname: string) {
-  return group.items.some((item) => isItemActive(item.href, pathname));
+  return group.items.some((item) => isPathActive(item.href, pathname));
 }
 
 function defaultGroupOpen(group: NavGroup, pathname: string) {
@@ -360,13 +263,13 @@ function SidebarGroup({
   open: boolean;
   onToggle: () => void;
 }) {
-  const collapsible = group.items.length > 1;
+  const collapsible = !group.hideHeading && group.items.length > 1;
   const panelId = `sidebar-group-${group.label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
   const showItems = collapsed || !collapsible || open;
 
   return (
     <div className="mt-2 first:mt-0" role="group" aria-label={group.label}>
-      {collapsed ? null : collapsible ? (
+      {collapsed || group.hideHeading ? null : collapsible ? (
         <button
           type="button"
           className="mb-1 flex min-h-10 w-full items-center justify-between gap-2 rounded-xl px-2 py-2 text-left transition-colors duration-200 hover:bg-[var(--muted)]"

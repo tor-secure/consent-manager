@@ -27,6 +27,22 @@ export type TenantWebsite = {
   createdAt: Date;
 };
 
+const websiteCoreSelect = {
+  id: websites.id,
+  organizationId: websites.organizationId,
+  name: websites.name,
+  domain: websites.domain,
+  description: websites.description,
+  environment: websites.environment,
+  status: websites.status,
+  siteKey: websites.siteKey,
+  defaultLanguage: websites.defaultLanguage,
+  defaultRegion: websites.defaultRegion,
+  verified: websites.verified,
+  verifiedAt: websites.verifiedAt,
+  createdAt: websites.createdAt,
+};
+
 export const getTenantWebsite = cache(async function getTenantWebsite(
   websiteId: string,
 ): Promise<TenantWebsite | null> {
@@ -36,68 +52,45 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
   const orgId = await resolveActiveClerkOrgId(userId, sessionOrgId);
   if (!orgId) return null;
 
-  // Only columns that exist on older Neon databases. Newer regulation fields
-  // are filled in below when present.
-  const [row] = await db
-    .select({
-      id: websites.id,
-      organizationId: websites.organizationId,
-      name: websites.name,
-      domain: websites.domain,
-      description: websites.description,
-      environment: websites.environment,
-      status: websites.status,
-      siteKey: websites.siteKey,
-      defaultLanguage: websites.defaultLanguage,
-      defaultRegion: websites.defaultRegion,
-      verified: websites.verified,
-      verifiedAt: websites.verifiedAt,
-      createdAt: websites.createdAt,
-    })
-    .from(websites)
-    .innerJoin(organizations, eq(websites.organizationId, organizations.id))
-    .where(
-      and(
-        eq(websites.id, websiteId),
-        eq(organizations.clerkOrganizationId, orgId),
-      ),
-    )
-    .limit(1);
-
-  if (!row) return null;
-
-  let defaultRegulationKey: string | null = null;
-  let consentIntegrations: Record<string, unknown> = {};
-  let iabRegistration: Record<string, unknown> | null = null;
+  const where = and(
+    eq(websites.id, websiteId),
+    eq(organizations.clerkOrganizationId, orgId),
+  );
 
   try {
-    const [extra] = await db
+    const [row] = await db
       .select({
+        ...websiteCoreSelect,
         defaultRegulationKey: websites.defaultRegulationKey,
         consentIntegrations: websites.consentIntegrations,
+        iabRegistration: websites.iabRegistration,
       })
       .from(websites)
-      .where(eq(websites.id, row.id))
+      .innerJoin(organizations, eq(websites.organizationId, organizations.id))
+      .where(where)
       .limit(1);
-    defaultRegulationKey = extra?.defaultRegulationKey ?? null;
-    consentIntegrations = extra?.consentIntegrations ?? {};
-  } catch {
-    /* Production DBs that have not been migrated yet omit these columns. */
-  }
-  try {
-    const [iab] = await db.select({ iabRegistration: websites.iabRegistration })
-      .from(websites).where(eq(websites.id, row.id)).limit(1);
-    iabRegistration = iab?.iabRegistration ?? null;
-  } catch {
-    /* Backward-compatible until migration 0043 is applied. */
-  }
 
-  return {
-    ...row,
-    defaultRegulationKey,
-    consentIntegrations,
-    iabRegistration,
-  };
+    if (!row) return null;
+    return {
+      ...row,
+      consentIntegrations: row.consentIntegrations ?? {},
+    };
+  } catch {
+    const [row] = await db
+      .select(websiteCoreSelect)
+      .from(websites)
+      .innerJoin(organizations, eq(websites.organizationId, organizations.id))
+      .where(where)
+      .limit(1);
+
+    if (!row) return null;
+    return {
+      ...row,
+      defaultRegulationKey: null,
+      consentIntegrations: {},
+      iabRegistration: null,
+    };
+  }
 });
 
 export async function requireTenantWebsite(websiteId: string): Promise<TenantWebsite> {

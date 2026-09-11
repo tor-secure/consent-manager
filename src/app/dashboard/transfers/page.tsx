@@ -1,24 +1,15 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
 
-import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadTransfersPage } from "@/lib/processing/dashboard-queries";
 import { ProcessingActivityForm, TransferForm } from "@/components/vendors/processing-forms";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function TransfersPage() {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-  const [localOrg] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-  if (!localOrg) return null;
+  const { organization: localOrg } = await requireDashboardContext();
 
   const { transferRows, activityRows, orgVendors, orgWebsites, orgPurposes, schemaLimited } =
     await loadTransfersPage(localOrg.id);
@@ -42,7 +33,12 @@ export default async function TransfersPage() {
         </CardHeader>
         <CardContent>
         {transferRows.length === 0 ? (
-          <p className="text-sm text-[var(--muted-foreground)]">No transfers recorded yet.</p>
+          <EmptyState
+            title="No transfers recorded yet"
+            description="Add a vendor, then record a cross-border transfer before you publish."
+            actionLabel="Open vendors"
+            actionHref="/dashboard/vendors"
+          />
         ) : (
           <div className="table-scroll">
             <table className="data-table min-w-full">

@@ -1,30 +1,22 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { desc, and, inArray, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { apiKeys } from "@/db/schema/api-keys";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { ApiKeyManager, type ApiKeyRow } from "@/components/api-keys/api-key-manager";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export default async function DevelopersPage() {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
-  const [localOrg] = await db
-    .select({ id: organizations.id })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-
-  if (!localOrg) return null;
+  const { organization: localOrg } = await requireDashboardContext();
 
   const [rows, siteRows] = await Promise.all([
     db
@@ -79,6 +71,7 @@ export default async function DevelopersPage() {
   return (
     <div className="page-wrap space-y-6">
       <PageHeader
+        eyebrow={<SectionEyebrow href="/dashboard/developer">Developer</SectionEyebrow>}
         title="SDK & API keys"
         description="Install the visitor banner on each site, then manage programmatic API keys."
       />
@@ -92,12 +85,12 @@ export default async function DevelopersPage() {
         </CardHeader>
         <CardContent>
           {siteRows.length === 0 ? (
-            <p className="text-sm text-[var(--muted-foreground)]">
-              Add a website first, then return here for the install snippet.{" "}
-              <Link href="/dashboard/websites/new" className="font-medium text-[var(--primary)] underline-offset-2 hover:underline">
-                Add a website
-              </Link>
-            </p>
+            <EmptyState
+              title="No websites to install"
+              description="Add a website first, then return here for the published status and install snippet."
+              actionLabel="Add a website"
+              actionHref="/dashboard/websites/new"
+            />
           ) : (
             <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
               <table className="min-w-full text-sm">

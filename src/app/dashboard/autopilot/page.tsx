@@ -9,6 +9,7 @@ import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { buildConsentRecommendations } from "@/lib/intelligence/recommendations";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { buildAutopilotPlan } from "@/lib/intelligence/autopilot-engine";
 import { RunIntelligenceButton } from "@/components/intelligence/run-intelligence-button";
@@ -49,8 +50,24 @@ export default async function AutopilotPage({
   const sites = await loadOrgWebsites(context.organization.id);
   const websiteId = pickWebsiteId(sites, params.website);
 
-  const loaded = websiteId ? await loadQualityScoreInput(websiteId) : null;
-  const snapshot = websiteId ? await loadConsentGraph(context.organization.id, websiteId) : null;
+  const [loaded, snapshot, latestPlan] = websiteId
+    ? await Promise.all([
+        loadQualityScoreInput(websiteId),
+        loadConsentGraph(context.organization.id, websiteId),
+        db
+          .select()
+          .from(autopilotPlans)
+          .where(
+            and(
+              eq(autopilotPlans.organizationId, context.organization.id),
+              eq(autopilotPlans.websiteId, websiteId),
+            ),
+          )
+          .orderBy(desc(autopilotPlans.createdAt))
+          .limit(1)
+          .then((rows) => rows[0] ?? null),
+      ])
+    : [null, null, null];
   const baseline = loaded ? calculateConsentQualityScore(loaded.input) : null;
 
   const quality = baseline;
@@ -70,9 +87,6 @@ export default async function AutopilotPage({
   const bestNext = scenarios.slice().sort((a, b) => b.delta - a.delta)[0] ?? null;
 
   const plan = loaded ? buildAutopilotPlan(loaded.input).steps : [];
-  const latestPlan = websiteId
-    ? await db.select().from(autopilotPlans).where(and(eq(autopilotPlans.organizationId, context.organization.id), eq(autopilotPlans.websiteId, websiteId))).orderBy(desc(autopilotPlans.createdAt)).limit(1).then((rows) => rows[0] ?? null)
-    : null;
   const persistedPlan = latestPlan?.plan as { steps?: Array<{ id: string; title?: string; applyMode?: string; reversible?: boolean; legalPublication?: boolean }>; appliedStepIds?: string[] } | null;
   const safeSteps = (persistedPlan?.steps ?? [])
     .filter((step) => step.applyMode === "operator_approval" && step.reversible && !step.legalPublication)
@@ -81,7 +95,7 @@ export default async function AutopilotPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="AI"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="AI consent autopilot"
         description="Generates an ordered configuration plan by combining quality score inputs, consent dependency graph, and the privacy impact simulator. This is an assisted autopilot (no auto-publishing yet)."
       />

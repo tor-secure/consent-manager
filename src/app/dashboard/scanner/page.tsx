@@ -12,6 +12,7 @@ import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -158,6 +159,7 @@ export default async function ScannerPage() {
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       <PageHeader
+        eyebrow={<SectionEyebrow href="/dashboard/discovery">Discovery & Monitoring</SectionEyebrow>}
         title="Scanner"
         description="Scan your websites for cookies, scripts, pixels, and tracking technologies."
       />

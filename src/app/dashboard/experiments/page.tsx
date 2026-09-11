@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsPolicyEmpty, NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -94,7 +95,7 @@ export default async function ExperimentsPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Consent experiments"
         description="A/B test banner layout on the live SDK. Visitors are assigned a sticky variant; accept/reject rates come from recorded consent, not estimates."
       />

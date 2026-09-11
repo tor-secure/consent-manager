@@ -10,6 +10,7 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -226,6 +227,7 @@ export default async function ConsentRecordsPage() {
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       <PageHeader
+        eyebrow={<SectionEyebrow href="/dashboard/consent-management">Consent Management</SectionEyebrow>}
         title="Consent Records"
         description="Visitor consent records across all your websites."
         action={

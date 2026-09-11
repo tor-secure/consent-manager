@@ -4,6 +4,7 @@ import { WebsiteFilter } from "@/components/intelligence/website-filter";
 import { loadOrgWebsites, pickWebsiteId } from "@/lib/intelligence/org-websites";
 import { buildDataFlowMap } from "@/lib/intelligence/data-flow";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
 
@@ -24,7 +25,7 @@ export default async function DataFlowMapPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Intelligence"
+        eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Data flow consent map"
         description="Tracker → vendor → purpose → data categories for active scripts on this website."
       />

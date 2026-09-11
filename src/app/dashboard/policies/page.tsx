@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { auth } from "@clerk/nextjs/server";
 import { eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconText } from "@/components/ui/icon-text";
@@ -64,15 +64,7 @@ function PolicyStatusBadge({ status }: { status: string }) {
 // ---------------------------------------------------------------------------
 
 export default async function PoliciesPage() {
-  const { orgId } = await auth();
-  if (!orgId) return null;
-
-  const [localOrg] = await db
-    .select({ id: organizations.id, name: organizations.name })
-    .from(organizations)
-    .where(eq(organizations.clerkOrganizationId, orgId))
-    .limit(1);
-  if (!localOrg) return null;
+  const { organization: localOrg } = await requireDashboardContext();
 
   const orgWebsites = await db
     .select({ id: websites.id, name: websites.name, domain: websites.domain })
@@ -86,7 +78,15 @@ export default async function PoliciesPage() {
   const policies =
     websiteIds.length > 0
       ? await db
-          .select()
+          .select({
+            id: consentPolicies.id,
+            websiteId: consentPolicies.websiteId,
+            name: consentPolicies.name,
+            description: consentPolicies.description,
+            status: consentPolicies.status,
+            isDefault: consentPolicies.isDefault,
+            createdAt: consentPolicies.createdAt,
+          })
           .from(consentPolicies)
           .where(inArray(consentPolicies.websiteId, websiteIds))
           .orderBy(consentPolicies.createdAt)
@@ -123,6 +123,7 @@ export default async function PoliciesPage() {
     <div className="page-wrap space-y-6 sm:space-y-8">
 
       <PageHeader
+        eyebrow={<SectionEyebrow href="/dashboard/consent-management">Consent Management</SectionEyebrow>}
         title="Consent Policies"
         description="All consent policies across your websites."
         action={

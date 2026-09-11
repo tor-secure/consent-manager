@@ -11,6 +11,7 @@ import { purposes } from "@/db/schema/purposes";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -163,7 +164,7 @@ export default async function MonitoringPage({
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        eyebrow="Discovery & Monitoring"
+        eyebrow={<SectionEyebrow href="/dashboard/discovery">Discovery & Monitoring</SectionEyebrow>}
         title="Privacy drift"
         description="Findings are produced after a website scan by comparing the latest scan, the previous completed scan, and current CMP mappings. This is not a background scheduler and is not a legal determination."
       />
@@ -175,7 +176,7 @@ export default async function MonitoringPage({
       </div>
 
       <form className="mb-4 flex flex-wrap gap-2" action="/dashboard/monitoring">
-        <select name="website" defaultValue={websiteFilter ?? ""} className="field-input h-10 min-w-[10rem]">
+        <select name="website" aria-label="Filter by website" defaultValue={websiteFilter ?? ""} className="field-input h-10 min-w-[10rem]">
           <option value="">All websites</option>
           {orgWebsites.map((site) => (
             <option key={site.id} value={site.id}>
@@ -183,7 +184,7 @@ export default async function MonitoringPage({
             </option>
           ))}
         </select>
-        <select name="severity" defaultValue={severity ?? ""} className="field-input h-10">
+        <select name="severity" aria-label="Filter by severity" defaultValue={severity ?? ""} className="field-input h-10">
           <option value="">All severities</option>
           {FINDING_SEVERITIES.map((value) => (
             <option key={value} value={value}>
@@ -191,7 +192,7 @@ export default async function MonitoringPage({
             </option>
           ))}
         </select>
-        <select name="type" defaultValue={findingType ?? ""} className="field-input h-10">
+        <select name="type" aria-label="Filter by finding type" defaultValue={findingType ?? ""} className="field-input h-10">
           <option value="">All types</option>
           {FINDING_TYPES.map((value) => (
             <option key={value} value={value}>
@@ -199,14 +200,14 @@ export default async function MonitoringPage({
             </option>
           ))}
         </select>
-        <select name="status" defaultValue={status ?? "open"} className="field-input h-10">
+        <select name="status" aria-label="Filter by status" defaultValue={status ?? "open"} className="field-input h-10">
           {FINDING_STATUSES.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
           ))}
         </select>
-        <button type="submit" className="h-10 rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white">
+        <button type="submit" className="btn btn-primary">
           Filter
         </button>
         <Link href="/dashboard/monitoring" className="inline-flex h-10 items-center px-3 text-sm text-[var(--muted-foreground)]">

@@ -55,7 +55,7 @@ export function SetupGuideHeaderButton({ complete }: { complete: boolean }) {
     <a
       href="/dashboard#get-live"
       onClick={() => setSetupDismissed(false)}
-      className="hidden h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--muted)] sm:inline-flex"
+      className="inline-flex h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--muted)]"
     >
       Setup
     </a>
