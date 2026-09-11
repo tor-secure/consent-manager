@@ -7,6 +7,7 @@ import { websites } from "@/db/schema/websites";
 import { integrations } from "@/db/schema/integrations";
 import { websiteIntegrations } from "@/db/schema/website-integrations";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // POST /api/integrations/connect
 // Body: { integrationId: string; websiteId: string }
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
     const integrationId = String(body.integrationId ?? "").trim();

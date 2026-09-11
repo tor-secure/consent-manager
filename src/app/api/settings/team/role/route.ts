@@ -121,34 +121,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Role not found" }, { status: 404 });
     }
 
-    // ── Guard: cannot demote the last Owner ───────────────────────────────────
-    if (targetMembership.roleName === "Owner" && newRole.name !== "Owner") {
-      // Count remaining active Owner memberships in this org.
-      const [ownerCount] = await db
-        .select({ count: count() })
-        .from(memberships)
-        .innerJoin(roles, eq(memberships.roleId, roles.id))
-        .where(
-          and(
-            eq(memberships.organizationId, organization.id),
-            eq(memberships.status, "active"),
-            eq(roles.name, "Owner"),
-          ),
-        );
-
-      if ((ownerCount?.count ?? 0) <= 1) {
-        return NextResponse.json(
-          { success: false, message: "Cannot change the role of the last Owner." },
-          { status: 422 },
-        );
-      }
+    if (newRole.name === "Owner" && callerMembership?.roleName !== "Owner") {
+      return NextResponse.json(
+        { success: false, message: "Only an Owner can assign the Owner role." },
+        { status: 403 },
+      );
     }
 
     // ── Apply role change ─────────────────────────────────────────────────────
-    await db
-      .update(memberships)
-      .set({ roleId: newRoleId, updatedAt: new Date() })
-      .where(eq(memberships.id, targetMembership.id));
+    await db.transaction(async (tx) => {
+      if (targetMembership.roleName === "Owner" && newRole.name !== "Owner") {
+        const [ownerCount] = await tx
+          .select({ count: count() })
+          .from(memberships)
+          .innerJoin(roles, eq(memberships.roleId, roles.id))
+          .where(
+            and(
+              eq(memberships.organizationId, organization.id),
+              eq(memberships.status, "active"),
+              eq(roles.name, "Owner"),
+            ),
+          );
+
+        if ((ownerCount?.count ?? 0) <= 1) {
+          throw new Error("LAST_OWNER");
+        }
+      }
+
+      await tx
+        .update(memberships)
+        .set({ roleId: newRoleId, updatedAt: new Date() })
+        .where(eq(memberships.id, targetMembership.id));
+    });
 
     // ── Audit log ─────────────────────────────────────────────────────────────
     await db.insert(auditLogs).values({
@@ -167,6 +171,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, newRole: newRole.name });
   } catch (error) {
+    if (error instanceof Error && error.message === "LAST_OWNER") {
+      return NextResponse.json(
+        { success: false, message: "Cannot change the role of the last Owner." },
+        { status: 422 },
+      );
+    }
     console.error("Role change failed:", error);
     return NextResponse.json({ success: false, message: "Failed to change role" }, { status: 500 });
   }

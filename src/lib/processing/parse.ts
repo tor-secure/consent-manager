@@ -1,4 +1,5 @@
 import { isUuid } from "@/lib/trackers/management";
+import { sanitizeHttpUrl } from "@/lib/safe-url";
 import { parseCcpaApplicability } from "../ccpa/types";
 import {
   parseDpaStatus,
@@ -33,7 +34,9 @@ export function parseVendorPatch(body: Record<string, unknown>) {
     legalName: optionalText(body.legalName),
     domain: optionalText(body.domain),
     websiteUrl: optionalText(body.websiteUrl, 500),
-    privacyPolicyUrl: optionalText(body.privacyPolicyUrl, 500),
+    privacyPolicyUrl: body.privacyPolicyUrl === undefined
+      ? undefined
+      : (sanitizeHttpUrl(optionalText(body.privacyPolicyUrl, 500) ?? "") || null),
     country: optionalText(body.country, 8),
     description: optionalText(body.description, 4000),
     role: body.role === undefined ? undefined : parseVendorRole(body.role),

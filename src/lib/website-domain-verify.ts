@@ -2,13 +2,13 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { promises as dns } from "node:dns";
-import net from "node:net";
 
 import {
   SITE_VERIFICATION_META_NAME,
   SITE_VERIFICATION_TXT_PREFIX,
   SITE_VERIFICATION_WELL_KNOWN_PATH,
 } from "@/lib/website-domain-verify-constants";
+import { assertSafeScanUrl } from "@/lib/scanner/ssrf-guard";
 
 export {
   SITE_VERIFICATION_META_NAME,
@@ -21,41 +21,6 @@ export function siteVerificationToken(websiteId: string, siteKey: string): strin
     .update(`cmp-site:${websiteId}:${siteKey}`)
     .digest("hex")
     .slice(0, 32);
-}
-
-function isBlockedIp(ip: string): boolean {
-  const version = net.isIP(ip);
-  if (version === 4) {
-    const [a, b] = ip.split(".").map(Number);
-    if (a === 0 || a === 10 || a === 127) return true;
-    if (a === 169 && b === 254) return true;
-    if (a === 172 && b >= 16 && b <= 31) return true;
-    if (a === 192 && b === 168) return true;
-    return false;
-  }
-  if (version === 6) {
-    const normalized = ip.toLowerCase();
-    if (normalized === "::1" || normalized === "::") return true;
-    if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
-    if (normalized.startsWith("fe80")) return true;
-    if (normalized.startsWith("::ffff:")) {
-      return isBlockedIp(normalized.slice("::ffff:".length));
-    }
-    return false;
-  }
-  return true;
-}
-
-async function domainResolvesPublicly(domain: string): Promise<boolean> {
-  try {
-    const v4 = await dns.resolve4(domain).catch(() => [] as string[]);
-    const v6 = await dns.resolve6(domain).catch(() => [] as string[]);
-    const ips = [...v4, ...v6];
-    if (ips.length === 0) return false;
-    return ips.every((ip) => !isBlockedIp(ip));
-  } catch {
-    return false;
-  }
 }
 
 function tokenMatches(haystack: string, token: string): boolean {
@@ -79,6 +44,11 @@ export async function checkDnsTxt(domain: string, token: string): Promise<boolea
 }
 
 async function fetchText(url: string): Promise<string | null> {
+  try {
+    await assertSafeScanUrl(url);
+  } catch {
+    return null;
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
   try {
@@ -111,7 +81,6 @@ async function fetchText(url: string): Promise<string | null> {
 }
 
 export async function checkMetaTag(domain: string, token: string): Promise<boolean> {
-  if (!(await domainResolvesPublicly(domain))) return false;
   for (const protocol of ["https", "http"] as const) {
     const html = await fetchText(`${protocol}://${domain}/`);
     if (!html) continue;
@@ -129,7 +98,6 @@ export async function checkMetaTag(domain: string, token: string): Promise<boole
 }
 
 export async function checkWellKnownFile(domain: string, token: string): Promise<boolean> {
-  if (!(await domainResolvesPublicly(domain))) return false;
   for (const protocol of ["https", "http"] as const) {
     const body = await fetchText(`${protocol}://${domain}${SITE_VERIFICATION_WELL_KNOWN_PATH}`);
     if (body && body.trim() === token) return true;

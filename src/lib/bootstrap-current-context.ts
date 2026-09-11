@@ -9,12 +9,13 @@ import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { organizations } from "@/db/schema/organizations";
 import { memberships } from "@/db/schema/memberships";
-import { roles } from "@/db/schema/roles";
 import {
   organizationCoreSelect,
   toOrganizationRow,
   userCoreSelect,
 } from "@/lib/schema-selects";
+import { ensureMembershipForClerkRole, ensureNamedRole } from "@/lib/local-membership";
+import { OWNER_ROLE } from "@/lib/org-roles";
 
 export type BootstrapContext = {
   user: typeof users.$inferSelect;
@@ -42,37 +43,15 @@ function buildOrgSlug(name: string, clerkId: string): string {
   return `${base || "organization"}-${clerkId.slice(-8)}`;
 }
 
-async function ensureOwnerMembership(organizationId: string, userId: string) {
-  return db.transaction(async (tx) => {
-    let [ownerRole] = await tx
-      .select()
-      .from(roles)
-      .where(eq(roles.name, "Owner"))
-      .limit(1);
-
-    if (!ownerRole) {
-      [ownerRole] = await tx
-        .insert(roles)
-        .values({
-          name: "Owner",
-          description: "Full access to the organization and its resources.",
-        })
-        .returning();
-    }
-
-    const [newMembership] = await tx
-      .insert(memberships)
-      .values({
-        organizationId,
-        userId,
-        roleId: ownerRole.id,
-        status: "active",
-        joinedAt: new Date(),
-      })
-      .returning();
-
-    return newMembership;
-  });
+function clerkRoleForOrg(
+  clerkUser: unknown,
+  clerkOrgId: string,
+): string | null {
+  const memberships = (clerkUser as {
+    organizationMemberships?: Array<{ role?: string; organization?: { id?: string } }>;
+  })?.organizationMemberships ?? [];
+  const membership = memberships.find((row) => row.organization?.id === clerkOrgId);
+  return membership?.role ?? null;
 }
 
 /**
@@ -197,7 +176,11 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
         };
       }
 
-      const membership = await ensureOwnerMembership(existingOrg.id, localUser.id);
+      const membership = await ensureMembershipForClerkRole({
+        organizationId: existingOrg.id,
+        userId: localUser.id,
+        clerkRole: clerkRoleForOrg(clerkUser, resolvedOrgId),
+      });
       return {
         user: localUser,
         organization: toOrganizationRow(existingOrg),
@@ -263,7 +246,11 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
       };
     }
 
-    const membership = await ensureOwnerMembership(existingOrg.id, localUser.id);
+    const membership = await ensureMembershipForClerkRole({
+      organizationId: existingOrg.id,
+      userId: localUser.id,
+      clerkRole: clerkRoleForOrg(clerkUser, resolvedOrgId),
+    });
     return {
       user: localUser,
       organization: toOrganizationRow(existingOrg),
@@ -294,21 +281,11 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
       })
       .returning(organizationCoreSelect);
 
-    let [ownerRole] = await tx
-      .select()
-      .from(roles)
-      .where(eq(roles.name, "Owner"))
-      .limit(1);
-
-    if (!ownerRole) {
-      [ownerRole] = await tx
-        .insert(roles)
-        .values({
-          name: "Owner",
-          description: "Full access to the organization and its resources.",
-        })
-        .returning();
-    }
+    const ownerRole = await ensureNamedRole(
+      tx,
+      OWNER_ROLE,
+      "Full access to the organization and its resources.",
+    );
 
     const [newMembership] = await tx
       .insert(memberships)

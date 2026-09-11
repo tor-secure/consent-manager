@@ -48,6 +48,7 @@ assert.equal(HSTS_HEADER_VALUE.includes("max-age="), true);
 assert.deepEqual(CLERK_CSP_EXTRA_DIRECTIVES["frame-ancestors"], ["self"]);
 assert.deepEqual(CLERK_CSP_EXTRA_DIRECTIVES["object-src"], ["none"]);
 assert.ok(CLERK_CSP_EXTRA_DIRECTIVES["frame-src"].includes("https:"));
+assert.equal(CLERK_CSP_EXTRA_DIRECTIVES["frame-src"].includes("http:"), false);
 
 assert.equal(isPublicCrossOriginApiPath("/api/sdk/script"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/sdk/abc/config"), true);
@@ -119,8 +120,8 @@ assert.equal(
     secFetchSite: null,
     requestOrigin,
   }),
-  true,
-  "non-browser clients without Origin remain usable",
+  false,
+  "non-browser clients without Origin must not use cookie CSRF bypass",
 );
 
 assert.equal(originIsAllowed(requestOrigin, requestOrigin), true);
@@ -153,7 +154,8 @@ const proxy = read("src/proxy.ts");
 assert.match(proxy, /clerkMiddleware/);
 assert.match(proxy, /contentSecurityPolicy:\s*\{[\s\S]*strict:\s*true/);
 assert.match(proxy, /CLERK_CSP_EXTRA_DIRECTIVES/);
-assert.match(proxy, /shouldEnforceCsrfOrigin/);
+assert.match(proxy, /auth\.protect/);
+assert.match(proxy, /hasMachineBearerAuth/);
 assert.match(proxy, /isPublicCrossOriginApiPath/);
 assert.match(proxy, /OPTIONS/);
 assert.doesNotMatch(proxy, /unsafe-eval/);

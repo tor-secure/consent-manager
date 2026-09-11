@@ -8,6 +8,7 @@ import { generateApiKey } from "@/lib/api-key-utils";
 import { logger } from "@/lib/logger";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 const VALID_ENVIRONMENTS = ["live", "test"] as const;
 
@@ -42,6 +43,8 @@ export async function POST(request: Request) {
     if (!membership) {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
 

@@ -195,7 +195,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function callerMayExport(request: Request, organizationId: string, domain: string): Promise<boolean> {
+async function callerMayExport(request: Request, organizationId: string, _domain: string): Promise<boolean> {
   const session = await auth();
   if (session.isAuthenticated && session.orgId && session.userId) {
     const [organization, user] = await Promise.all([
@@ -205,15 +205,7 @@ async function callerMayExport(request: Request, organizationId: string, domain:
     if (organization?.id === organizationId && user &&
         await resolveActiveMembership(organizationId, user.id)) return true;
   }
-  const origin = request.headers.get("origin");
-  if (!origin) return false;
-  try {
-    const host = new URL(origin).hostname.toLowerCase();
-    const expected = domain.toLowerCase().replace(/^www\./, "");
-    return host === expected || host === `www.${expected}`;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 // CORS preflight.

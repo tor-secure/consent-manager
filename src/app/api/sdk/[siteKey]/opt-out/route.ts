@@ -12,13 +12,13 @@ import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { logger } from "@/lib/logger";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
-import {
-  isValidConsentId,
+import { isValidConsentId,
   isValidSiteKey,
   publicCorsHeaders,
   publicOptionsResponse,
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 
@@ -36,6 +36,8 @@ async function loadWebsiteBySiteKey(siteKey: string) {
       defaultRegion: websites.defaultRegion,
       defaultRegulationKey: websites.defaultRegulationKey,
       status: websites.status,
+      domain: websites.domain,
+      verified: websites.verified,
     })
     .from(websites)
     .where(and(eq(websites.siteKey, siteKey), eq(websites.status, "active")))
@@ -75,6 +77,8 @@ export async function GET(
     if (!website) {
       return NextResponse.json({ success: false, message: "Website not found" }, { status: 404, headers: CORS_HEADERS });
     }
+    const originError = sdkOriginGuard(request, website, CORS_HEADERS);
+    if (originError) return originError;
     const url = new URL(request.url);
     const consentId = url.searchParams.get("consentId")?.trim() ?? "";
     const gpc = parseGpcFromRequest(request.headers, url.searchParams.get("gpc") === "1" ? true : undefined);
@@ -141,6 +145,8 @@ export async function POST(
     if (!website) {
       return NextResponse.json({ success: false, message: "Website not found" }, { status: 404, headers: CORS_HEADERS });
     }
+    const originError = sdkOriginGuard(request, website, CORS_HEADERS);
+    if (originError) return originError;
     const limit = rateLimit({
       key: `ccpa-opt-out:${website.id}:${getClientIp(request)}`,
       limit: 60,

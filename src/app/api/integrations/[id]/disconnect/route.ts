@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { websiteIntegrations } from "@/db/schema/website-integrations";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // DELETE /api/integrations/[id]/disconnect
 // [id] is websiteIntegrations.id — tenant-safe via website → org chain.
@@ -49,6 +50,8 @@ export async function DELETE(
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     // Load the connection row first to get websiteId.
     const [connection] = await db

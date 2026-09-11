@@ -7,6 +7,7 @@ import {
   normalizeLocaleTag,
   type SupportedLanguage,
 } from "@/lib/i18n/locale-registry";
+import { sanitizeCssColor, sanitizeHttpUrl } from "@/lib/safe-url";
 import {
   BANNER_TEXT_FIELDS,
   DEFAULT_NOTICE_STRINGS,
@@ -170,6 +171,10 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   merged.doNotShareEnabled = merged.doNotShareEnabled === true;
   merged.gpcHonored = merged.gpcHonored !== false;
   merged.limitSensitivePiEnabled = merged.limitSensitivePiEnabled === true;
+  merged.privacyPolicyUrl = sanitizeHttpUrl(merged.privacyPolicyUrl);
+  merged.primaryColor = sanitizeCssColor(merged.primaryColor) || defaults.primaryColor;
+  merged.backgroundColor = sanitizeCssColor(merged.backgroundColor) || defaults.backgroundColor;
+  merged.textColor = sanitizeCssColor(merged.textColor) || defaults.textColor;
 
   return merged;
 }

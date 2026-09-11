@@ -2,7 +2,6 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
-import Script from "next/script";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
 import "./globals.css";
@@ -32,14 +31,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <Script
+      <head>
+        <script
           id="cmp-theme-bootstrap"
-          strategy="beforeInteractive"
           nonce={nonce}
-        >
-          {THEME_BOOTSTRAP_SCRIPT}
-        </Script>
+          dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
+        />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
           <ClerkProvider dynamic>
             {children}

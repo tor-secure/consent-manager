@@ -65,15 +65,17 @@ export function rateLimit(options: RateLimitOptions): RateLimitResult {
 }
 
 export function getClientIp(request: Request): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  const firstForwarded = forwardedFor?.split(",")[0]?.trim();
-  if (firstForwarded) return firstForwarded;
+  const vercel = request.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim();
+  if (vercel) return vercel;
+  const cf = request.headers.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  if (realIp) return realIp;
 
-  return (
-    request.headers.get("cf-connecting-ip")?.trim() ||
-    request.headers.get("x-real-ip")?.trim() ||
-    "unknown"
-  );
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const hops = forwardedFor?.split(",").map((part) => part.trim()).filter(Boolean) ?? [];
+  if (hops.length > 0) return hops[hops.length - 1] ?? "unknown";
+  return "unknown";
 }
 
 export function rateLimitResponse(

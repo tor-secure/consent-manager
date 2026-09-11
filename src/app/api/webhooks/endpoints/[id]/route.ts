@@ -8,6 +8,7 @@ import { WEBHOOK_EVENT_TYPES } from "../route";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // PATCH /api/webhooks/endpoints/[id] — update name, description, events, or status.
 export async function PATCH(
@@ -45,6 +46,8 @@ export async function PATCH(
     if (!membership) {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const [endpoint] = await db
       .select({ id: webhookEndpoints.id, status: webhookEndpoints.status })
@@ -139,6 +142,8 @@ export async function DELETE(
     if (!membership) {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const deleted = await db
       .delete(webhookEndpoints)

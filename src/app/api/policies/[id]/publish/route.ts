@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { authorizeOwnedPolicy } from "@/lib/compliance/http";
+import { requireOperatorRole } from "@/lib/org-roles";
 import {
   ignoreClientComplianceClaims,
   validateOwnedPolicy,
@@ -33,6 +34,8 @@ export async function POST(
     const { id: policyId } = await params;
     const authz = await authorizeOwnedPolicy(policyId);
     if (authz.error) return authz.error;
+    const operatorError = requireOperatorRole(authz.membership.roleName);
+    if (operatorError) return operatorError;
 
     let body: unknown = null;
     try {

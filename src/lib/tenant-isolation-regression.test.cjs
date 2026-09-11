@@ -56,12 +56,12 @@ function assertOwnerAdminOnly(relativePath) {
   const { source, oneLine } = assertAuthenticated(relativePath);
   assertMatches(
     source,
-    /(Owner|Admin)/,
+    /(Owner|Admin)|requireOperatorRole/,
     `${relativePath} declares an Owner/Admin authorization gate`,
   );
   assertMatches(
     oneLine,
-    /roleName|AUTHORIZED_ROLES|AUTHORIZED_ADMIN_ROLES|allowedRoles/,
+    /roleName|AUTHORIZED_ROLES|AUTHORIZED_ADMIN_ROLES|allowedRoles|requireOperatorRole/,
     `${relativePath} checks the caller role`,
   );
 }
@@ -256,6 +256,17 @@ assertOwnerAdminOnly("src/app/api/settings/organization/route.ts");
 assertOwnerAdminOnly("src/app/api/settings/team/role/route.ts");
 assertOwnerAdminOnly("src/app/api/settings/team/[memberId]/route.ts");
 assertOwnerAdminOnly("src/app/api/settings/team/invite/route.ts");
+assertOwnerAdminOnly("src/app/api/api-keys/route.ts");
+assertOwnerAdminOnly("src/app/api/api-keys/[id]/route.ts");
+assertOwnerAdminOnly("src/app/api/webhooks/endpoints/route.ts");
+assertOwnerAdminOnly("src/app/api/webhooks/endpoints/[id]/route.ts");
+assertOwnerAdminOnly("src/app/api/scanner/run/route.ts");
+assertOwnerAdminOnly("src/app/api/integrations/connect/route.ts");
+assert.match(
+  read("src/app/api/policies/[id]/publish/route.ts"),
+  /requireOperatorRole/,
+  "policy publish is Owner/Admin gated",
+);
 {
   const source = compact(read("src/app/api/settings/rights-requests/[id]/route.ts"));
   assertIncludes(source, "authorizeRightsOrganization()", "rights request PATCH uses shared rights authorization");

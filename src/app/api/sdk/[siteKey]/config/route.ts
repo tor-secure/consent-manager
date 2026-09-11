@@ -35,6 +35,7 @@ import {
   issuePolicyContext,
 } from "@/lib/policy-context";
 import { parseChildProtectionConfig } from "@/lib/children/config";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 import { publicChildSnapshot } from "@/lib/children/service";
 import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
 import { californiaRuntimeApplies } from "@/lib/ccpa/types";
@@ -94,6 +95,7 @@ export async function GET(
         iabRegistration: websites.iabRegistration,
         childProtection: websites.childProtection,
         status: websites.status,
+        verified: websites.verified,
       })
       .from(websites)
       .where(
@@ -107,6 +109,9 @@ export async function GET(
         { status: 404, headers: corsHeaders },
       );
     }
+
+    const originError = sdkOriginGuard(request, website, corsHeaders);
+    if (originError) return originError;
 
     const resolved = await resolveWebsiteConsentContext({
       websiteId: website.id,

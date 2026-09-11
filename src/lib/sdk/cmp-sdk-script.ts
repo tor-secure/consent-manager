@@ -118,6 +118,24 @@ ${apiBaseLine}
   var EXPIRY_KEY  = 'cmp_expiry_'  + SITE_KEY;
   var POLICY_CONTEXT_KEY = 'cmp_policy_context_' + SITE_KEY;
   var CA_OPT_OUT_KEY = 'cmp_ca_optout_' + SITE_KEY;
+  function safeHttpUrl(value) {
+    if (!value || typeof value !== 'string') return '';
+    try {
+      var parsed = new URL(value.trim());
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return '';
+      if (parsed.username || parsed.password) return '';
+      return parsed.href;
+    } catch (err) {
+      return '';
+    }
+  }
+  function safeCssColor(value) {
+    if (typeof value !== 'string') return '';
+    var trimmed = value.trim();
+    if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
+    if (/^rgba?\(\s*(?:\d{1,3}%?\s*,\s*){2}\d{1,3}%?(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/.test(trimmed)) return trimmed;
+    return '';
+  }
   var BUILTIN_TRACKER_CATALOG = ${JSON.stringify(BUILTIN_TRACKER_CATALOG)};
 
   var _config      = null;
@@ -1871,6 +1889,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function renderBanner() {
     if (!_config || !_config.bannerConfig) return;
     var cfg = _config.bannerConfig;
+    cfg.primaryColor = safeCssColor(cfg.primaryColor) || '#171717';
+    cfg.backgroundColor = safeCssColor(cfg.backgroundColor) || '#ffffff';
+    cfg.textColor = safeCssColor(cfg.textColor) || '#171717';
     if (!cfg.showAcceptAll && !cfg.showRejectAll && !cfg.showCustomize && !cfg.showCloseButton) return;
 
     removePreferenceWidget();
@@ -1978,7 +1999,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     if (cfg.privacyPolicyUrl && cfg.privacyPolicyText) {
       var pol = document.createElement('a');
-      pol.href = cfg.privacyPolicyUrl;
+      pol.href = safeHttpUrl(cfg.privacyPolicyUrl);
       pol.target = '_blank';
       pol.rel = 'noopener noreferrer';
       pol.textContent = cfg.privacyPolicyText;
@@ -2449,7 +2470,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         vname.appendChild(vnameRow);
         if (v.domain || v.privacyPolicyUrl) {
           var vlink = document.createElement('a');
-          vlink.href = v.privacyPolicyUrl || ('https://' + v.domain);
+          vlink.href = safeHttpUrl(v.privacyPolicyUrl) || (v.domain ? safeHttpUrl('https://' + v.domain) : '');
           vlink.target = '_blank';
           vlink.rel = 'noopener noreferrer';
           vlink.textContent = v.domain || 'Privacy policy';
@@ -2564,7 +2585,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     if (cfg.privacyPolicyText && cfg.privacyPolicyUrl) {
       var pl = document.createElement('a');
-      pl.href = cfg.privacyPolicyUrl;
+      pl.href = safeHttpUrl(cfg.privacyPolicyUrl);
       pl.target = '_blank';
       pl.rel = 'noopener noreferrer';
       pl.textContent = cfg.privacyPolicyText;
@@ -2853,6 +2874,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           body: JSON.stringify({
             consentId: withdrawingConsentId,
             websiteId: _config.websiteId,
+            siteKey: SITE_KEY,
             expectedStateVersion: _stateVersion
           })
         })
@@ -2926,7 +2948,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     fetch(
       API_BASE + '/api/consent/record?consentId=' +
         encodeURIComponent(stored.consentId) +
-        '&websiteId=' + encodeURIComponent(_config.websiteId),
+        '&websiteId=' + encodeURIComponent(_config.websiteId) +
+        '&siteKey=' + encodeURIComponent(SITE_KEY),
       { cache: 'no-store' }
     )
       .then(function(r) {

@@ -36,6 +36,7 @@ export const BASELINE_SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "SAMEORIGIN",
   "Permissions-Policy": PERMISSIONS_POLICY,
+  "Cross-Origin-Opener-Policy": "same-origin",
 };
 
 export const HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains; preload";
@@ -49,7 +50,7 @@ export const CLERK_CSP_EXTRA_DIRECTIVES: Record<string, string[]> = {
   "img-src": ["data:", "blob:"],
   "frame-ancestors": ["self"],
   // Banner studio previews customer sites in an iframe (any http(s) origin).
-  "frame-src": ["http:", "https:"],
+  "frame-src": ["https:"],
 };
 
 export function shouldSendHsts(protocol: string, forwardedProto: string | null): boolean {
@@ -63,8 +64,19 @@ export function isPublicCrossOriginApiPath(pathname: string): boolean {
   if (pathname === "/api/rights-request" || pathname.startsWith("/api/rights-request/")) return true;
   if (pathname === "/api/age-assurance" || pathname.startsWith("/api/age-assurance/")) return true;
   if (pathname === "/api/guardian-consent" || pathname.startsWith("/api/guardian-consent/")) return true;
-  if (pathname === "/api/cron/scans") return true;
-  return pathname.startsWith("/api/consent/") || pathname.startsWith("/api/sdk/");
+  if (pathname.startsWith("/api/cron/")) return true;
+  if (pathname.startsWith("/api/webhooks/clerk")) return true;
+  if (pathname.startsWith("/api/v1/")) return true;
+  if (pathname.startsWith("/api/agent/")) return true;
+  if (pathname.startsWith("/api/sdk/")) return true;
+  if (pathname === "/api/consent/record" || pathname.startsWith("/api/consent/record/")) return true;
+  if (pathname === "/api/consent/withdraw" || pathname.startsWith("/api/consent/withdraw/")) return true;
+  if (pathname === "/api/consent/policy" || pathname.startsWith("/api/consent/policy/")) return true;
+  return false;
+}
+
+export function hasMachineBearerAuth(request: Request): boolean {
+  return /^Bearer\s+\S+/i.test(request.headers.get("authorization") ?? "");
 }
 
 export function isStateChangingMethod(method: string): boolean {
@@ -122,8 +134,7 @@ export function isTrustedDashboardMutation(input: {
     }
   }
 
-  // Non-browser clients (curl, server jobs) typically omit Origin and Sec-Fetch-Site.
-  return true;
+  return false;
 }
 
 export function applyBaselineSecurityHeaders(

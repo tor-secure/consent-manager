@@ -14,6 +14,7 @@ import {
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // POST /api/scanner/run
 // Body: { websiteId: string }
@@ -62,6 +63,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
     const websiteId = String(body.websiteId ?? "").trim();

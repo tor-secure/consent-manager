@@ -8,6 +8,8 @@ import { webhookDeliveries } from "@/db/schema/webhook-deliveries";
 import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
 import { logger } from "@/lib/logger";
 import { redactValue, type RedactionConsent, type RedactionPolicy } from "@/lib/redaction-core";
+import { hmacKeyFromStoredWebhookSecret } from "@/lib/webhooks/secret-crypto";
+import { assertSafeScanUrl, ScannerUrlError } from "@/lib/scanner/ssrf-guard";
 
 export const WEBHOOK_SIGNATURE_HEADER = "X-CMP-Signature";
 export const WEBHOOK_TIMESTAMP_HEADER = "X-CMP-Timestamp";
@@ -74,7 +76,8 @@ export function createWebhookSignature({
   timestamp: string;
   signingSecretHash: string;
 }): string {
-  return createHmac("sha256", signingSecretHash)
+  const hmacKey = hmacKeyFromStoredWebhookSecret(signingSecretHash);
+  return createHmac("sha256", hmacKey)
     .update(`${timestamp}.${payload}`)
     .digest("hex");
 }
@@ -180,6 +183,10 @@ export async function deliverWebhookToEndpoint(
   }
 
   const fetchImpl = deps.fetchImpl ?? fetch;
+  const safeUrl = await assertSafeScanUrl(endpoint.url);
+  if (process.env.NODE_ENV === "production" && safeUrl.protocol !== "https:") {
+    throw new ScannerUrlError("Webhook URL must use HTTPS");
+  }
   const sleep = deps.sleep ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   const recordAttempt = deps.recordAttempt ?? defaultRecordAttempt;
   const markEndpointDelivered = deps.markEndpointDelivered ?? defaultMarkEndpointDelivered;
@@ -199,20 +206,30 @@ export async function deliverWebhookToEndpoint(
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
-        const response = await fetchImpl(endpoint.url, {
+        const response = await fetchImpl(safeUrl.href, {
           method: "POST",
           headers: request.headers,
           body: request.body,
           signal: controller.signal,
+          redirect: "manual",
         });
-        const responseText = sanitizeWebhookResponseBody(await response.text());
+        if (response.status >= 300 && response.status < 400) {
+          result = {
+            status: "failed",
+            responseStatusCode: response.status,
+            responseBody: null,
+            errorMessage: "Webhook endpoint redirected to a disallowed location",
+          };
+        } else {
+          const responseText = sanitizeWebhookResponseBody(await response.text());
 
-        result = {
-          status: response.ok ? "success" : "failed",
-          responseStatusCode: response.status,
-          responseBody: responseText,
-          errorMessage: response.ok ? null : `Webhook endpoint returned HTTP ${response.status}`,
-        };
+          result = {
+            status: response.ok ? "success" : "failed",
+            responseStatusCode: response.status,
+            responseBody: responseText,
+            errorMessage: response.ok ? null : `Webhook endpoint returned HTTP ${response.status}`,
+          };
+        }
       } finally {
         clearTimeout(timer);
       }

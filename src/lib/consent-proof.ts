@@ -34,7 +34,6 @@ function proofKey(): Buffer {
   const configuredSecret = process.env.CONSENT_PROOF_SECRET?.trim();
   const material =
     configuredSecret ||
-    process.env.DATABASE_URL?.trim() ||
     (process.env.NODE_ENV === "production" ? "" : "cmp-dev-consent-proof");
   if (!material) {
     throw new Error("CONSENT_PROOF_SECRET is required in production");

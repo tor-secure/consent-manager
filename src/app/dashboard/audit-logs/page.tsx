@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { auth } from "@clerk/nextjs/server";
-import { eq, and, gte, or, ilike, desc, sql } from "drizzle-orm";
+import { eq, and, gte, or, ilike, desc, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -148,7 +148,7 @@ export default async function AuditLogsPage({
         .from(users)
         .where(userIds.length === 1
           ? eq(users.id, userIds[0])
-          : sql`${users.id} = ANY(${sql.raw(`ARRAY[${userIds.map((id) => `'${id}'`).join(",")}]::uuid[]`)})`)
+          : inArray(users.id, userIds))
     : [];
   const userMap = new Map(userRows.map((u) => [u.id, u]));
 

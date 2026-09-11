@@ -16,6 +16,7 @@ import {
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 const CORS_HEADERS = publicCorsHeaders("POST, OPTIONS");
 
@@ -62,7 +63,13 @@ export async function POST(request: Request) {
     if (!limit.allowed) return rateLimitResponse(limit, CORS_HEADERS);
 
     const [website] = await db
-      .select({ id: websites.id, organizationId: websites.organizationId })
+      .select({
+        id: websites.id,
+        organizationId: websites.organizationId,
+        domain: websites.domain,
+        verified: websites.verified,
+        siteKey: websites.siteKey,
+      })
       .from(websites)
       .where(eq(websites.id, websiteId))
       .limit(1);
@@ -73,6 +80,15 @@ export async function POST(request: Request) {
         { status: 404, headers: CORS_HEADERS },
       );
     }
+    const siteKey = String(body.siteKey ?? "").trim();
+    if (!siteKey || siteKey !== website.siteKey) {
+      return NextResponse.json(
+        { success: false, message: "siteKey is required" },
+        { status: 403, headers: CORS_HEADERS },
+      );
+    }
+    const originError = sdkOriginGuard(request, website, CORS_HEADERS);
+    if (originError) return originError;
 
     const [record] = await db
       .select({

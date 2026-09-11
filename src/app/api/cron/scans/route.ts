@@ -11,11 +11,8 @@ export const maxDuration = 60;
 async function handleCron(request: Request) {
   if (!getConfiguredCronSecret()) {
     return NextResponse.json(
-      {
-        success: false,
-        message: "Scheduled scanning is not configured. Set CRON_SECRET or SCANNER_CRON_SECRET.",
-      },
-      { status: 503 },
+      { success: false, message: "Unauthorized" },
+      { status: 401 },
     );
   }
 

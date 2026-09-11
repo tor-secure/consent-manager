@@ -8,6 +8,7 @@ import { auditLogs } from "@/db/schema/audit-logs";
 import { logger } from "@/lib/logger";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // DELETE /api/api-keys/[id] — revoke a key (sets status=revoked, revokedAt=now).
 export async function DELETE(
@@ -45,6 +46,8 @@ export async function DELETE(
     if (!membership) {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     // Verify key belongs to this org.
     const [existing] = await db

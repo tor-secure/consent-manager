@@ -37,13 +37,20 @@ const {
   const separateKey = rateLimit({ key: "public:site-b:1.2.3.4", limit: 2, windowMs: 60_000 });
   assert.equal(separateKey.allowed, true);
 
-  const request = new Request("https://cmp.example.test/api", {
+  const platformRequest = new Request("https://cmp.example.test/api", {
     headers: {
       "x-forwarded-for": "203.0.113.10, 10.0.0.2",
       "x-real-ip": "198.51.100.20",
     },
   });
-  assert.equal(getClientIp(request), "203.0.113.10");
+  assert.equal(getClientIp(platformRequest), "198.51.100.20");
+
+  const forwardedOnly = new Request("https://cmp.example.test/api", {
+    headers: {
+      "x-forwarded-for": "203.0.113.10, 10.0.0.2",
+    },
+  });
+  assert.equal(getClientIp(forwardedOnly), "10.0.0.2");
 
   const response = rateLimitResponse(exceeded, { "Access-Control-Allow-Origin": "*" });
   assert.equal(response.status, 429);

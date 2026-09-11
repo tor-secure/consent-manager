@@ -1,17 +1,39 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
   CLERK_CSP_EXTRA_DIRECTIVES,
+  hasMachineBearerAuth,
   isPublicCrossOriginApiPath,
   isTrustedDashboardMutation,
   shouldEnforceCsrfOrigin,
 } from "@/lib/security-headers";
 
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/privacy-request(.*)",
+  "/guardian-consent(.*)",
+  "/sdk-demo(.*)",
+  "/api/health",
+  "/api/sdk(.*)",
+  "/api/consent/record(.*)",
+  "/api/consent/withdraw(.*)",
+  "/api/consent/policy(.*)",
+  "/api/rights-request(.*)",
+  "/api/age-assurance(.*)",
+  "/api/guardian-consent(.*)",
+  "/api/cron(.*)",
+  "/api/webhooks/clerk(.*)",
+  "/api/v1(.*)",
+  "/api/agent(.*)",
+]);
+
 export default clerkMiddleware(
-  async (_auth, request) => {
+  async (auth, request) => {
     const { pathname } = request.nextUrl;
 
     if (request.method === "OPTIONS" && isPublicCrossOriginApiPath(pathname)) {
@@ -23,7 +45,10 @@ export default clerkMiddleware(
       return preflight;
     }
 
-    if (shouldEnforceCsrfOrigin(request.method, pathname)) {
+    if (
+      shouldEnforceCsrfOrigin(request.method, pathname) &&
+      !hasMachineBearerAuth(request)
+    ) {
       const allowed = isTrustedDashboardMutation({
         origin: request.headers.get("origin"),
         referer: request.headers.get("referer"),
@@ -41,6 +66,10 @@ export default clerkMiddleware(
         });
         return forbidden;
       }
+    }
+
+    if (!isPublicRoute(request)) {
+      await auth.protect();
     }
 
     const response = NextResponse.next();

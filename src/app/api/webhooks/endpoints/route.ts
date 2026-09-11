@@ -8,6 +8,9 @@ import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
+import { encryptWebhookSigningSecret } from "@/lib/webhooks/secret-crypto";
+import { assertSafeScanUrl, ScannerUrlError } from "@/lib/scanner/ssrf-guard";
 
 // All supported event types — validated server-side, never trusted from body.
 export const WEBHOOK_EVENT_TYPES = [
@@ -74,6 +77,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
 
@@ -93,39 +98,21 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate URL format and block SSRF targets.
     try {
-      const parsed = new URL(url);
-      if (!["http:", "https:"].includes(parsed.protocol)) {
-        throw new Error("Protocol must be http or https");
+      const parsed = await assertSafeScanUrl(url);
+      if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
+        return NextResponse.json(
+          { success: false, message: "Webhook URL must use HTTPS" },
+          { status: 400 },
+        );
       }
-
-      // Block requests to localhost and private/internal IP ranges.
-      const host = parsed.hostname.toLowerCase();
-      const ssrfBlocked =
-        host === "localhost" ||
-        host === "127.0.0.1" ||
-        host === "::1" ||
-        host === "0.0.0.0" ||
-        // Private IPv4 ranges: 10.x, 172.16–31.x, 192.168.x, 169.254.x (link-local)
-        /^10\./.test(host) ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-        /^192\.168\./.test(host) ||
-        /^169\.254\./.test(host) ||
-        // IPv6 private
-        /^(fc|fd|fe80)/i.test(host) ||
-        // Metadata endpoints
-        host === "metadata.google.internal" ||
-        host === "169.254.169.254";
-
-      if (ssrfBlocked) {
+    } catch (urlError) {
+      if (urlError instanceof ScannerUrlError) {
         return NextResponse.json(
           { success: false, message: "Webhook URL must point to a publicly reachable host" },
           { status: 400 },
         );
       }
-    } catch (urlError) {
-      if (urlError instanceof NextResponse) return urlError;
       return NextResponse.json(
         { success: false, message: "Endpoint URL must be a valid HTTP/HTTPS URL" },
         { status: 400 },
@@ -164,8 +151,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const { raw: signingSecret, hash: signingSecretHash } =
-      generateSigningSecret();
+    const { raw: signingSecret } = generateSigningSecret();
+    const signingSecretHash = encryptWebhookSigningSecret(signingSecret);
 
     const [endpoint] = await db
       .insert(webhookEndpoints)

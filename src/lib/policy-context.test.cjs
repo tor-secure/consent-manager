@@ -149,20 +149,23 @@ assert.equal(
     /POLICY_CONTEXT_SECRET or CONSENT_PROOF_SECRET is required/,
   );
   process.env.DATABASE_URL = "postgres://local-fallback";
-  const fallback = issuePolicyContext({
-    organizationId: ids.organizationA,
-    websiteId: ids.websiteA,
-    siteKey: "site_policy_context_test",
-    policyId: ids.policyA,
-    policyVersionId: ids.version1,
-    policyVersionNumber: 1,
-    jurisdiction: "gdpr",
-    locale: "en-GB",
-    variantId: null,
-    noticeSnapshot,
-  });
-  assert.equal(typeof fallback.token, "string");
-  assert.ok(fallback.token.includes("."));
+  assert.throws(
+    () =>
+      issuePolicyContext({
+        organizationId: ids.organizationA,
+        websiteId: ids.websiteA,
+        siteKey: "site_policy_context_test",
+        policyId: ids.policyA,
+        policyVersionId: ids.version1,
+        policyVersionNumber: 1,
+        jurisdiction: "gdpr",
+        locale: "en-GB",
+        variantId: null,
+        noticeSnapshot,
+      }),
+    /POLICY_CONTEXT_SECRET or CONSENT_PROOF_SECRET is required/,
+    "production policy context must never fall back to DATABASE_URL",
+  );
   if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
   else process.env.NODE_ENV = previousNodeEnv;
   if (previousPolicySecret === undefined) delete process.env.POLICY_CONTEXT_SECRET;

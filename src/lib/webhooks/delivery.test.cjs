@@ -22,6 +22,13 @@ Module._load = function patchedLoad(request, parent, isMain) {
   if (request === "server-only") return {};
   if (request === "@/db") return { db: {} };
   if (request === "@/lib/logger") return { logger: { error() {}, warn() {}, info() {}, debug() {} } };
+  if (request.includes("secret-crypto")) return { hmacKeyFromStoredWebhookSecret: (value) => value };
+  if (request.includes("ssrf-guard")) {
+    return {
+      assertSafeScanUrl: async (url) => new URL(url),
+      ScannerUrlError: class ScannerUrlError extends Error {},
+    };
+  }
   if (request === "@/lib/redaction-core") {
     return require(path.join(root, ".tmp/portable-redaction/redaction-core.js"));
   }

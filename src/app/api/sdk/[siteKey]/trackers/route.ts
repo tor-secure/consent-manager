@@ -12,6 +12,7 @@ import {
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
 import { logger } from "@/lib/logger";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/[siteKey]/trackers
@@ -23,7 +24,7 @@ import { logger } from "@/lib/logger";
 // ---------------------------------------------------------------------------
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ siteKey: string }> },
 ) {
   try {
@@ -49,7 +50,12 @@ export async function GET(
     }
 
     const [website] = await db
-      .select({ id: websites.id, status: websites.status })
+      .select({
+        id: websites.id,
+        status: websites.status,
+        domain: websites.domain,
+        verified: websites.verified,
+      })
       .from(websites)
       .where(
         and(eq(websites.siteKey, trimmedKey), eq(websites.status, "active")),
@@ -62,6 +68,8 @@ export async function GET(
         { status: 404, headers: corsHeaders },
       );
     }
+    const originError = sdkOriginGuard(request, website, corsHeaders);
+    if (originError) return originError;
 
     const trackerRows = await db
       .select({

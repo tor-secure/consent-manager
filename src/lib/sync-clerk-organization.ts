@@ -4,8 +4,9 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { users } from "@/db/schema/users";
-import { roles } from "@/db/schema/roles";
 import { memberships } from "@/db/schema/memberships";
+import { ensureNamedRole } from "@/lib/local-membership";
+import { OWNER_ROLE } from "@/lib/org-roles";
 
 function createSlug(name: string, clerkId: string) {
   const base = name
@@ -65,24 +66,11 @@ export async function syncActiveClerkOrganization() {
   }
 
   return await db.transaction(async (tx) => {
-    // Find Owner role
-    let [ownerRole] = await tx
-      .select()
-      .from(roles)
-      .where(eq(roles.name, "Owner"))
-      .limit(1);
-
-    // Create Owner role if it doesn't exist
-    if (!ownerRole) {
-      [ownerRole] = await tx
-        .insert(roles)
-        .values({
-          name: "Owner",
-          description:
-            "Full access to the organization and its resources.",
-        })
-        .returning();
-    }
+    const ownerRole = await ensureNamedRole(
+      tx,
+      OWNER_ROLE,
+      "Full access to the organization and its resources.",
+    );
 
     // Create local organization
     const [organization] = await tx

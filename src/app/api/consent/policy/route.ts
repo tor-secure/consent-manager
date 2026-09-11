@@ -10,6 +10,7 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { parseBannerConfig } from "@/lib/banner-config";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 // GET /api/consent/policy?websiteId=<id>
 // Public endpoint — returns the active policy configuration for a website,
@@ -29,7 +30,13 @@ export async function GET(request: Request) {
 
     // Verify the website exists and is active.
     const [website] = await db
-      .select({ id: websites.id, organizationId: websites.organizationId, status: websites.status })
+      .select({
+        id: websites.id,
+        organizationId: websites.organizationId,
+        status: websites.status,
+        domain: websites.domain,
+        verified: websites.verified,
+      })
       .from(websites)
       .where(eq(websites.id, websiteId))
       .limit(1);
@@ -40,6 +47,8 @@ export async function GET(request: Request) {
         { status: 404 },
       );
     }
+    const originError = sdkOriginGuard(request, website);
+    if (originError) return originError;
 
     // Find the default active policy for this website (or the first active one).
     const [policy] = await db

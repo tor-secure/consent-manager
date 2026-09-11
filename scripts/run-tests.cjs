@@ -109,7 +109,9 @@ compile(
     "src/lib/processing/regions.ts",
     "src/lib/processing/snapshot.ts",
     "src/lib/processing/validate.ts",
+    "src/lib/safe-url.ts",
     "src/lib/webhooks/delivery.ts",
+    "src/lib/webhooks/secret-crypto.ts",
   ],
   ["--rootDir", "."],
 );

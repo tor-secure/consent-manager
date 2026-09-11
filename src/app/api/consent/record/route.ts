@@ -38,6 +38,7 @@ import {
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 import {
   buildAnalyticsHints,
   mergeAnalyticsMetadata,
@@ -75,6 +76,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const consentId = searchParams.get("consentId")?.trim() ?? "";
     const websiteId = searchParams.get("websiteId")?.trim() ?? "";
+    const siteKey = searchParams.get("siteKey")?.trim() ?? "";
 
     if (!consentId || !websiteId) {
       return NextResponse.json(
@@ -102,8 +104,12 @@ export async function GET(request: Request) {
         expiresAt: consentRecords.expiresAt,
         withdrawnAt: consentRecords.withdrawnAt,
         policyVersionId: consentRecords.policyVersionId,
+        siteKey: websites.siteKey,
+        domain: websites.domain,
+        verified: websites.verified,
       })
       .from(consentRecords)
+      .innerJoin(websites, eq(consentRecords.websiteId, websites.id))
       .where(
         and(
           eq(consentRecords.consentId, consentId),
@@ -118,6 +124,14 @@ export async function GET(request: Request) {
         { status: 404, headers: CORS_HEADERS },
       );
     }
+    if (!siteKey || siteKey !== record.siteKey) {
+      return NextResponse.json(
+        { success: false, message: "siteKey is required" },
+        { status: 403, headers: CORS_HEADERS },
+      );
+    }
+    const originError = sdkOriginGuard(request, record, CORS_HEADERS);
+    if (originError) return originError;
 
     // ── Expiry check ────────────────────────────────────────────────────
     // If the consent has expired, return expired=true / requiresReconsent=true
@@ -368,6 +382,8 @@ export async function POST(request: Request) {
         consentIntegrations: websites.consentIntegrations,
         iabRegistration: websites.iabRegistration,
         childProtection: websites.childProtection,
+        domain: websites.domain,
+        verified: websites.verified,
       })
       .from(websites)
       .where(eq(websites.id, websiteId))
@@ -379,6 +395,8 @@ export async function POST(request: Request) {
         { status: 404, headers: CORS_HEADERS },
       );
     }
+    const originError = sdkOriginGuard(request, website, CORS_HEADERS);
+    if (originError) return originError;
 
     if (
       !policyContextMatchesScope(policyContext, {

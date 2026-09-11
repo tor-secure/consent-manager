@@ -82,7 +82,6 @@ function contextSecret(): Buffer {
     process.env.CONSENT_PROOF_SECRET?.trim();
   const material =
     configured ||
-    process.env.DATABASE_URL?.trim() ||
     (process.env.NODE_ENV === "production" ? "" : "cmp-dev-policy-context");
   if (!material) {
     throw new Error(

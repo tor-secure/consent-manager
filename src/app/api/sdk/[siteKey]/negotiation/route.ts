@@ -9,6 +9,7 @@ import { websites } from "@/db/schema/websites";
 import { negotiationOfferSchema, publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { isValidSiteKey, publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
+import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 const bodySchema = z.object({
   offerKey: z.string().regex(/^[a-z0-9_-]{1,100}$/),
@@ -38,6 +39,8 @@ export async function POST(
     .select({
       websiteId: websites.id,
       organizationId: websites.organizationId,
+      domain: websites.domain,
+      verified: websites.verified,
       enabled: negotiationConfigurations.enabled,
       offers: negotiationConfigurations.offers,
     })
@@ -46,6 +49,8 @@ export async function POST(
     .where(and(eq(websites.siteKey, siteKey), eq(websites.status, "active")))
     .limit(1);
   if (!row) return NextResponse.json({ success: false, message: "Negotiation is unavailable" }, { status: 404, headers });
+  const originError = sdkOriginGuard(request, row, headers);
+  if (originError) return originError;
   const required = await db
     .select({ key: purposes.key })
     .from(purposes)
