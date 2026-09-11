@@ -1,9 +1,11 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
   CLERK_CSP_EXTRA_DIRECTIVES,
+  isPublicCrossOriginApiPath,
   isTrustedDashboardMutation,
   shouldEnforceCsrfOrigin,
 } from "@/lib/security-headers";
@@ -11,6 +13,15 @@ import {
 export default clerkMiddleware(
   async (_auth, request) => {
     const { pathname } = request.nextUrl;
+
+    if (request.method === "OPTIONS" && isPublicCrossOriginApiPath(pathname)) {
+      const preflight = publicOptionsResponse("GET, POST, OPTIONS");
+      applyBaselineSecurityHeaders(preflight.headers, {
+        protocol: request.nextUrl.protocol,
+        forwardedProto: request.headers.get("x-forwarded-proto"),
+      });
+      return preflight;
+    }
 
     if (shouldEnforceCsrfOrigin(request.method, pathname)) {
       const allowed = isTrustedDashboardMutation({

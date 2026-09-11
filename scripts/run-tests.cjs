@@ -80,6 +80,7 @@ compile(
     "src/lib/sdk/cmp-sdk-script.ts",
     "src/lib/sdk/enforcement.ts",
     "src/lib/sdk/public-http.ts",
+    "src/lib/sdk/public-origin.ts",
     "src/lib/ccpa/types.ts",
     "src/lib/ccpa/gpc.ts",
     "src/lib/ccpa/state.ts",

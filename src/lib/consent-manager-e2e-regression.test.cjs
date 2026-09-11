@@ -53,8 +53,13 @@ const {
   isValidConsentId,
   isValidSiteKey,
   isValidWebsiteId,
+  publicCorsHeaders,
+  PUBLIC_CORS_ALLOWED_HEADERS,
   readPublicJsonObject,
 } = require(findCompiled("src/lib/sdk/public-http.ts"));
+const {
+  resolvePublicAppOrigin,
+} = require(findCompiled("src/lib/sdk/public-origin.ts"));
 const {
   createWebhookSignature,
   verifyWebhookSignature,
@@ -1480,6 +1485,38 @@ function testSynchronousBootstrapSnippet() {
   assert.doesNotMatch(snippet, /\basync\b|\bdefer\b/);
 }
 
+function testPublicSdkCorsAllowsExternalCachePreflight() {
+  const headers = publicCorsHeaders("GET, OPTIONS");
+  assert.equal(headers["Access-Control-Allow-Origin"], "*");
+  assert.equal(headers["Cross-Origin-Resource-Policy"], "cross-origin");
+  assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /Cache-Control/);
+  assert.match(headers["Access-Control-Allow-Headers"], /Cache-Control/);
+  assert.match(headers["Access-Control-Allow-Headers"], /Pragma/);
+  const sdk = buildCmpSdkScript({
+    siteKey: "site_e2e_1234567890",
+    apiBase: "https://cmp.example",
+  });
+  assert.match(sdk, /['"]Cache-Control['"]:\s*['"]no-cache['"]/);
+}
+
+function testPublicAppOriginPrefersExplicitEnv() {
+  assert.equal(
+    resolvePublicAppOrigin({
+      host: "localhost:3000",
+      envOrigin: "https://cmp.example.com/app/",
+    }),
+    "https://cmp.example.com",
+  );
+  assert.equal(
+    resolvePublicAppOrigin({
+      host: "localhost:3000",
+      forwardedHost: "cmp.example.com, localhost:3000",
+      forwardedProto: "https, http",
+    }),
+    "https://cmp.example.com",
+  );
+}
+
 async function testMissingRequiredPurposeRePrompt() {
   const store = createStore();
   const browser = createBrowser(store, {
@@ -2011,6 +2048,8 @@ async function main() {
   await testDynamicTrackerPendingAndFailedStates();
   testConsentSubmissionIdempotency();
   testSynchronousBootstrapSnippet();
+  testPublicSdkCorsAllowsExternalCachePreflight();
+  testPublicAppOriginPrefersExplicitEnv();
   await testMissingRequiredPurposeRePrompt();
   await testGranularPersistenceWithdrawalAndExpiry();
   testNegativeCasesAndEnforcement();

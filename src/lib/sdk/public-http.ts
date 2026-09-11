@@ -18,13 +18,25 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONSENT_ID_RE = /^[A-Za-z0-9_-]{8,255}$/;
 
+// fetch({ cache: "no-store" }) and explicit Cache-Control from the SDK trigger
+// a CORS preflight. Allow those headers or config/consent calls fail on
+// customer websites (same-origin /sdk-demo still works).
+export const PUBLIC_CORS_ALLOWED_HEADERS = [
+  "Content-Type",
+  "Accept",
+  "Accept-Language",
+  "Cache-Control",
+  "Pragma",
+].join(", ");
+
 export function publicCorsHeaders(methods: string): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": methods,
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": PUBLIC_CORS_ALLOWED_HEADERS,
     "Access-Control-Max-Age": "86400",
     "X-Content-Type-Options": "nosniff",
+    "Cross-Origin-Resource-Policy": "cross-origin",
   };
 }
 

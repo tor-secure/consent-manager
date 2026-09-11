@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 
+import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
+import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
 import { requireTenantWebsite } from "@/lib/tenant-website";
 import { siteVerificationToken } from "@/lib/website-domain-verify";
 import { DomainVerifyPanel } from "@/components/websites/domain-verify-panel";
@@ -40,6 +43,14 @@ export default async function WebsiteDetailPage({
 }) {
   const { id } = await params;
   const website = await requireTenantWebsite(id);
+  const appOrigin = publicOriginFromRequestHeaders(await headers());
+  const sdkScriptUrl = appOrigin
+    ? `${appOrigin}/api/sdk/script`
+    : "/api/sdk/script";
+  const htmlSnippet = buildEmbedSnippet({
+    siteKey: website.siteKey,
+    cdnUrl: sdkScriptUrl,
+  });
 
   const statusVariant: Record<string, "success" | "danger" | "neutral"> = {
     active: "success",
@@ -197,8 +208,8 @@ export default async function WebsiteDetailPage({
           </div>
           <div className="rounded-2xl border border-indigo-100 bg-indigo-50 px-4 py-3">
             <p className="text-xs font-medium text-indigo-700">Quick install</p>
-            <code className="mt-1 block text-xs text-indigo-600 leading-relaxed break-all">
-              {`<script src="/api/sdk/script?siteKey=${website.siteKey}" async></script>`}
+            <code className="mt-1 block whitespace-pre-wrap text-xs text-indigo-600 leading-relaxed break-all">
+              {htmlSnippet}
             </code>
           </div>
           <Link

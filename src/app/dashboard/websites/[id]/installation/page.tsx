@@ -11,6 +11,7 @@ import {
   VerifyInstallation,
 } from "@/components/sdk/copy-snippet";
 import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
+import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
 
 // Auth + bootstrap guaranteed by dashboard layout.
 // Tenant isolation: website scoped to org+id.
@@ -49,16 +50,12 @@ export default async function InstallationPage({
     )
     .limit(1);
 
-  // ---------------------------------------------------------------------------
-  // Determine the CMP app origin so we can emit absolute URLs to the SDK
-  // script and API endpoints that work from external websites.
-  // ---------------------------------------------------------------------------
+  // Absolute CMP origin so customer sites load the script from this app,
+  // not from their own hostname. Override with CMP_PUBLIC_ORIGIN when the
+  // dashboard is opened on localhost but the snippet will run in production.
   const h = await headers();
-  const host = h.get("x-forwarded-host") || h.get("host") || "";
-  const proto =
-    h.get("x-forwarded-proto") ||
-    (host.startsWith("localhost") ? "http" : "https");
-  const appOrigin = host ? `${proto}://${host}` : "";
+  const appOrigin = publicOriginFromRequestHeaders(h);
+  const originLooksLocal = /localhost|127\.0\.0\.1/.test(appOrigin);
 
   const sdkScriptUrl = `${appOrigin}/api/sdk/script`;
   const configUrlAbsolute = `${appOrigin}/api/sdk/${website.siteKey}/config`;
@@ -183,6 +180,17 @@ export default function RootLayout({ children }) {
           </p>
         </div>
       )}
+
+      {originLooksLocal ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+          <p>
+            <strong className="font-semibold">This snippet points at {appOrigin}.</strong>{" "}
+            HTTPS websites cannot load a localhost script (mixed content). Set{" "}
+            <code className="rounded-lg bg-amber-100 px-1.5 py-0.5 font-mono text-xs">CMP_PUBLIC_ORIGIN</code>{" "}
+            to your deployed ConsentFlow URL, then copy the snippet again.
+          </p>
+        </div>
+      ) : null}
 
       <div className="max-w-3xl space-y-8">
 

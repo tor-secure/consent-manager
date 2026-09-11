@@ -185,6 +185,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (window.__CMP_DEBUG) console.log('[CMP]', msg);
   }
 
+  function warn(msg) {
+    if (window.console && typeof window.console.warn === 'function') {
+      window.console.warn('[CMP]', msg);
+    }
+  }
+
   function newSubmissionId() {
     try {
       if (window.crypto && typeof window.crypto.randomUUID === 'function') {
@@ -1166,6 +1172,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     patchInsertionTarget(document.head);
     patchInsertionTarget(document.body);
     patchInsertionTarget(document.documentElement);
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        patchInsertionTarget(document.body);
+      });
+    }
     patchKnownStorage(window.localStorage, 'localStorage');
     patchKnownStorage(window.sessionStorage, 'sessionStorage');
     installCookieGuard();
@@ -2937,11 +2948,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (document.hidden) return;
     fetch(configRequestUrl(), {
       cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' }
+      mode: 'cors',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data.success) return;
+        if (!_config) {
+          applyLoadedConfig(data);
+          return;
+        }
         var nextConfig = applyAssignedAbTest(data);
         var nextRevision = configRevision(nextConfig);
         var bannerOpen = !!document.getElementById('__cmp_banner__');
@@ -2972,7 +2988,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if (pcOpen) showPreferenceCenterWhenReady();
         log('Applied refreshed policy configuration');
       })
-      .catch(function(err) { log('Policy refresh failed: ' + err); });
+      .catch(function(err) { warn('Policy refresh failed: ' + err); });
   }
 
   function scheduleConfigRefresh() {
@@ -3002,91 +3018,112 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }
     });
   }
+  function fetchConfigJson() {
+    return fetch(configRequestUrl(), {
+      cache: 'no-store',
+      mode: 'cors',
+      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+    }).then(function(r) {
+      return r.json().then(function(data) {
+        return data;
+      }, function() {
+        throw new Error('Config response was not JSON (HTTP ' + r.status + ')');
+      });
+    });
+  }
+
+  function applyLoadedConfig(data) {
+    _config = applyAssignedAbTest(data);
+    rememberPolicyContext(presentedPolicyContext(data));
+    _configRevision = configRevision(_config);
+    scheduleConfigRefresh();
+    initExternalSignals();
+    _california = loadStoredCalifornia();
+    syncCaliforniaOptOut({}, function() {
+
+    var stored = loadStoredConsent();
+    if (
+      stored &&
+      stored.status === 'confirmed' &&
+      stored.serverConfirmed === true &&
+      stored.consentId &&
+      stored.decisions
+    ) {
+      _consentId = stored.consentId;
+      rememberAckedScope(stored);
+      if (consentScopeChanged(stored, data)) {
+        blockOptionalProcessing('FAILED', '');
+        _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
+        showBannerWhenReady();
+        showPreferenceCenterWhenReady();
+      } else {
+        verifyStoredConsent(stored, function(applied) {
+          if (!applied || shouldReshowBanner(stored, data.bannerConfig)) {
+            showBannerWhenReady();
+          } else {
+            syncPreferenceWidget();
+          }
+        });
+      }
+      return;
+    }
+
+    // UNKNOWN, PENDING, FAILED, legacy, and withdrawn local states all fail
+    // closed. Operator defaults never create server-confirmed consent.
+    if (
+      stored &&
+      (stored.status === 'pending' || stored.status === 'failed') &&
+      stored.submissionId
+    ) {
+      _consentId = stored.consentId || null;
+      _retryJob = {
+        submissionId: stored.submissionId,
+        signature: stored.signature || '',
+        choice: stored.choice || '',
+        purposeDecisions: stored.purposeDecisions || [],
+        vendorDecisions: stored.vendorDecisions || [],
+        startedAt: stored.startedAt || Date.now()
+      };
+    }
+    blockOptionalProcessing(
+      stored && stored.status === 'pending'
+        ? 'PENDING'
+        : (
+            stored && stored.status === 'withdrawn'
+              ? 'DENIED'
+              : (stored && stored.status === 'failed' ? 'FAILED' : 'UNKNOWN')
+          ),
+      stored && stored.status === 'pending'
+        ? 'Consent confirmation is pending. Optional processing remains blocked.'
+        : (
+            stored && stored.status === 'failed'
+              ? 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
+              : ''
+          )
+    );
+    showBannerWhenReady();
+    if (stored && (stored.status === 'pending' || stored.status === 'failed')) {
+      renderSubmissionState(
+        stored.status === 'pending'
+          ? 'Consent confirmation is pending. Optional processing remains blocked.'
+          : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
+      );
+    }
+    });
+  }
+
   pauseTaggedScripts();
 
-  fetch(configRequestUrl(), { cache: 'no-store' })
-    .then(function(r) { return r.json(); })
+  fetchConfigJson()
     .then(function(data) {
-      if (!data.success) { log('Config load failed: ' + data.message); return; }
-      _config = applyAssignedAbTest(data);
-      rememberPolicyContext(presentedPolicyContext(data));
-      _configRevision = configRevision(_config);
-      scheduleConfigRefresh();
-      initExternalSignals();
-      _california = loadStoredCalifornia();
-      syncCaliforniaOptOut({}, function() {
-
-      var stored = loadStoredConsent();
-      if (
-        stored &&
-        stored.status === 'confirmed' &&
-        stored.serverConfirmed === true &&
-        stored.consentId &&
-        stored.decisions
-      ) {
-        _consentId = stored.consentId;
-        rememberAckedScope(stored);
-        if (consentScopeChanged(stored, data)) {
-          blockOptionalProcessing('FAILED', '');
-          _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
-          showBannerWhenReady();
-          showPreferenceCenterWhenReady();
-        } else {
-          verifyStoredConsent(stored, function(applied) {
-            if (!applied || shouldReshowBanner(stored, data.bannerConfig)) {
-              showBannerWhenReady();
-            } else {
-              syncPreferenceWidget();
-            }
-          });
-        }
+      if (!data || !data.success) {
+        warn('Config load failed: ' + ((data && data.message) || 'unknown error') + '. The banner will not appear until a published policy is available for this site key.');
+        scheduleConfigRefresh();
         return;
       }
-
-      // UNKNOWN, PENDING, FAILED, legacy, and withdrawn local states all fail
-      // closed. Operator defaults never create server-confirmed consent.
-      if (
-        stored &&
-        (stored.status === 'pending' || stored.status === 'failed') &&
-        stored.submissionId
-      ) {
-        _consentId = stored.consentId || null;
-        _retryJob = {
-          submissionId: stored.submissionId,
-          signature: stored.signature || '',
-          choice: stored.choice || '',
-          purposeDecisions: stored.purposeDecisions || [],
-          vendorDecisions: stored.vendorDecisions || [],
-          startedAt: stored.startedAt || Date.now()
-        };
-      }
-      blockOptionalProcessing(
-        stored && stored.status === 'pending'
-          ? 'PENDING'
-          : (
-              stored && stored.status === 'withdrawn'
-                ? 'DENIED'
-                : (stored && stored.status === 'failed' ? 'FAILED' : 'UNKNOWN')
-            ),
-        stored && stored.status === 'pending'
-          ? 'Consent confirmation is pending. Optional processing remains blocked.'
-          : (
-              stored && stored.status === 'failed'
-                ? 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
-                : ''
-            )
-      );
-      showBannerWhenReady();
-      if (stored && (stored.status === 'pending' || stored.status === 'failed')) {
-        renderSubmissionState(
-          stored.status === 'pending'
-            ? 'Consent confirmation is pending. Optional processing remains blocked.'
-            : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
-        );
-      }
-      });
+      applyLoadedConfig(data);
     })
-    .catch(function(err) { log('Failed to initialise CMP: ' + err); });
+    .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });
 
 })(window, document);
 `.trim();

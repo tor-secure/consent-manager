@@ -146,13 +146,23 @@ const publicHttp = read("src/lib/sdk/public-http.ts");
 assert.match(publicHttp, /Access-Control-Allow-Origin": "\*"/);
 assert.doesNotMatch(publicHttp, /Access-Control-Allow-Credentials/);
 assert.match(publicHttp, /X-Content-Type-Options": "nosniff"/);
+assert.match(publicHttp, /Cache-Control/);
+assert.match(publicHttp, /Cross-Origin-Resource-Policy": "cross-origin"/);
 
 const proxy = read("src/proxy.ts");
 assert.match(proxy, /clerkMiddleware/);
 assert.match(proxy, /contentSecurityPolicy:\s*\{[\s\S]*strict:\s*true/);
 assert.match(proxy, /CLERK_CSP_EXTRA_DIRECTIVES/);
 assert.match(proxy, /shouldEnforceCsrfOrigin/);
+assert.match(proxy, /isPublicCrossOriginApiPath/);
+assert.match(proxy, /OPTIONS/);
 assert.doesNotMatch(proxy, /unsafe-eval/);
+
+const websitePage = read("src/app/dashboard/websites/[id]/page.tsx");
+assert.doesNotMatch(websitePage, /src="\/api\/sdk\/script\?siteKey=/);
+assert.doesNotMatch(websitePage, /async><\/script>/);
+assert.match(websitePage, /buildEmbedSnippet/);
+assert.match(websitePage, /publicOriginFromRequestHeaders/);
 
 const layout = read("src/app/layout.tsx");
 assert.match(layout, /ClerkProvider\s+dynamic/);
