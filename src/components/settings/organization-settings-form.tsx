@@ -348,7 +348,7 @@ export function OrganizationSettingsForm({
           <button
             type="button"
             onClick={() => router.back()}
-            className="btn btn-outline">
+            className="btn btn-outline"
           >
             Cancel
           </button>
