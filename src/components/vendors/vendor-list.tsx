@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { IconText } from "@/components/ui/icon-text";
+import { SearchInput } from "@/components/ui/search-input";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -26,15 +27,6 @@ export type VendorRow = {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function IconSearch() {
-  return (
-    <svg className="h-4 w-4 text-[var(--muted-foreground)]" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function IconEmpty() {
   return (
@@ -127,7 +119,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
           </div>
           <Link
             href="/dashboard/vendors/new"
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
+            className="btn btn-primary"
           >
             Create vendor
           </Link>
@@ -147,18 +139,14 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
       ) : null}
 
       {/* Search bar */}
-      <div className="relative max-w-sm">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-          <IconSearch />
-        </span>
-        <label htmlFor="vendor-search" className="sr-only">Search vendors</label>
-        <input
+      <div className="max-w-sm">
+        <SearchInput
           id="vendor-search"
-          type="search"
+          label="Search vendors"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
           placeholder="Search by name, domain, or key…"
-          className="h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-4 text-sm text-[var(--foreground)] shadow-sm outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
         />
       </div>
 
@@ -173,7 +161,7 @@ export function VendorList({ vendors }: { vendors: VendorRow[] }) {
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+              className="btn btn-outline btn-sm"
             >
               <IconClear />
               Clear search

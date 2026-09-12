@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Alert } from "@/components/ui/alert";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
+import { WebsiteDomainInput } from "@/components/websites/website-domain-input";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
 
@@ -74,18 +75,14 @@ export function CreateWebsiteForm() {
         <Field
           label="Domain"
           htmlFor="website-domain"
-          hint="Apex or subdomain only — no https:// or path."
+          hint="Enter the apex or subdomain only. The https:// prefix is shown for you and is not stored."
         >
-          <Input
+          <WebsiteDomainInput
             id="website-domain"
             value={domain}
-            onChange={(event) => setDomain(event.target.value)}
+            onChange={setDomain}
             placeholder="example.com"
             required
-            inputMode="url"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
           />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import type { ChildProtectionConfig } from "@/lib/children/types";
 
@@ -94,33 +95,37 @@ export function ChildProtectionForm({
   return (
     <div className="space-y-6">
       <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-          <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
+        <Checkbox
+          checked={enabled}
+          onChange={(event) => setEnabled(event.target.checked)}
+          className="text-sm"
+        >
           Enable child protection
-        </label>
-        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-          <input type="checkbox" checked={childDirected} onChange={(event) => setChildDirected(event.target.checked)} />
+        </Checkbox>
+        <Checkbox
+          checked={childDirected}
+          onChange={(event) => setChildDirected(event.target.checked)}
+          className="text-sm"
+        >
           Website is child-directed
-        </label>
-        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-          <input
-            type="checkbox"
-            checked={ageAssuranceRequired || childDirected}
-            onChange={(event) => setAgeAssuranceRequired(event.target.checked)}
-          />
+        </Checkbox>
+        <Checkbox
+          checked={ageAssuranceRequired || childDirected}
+          onChange={(event) => setAgeAssuranceRequired(event.target.checked)}
+          className="text-sm"
+        >
           Age assurance required
-        </label>
+        </Checkbox>
         <Field label="Minimum age threshold" hint="Set per website/jurisdiction. Do not assume one global age.">
           <input className={inputCls} value={minimumAge} onChange={(event) => setMinimumAge(event.target.value)} inputMode="numeric" />
         </Field>
-        <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-          <input
-            type="checkbox"
-            checked={guardianConsentRequired}
-            onChange={(event) => setGuardianConsentRequired(event.target.checked)}
-          />
+        <Checkbox
+          checked={guardianConsentRequired}
+          onChange={(event) => setGuardianConsentRequired(event.target.checked)}
+          className="text-sm"
+        >
           Guardian consent required for under-threshold visitors
-        </label>
+        </Checkbox>
         <Field label="Restricted purpose keys" hint="Comma-separated. Essential purposes stay available unless you list them here.">
           <textarea
             className={inputCls}

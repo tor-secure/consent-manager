@@ -60,7 +60,7 @@ export function NotificationActions({
         type="button"
         disabled={isPending}
         onClick={markAll}
-        className="shrink-0 rounded-md border bg-[var(--card)] px-3 py-1.5 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] disabled:opacity-50"
+        className="btn btn-outline btn-sm shrink-0"
       >
         {isPending ? "Marking…" : "Mark all as read"}
       </button>

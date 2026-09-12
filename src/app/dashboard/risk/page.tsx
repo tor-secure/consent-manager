@@ -158,7 +158,7 @@ export default async function PrivacyRiskPage({
         </select>
         <input type="date" name="from" defaultValue={params.from ?? ""} className="field-input h-10" aria-label="From date" />
         <input type="date" name="to" defaultValue={params.to ?? ""} className="field-input h-10" aria-label="To date" />
-        <button type="submit" className="h-10 rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white">
+        <button type="submit" className="btn btn-primary">
           Filter
         </button>
         <Link href="/dashboard/risk" className="inline-flex h-10 items-center px-3 text-sm text-[var(--muted-foreground)]">

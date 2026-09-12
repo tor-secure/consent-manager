@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Field, FormCard } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 export type RetentionFormData = {
@@ -72,16 +73,15 @@ function ToggleField({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label htmlFor={id} className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-      <input
-        id={id}
-        type="checkbox"
-        disabled={disabled}
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-      />
+    <Checkbox
+      id={id}
+      disabled={disabled}
+      checked={checked}
+      onChange={(event) => onChange(event.target.checked)}
+      className="text-sm"
+    >
       {label}
-    </label>
+    </Checkbox>
   );
 }
 

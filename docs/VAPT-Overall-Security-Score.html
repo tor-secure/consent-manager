@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ConsentFlow VAPT — Overall Security Score</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #111827;
+      margin: 0;
+    }
+    h1 {
+      font-size: 20pt;
+      letter-spacing: -0.02em;
+      margin: 0 0 6pt;
+      color: #0f172a;
+      border-bottom: 3px solid #2c4a7c;
+      padding-bottom: 8pt;
+    }
+    h2 {
+      font-size: 13pt;
+      margin: 18pt 0 8pt;
+      color: #1e3a5f;
+      page-break-after: avoid;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4pt;
+    }
+    h3 {
+      font-size: 11pt;
+      margin: 12pt 0 6pt;
+      color: #1e293b;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 8pt; }
+    .meta { color: #64748b; font-size: 9.5pt; margin-bottom: 14pt; }
+    .hero {
+      display: flex;
+      gap: 12pt;
+      margin: 12pt 0 14pt;
+      page-break-inside: avoid;
+    }
+    .hero-card {
+      flex: 1;
+      border: 1px solid #d9e0ea;
+      background: #f8fafc;
+      padding: 10pt 12pt;
+    }
+    .hero-card .value {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f766e;
+      line-height: 1.15;
+    }
+    .hero-card .label {
+      font-size: 8.5pt;
+      color: #5b6b80;
+      margin-top: 3pt;
+    }
+    .callout {
+      border: 1px solid #b7d4cf;
+      background: #e6f4f2;
+      padding: 10pt 12pt;
+      margin: 0 0 14pt;
+      page-break-inside: avoid;
+    }
+    .callout strong { display: block; margin-bottom: 4pt; color: #0f766e; }
+    .callout.neutral {
+      background: #f8fafc;
+      border-color: #d9e0ea;
+    }
+    .callout.neutral strong { color: #1e3a5f; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8pt 0 12pt;
+      font-size: 9pt;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 5pt 6pt;
+      vertical-align: top;
+    }
+    th {
+      background: #e8edf4;
+      font-weight: 600;
+      color: #0f172a;
+      text-align: left;
+    }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tfoot td { font-weight: 700; background: #f1f5f9; }
+    .bar-row { display: flex; align-items: center; gap: 8pt; margin: 3pt 0; page-break-inside: avoid; }
+    .bar-label { width: 170pt; flex-shrink: 0; font-size: 8.5pt; }
+    .bar-track { flex: 1; height: 10pt; background: #e8edf4; }
+    .bar-fill { height: 100%; background: #2c4a7c; }
+    .bar-fill.warn { background: #b45309; }
+    .bar-score { width: 28pt; text-align: right; font-size: 8.5pt; font-variant-numeric: tabular-nums; }
+    .caption { color: #64748b; font-size: 8.5pt; margin: 0 0 12pt; }
+    footer {
+      margin-top: 18pt;
+      padding-top: 8pt;
+      border-top: 1px solid #e5e7eb;
+      color: #64748b;
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+  <h1>Overall Security Score</h1>
+  <p class="meta">
+    Product: ConsentFlow (consent-manager) · Source-code VAPT · 12 September 2026 · No live exploit testing
+  </p>
+
+  <div class="hero">
+    <div class="hero-card">
+      <div class="value">8.3 / 10</div>
+      <div class="label">Overall security score</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">Strong</div>
+      <div class="label">Security rating (8.0–8.9)</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">0</div>
+      <div class="label">Confirmed Critical in current code</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Overall Security Score: 8.3 / 10 — Strong</strong>
+    ConsentFlow is in a production-hardening state. The 11 September Critical/High
+    findings (Owner grant on invite, Next.js RCE advisories, webhook SSRF,
+    Origin-as-auth, stored javascript: XSS) are remediated in code. The score
+    is held below 9.0 by process-local rate limiting, no Postgres RLS, Clerk
+    MFA not verified in-repo, CI gating only critical npm advisories, and
+    leftover console.error logging.
+  </div>
+
+  <div class="hero">
+    <div class="hero-card">
+      <div class="value">0</div>
+      <div class="label">Open Critical</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">1</div>
+      <div class="label">Open High (advisory)</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">3</div>
+      <div class="label">Open Medium (confirmed)</div>
+    </div>
+  </div>
+
+  <h2>Category scores</h2>
+  <p>Each category is scored 0–10. Weighted score = category score × weight. Overall = sum of weighted scores, rounded to one decimal place.</p>
+
+  <div class="bar-row"><div class="bar-label">Authentication</div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><div class="bar-score">8.5</div></div>
+  <div class="bar-row"><div class="bar-label">Authorization &amp; Access Control</div><div class="bar-track"><div class="bar-fill" style="width:83%"></div></div><div class="bar-score">8.3</div></div>
+  <div class="bar-row"><div class="bar-label">API Security</div><div class="bar-track"><div class="bar-fill warn" style="width:79%"></div></div><div class="bar-score">7.9</div></div>
+  <div class="bar-row"><div class="bar-label">Input Validation</div><div class="bar-track"><div class="bar-fill" style="width:86%"></div></div><div class="bar-score">8.6</div></div>
+  <div class="bar-row"><div class="bar-label">Session &amp; Cookies</div><div class="bar-track"><div class="bar-fill" style="width:84%"></div></div><div class="bar-score">8.4</div></div>
+  <div class="bar-row"><div class="bar-label">Security Configuration</div><div class="bar-track"><div class="bar-fill" style="width:85%"></div></div><div class="bar-score">8.5</div></div>
+  <div class="bar-row"><div class="bar-label">Dependencies &amp; Secrets</div><div class="bar-track"><div class="bar-fill warn" style="width:77%"></div></div><div class="bar-score">7.7</div></div>
+  <div class="bar-row"><div class="bar-label">Data Protection</div><div class="bar-track"><div class="bar-fill warn" style="width:78%"></div></div><div class="bar-score">7.8</div></div>
+  <div class="bar-row"><div class="bar-label">Business Logic</div><div class="bar-track"><div class="bar-fill" style="width:81%"></div></div><div class="bar-score">8.1</div></div>
+  <p class="caption">Source: VAPT category model applied to current repository evidence · 12 Sep 2026. Markers: 8.0 Strong, 9.0 Excellent.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th class="num">Score / 10</th>
+        <th class="num">Weight</th>
+        <th class="num">Weighted score</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Authentication</td><td class="num">8.5</td><td class="num">15%</td><td class="num">1.28</td></tr>
+      <tr><td>Authorization &amp; Access Control</td><td class="num">8.3</td><td class="num">20%</td><td class="num">1.66</td></tr>
+      <tr><td>API Security</td><td class="num">7.9</td><td class="num">15%</td><td class="num">1.19</td></tr>
+      <tr><td>Input Validation</td><td class="num">8.6</td><td class="num">15%</td><td class="num">1.29</td></tr>
+      <tr><td>Session &amp; Cookies</td><td class="num">8.4</td><td class="num">10%</td><td class="num">0.84</td></tr>
+      <tr><td>Security Configuration</td><td class="num">8.5</td><td class="num">10%</td><td class="num">0.85</td></tr>
+      <tr><td>Dependencies &amp; Secrets</td><td class="num">7.7</td><td class="num">5%</td><td class="num">0.39</td></tr>
+      <tr><td>Data Protection</td><td class="num">7.8</td><td class="num">5%</td><td class="num">0.39</td></tr>
+      <tr><td>Business Logic</td><td class="num">8.1</td><td class="num">5%</td><td class="num">0.41</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Overall</td>
+        <td class="num">8.3 / 10</td>
+        <td class="num">100%</td>
+        <td class="num">8.30</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <h2>Score explanation</h2>
+
+  <h3>1. Why this score</h3>
+  <p>8.3 reflects a codebase that already has Clerk session auth, edge auth.protect(), org-scoped queries, operator RBAC on keys/webhooks/publish, CSRF fail-closed, SDK origin allowlisting, HMAC production secrets, and patched Next.js 16.3.4. It is not 9.0 because public APIs still use an in-process rate-limit map, tenant isolation is application-only (no RLS), and MFA / remaining npm highs are not verified in this repository.</p>
+
+  <h3>2. Strongest controls</h3>
+  <p>Clerk + webhook role mapping (invitees are no longer auto-Owner). Only Owner can assign Owner. Webhook delivery reuses the scanner SSRF guard with redirect: manual. Portable consent requires a Clerk session, not a spoofable Origin. Banner/SDK URLs and colors are sanitized. CSRF rejects cookie mutations with no Origin/Referer. Production boot fails without dedicated HMAC/webhook secrets.</p>
+
+  <h3>3. Biggest weaknesses</h3>
+  <p>Process-local rate limiting will not hold across serverless isolates. No Postgres row-level security. CI npm audit only fails on critical. Many routes still use console.error instead of the redacting logger. Clerk MFA is a dashboard setting, not evidenced here. Members can still CRUD websites, drafts, and vendors (operator-gated paths are the privileged ones).</p>
+
+  <h3>4. Findings with the greatest score impact</h3>
+  <p>SEC-011 (in-memory rate limit) is the main drag on API Security (7.9, 15% weight). SEC-024 (no RLS) and remaining Member write scope drag Authorization (20% weight). SEC-026-class transitive highs and critical-only CI drag Dependencies. SEC-022 console.error drags Data Protection. No confirmed Critical remains, so the 4.0 cap rule does not apply.</p>
+
+  <h3>5. To reach 8/10</h3>
+  <p>Already met. Keep production secrets and the Clerk membership webhook configured; do not regress Owner-grant, SSRF, CSRF, or origin allowlist controls.</p>
+
+  <h3>6. To reach 9/10</h3>
+  <p>Ship distributed rate limiting (Redis/Upstash/KV) and stop trusting spoofable X-Forwarded-For. Add Postgres RLS (or equivalent) for organization_id. Verify Clerk MFA on the production tenant. Raise CI to npm audit --audit-level=high and clear remaining highs. Replace console.error with the structured logger.</p>
+
+  <h3>7. To reach 10/10</h3>
+  <p>Also: transactional last-Owner protection, sanitize vendor URLs on write (not only SDK render), split public health vs authenticated readiness, least-privilege Member (read/draft only), secret scanning in CI, SIEM/alerting on Owner changes and key/webhook create, and a two-tenant live retest that verifies the remediations — not just that recommendations exist.</p>
+
+  <h2>Target score after remediation</h2>
+  <p>These are estimated scores, not guaranteed. The score should rise only after the weakness is actually fixed and, ideally, retested.</p>
+
+  <div class="hero">
+    <div class="hero-card">
+      <div class="value">8.3 / 10</div>
+      <div class="label">Current score</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">8.5 / 10</div>
+      <div class="label">Estimated after remaining High</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">8.9 / 10</div>
+      <div class="label">Estimated after all recommended</div>
+    </div>
+  </div>
+
+  <div class="callout neutral">
+    <strong>How the estimates were formed</strong>
+    After remaining High: patch transitive image-codec advisories and any leftover privileged Member paths — about +0.2. After all recommended: distributed rate limit, RLS, verified MFA, logger cleanup, and high-level CI audit — about +0.6, still short of 9.0 until those controls are retested. Do not treat this as a 10/10 projection.
+  </div>
+
+  <h2>Residual findings used in scoring</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Severity</th>
+        <th>Category impact</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>SEC-011</td><td>Medium</td><td>API Security</td><td>Confirmed — in-memory rate limit</td></tr>
+      <tr><td>SEC-024</td><td>Medium</td><td>Authorization</td><td>Confirmed — no Postgres RLS</td></tr>
+      <tr><td>SEC-022</td><td>Medium</td><td>Data Protection</td><td>Confirmed — console.error still widespread</td></tr>
+      <tr><td>SEC-026</td><td>High (advisory)</td><td>Dependencies</td><td>Not re-audited this pass; CI gates critical only</td></tr>
+      <tr><td>MFA</td><td>Informational</td><td>Authentication / Session</td><td>Not verified — Clerk Dashboard setting</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Category scoring notes</h2>
+  <p><strong>Authentication 8.5.</strong> auth.protect(), Clerk webhooks, hashed API keys, cron timing-safe compare. Minus unverified MFA.</p>
+  <p><strong>Authorization 8.3.</strong> Clerk role map, Owner-only Owner assign, requireOperatorRole on keys/webhooks/publish/scanner. Minus no RLS and Member CRUD on sites/policies/vendors.</p>
+  <p><strong>API Security 7.9.</strong> CSRF fail-closed, origin allowlist, portable consent session-auth, siteKey on consent GET/withdraw. Minus process-local rate limits on public DSAR/consent.</p>
+  <p><strong>Input Validation 8.6.</strong> Drizzle parameterization, sanitizeHttpUrl / safeHttpUrl, CSS color allowlist, inArray. Minus vendor POST storing unsanitized URLs (SDK still sanitizes on render).</p>
+  <p><strong>Session &amp; Cookies 8.4.</strong> Clerk-managed sessions, CSRF origin check, COOP same-origin. Cookie flags and lifetime not independently verified beyond Clerk defaults.</p>
+  <p><strong>Security Configuration 8.5.</strong> CSP strict, HSTS in production, COOP, frame-src https-only, GitHub Actions CI. Health remains unauthenticated.</p>
+  <p><strong>Dependencies &amp; Secrets 7.7.</strong> next@16.3.4, production secret throws, webhook secrets encrypted at rest. CI audit-level=critical only.</p>
+  <p><strong>Data Protection 7.8.</strong> Org-scoped queries, hashed keys, logger redaction. Public SDK still returns notice contacts when origin is allowed; DSAR tokens still returned in intake JSON.</p>
+  <p><strong>Business Logic 8.1.</strong> Consent stateVersion lock, policy HMAC, compliance validator ignores client claims. Residual last-Owner TOCTOU and Member draft/config writes.</p>
+
+  <footer>
+    ConsentFlow VAPT Overall Security Score · Evidence-based source-code assessment · Scores improve only after verified remediation, not because recommendations were written.
+  </footer>
+</body>
+</html>

@@ -95,7 +95,7 @@ function SigningSecretBanner({
         <button
           type="button"
           onClick={copy}
-          className="shrink-0 rounded-xl border border-[color-mix(in_srgb,var(--success)_28%,transparent)] bg-[var(--card)] px-3 py-2 text-sm font-medium text-[var(--success)] transition hover:bg-[var(--success-soft)]"
+          className="btn btn-outline shrink-0"
         >
           {copied ? "Copied!" : "Copy"}
         </button>
@@ -154,7 +154,7 @@ function EndpointCard({
             type="button"
             disabled={busyId === endpoint.id}
             onClick={() => onToggle(endpoint.id, isActive ? "disabled" : "active")}
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-40"
+            className="btn btn-outline btn-sm"
           >
             {busyId === endpoint.id ? "…" : isActive ? "Disable" : "Enable"}
           </button>
@@ -163,7 +163,7 @@ function EndpointCard({
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
-              className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--danger)] shadow-sm transition hover:bg-[var(--danger-soft)]"
+              className="btn btn-danger btn-sm"
             >
               Delete
             </button>
@@ -174,14 +174,14 @@ function EndpointCard({
                 type="button"
                 disabled={busyId === endpoint.id}
                 onClick={() => onDelete(endpoint.id)}
-                className="rounded-xl bg-[var(--danger)] px-2.5 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:opacity-40"
+                className="btn btn-danger btn-sm"
               >
                 {busyId === endpoint.id ? "Deleting..." : "Yes, delete"}
               </button>
               <button
                 type="button"
                 onClick={() => setConfirmDelete(false)}
-                className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]"
+                className="btn btn-outline btn-sm"
               >
                 Cancel
               </button>

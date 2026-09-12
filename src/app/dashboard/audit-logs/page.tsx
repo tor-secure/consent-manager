@@ -64,7 +64,7 @@ function PaginationBar({
         {page > 1 && (
           <Link
             href={pageUrl(page - 1)}
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+            className="btn btn-outline btn-sm"
           >
             ← Previous
           </Link>
@@ -72,7 +72,7 @@ function PaginationBar({
         {page < totalPages && (
           <Link
             href={pageUrl(page + 1)}
-            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+            className="btn btn-outline btn-sm"
           >
             Next →
           </Link>

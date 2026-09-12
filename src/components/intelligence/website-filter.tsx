@@ -18,7 +18,7 @@ export function WebsiteFilter({
           </option>
         ))}
       </select>
-      <button type="submit" className="h-10 rounded-xl bg-[var(--primary)] px-4 text-sm font-medium text-white">
+      <button type="submit" className="btn btn-primary">
         View
       </button>
       <Link href={action} className="inline-flex h-10 items-center px-3 text-sm text-[var(--muted-foreground)]">

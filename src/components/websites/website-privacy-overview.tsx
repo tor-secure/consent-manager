@@ -38,61 +38,61 @@ export async function WebsitePrivacyOverview({ websiteId }: { websiteId: string 
       <div className="flex flex-wrap gap-2">
         <Link
           href={`/dashboard/quality`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Consent quality
         </Link>
         <Link
           href={`/dashboard/risk?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Risk findings
         </Link>
         <Link
           href={`/dashboard/monitoring?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Privacy drift
         </Link>
         <Link
           href={`/dashboard/firewall?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Firewall
         </Link>
         <Link
           href={`/dashboard/simulator?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Impact simulator
         </Link>
         <Link
           href={`/dashboard/graph?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Graph
         </Link>
         <Link
           href={`/dashboard/data-flow?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Data flow
         </Link>
         <Link
           href={`/dashboard/recommendations?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Recommendations
         </Link>
         <Link
           href={`/dashboard/experiments?website=${websiteId}`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Experiments
         </Link>
         <Link
           href={`/dashboard/websites/${websiteId}/enforcement`}
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm hover:bg-[var(--muted)]"
+          className="btn btn-outline"
         >
           Enforcement
         </Link>

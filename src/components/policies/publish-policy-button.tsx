@@ -95,7 +95,7 @@ export function PublishPolicyButton({
         {hasPurposes && !complianceBlocked ? (
           <button
             onClick={() => setState({ phase: "confirm" })}
-            className="self-start rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
+            className="btn btn-primary self-start"
           >
             Publish new version
           </button>
@@ -118,7 +118,7 @@ export function PublishPolicyButton({
     return (
       <button
         disabled
-        className="rounded-md bg-[var(--muted)] px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] cursor-not-allowed"
+        className="btn btn-outline"
       >
         No version to publish
       </button>
@@ -239,14 +239,14 @@ export function PublishPolicyButton({
               });
             }}
             disabled={isPending}
-            className="rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
+            className="btn btn-primary"
           >
             {isPending ? "Publishing..." : isPublished ? "Yes, publish new version" : `Yes, publish v${latestVersionNumber}`}
           </button>
           <button
             onClick={() => setState({ phase: "idle" })}
             disabled={isPending}
-            className="rounded-md border bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition hover:bg-[var(--muted)] disabled:opacity-60"
+            className="btn btn-outline"
           >
             Cancel
           </button>
@@ -261,7 +261,7 @@ export function PublishPolicyButton({
     return (
       <button
         disabled
-        className="inline-flex items-center gap-2 rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-white opacity-70"
+        className="btn btn-primary"
       >
         <svg
           aria-hidden="true"
@@ -296,7 +296,7 @@ export function PublishPolicyButton({
         <button
           disabled
           title="Attach at least one purpose before publishing"
-          className="rounded-md bg-[var(--muted)] px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] cursor-not-allowed"
+          className="btn btn-outline"
         >
           Publish v{latestVersionNumber}
         </button>
@@ -314,7 +314,7 @@ export function PublishPolicyButton({
       <div className="space-y-2">
         <button
           disabled
-          className="rounded-md bg-[var(--muted)] px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] cursor-not-allowed"
+          className="btn btn-outline"
         >
           Publishing blocked
         </button>
@@ -328,7 +328,7 @@ export function PublishPolicyButton({
   return (
     <button
       onClick={() => setState({ phase: "confirm" })}
-      className="rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
+      className="btn btn-primary"
     >
       Publish v{latestVersionNumber}
     </button>

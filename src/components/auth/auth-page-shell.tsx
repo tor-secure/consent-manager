@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { SkipLink } from "@/components/ui/skip-link";
+import { ArrowButton } from "@/components/ui/arrow-button";
 
 export const clerkAuthAppearance = {
   variables: {
@@ -35,7 +36,7 @@ export const clerkAuthAppearance = {
     formFieldInput:
       "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#2c4a7c] focus:!ring-[#2c4a7c]",
     formButtonPrimary:
-      "!bg-[#2c4a7c] !text-white h-11 rounded-xl text-sm font-semibold hover:!bg-[#243e68] shadow-none",
+      "arrow-btn !w-full justify-center !bg-[#645bff] !text-white hover:!bg-[#111] shadow-none",
     footerAction: "hidden",
     footerActionText: "hidden",
     footerActionLink: "hidden",
@@ -295,19 +296,15 @@ export function AuthPageShell({
             </Link>
 
             {mode === "sign-in" ? (
-              <p className="text-sm text-[#4B5563]">
-                Don&apos;t have an account?{" "}
-                <Link href="/sign-up" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
-                  Sign up
-                </Link>
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="hidden text-sm text-[#4B5563] sm:block">Don&apos;t have an account?</p>
+                <ArrowButton href="/sign-up">Sign up</ArrowButton>
+              </div>
             ) : mode === "sign-up" ? (
-              <p className="text-sm text-[#4B5563]">
-                Already have an account?{" "}
-                <Link href="/sign-in" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
-                  Log in
-                </Link>
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="hidden text-sm text-[#4B5563] sm:block">Already have an account?</p>
+                <ArrowButton href="/sign-in">Log in</ArrowButton>
+              </div>
             ) : (
               <p className="text-sm text-[#4B5563]">
                 Already have a workspace?{" "}

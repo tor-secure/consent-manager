@@ -3,6 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useState } from "react";
+import { ArrowButton } from "@/components/ui/arrow-button";
 
 const navItems: Array<{
   label: string;
@@ -88,19 +89,8 @@ export function HomeNavbar() {
             </Link>
           ) : (
             <>
-              <Link
-                href="/sign-in"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-[#374151] transition hover:text-[#111827]"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/sign-up"
-                className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#243e68]"
-              >
-                Get Started Free
-                <span aria-hidden="true">→</span>
-              </Link>
+              <ArrowButton href="/sign-in">Log in</ArrowButton>
+              <ArrowButton href="/sign-up">Sign up</ArrowButton>
             </>
           )}
         </div>
@@ -167,20 +157,12 @@ export function HomeNavbar() {
                 </Link>
               ) : (
                 <>
-                  <Link
-                    href="/sign-in"
-                    className="inline-flex h-10 items-center justify-center rounded-lg border border-[#E5E7EB] text-sm font-medium text-[#374151]"
-                    onClick={() => setMobileOpen(false)}
-                  >
+                  <ArrowButton href="/sign-in" onClick={() => setMobileOpen(false)} className="w-full">
                     Log in
-                  </Link>
-                  <Link
-                    href="/sign-up"
-                    className="inline-flex h-10 items-center justify-center rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Get Started Free
-                  </Link>
+                  </ArrowButton>
+                  <ArrowButton href="/sign-up" onClick={() => setMobileOpen(false)} className="w-full">
+                    Sign up
+                  </ArrowButton>
                 </>
               )}
             </div>

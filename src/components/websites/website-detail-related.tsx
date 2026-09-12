@@ -159,7 +159,7 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
               <p className="text-sm font-medium text-[var(--muted-foreground)]">No policies yet</p>
               <Link
                 href={`/dashboard/policies/new?websiteId=${websiteId}`}
-                className="inline-flex items-center gap-1 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
+                className="btn btn-primary"
               >
                 Create first policy
               </Link>
@@ -232,7 +232,7 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
               <p className="text-sm font-medium text-[var(--muted-foreground)]">No scans yet</p>
               <Link
                 href="/dashboard/scanner"
-                className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
+                className="btn btn-primary"
               >
                 Go to scanner
               </Link>
@@ -269,7 +269,7 @@ export async function WebsiteDetailRelated({ websiteId }: { websiteId: string })
               )}
               <Link
                 href="/dashboard/scanner"
-                className="inline-flex items-center gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+                className="btn btn-outline"
               >
                 View all scans →
               </Link>

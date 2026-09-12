@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useRef, useTransition } from "react";
+import { SearchInput } from "@/components/ui/search-input";
 
 const DATE_RANGES = [
   { label: "7d",    value: "7"   },
@@ -23,6 +24,7 @@ export function AuditLogFilters({
   const pathname   = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const debounceRef = useRef<number>(0);
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -41,24 +43,21 @@ export function AuditLogFilters({
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2.5">
         {/* Search input */}
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
-            width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-            <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <input
-            type="search"
-            defaultValue={currentQ}
-            onChange={(e) => {
-              const value = e.target.value;
-              const handle = setTimeout(() => updateParam("q", value), 400);
-              return () => clearTimeout(handle);
-            }}
-            placeholder="Search action or resource…"
-            className="h-9 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-3 text-sm shadow-sm outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
-          />
-        </div>
+        <SearchInput
+          className="w-64"
+          defaultValue={currentQ}
+          label="Search action or resource"
+          placeholder="Search action or resource…"
+          onChange={(e) => {
+            const value = e.target.value;
+            window.clearTimeout(debounceRef.current);
+            debounceRef.current = window.setTimeout(() => updateParam("q", value), 400);
+          }}
+          onClear={() => {
+            window.clearTimeout(debounceRef.current);
+            updateParam("q", "");
+          }}
+        />
 
         {/* Date range pills */}
         <div className="flex items-center gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">

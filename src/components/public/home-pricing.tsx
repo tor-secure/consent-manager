@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ArrowButton } from "@/components/ui/arrow-button";
 
 const tiers = [
   {
@@ -49,16 +49,9 @@ export function HomePricing() {
                   <li key={point}>{point}</li>
                 ))}
               </ul>
-              <Link
-                href="/sign-up"
-                className={`mt-6 inline-flex h-10 w-full items-center justify-center rounded-xl text-sm font-semibold ${
-                  tier.featured
-                    ? "bg-[#5850EC] text-white hover:bg-[#4F46E5]"
-                    : "border border-[#E5E7EB] text-[#111827] hover:bg-[#F8FAFF]"
-                }`}
-              >
-                Get started
-              </Link>
+              <ArrowButton href="/sign-up" className="mt-6 w-full">
+                Sign up
+              </ArrowButton>
             </article>
           ))}
         </div>

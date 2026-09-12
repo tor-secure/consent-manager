@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -33,15 +34,6 @@ export type TrackerRow = {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function IconSearch() {
-  return (
-    <svg className="h-4 w-4 text-[var(--muted-foreground)]" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function IconEmpty() {
   return (
@@ -162,16 +154,13 @@ export function TrackerList({
       {/* ── Filter bar ──────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="relative min-w-[220px] flex-1 max-w-sm">
-          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-            <IconSearch />
-          </span>
-          <input
-            type="search"
+        <div className="min-w-[220px] flex-1 max-w-sm">
+          <SearchInput
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery("")}
             placeholder="Search by name, domain, or vendor…"
-            className="h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] pl-9 pr-4 text-sm text-[var(--foreground)] shadow-sm outline-none placeholder:text-[var(--muted-foreground)] focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
+            label="Search trackers"
           />
         </div>
 
@@ -217,7 +206,7 @@ export function TrackerList({
             <button
               type="button"
               onClick={() => { setQuery(""); setTypeFilter("all"); }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+              className="btn btn-outline btn-sm"
             >
               <IconClear />
               Clear filters

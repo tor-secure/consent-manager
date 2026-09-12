@@ -168,7 +168,7 @@ export function ApiKeyManager({ initialKeys }: { initialKeys: ApiKeyRow[] }) {
                             type="button"
                             disabled={isPending || revoking === key.id}
                             onClick={() => revokeKey(key.id)}
-                            className="rounded-xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--danger)] shadow-sm transition hover:bg-[var(--danger-soft)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
+                            className="btn btn-danger btn-sm"
                           >
                             {revoking === key.id ? "Deleting..." : "Revoke"}
                           </button>

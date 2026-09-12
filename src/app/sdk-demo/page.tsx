@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Script from "next/script";
 import Link from "next/link";
+import { ArrowButton } from "@/components/ui/arrow-button";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -286,9 +287,7 @@ function SdkDemoInner() {
           <Link href="/" className="font-medium text-slate-700 hover:text-slate-900">
             Home
           </Link>
-          <Link href="/sign-up" className="font-semibold text-indigo-600 hover:text-indigo-700">
-            Sign up
-          </Link>
+          <ArrowButton href="/sign-up">Sign up</ArrowButton>
         </div>
       </nav>
       <header className="border-b border-slate-200 bg-white/70 backdrop-blur">
@@ -333,7 +332,7 @@ function SdkDemoInner() {
               />
               <button
                 type="submit"
-                className="h-11 rounded-xl gradient-primary text-white font-medium px-6 soft-shadow hover:opacity-95"
+                className="btn btn-primary"
               >
                 Load SDK
               </button>
@@ -417,7 +416,7 @@ function SdkDemoInner() {
                 <button
                   type="button"
                   onClick={clearCurrentConsentStorage}
-                  className="h-10 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 text-sm px-4"
+                  className="btn btn-outline"
                 >
                   Reset consent storage
                 </button>
@@ -428,7 +427,7 @@ function SdkDemoInner() {
                     next.searchParams.delete("siteKey");
                     window.location.assign(next.toString());
                   }}
-                  className="h-10 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 text-sm px-4"
+                  className="btn btn-outline"
                 >
                   Change site key
                 </button>
@@ -484,31 +483,31 @@ function SdkDemoInner() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
                   <button
                     onClick={() => callCmp("showBanner")}
-                    className="h-10 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 text-sm"
+                    className="btn btn-outline h-10"
                   >
                     showBanner
                   </button>
                   <button
                     onClick={() => callCmp("openPreferenceCenter")}
-                    className="h-10 rounded-xl border border-slate-300 text-slate-700 font-medium hover:bg-slate-50 text-sm"
+                    className="btn btn-outline h-10"
                   >
                     openPreferenceCenter
                   </button>
                   <button
                     onClick={() => callCmp("acceptAll")}
-                    className="h-10 rounded-xl gradient-primary text-white font-medium text-sm soft-shadow"
+                    className="btn btn-primary h-10"
                   >
                     acceptAll
                   </button>
                   <button
                     onClick={() => callCmp("rejectAll")}
-                    className="h-10 rounded-xl border border-rose-300 text-rose-700 font-medium hover:bg-rose-50 text-sm"
+                    className="btn btn-danger h-10"
                   >
                     rejectAll
                   </button>
                   <button
                     onClick={() => callCmp("withdrawConsent")}
-                    className="h-10 rounded-xl border border-amber-300 text-amber-700 font-medium hover:bg-amber-50 text-sm col-span-2 md:col-span-1"
+                    className="btn btn-outline h-10 col-span-2 md:col-span-1"
                   >
                     withdrawConsent
                   </button>

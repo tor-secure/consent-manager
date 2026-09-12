@@ -11,23 +11,18 @@ export interface ButtonProps
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[var(--shadow-sm)] hover:bg-[var(--primary-hover)] active:scale-[0.98]",
-  secondary:
-    "bg-[var(--secondary)] text-[var(--secondary-foreground)] hover:bg-[var(--hover)]",
-  ghost:
-    "bg-transparent text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]",
-  outline:
-    "bg-[var(--card)] text-[var(--secondary-foreground)] border border-[var(--border)] hover:bg-[var(--muted)]",
-  danger:
-    "bg-[var(--danger)] text-white shadow-[var(--shadow-sm)] hover:opacity-90 active:scale-[0.98]",
+  primary: "btn-primary",
+  secondary: "btn-secondary",
+  ghost: "btn-ghost",
+  outline: "btn-outline",
+  danger: "btn-danger",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  sm: "h-9 min-h-9 px-3 text-xs rounded-lg",
-  md: "h-10 min-h-10 px-4 text-sm rounded-xl",
-  lg: "h-11 min-h-11 px-5 text-sm rounded-xl",
-  icon: "h-11 w-11 min-h-11 min-w-11 rounded-xl",
+  sm: "btn-sm",
+  md: "",
+  lg: "btn-lg",
+  icon: "btn-icon",
 };
 
 function Spinner() {
@@ -68,15 +63,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         aria-busy={loading || undefined}
-        className={[
-          "inline-flex items-center justify-center gap-2 font-medium select-none",
-          "transition-[background-color,box-shadow,color,transform,opacity] duration-200 ease-out",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
-          "disabled:pointer-events-none disabled:opacity-50",
-          variantStyles[variant],
-          sizeStyles[size],
-          className,
-        ].join(" ")}
+        className={["btn", variantStyles[variant], sizeStyles[size], className]
+          .filter(Boolean)
+          .join(" ")}
         {...props}
       >
         {loading && <Spinner />}

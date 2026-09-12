@@ -157,7 +157,7 @@ export function RightsRequestDetail({
                   onClick={() => startTransition(async () => {
                     await patch({ action: "assign_self" });
                   })}
-                  className="rounded-xl border border-[var(--border)] px-2 py-0.5 text-[11px] font-medium"
+                  className="btn btn-outline btn-sm"
                 >
                   Assign me
                 </button>
@@ -188,7 +188,7 @@ export function RightsRequestDetail({
                 const data = await patch({ action: "resend_verification" });
                 if (data.verificationToken) setIssuedToken(data.verificationToken);
               })}
-              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
+              className="btn btn-outline btn-sm"
             >
               Issue verification challenge
             </button>
@@ -198,7 +198,7 @@ export function RightsRequestDetail({
               onClick={() => startTransition(async () => {
                 await patch({ action: "staff_attest", attestationNote: "Out-of-band identity check completed by staff." });
               })}
-              className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
+              className="btn btn-outline btn-sm"
             >
               Staff-attest identity
             </button>
@@ -256,7 +256,7 @@ export function RightsRequestDetail({
                 }
                 window.location.href = data.downloadPath;
               })}
-              className="rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white"
+              className="btn btn-primary btn-sm"
             >
               Generate {request.requestType === "portability" ? "portability" : "access"} export
             </button>
@@ -271,7 +271,7 @@ export function RightsRequestDetail({
                   else notify.success("Eligible current-state data deleted; evidence preserved");
                   router.refresh();
                 })}
-                className="rounded-2xl bg-[var(--danger)] px-4 py-2 text-xs font-medium text-white disabled:opacity-50"
+                className="btn btn-danger btn-sm"
               >
                 Execute eligible deletion
               </button>
@@ -287,7 +287,7 @@ export function RightsRequestDetail({
                   else notify.success("Existing withdrawal flow invoked");
                   router.refresh();
                 })}
-                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium"
+                className="btn btn-outline btn-sm"
               >
                 Invoke consent withdrawal
               </button>
@@ -331,7 +331,7 @@ export function RightsRequestDetail({
                                 router.refresh();
                               }
                             })}
-                            className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 py-1 text-[11px] capitalize"
+                            className="btn btn-outline btn-sm capitalize"
                           >
                             {status.replaceAll("_", " ")}
                           </button>
@@ -368,7 +368,7 @@ export function RightsRequestDetail({
               else notify.success("Approved correction applied");
               router.refresh();
             })}
-            className="rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white"
+            className="btn btn-primary btn-sm"
           >
             Apply approved name correction
           </button>
@@ -394,7 +394,7 @@ export function RightsRequestDetail({
                 onClick={() => startTransition(async () => {
                   await patch({ status, responseNotes: notes });
                 })}
-                className="rounded-2xl border border-[var(--border)] px-4 py-2 text-xs font-medium capitalize"
+                className="btn btn-outline btn-sm capitalize"
               >
                 {status.replace("_", " ")}
               </button>

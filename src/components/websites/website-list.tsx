@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HoverGlassCard } from "@/components/ui/hover-glass-card";
+import { SearchInput } from "@/components/ui/search-input";
 
 export type WebsiteNextAction = {
   label: string;
@@ -71,26 +72,14 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
   return (
     <div>
       {websites.length > 0 && (
-        <div className="relative mb-7 max-w-md">
-          <svg
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-            <path d="M20 20l-3.5-3.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          <label htmlFor="website-search" className="sr-only">Search websites</label>
-          <input
+        <div className="mb-7 max-w-md">
+          <SearchInput
             id="website-search"
-            type="search"
+            label="Search websites"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onClear={() => setQuery("")}
             placeholder="Search websites…"
-            className="field-input pl-12 h-11"
           />
         </div>
       )}

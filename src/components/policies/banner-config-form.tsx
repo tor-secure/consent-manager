@@ -591,11 +591,11 @@ export function BannerConfigForm({
 
           <div className="flex flex-wrap items-center gap-3">
             <button type="submit" disabled={saving} aria-busy={saving || undefined}
-              className="inline-flex items-center rounded-2xl bg-[var(--primary)] px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+              className="btn btn-primary">
               {saving ? "Saving..." : "Save draft"}
             </button>
             <button type="button" onClick={() => { setConfig(parseBannerConfig({})); setError(""); }}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+              className="btn btn-outline">
               Reset to defaults
             </button>
           </div>

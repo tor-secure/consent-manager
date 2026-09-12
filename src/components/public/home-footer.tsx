@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowButton } from "@/components/ui/arrow-button";
 
 const footerColumns = [
   {
@@ -104,13 +105,9 @@ export function HomeFooter() {
             </div>
 
             <div>
-              <Link
-                href="/sign-up"
-                className="inline-flex h-12 items-center justify-center gap-1.5 rounded-xl bg-[#5850EC] px-5 text-sm font-semibold text-white transition hover:bg-[#4F46E5]"
-              >
-                Create a workspace
-                <span aria-hidden="true">→</span>
-              </Link>
+              <ArrowButton href="/sign-up" size="lg">
+                Sign up
+              </ArrowButton>
               <p className="mt-2.5 flex items-center gap-1.5 text-[12px] text-[#6B7280]">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path

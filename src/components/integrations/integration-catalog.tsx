@@ -189,7 +189,7 @@ function IntegrationCard({
                   type="button"
                   disabled={isPending || busyId === c.connectionId}
                   onClick={() => disconnect(c.connectionId)}
-                  className="shrink-0 rounded-lg border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-2 py-1 text-xs font-medium text-[var(--danger)] transition hover:bg-[var(--danger-soft)] disabled:opacity-40"
+                  className="btn btn-danger btn-sm shrink-0"
                 >
                   {busyId === c.connectionId ? "…" : "Disconnect"}
                 </button>
@@ -217,7 +217,7 @@ function IntegrationCard({
             type="button"
             disabled={isPending || busyId === "connect" || !selectedWebsiteId}
             onClick={connect}
-            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl bg-[var(--primary)] px-3.5 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50"
+            className="btn btn-primary btn-sm shrink-0"
           >
             {busyId === "connect" ? "…" : "Connect"}
           </button>
@@ -331,7 +331,7 @@ export function IntegrationCatalog({
             <button
               type="button"
               onClick={() => setCategoryFilter("all")}
-              className="text-sm font-medium text-[var(--primary)] transition hover:text-[var(--primary)]"
+              className="btn btn-outline btn-sm"
             >
               Show all
             </button>

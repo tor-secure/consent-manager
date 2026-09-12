@@ -77,7 +77,7 @@ export default function PublicPrivacyRequestPage() {
               autoComplete="off"
             />
           </div>
-          <button type="submit" className="rounded-2xl bg-[#2c4a7c] px-4 py-2 text-sm font-medium text-white">
+          <button type="submit" className="btn btn-primary">
             Continue
           </button>
         </form>

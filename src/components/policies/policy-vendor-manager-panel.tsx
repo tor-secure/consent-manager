@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { SearchInput } from "@/components/ui/search-input";
 import { notify } from "@/components/feedback/notify";
 import { dashboardFetch } from "@/components/feedback/use-async-action";
 
@@ -61,15 +62,6 @@ function IconVendor() {
       stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="5" width="12" height="9" rx="1.5" />
       <path d="M5 5V4a3 3 0 016 0v1" />
-    </svg>
-  );
-}
-
-function IconSearch() {
-  return (
-    <svg className="h-3.5 w-3.5 text-[var(--muted-foreground)]" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-      <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth={1.5} />
-      <path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" />
     </svg>
   );
 }
@@ -195,33 +187,25 @@ function VendorCombobox({ available, disabled, onAttach, onCreateAndAttach, addi
   return (
     <div ref={wrapperRef} className="relative">
       {/* Trigger */}
-      <div
+      <SearchInput
+        ref={inputRef}
+        disabled={disabled}
         role="combobox"
         aria-expanded={open}
         aria-controls={listboxId}
         aria-haspopup="listbox"
+        aria-autocomplete="list"
         aria-label="Search and add vendor"
-        onClick={handleOpen}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleOpen(); }}
-        tabIndex={disabled ? -1 : 0}
-        className={`flex h-10 cursor-text items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-3 text-sm shadow-sm transition focus:outline-none focus-within:border-[var(--ring)] focus-within:ring-2 focus-within:ring-[var(--ring)]/20 ${disabled ? "cursor-not-allowed opacity-50" : "hover:border-[var(--border)]"}`}
-      >
-        <IconSearch />
-        {open ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            placeholder="Search by name, domain, or key…"
-            className="flex-1 bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none"
-          />
-        ) : (
-          <span className="flex-1 text-[var(--muted-foreground)]">Search vendors to add…</span>
-        )}
-        <IconChevron open={open} />
-      </div>
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (!open) handleOpen();
+        }}
+        onClear={() => setQuery("")}
+        onFocus={handleOpen}
+        placeholder="Search vendors to add…"
+        trailing={<IconChevron open={open} />}
+      />
 
       {/* Dropdown */}
       {open && (
@@ -313,12 +297,12 @@ function VendorCombobox({ available, disabled, onAttach, onCreateAndAttach, addi
                 </div>
                 <div className="flex items-center gap-2 pt-1">
                   <button type="submit" disabled={!newName.trim() || isPending}
-                    className="flex items-center gap-1.5 rounded-xl bg-[var(--primary)] px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] disabled:opacity-50">
+                    className="btn btn-primary btn-sm">
                     {isPending ? <IconSpinner /> : <IconPlus />}
                     {isPending ? "Creating…" : "Create & add"}
                   </button>
                   <button type="button" onClick={() => setShowCreate(false)}
-                    className="rounded-xl border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:bg-[var(--muted)]">
+                    className="btn btn-outline btn-sm">
                     Cancel
                   </button>
                   <Link href="/dashboard/vendors/new" target="_blank" rel="noopener noreferrer"
@@ -466,7 +450,7 @@ export function PolicyVendorManagerPanel({
           </div>
         </div>
         <Link href="/dashboard/vendors"
-          className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]">
+          className="btn btn-outline btn-sm">
           Manage all
         </Link>
       </div>

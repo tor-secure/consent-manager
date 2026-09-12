@@ -300,33 +300,33 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
               <div className="flex flex-wrap gap-2">
                 <Link
                   href={`/dashboard/rights-requests/${request.id}`}
-                  className="inline-flex items-center rounded-2xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
+                  className="btn btn-primary btn-sm"
                 >
                   Open workflow
                 </Link>
                 {needsAck && status !== "verification_pending" && status !== "in_review" && (
                   <button type="button" disabled={isPending}
                     onClick={() => save(status === "verified" ? "in_review" : "acknowledged")}
-                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
+                    className="btn btn-outline btn-sm">
                     Move to review
                   </button>
                 )}
                 {status === "acknowledged" || status === "in_review" ? (
                   <button type="button" disabled={isPending}
                     onClick={() => save("in_progress")}
-                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
+                    className="btn btn-outline btn-sm">
                     Mark in progress
                   </button>
                 ) : null}
                 <button type="button" disabled={isPending}
                   onClick={() => save("rejected")}
-                  className="inline-flex items-center rounded-2xl border border-[color-mix(in_srgb,var(--danger)_28%,transparent)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--danger)] shadow-sm transition hover:bg-[var(--danger-soft)] disabled:opacity-50">
+                  className="btn btn-danger btn-sm">
                   Reject
                 </button>
                 {notes !== (request.responseNotes ?? "") && (
                   <button type="button" disabled={isPending}
                     onClick={() => save(undefined)}
-                    className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50">
+                    className="btn btn-outline btn-sm">
                     Save notes only
                   </button>
                 )}

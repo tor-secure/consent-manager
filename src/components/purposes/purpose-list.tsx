@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SearchInput } from "@/components/ui/search-input";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -22,15 +23,6 @@ export type PurposeRow = {
 // ---------------------------------------------------------------------------
 // Icons
 // ---------------------------------------------------------------------------
-
-function IconSearch() {
-  return (
-    <svg className="h-4 w-4 text-[var(--muted-foreground)]" viewBox="0 0 15 15" fill="none" aria-hidden="true">
-      <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M10.5 10.5l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 function IconEmpty() {
   return (
@@ -109,18 +101,14 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
   return (
     <div className="space-y-4">
       {/* Search bar */}
-      <div className="relative max-w-sm">
-        <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center">
-          <IconSearch />
-        </span>
-        <label htmlFor="purpose-search" className="sr-only">Search purposes</label>
-        <input
+      <div className="max-w-sm">
+        <SearchInput
           id="purpose-search"
-          type="search"
+          label="Search purposes"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
           placeholder="Search by name, key, or description…"
-          className="field-input pl-9"
         />
       </div>
 
@@ -135,7 +123,7 @@ export function PurposeList({ purposes }: { purposes: PurposeRow[] }) {
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+              className="btn btn-outline btn-sm"
             >
               <IconClearFilters />
               Clear search

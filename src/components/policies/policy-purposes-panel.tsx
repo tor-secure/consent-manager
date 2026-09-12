@@ -140,7 +140,7 @@ export function PolicyPurposesPanel({
         </div>
         <Link
           href="/dashboard/purposes/new"
-          className="inline-flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--muted-foreground)] shadow-sm transition hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+          className="btn btn-outline btn-sm"
         >
           <IconPlus />
           New purpose
@@ -176,7 +176,7 @@ export function PolicyPurposesPanel({
               Create purposes to start defining consent requirements.
             </p>
             <Link href="/dashboard/purposes/new"
-              className="mt-3 inline-flex items-center gap-1 rounded-xl bg-[var(--primary)] px-4 py-2 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]">
+              className="btn btn-primary btn-sm mt-3">
               <IconPlus />
               Create purpose
             </Link>

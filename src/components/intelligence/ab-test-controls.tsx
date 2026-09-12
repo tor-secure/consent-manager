@@ -38,7 +38,7 @@ export function AbTestControls({
         type="button"
         disabled={busy}
         onClick={() => void save(!enabled)}
-        className="h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm font-medium text-[var(--foreground)] hover:bg-[var(--muted)] disabled:opacity-60"
+        className="btn btn-outline btn-sm"
       >
         {busy ? "Saving…" : enabled ? "Pause experiment" : "Start default experiment"}
       </button>

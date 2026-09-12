@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 const ALL_EVENTS = [
@@ -90,7 +91,7 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+        className="btn btn-primary">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M7 1v12M1 7h12" />
@@ -138,13 +139,14 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {ALL_EVENTS.map((ev) => (
-              <label key={ev.value}
-                className="flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)]/60 px-3 py-2.5 text-sm transition hover:bg-[var(--muted)] hover:border-[var(--border)]">
-                <input type="checkbox" checked={selectedEvents.has(ev.value)}
-                  onChange={() => toggleEvent(ev.value)}
-                  className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]" />
-                <span className="text-[var(--foreground)]">{ev.label}</span>
-              </label>
+              <Checkbox
+                key={ev.value}
+                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--muted)]/60 px-3 py-2.5 text-sm transition hover:bg-[var(--muted)] hover:border-[var(--border)]"
+                checked={selectedEvents.has(ev.value)}
+                onChange={() => toggleEvent(ev.value)}
+              >
+                {ev.label}
+              </Checkbox>
             ))}
           </div>
 
@@ -171,7 +173,7 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
           {saving ? "Creating endpoint..." : "Create endpoint"}
         </Button>
         <button type="button" onClick={() => { setOpen(false); setError(""); }}
-          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+          className="btn btn-outline">
           Cancel
         </button>
       </div>

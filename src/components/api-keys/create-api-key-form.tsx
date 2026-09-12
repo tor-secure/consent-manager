@@ -54,7 +54,7 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+        className="btn btn-primary"
       >
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"
           stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -115,7 +115,7 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
           {saving ? "Generating..." : "Create key"}
         </Button>
         <button type="button" onClick={() => { setOpen(false); setError(""); }}
-          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+          className="btn btn-outline">
           Cancel
         </button>
       </div>

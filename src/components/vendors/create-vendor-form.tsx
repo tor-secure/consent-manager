@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
   VENDOR_CATALOG,
@@ -175,17 +176,20 @@ function CatalogCombobox({ selectedName, onSelect }: CatalogComboboxProps) {
       {open && (
         <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-lg border bg-[var(--card)] shadow-xl">
           {/* Search input */}
-          <div className="border-b px-3 py-2">
-            <input
+          <div className="border-b px-2 py-2">
+            <SearchInput
               ref={inputRef}
-              type="text"
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
                 setActiveCategory(null);
               }}
+              onClear={() => {
+                setQuery("");
+                setActiveCategory(null);
+              }}
               placeholder="Search by name, domain, or category…"
-              className="w-full bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none"
+              label="Search vendor catalog"
             />
           </div>
 

@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import { Alert } from "@/components/ui/alert";
 import { Field } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select } from "@/components/ui/select";
 import type { RegulationKey } from "@/lib/regulations/catalog";
 import { REGULATION_CATALOG } from "@/lib/regulations/catalog";
@@ -183,19 +184,19 @@ export function WebsiteRegulationForm({
               <option value="ALLOW">Allow unknown third-party resources</option>
             </Select>
           </Field>
-          <label className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span>
               Developer diagnostics
               <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
                 Keeps a capped in-browser enforcement log without query strings or payloads.
               </span>
             </span>
-            <input
-              type="checkbox"
+            <Checkbox
               checked={enforcementDebug}
               onChange={(event) => setEnforcementDebug(event.target.checked)}
+              aria-label="Developer diagnostics"
             />
-          </label>
+          </div>
         </CardContent>
       </Card>
 
@@ -285,22 +286,26 @@ export function WebsiteRegulationForm({
           </p>
         </div>
         <CardContent className="space-y-4">
-          <label className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span>
               Google Consent Mode
               <span className="ml-2">
                 {googleEnabled ? <Badge variant="success">Enabled</Badge> : <Badge variant="neutral">Disabled</Badge>}
               </span>
             </span>
-            <input type="checkbox" checked={googleEnabled} onChange={(event) => setGoogleEnabled(event.target.checked)} />
-          </label>
+            <Checkbox
+              checked={googleEnabled}
+              onChange={(event) => setGoogleEnabled(event.target.checked)}
+              aria-label="Google Consent Mode"
+            />
+          </div>
           {tcfEnabled && !(iabReadiness.registered && iabReadiness.gvlVersion) ? (
             <div className="rounded-xl border border-[color-mix(in_srgb,var(--warning)_28%,transparent)] bg-[var(--warning-soft)] px-4 py-3 text-sm text-[var(--warning)]">
               IAB TCF is enabled but production strings stay blocked. This app is not IAB-certified.
               Set a registered CMP ID, sync the official GVL, and complete purpose/vendor mappings before treating TCF output as live.
             </div>
           ) : null}
-          <label className="flex items-center justify-between gap-3 text-sm">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span>
               IAB TCF
               <span className="ml-2">
@@ -315,9 +320,13 @@ export function WebsiteRegulationForm({
                 Production strings are blocked until registration, GVL, and complete mappings exist.
               </span>
             </span>
-            <input type="checkbox" checked={tcfEnabled} onChange={(event) => setTcfEnabled(event.target.checked)} />
-          </label>
-          <label className="flex items-center justify-between gap-3 text-sm">
+            <Checkbox
+              checked={tcfEnabled}
+              onChange={(event) => setTcfEnabled(event.target.checked)}
+              aria-label="IAB TCF"
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3 text-sm">
             <span>
               IAB GPP
               <span className="ml-2">
@@ -325,8 +334,12 @@ export function WebsiteRegulationForm({
               </span>
               <span className="mt-1 block text-xs text-[var(--muted-foreground)]">GPP 1.1 sections are encoded only when applicable to the resolved legal profile.</span>
             </span>
-            <input type="checkbox" checked={gppEnabled} onChange={(event) => setGppEnabled(event.target.checked)} />
-          </label>
+            <Checkbox
+              checked={gppEnabled}
+              onChange={(event) => setGppEnabled(event.target.checked)}
+              aria-label="IAB GPP"
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="text-sm text-[var(--secondary-foreground)]">
               Registered CMP ID (or use IAB_CMP_ID)

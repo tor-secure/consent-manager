@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { notify } from "@/components/feedback/notify";
 import { TRANSFER_MECHANISMS, VENDOR_ROLES } from "@/lib/processing/types";
 
@@ -183,10 +184,13 @@ export function ProcessingActivityForm({
       <label className="text-sm">Processing location
         <input className={`${inputCls} mt-1`} value={processingLocation} onChange={(e) => setProcessingLocation(e.target.value)} />
       </label>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={transferRequired} onChange={(e) => setTransferRequired(e.target.checked)} />
+      <Checkbox
+        checked={transferRequired}
+        onChange={(e) => setTransferRequired(e.target.checked)}
+        className="text-sm"
+      >
         Transfer required
-      </label>
+      </Checkbox>
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="text-sm">California sale
           <select className={`${inputCls} mt-1`} value={ccpaSale} onChange={(e) => setCcpaSale(e.target.value)}>

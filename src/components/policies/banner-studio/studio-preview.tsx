@@ -214,7 +214,7 @@ export function StudioPreview({
           </div>
           <button
             type="submit"
-            className="shrink-0 rounded-2xl bg-[var(--primary)] px-3.5 py-1.5 text-xs font-medium text-white shadow-sm transition hover:bg-[var(--primary-hover)]"
+            className="btn btn-primary btn-sm shrink-0"
           >
             Load
           </button>

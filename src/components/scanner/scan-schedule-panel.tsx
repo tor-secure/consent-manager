@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 
 export type ScheduleRow = {
@@ -142,22 +143,21 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
                     <p className="text-xs text-[var(--muted-foreground)]">{row.websiteDomain}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <label className="inline-flex items-center gap-2 text-sm text-[var(--foreground)]">
-                      <input
-                        type="checkbox"
-                        checked={current.enabled}
-                        onChange={(event) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            [row.websiteId]: {
-                              ...current,
-                              enabled: event.target.checked,
-                            },
-                          }))
-                        }
-                      />
+                    <Checkbox
+                      checked={current.enabled}
+                      onChange={(event) =>
+                        setDraft((prev) => ({
+                          ...prev,
+                          [row.websiteId]: {
+                            ...current,
+                            enabled: event.target.checked,
+                          },
+                        }))
+                      }
+                      className="text-sm"
+                    >
                       {current.enabled ? "On" : "Off"}
-                    </label>
+                    </Checkbox>
                   </td>
                   <td className="px-5 py-4">
                     <select

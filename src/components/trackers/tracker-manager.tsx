@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
@@ -332,10 +334,12 @@ export function TrackerManager({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Input
+        <SearchInput
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onClear={() => setQuery("")}
           placeholder="Search tracker, vendor, purpose, or domain"
+          label="Search trackers"
           className="max-w-sm"
         />
         <Button type="button" onClick={openCreate} disabled={websites.length === 0}>
@@ -653,22 +657,32 @@ function TrackerForm({
           </Select>
         </Field>
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={form.enabled} onChange={(event) => update("enabled", event.target.checked)} />
+      <Checkbox
+        checked={form.enabled}
+        onChange={(event) => update("enabled", event.target.checked)}
+        className="text-sm"
+      >
         Enabled
-      </label>
-      <label className="flex items-start gap-2 text-sm">
-        <input type="checkbox" checked={form.isEssential} onChange={(event) => update("isEssential", event.target.checked)} />
+      </Checkbox>
+      <Checkbox
+        align="start"
+        checked={form.isEssential}
+        onChange={(event) => update("isEssential", event.target.checked)}
+        className="text-sm"
+      >
         <span>
           Essential
           <span className="mt-1 block text-xs text-[var(--muted-foreground)]">{ESSENTIAL_CONFIRMATION_TEXT}</span>
         </span>
-      </label>
+      </Checkbox>
       {form.isEssential ? (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.confirmEssential} onChange={(event) => update("confirmEssential", event.target.checked)} />
+        <Checkbox
+          checked={form.confirmEssential}
+          onChange={(event) => update("confirmEssential", event.target.checked)}
+          className="text-sm"
+        >
           I confirm this tracker is necessary for the relevant service
-        </label>
+        </Checkbox>
       ) : null}
       <div className="flex gap-2">
         <Button type="button" onClick={onSave} loading={pending}>Save tracker</Button>

@@ -8,6 +8,7 @@ import {
   matchDashboardPages,
   type DashboardSearchHit,
 } from "@/lib/dashboard-search";
+import { SearchInput } from "@/components/ui/search-input";
 
 function SearchIcon({ className = "" }: { className?: string }) {
   return (
@@ -175,10 +176,8 @@ export function DashboardSearch() {
   return (
     <div className="flex w-full min-w-0 items-center">
       <div className="relative hidden min-w-0 flex-1 md:block">
-        <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-        <input
+        <SearchInput
           ref={inputRef}
-          type="search"
           role="combobox"
           aria-expanded={open}
           aria-controls={listId}
@@ -191,16 +190,22 @@ export function DashboardSearch() {
             setActiveIndex(0);
             setOpen(true);
           }}
+          onClear={() => {
+            setQuery("");
+            setActiveIndex(0);
+            setOpen(true);
+          }}
           onFocus={() => setOpen(true)}
           onBlur={() => {
             window.setTimeout(() => setOpen(false), 120);
           }}
           onKeyDown={onInputKeyDown}
-          className="h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-11 pr-16 text-sm text-[var(--foreground)] placeholder:text-[var(--muted-foreground)] outline-none transition-[box-shadow,border-color] duration-200 focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/30"
+          trailing={
+            <kbd className="search-bar-trailing pointer-events-none hidden rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] lg:inline">
+              Ctrl K
+            </kbd>
+          }
         />
-        <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-[var(--border)] bg-[var(--card)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--muted-foreground)] lg:inline">
-          Ctrl K
-        </kbd>
         {open && (
           <div className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-[var(--shadow-md)]">
             {list}
@@ -221,32 +226,33 @@ export function DashboardSearch() {
         <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label="Search dashboard">
           <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--foreground)_45%,transparent)]" onClick={close} />
           <div className="absolute inset-x-0 top-0 bg-[var(--card)] px-3 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] shadow-[var(--shadow-md)]">
-            <div className="relative">
-              <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--muted-foreground)]" />
-              <input
-                ref={mobileInputRef}
-                type="search"
-                role="combobox"
-                aria-expanded
-                aria-controls={listId}
-                aria-label="Search dashboard"
-                placeholder="Search…"
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setActiveIndex(0);
-                }}
-                onKeyDown={onInputKeyDown}
-                className="h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-11 pr-12 text-sm outline-none focus:ring-2 focus:ring-[var(--ring)]/30"
-              />
-              <button
-                type="button"
-                onClick={close}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted-foreground)]"
-              >
-                Close
-              </button>
-            </div>
+            <SearchInput
+              ref={mobileInputRef}
+              role="combobox"
+              aria-expanded
+              aria-controls={listId}
+              aria-label="Search dashboard"
+              placeholder="Search…"
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setActiveIndex(0);
+              }}
+              onClear={() => {
+                setQuery("");
+                setActiveIndex(0);
+              }}
+              onKeyDown={onInputKeyDown}
+              trailing={
+                <button
+                  type="button"
+                  onClick={close}
+                  className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-[var(--muted-foreground)]"
+                >
+                  Close
+                </button>
+              }
+            />
             <div className="mt-2 overflow-hidden rounded-xl border border-[var(--border)]">
               {list}
             </div>

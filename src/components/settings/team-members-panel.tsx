@@ -214,7 +214,7 @@ export function TeamMembersPanel({
                           <button onClick={() => setConfirmRemoveMember(member)}
                             disabled={isRemovingThis || isPending}
                             aria-label={`Remove ${member.name}`}
-                            className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:border-[color-mix(in_srgb,var(--danger)_28%,transparent)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
+                            className="btn btn-danger btn-sm">
                             {isRemovingThis ? "Removing…" : "Remove"}
                           </button>
                         )}
@@ -268,7 +268,7 @@ export function TeamMembersPanel({
                       <button onClick={() => handleRevokeInvite(inv)}
                         disabled={isRevokingThis || isPending}
                         aria-label={`Revoke invitation to ${inv.email}`}
-                        className="rounded-xl border border-transparent px-2.5 py-1.5 text-xs font-medium text-[var(--muted-foreground)] transition hover:border-[color-mix(in_srgb,var(--danger)_28%,transparent)] hover:bg-[var(--danger-soft)] hover:text-[var(--danger)] disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
+                        className="btn btn-danger btn-sm">
                         {isRevokingThis ? "Revoking…" : "Revoke"}
                       </button>
                     )}
@@ -294,11 +294,11 @@ export function TeamMembersPanel({
             </p>
             <div className="mt-5 flex flex-wrap items-center justify-end gap-3">
               <button onClick={() => setConfirmRemoveMember(null)} disabled={isPending}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+                className="btn btn-outline">
                 Cancel
               </button>
               <button onClick={() => handleRemove(confirmRemoveMember)} disabled={isPending}
-                className="rounded-2xl bg-[var(--danger)] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:opacity-90 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]">
+                className="btn btn-danger">
                 {isPending ? "Removing…" : "Remove member"}
               </button>
             </div>

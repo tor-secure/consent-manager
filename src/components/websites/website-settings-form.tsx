@@ -160,7 +160,7 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
           {saving ? "Saving..." : "Save changes"}
         </Button>
         <button type="button" onClick={() => router.back()}
-          className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]">
+          className="btn btn-outline">
           Cancel
         </button>
       </div>

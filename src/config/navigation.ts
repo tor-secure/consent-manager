@@ -22,54 +22,54 @@ export type DashboardSectionHub = {
 };
 
 export const consentManagementFeatures: DashboardNavigationItem[] = [
-  { title: "Consent", href: "/dashboard/consent", description: "Visitor consent records" },
-  { title: "Policies", href: "/dashboard/policies", description: "Consent policies" },
-  { title: "Purposes", href: "/dashboard/purposes", description: "Processing purposes" },
-  { title: "Vendors", href: "/dashboard/vendors", description: "Third-party vendors" },
-  { title: "Transfers", href: "/dashboard/transfers", description: "Processing and cross-border transfers" },
-  { title: "Trackers", href: "/dashboard/trackers", description: "Detected trackers" },
+  { title: "Consent", href: "/dashboard/consent", description: "Review visitor consent records, proof, and withdrawal history for every site." },
+  { title: "Policies", href: "/dashboard/policies", description: "Create, version, and publish consent banners and preference-center policies." },
+  { title: "Purposes", href: "/dashboard/purposes", description: "Define processing purposes that map cookies, vendors, and legal bases." },
+  { title: "Vendors", href: "/dashboard/vendors", description: "Catalog third-party vendors and the purposes they are allowed to serve." },
+  { title: "Transfers", href: "/dashboard/transfers", description: "Track processing activities and cross-border data transfers." },
+  { title: "Trackers", href: "/dashboard/trackers", description: "Classify detected cookies and trackers against your purposes and vendors." },
 ];
 
 export const discoveryFeatures: DashboardNavigationItem[] = [
-  { title: "Scanner", href: "/dashboard/scanner", description: "Scan websites" },
-  { title: "Privacy drift", href: "/dashboard/monitoring", description: "Scan findings" },
-  { title: "Privacy risk", href: "/dashboard/risk", description: "Risk overview" },
-  { title: "Consent quality", href: "/dashboard/quality", description: "Operational quality score" },
-  { title: "Analytics", href: "/dashboard/analytics", description: "Consent analytics" },
+  { title: "Scanner", href: "/dashboard/scanner", description: "Scan websites to discover cookies, scripts, and third-party trackers." },
+  { title: "Privacy drift", href: "/dashboard/monitoring", description: "Review scan findings when trackers or consent coverage change over time." },
+  { title: "Privacy risk", href: "/dashboard/risk", description: "See a risk overview of unmapped trackers, gaps, and high-impact issues." },
+  { title: "Consent quality", href: "/dashboard/quality", description: "Measure operational quality of banners, purposes, and vendor coverage." },
+  { title: "Analytics", href: "/dashboard/analytics", description: "Track consent rates, preferences, and performance across your sites." },
 ];
 
 export const intelligenceFeatures: DashboardNavigationItem[] = [
-  { title: "Consent firewall", href: "/dashboard/firewall", description: "Tracker blocking preview" },
-  { title: "Impact simulator", href: "/dashboard/simulator", description: "Quality what-if scenarios" },
-  { title: "Experiments", href: "/dashboard/experiments", description: "Banner A/B tests" },
-  { title: "Dependency graph", href: "/dashboard/graph", description: "Purpose, vendor, and tracker links" },
-  { title: "Recommendations", href: "/dashboard/recommendations", description: "Configuration gaps" },
-  { title: "Data flow map", href: "/dashboard/data-flow", description: "Tracker-to-vendor flows" },
-  { title: "Cross-domain consent", href: "/dashboard/cross-domain", description: "Portable consent exchange" },
-  { title: "AI consent autopilot", href: "/dashboard/autopilot", description: "Assisted remediation plan" },
-  { title: "Consent digital twin", href: "/dashboard/digital-twin", description: "Snapshot and impact comparison" },
-  { title: "Consent ROI engine", href: "/dashboard/roi", description: "Business impact estimates" },
-  { title: "Consent negotiation engine", href: "/dashboard/negotiation", description: "Target-based remediation and offers" },
-  { title: "AI-agent permissioning", href: "/dashboard/agent-permissioning", description: "Purpose and vendor access checks" },
-  { title: "Data redaction", href: "/dashboard/data-redaction", description: "Consent-filtered analytics" },
+  { title: "Consent firewall", href: "/dashboard/firewall", description: "Preview which trackers would be blocked when consent is withheld." },
+  { title: "Impact simulator", href: "/dashboard/simulator", description: "Run quality what-if scenarios before changing banners or purposes." },
+  { title: "Experiments", href: "/dashboard/experiments", description: "A/B test banner copy, layout, and choices to improve consent rates." },
+  { title: "Dependency graph", href: "/dashboard/graph", description: "Map links between purposes, vendors, and trackers in one graph." },
+  { title: "Recommendations", href: "/dashboard/recommendations", description: "Close configuration gaps with prioritized, actionable suggestions." },
+  { title: "Data flow map", href: "/dashboard/data-flow", description: "Follow tracker-to-vendor data flows across your properties." },
+  { title: "Cross-domain consent", href: "/dashboard/cross-domain", description: "Exchange portable consent so preferences travel across domains." },
+  { title: "AI consent autopilot", href: "/dashboard/autopilot", description: "Generate an assisted remediation plan for consent and tracker gaps." },
+  { title: "Consent digital twin", href: "/dashboard/digital-twin", description: "Snapshot the current setup and compare the impact of proposed changes." },
+  { title: "Consent ROI engine", href: "/dashboard/roi", description: "Estimate the business impact of consent coverage and quality changes." },
+  { title: "Consent negotiation engine", href: "/dashboard/negotiation", description: "Set targets and offers that guide consent remediation work." },
+  { title: "AI-agent permissioning", href: "/dashboard/agent-permissioning", description: "Check purpose and vendor access before an agent processes personal data." },
+  { title: "Data redaction", href: "/dashboard/data-redaction", description: "Filter analytics so only consented categories remain visible." },
 ];
 
 export const governanceFeatures: DashboardNavigationItem[] = [
-  { title: "Audit logs", href: "/dashboard/audit-logs", description: "Activity history" },
-  { title: "Notifications", href: "/dashboard/notifications", description: "Workspace alerts" },
-  { title: "Privacy Rights", href: "/dashboard/rights-requests", description: "DSAR and rights-request workflow" },
+  { title: "Audit logs", href: "/dashboard/audit-logs", description: "Inspect workspace activity history for configuration and access changes." },
+  { title: "Notifications", href: "/dashboard/notifications", description: "Stay on top of scan findings, rights requests, and workspace alerts." },
+  { title: "Privacy Rights", href: "/dashboard/rights-requests", description: "Run DSAR and rights-request workflows from intake through fulfillment." },
 ];
 
 export const developerFeatures: DashboardNavigationItem[] = [
-  { title: "SDK & API keys", href: "/dashboard/developers", description: "Install snippets, site keys, and credentials" },
-  { title: "Integrations", href: "/dashboard/integrations", description: "Connected tools" },
-  { title: "Webhooks", href: "/dashboard/developers/webhooks", description: "Event delivery" },
+  { title: "SDK & API keys", href: "/dashboard/developers", description: "Install the SDK, copy snippets, and manage site keys and credentials." },
+  { title: "Integrations", href: "/dashboard/integrations", description: "Connect analytics, tag managers, and other tools to consent signals." },
+  { title: "Webhooks", href: "/dashboard/developers/webhooks", description: "Deliver consent and rights events to your own endpoints." },
 ];
 
 export const administrationFeatures: DashboardNavigationItem[] = [
-  { title: "Organization settings", href: "/dashboard/settings/organization", description: "Workspace and billing" },
-  { title: "Data retention", href: "/dashboard/settings/retention", description: "Evidence and operational retention" },
-  { title: "Team & roles", href: "/dashboard/settings/team", description: "Members and access" },
+  { title: "Organization settings", href: "/dashboard/settings/organization", description: "Manage workspace details, branding, and billing for this organization." },
+  { title: "Data retention", href: "/dashboard/settings/retention", description: "Set how long evidence, logs, and operational records are kept." },
+  { title: "Team & roles", href: "/dashboard/settings/team", description: "Invite members and control who can view or change consent settings." },
 ];
 
 export const dashboardSectionHubs: DashboardSectionHub[] = [

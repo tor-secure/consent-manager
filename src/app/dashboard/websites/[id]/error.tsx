@@ -24,13 +24,13 @@ export default function WebsiteDetailError({
         <button
           type="button"
           onClick={reset}
-          className="inline-flex items-center rounded-2xl bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-white"
+          className="btn btn-primary"
         >
           Try again
         </button>
         <Link
           href="/dashboard/websites"
-          className="inline-flex items-center rounded-2xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-medium text-[var(--foreground)]"
+          className="btn btn-outline"
         >
           Back to websites
         </Link>

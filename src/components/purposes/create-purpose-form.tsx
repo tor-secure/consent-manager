@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TemplateTile } from "@/components/dashboard/create-page-header";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import { PURPOSE_TEMPLATES, type PurposeTemplate } from "@/lib/templates/purpose-templates";
@@ -307,17 +308,14 @@ export function CreatePurposeForm() {
             <option value="inactive">Inactive</option>
           </Select>
         </Field>
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3">
-          <input
-            type="checkbox"
-            checked={isRequired}
-            onChange={(e) => setIsRequired(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
-          />
-          <span className="text-sm text-[var(--secondary-foreground)]">
-            This purpose is required (visitor cannot decline)
-          </span>
-        </label>
+        <Checkbox
+          align="start"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3 text-sm"
+          checked={isRequired}
+          onChange={(e) => setIsRequired(e.target.checked)}
+        >
+          This purpose is required (visitor cannot decline)
+        </Checkbox>
       </FormCard>
 
       <FormCard

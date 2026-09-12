@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Alert } from "@/components/ui/alert";
 import { TemplateTile } from "@/components/dashboard/create-page-header";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import {
   POLICY_TEMPLATES,
@@ -163,17 +164,14 @@ export function CreatePolicyForm({
             placeholder="What this policy covers for visitors"
           />
         </Field>
-        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3">
-          <input
-            type="checkbox"
-            checked={isDefault}
-            onChange={(e) => setIsDefault(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
-          />
-          <span className="text-sm text-[var(--secondary-foreground)]">
-            Set as the default policy for this website
-          </span>
-        </label>
+        <Checkbox
+          align="start"
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3 text-sm"
+          checked={isDefault}
+          onChange={(e) => setIsDefault(e.target.checked)}
+        >
+          Set as the default policy for this website
+        </Checkbox>
 
         {templatePurposes.length > 0 ? (
           <div className="space-y-2">
@@ -183,26 +181,21 @@ export function CreatePolicyForm({
             </p>
             <div className="space-y-2">
               {templatePurposes.map((p) => (
-                <label
+                <Checkbox
                   key={p.key}
-                  className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] px-4 py-3"
+                  align="start"
+                  className="w-full rounded-xl border border-[var(--border)] px-4 py-3"
+                  checked={purposeKeys.includes(p.key)}
+                  onChange={() => togglePurpose(p.key)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={purposeKeys.includes(p.key)}
-                    onChange={() => togglePurpose(p.key)}
-                    className="mt-0.5 h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
-                  />
-                  <span>
-                    <span className="block text-sm font-medium text-[var(--foreground)]">
-                      {p.name}
-                      {p.isRequired ? (
-                        <span className="ml-2 text-[11px] font-semibold uppercase text-[var(--primary)]">Required</span>
-                      ) : null}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-[var(--muted-foreground)]">{p.summary}</span>
+                  <span className="block text-sm font-medium text-[var(--foreground)]">
+                    {p.name}
+                    {p.isRequired ? (
+                      <span className="ml-2 text-[11px] font-semibold uppercase text-[var(--primary)]">Required</span>
+                    ) : null}
                   </span>
-                </label>
+                  <span className="mt-0.5 block text-xs text-[var(--muted-foreground)]">{p.summary}</span>
+                </Checkbox>
               ))}
             </div>
           </div>

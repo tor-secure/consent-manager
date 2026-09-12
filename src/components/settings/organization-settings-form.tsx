@@ -3,6 +3,7 @@
 import { cloneElement, isValidElement, useState, type ReactElement, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
@@ -315,16 +316,14 @@ export function OrganizationSettingsForm({
           <h2 className="text-base font-semibold text-[var(--foreground)]">Onboarding</h2>
         </div>
         <div className="px-6 py-5">
-          <label className="flex cursor-pointer items-center gap-3">
-            <input
-              type="checkbox"
-              checked={onboardingCompleted}
-              onChange={(e) => setOnboarding(e.target.checked)}
-              disabled={readOnly}
-              className="h-4 w-4 rounded border-[var(--border)] accent-[var(--primary)]"
-            />
-            <span className="text-sm text-[var(--foreground)]">Mark onboarding as completed</span>
-          </label>
+          <Checkbox
+            checked={onboardingCompleted}
+            onChange={(e) => setOnboarding(e.target.checked)}
+            disabled={readOnly}
+            className="text-sm"
+          >
+            Mark onboarding as completed
+          </Checkbox>
         </div>
       </Card>
 
@@ -349,7 +348,7 @@ export function OrganizationSettingsForm({
           <button
             type="button"
             onClick={() => router.back()}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-2 text-sm font-medium text-[var(--foreground)] shadow-sm transition hover:bg-[var(--muted)]"
+            className="btn btn-outline">
           >
             Cancel
           </button>

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ArrowButton } from "@/components/ui/arrow-button";
 
 const useCases = [
   {
@@ -187,13 +187,9 @@ export function HomeUseCasesCta() {
             </div>
 
             <div className="shrink-0 lg:text-right">
-              <Link
-                href="/sign-up"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-bold text-[#4338CA] shadow-sm transition hover:bg-[#F8FAFC]"
-              >
-                Get Started Free
-                <span aria-hidden="true">→</span>
-              </Link>
+              <ArrowButton href="/sign-up" size="lg" tone="inverse">
+                Sign up
+              </ArrowButton>
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/90 lg:justify-end">
                 <span className="inline-flex items-center gap-1.5">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">

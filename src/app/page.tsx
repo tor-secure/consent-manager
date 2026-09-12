@@ -7,6 +7,7 @@ import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
 import { HomeHowItWorks } from "@/components/public/home-how-it-works";
 import { HomePricing } from "@/components/public/home-pricing";
+import { ArrowButton } from "@/components/ui/arrow-button";
 import Link from "next/link";
 
 const trustItems = [
@@ -106,13 +107,9 @@ export default function Home() {
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <Link
-                  href="/sign-up"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-[#5850EC] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_rgba(88,80,236,0.8)] transition hover:bg-[#4F46E5]"
-                >
-                  Get Started Free
-                  <span aria-hidden="true">→</span>
-                </Link>
+                <ArrowButton href="/sign-up" size="lg">
+                  Sign up
+                </ArrowButton>
                 <Link
                   href="/sdk-demo"
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#5850EC]/40 bg-white px-5 text-sm font-semibold text-[#5850EC] transition hover:border-[#5850EC] hover:bg-[#EEF2FF]"

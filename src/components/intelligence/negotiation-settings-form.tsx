@@ -5,6 +5,7 @@ import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -39,10 +40,13 @@ export function NegotiationSettingsForm({ websiteId }: { websiteId: string }) {
   }
   return (
     <form action={submit} className="grid gap-4 sm:grid-cols-2">
-      <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 text-sm sm:col-span-2">
-        <input name="enabled" type="checkbox" className="h-4 w-4 accent-[var(--primary)]" />
-        <span><span className="font-medium text-[var(--foreground)]">Enable transparent visitor offers</span><span className="block text-xs text-[var(--muted-foreground)]">Offers remain optional and never replace reject or customize controls.</span></span>
-      </label>
+      <Checkbox
+        name="enabled"
+        className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 text-sm sm:col-span-2"
+      >
+        <span className="font-medium text-[var(--foreground)]">Enable transparent visitor offers</span>
+        <span className="block text-xs text-[var(--muted-foreground)]">Offers remain optional and never replace reject or customize controls.</span>
+      </Checkbox>
       <Field label="Offer key" htmlFor="offer-key" hint="Stable SDK identifier."><Input id="offer-key" name="key" placeholder="analytics-lite" /></Field>
       <Field label="Action label" htmlFor="offer-action"><Input id="offer-action" name="actionLabel" placeholder="Choose this option" /></Field>
       <Field label="Title" htmlFor="offer-title"><Input id="offer-title" name="title" placeholder="Allow limited analytics" /></Field>

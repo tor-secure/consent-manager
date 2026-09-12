@@ -332,7 +332,7 @@ export default async function ScannerPage() {
                             {scan.status === "completed" && (
                               <Link
                                 href={`/dashboard/scanner/${scan.id}`}
-                                className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs font-medium text-[var(--foreground)] shadow-sm transition hover:border-[var(--ring)] hover:bg-[var(--info-soft)] hover:text-[var(--primary)]"
+                                className="btn btn-outline btn-sm"
                               >
                                 View results →
                               </Link>
