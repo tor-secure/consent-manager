@@ -273,6 +273,22 @@ export default function RootLayout({ children }) {
           </div>
         </section>
 
+        <section>
+          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Google Tag Manager</h2>
+          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
+            The SDK can pause the GTM / gtag loader URL itself. It cannot see or pause individual tags already configured inside a GTM container.
+          </p>
+          <ul className="list-inside list-disc space-y-1.5 text-sm text-[var(--muted-foreground)]">
+            <li>Load the CMP snippet in <code className="rounded-md bg-[var(--secondary)] px-1 font-mono text-xs">&lt;head&gt;</code> before GTM.</li>
+            <li>Enable Google Consent Mode on the website if you use gtag / GTM Consent Mode.</li>
+            <li>Add a consent check on each optional GTM tag (Analytics, Ads, pixels) so those tags do not fire until the matching purpose is granted.</li>
+            <li>Required or essential tags that must run before any choice should not depend on optional purposes.</li>
+            <li>Map discovered GTM / gtag trackers in{" "}
+              <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-[var(--foreground)]">Trackers</Link>{" "}
+              to the correct purpose or vendor.</li>
+          </ul>
+        </section>
+
         {/* Step 4 — Verify */}
         <section>
           <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 4 — Verify installation</h2>

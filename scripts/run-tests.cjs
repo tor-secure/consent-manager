@@ -78,6 +78,8 @@ compile(
     "src/lib/portable-consent-core.ts",
     "src/lib/redaction-core.ts",
     "src/lib/sdk/cmp-sdk-script.ts",
+    "src/lib/sdk/purpose-aliases.ts",
+    "src/lib/sdk/tracker-catalog.ts",
     "src/lib/sdk/enforcement.ts",
     "src/lib/sdk/public-http.ts",
     "src/lib/sdk/public-origin.ts",

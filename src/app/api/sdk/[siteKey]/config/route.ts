@@ -596,7 +596,8 @@ export async function GET(
           );
           const enabled = californiaRuntimeApplies({
             regulationKey: resolved.regulation?.key ?? website.defaultRegulationKey,
-            region: resolved.geo.region ?? website.defaultRegion,
+            country: resolved.geo.country,
+            region: resolved.geo.region,
           });
           return {
             enabled,

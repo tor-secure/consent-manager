@@ -77,11 +77,16 @@ export function parseCaliforniaOptOutState(value: unknown): CaliforniaOptOutStat
 export function californiaRuntimeApplies(input: {
   regulationKey?: string | null;
   region?: string | null;
+  country?: string | null;
 }): boolean {
   const key = String(input.regulationKey ?? "").trim().toLowerCase();
   if (CCPA_RUNTIME_JURISDICTIONS.has(key)) return true;
-  const region = String(input.region ?? "").trim().toUpperCase().replace("_", "-");
-  return region === "CA" || region === "US-CA" || region.endsWith("-CA");
+  const country = String(input.country ?? "").trim().toUpperCase();
+  const region = String(input.region ?? "").trim().toUpperCase().replace(/_/g, "-");
+  // Bare "CA" is Canada in this product's website/org region list.
+  // California is only US-CA or country US + region CA.
+  if (region === "US-CA") return true;
+  return country === "US" && region === "CA";
 }
 
 export function inheritCcpaApplicability(

@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, getTableColumns } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
@@ -64,6 +64,36 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
 
   if (!isAuthenticated || !userId) {
     throw new Error("User is not authenticated");
+  }
+
+  // Returning visitors already have local rows. Skip Clerk's currentUser()
+  // (a network hop) and load user + org + membership in one query.
+  if (orgId) {
+    const [hot] = await db
+      .select({
+        user: userCoreSelect,
+        organization: organizationCoreSelect,
+        membership: getTableColumns(memberships),
+      })
+      .from(users)
+      .innerJoin(organizations, eq(organizations.clerkOrganizationId, orgId))
+      .innerJoin(
+        memberships,
+        and(
+          eq(memberships.userId, users.id),
+          eq(memberships.organizationId, organizations.id),
+        ),
+      )
+      .where(eq(users.clerkUserId, userId))
+      .limit(1);
+
+    if (hot) {
+      return {
+        user: hot.user,
+        organization: toOrganizationRow(hot.organization),
+        membership: hot.membership,
+      };
+    }
   }
 
   const [clerkUser, existingUserRows] = await Promise.all([

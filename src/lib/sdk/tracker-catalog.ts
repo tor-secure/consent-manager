@@ -119,6 +119,31 @@ export const BUILTIN_TRACKER_CATALOG: TrackerRule[] = [
     duration: "Vendor-defined",
     deletionBehavior: "Unload blocked embeds; third-party cookies are not script-accessible.",
   },
+  {
+    id: "builtin-google-tag-manager",
+    name: "Google Tag Manager container",
+    type: "script",
+    domain: "googletagmanager.com",
+    identifier: "googletagmanager.com/gtm.js",
+    purposeKey: "analytics",
+    purposeId: null,
+    vendorId: null,
+    isEssential: false,
+    status: "active",
+    category: "tag-manager",
+    cookieNames: [],
+    storageTypes: ["cookie"],
+    localStorageKeys: [],
+    sessionStorageKeys: [],
+    indexedDbNames: [],
+    scriptUrlPatterns: ["googletagmanager.com/gtm.js", "googletagmanager.com/gtag/js"],
+    iframeUrlPatterns: [],
+    pixelUrlPatterns: [],
+    party: "third-party",
+    duration: "Vendor-defined",
+    deletionBehavior:
+      "Pause the GTM/gtag loader URL when the mapped purpose is denied. This does not control tags already configured inside a GTM container.",
+  },
 ];
 
 export function findBuiltinTracker(value: string | null | undefined): TrackerRule | null {

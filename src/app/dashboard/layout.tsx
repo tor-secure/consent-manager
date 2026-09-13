@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
@@ -59,6 +60,11 @@ function HeaderRight({ setupComplete }: { setupComplete: boolean }) {
   );
 }
 
+async function HeaderRightLoader({ organizationId }: { organizationId: string }) {
+  const setupComplete = await loadSetupComplete(organizationId);
+  return <HeaderRight setupComplete={setupComplete} />;
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -75,15 +81,16 @@ export default async function DashboardLayout({
     redirect("/create-organization");
   }
 
-  const setupComplete = await loadSetupComplete(context.organization.id);
-
   return (
     <DashboardProviders>
       <DashboardShell
         headerLeft={<HeaderLeft />}
         headerCenter={<HeaderCenter />}
-        headerRight={<HeaderRight setupComplete={setupComplete} />}
-        setupMode={!setupComplete}
+        headerRight={
+          <Suspense fallback={<HeaderRight setupComplete />}>
+            <HeaderRightLoader organizationId={context.organization.id} />
+          </Suspense>
+        }
       >
         {children}
       </DashboardShell>

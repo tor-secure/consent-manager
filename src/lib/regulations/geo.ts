@@ -54,6 +54,17 @@ export function resolveJurisdiction(input: {
   const country = normalizeCountry(input.country);
   const region = normalizeRegion(input.region);
   if (country || region) {
+    // Product convention: standalone CA is Canada, not California.
+    // California is only country US + region CA, or the unambiguous US-CA tag.
+    if (region === "US-CA") {
+      return { country: country ?? "US", region: "US-CA", source: "hint" };
+    }
+    if (!country && region === "CA") {
+      return { country: "CA", region: null, source: "hint" };
+    }
+    if (country === "CA" && (region === "CA" || region === "US-CA")) {
+      return { country: "CA", region: null, source: "hint" };
+    }
     return { country, region, source: "hint" };
   }
 

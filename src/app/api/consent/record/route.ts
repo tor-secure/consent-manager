@@ -17,6 +17,7 @@ import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
 import { evidenceCaliforniaOptOut, publicCaliforniaState, resolveCaliforniaOptOut } from "@/lib/ccpa/state";
 import { californiaRuntimeApplies } from "@/lib/ccpa/types";
+import { resolveJurisdiction } from "@/lib/regulations/geo";
 import { loadCaliforniaOptOut, upsertCaliforniaOptOut } from "@/lib/ccpa/service";
 import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { logger } from "@/lib/logger";
@@ -152,9 +153,11 @@ export async function GET(request: Request) {
     // so the SDK re-shows the banner. We do NOT mutate the DB on GET.
     const expired = isConsentExpired(record);
 
+    const recordGeo = resolveJurisdiction({ websiteDefaultRegion: record.defaultRegion });
     const californiaApplies = californiaRuntimeApplies({
       regulationKey: record.defaultRegulationKey,
-      region: record.defaultRegion,
+      country: recordGeo.country,
+      region: recordGeo.region,
     });
     const [decisions, californiaRow] = await Promise.all([
       expired
@@ -180,7 +183,8 @@ export async function GET(request: Request) {
     const gpc = parseGpcFromRequest(request.headers, null);
     const california = publicCaliforniaState(resolveCaliforniaOptOut({
       regulationKey: californiaRow?.jurisdiction ?? record.defaultRegulationKey,
-      region: record.defaultRegion,
+      country: recordGeo.country,
+      region: recordGeo.region,
       header: gpc.header,
       client: gpc.client,
       persisted: californiaRow,
@@ -434,9 +438,11 @@ export async function POST(request: Request) {
     const regulation =
       resolveRegulationProfile({ key: policyContext.jurisdiction }) ??
       resolveRegulationProfile({ key: website.defaultRegulationKey });
+    const websiteGeo = resolveJurisdiction({ websiteDefaultRegion: website.defaultRegion });
     const californiaApplies = californiaRuntimeApplies({
       regulationKey: policyContext.jurisdiction || website.defaultRegulationKey,
-      region: website.defaultRegion,
+      country: websiteGeo.country,
+      region: websiteGeo.region,
     });
     const needsTcf =
       integrations.iabTcf.enabled === true &&
@@ -561,7 +567,8 @@ export async function POST(request: Request) {
     const gpc = parseGpcFromRequest(request.headers, body.gpc);
     const californiaResolved = resolveCaliforniaOptOut({
       regulationKey: policyContext.jurisdiction || website.defaultRegulationKey,
-      region: website.defaultRegion,
+      country: websiteGeo.country,
+      region: websiteGeo.region,
       header: gpc.header,
       client: gpc.client,
       persisted: persistedCalifornia,

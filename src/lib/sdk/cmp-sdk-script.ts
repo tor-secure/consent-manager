@@ -27,6 +27,9 @@
 //  fallback. Known first-party cookies/storage are cleaned on denial or
 //  withdrawal. Browser JavaScript cannot remove HttpOnly/third-party cookies
 //  or reliably stop requests that occurred before this SDK executed.
+//  Matching googletagmanager.com URLs pauses the GTM/gtag loader. It does not
+//  control tags already configured inside a GTM container; enable Google
+//  Consent Mode and GTM consent checks for those tags.
 //
 // NOTE: This file produces a TypeScript string literal, not a compiled bundle.
 // The actual browser script is embedded verbatim via the template literal
@@ -35,6 +38,7 @@
 // ---------------------------------------------------------------------------
 
 import { HOST_SCROLL_LOCK_RUNTIME } from "@/lib/sdk/scroll-lock";
+import { PURPOSE_KEY_FAMILIES } from "@/lib/sdk/purpose-aliases";
 import { BUILTIN_TRACKER_CATALOG } from "@/lib/sdk/tracker-catalog";
 
 export function buildCmpSdkScript(options: {
@@ -137,6 +141,7 @@ ${apiBaseLine}
     return '';
   }
   var BUILTIN_TRACKER_CATALOG = ${JSON.stringify(BUILTIN_TRACKER_CATALOG)};
+  var PURPOSE_KEY_FAMILIES = ${JSON.stringify(PURPOSE_KEY_FAMILIES)};
 
   var _config      = null;
   var _policyContext = null;
@@ -618,7 +623,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       purposes.forEach(function(p) {
         var granted = !!(p.isRequired || (_decisions.purposes && _decisions.purposes[p.id]));
         if (!granted) return;
-        var signals = map[p.key] || [];
+        var family = purposeKeyFamily(p.key);
+        var signals = map[p.key] || (family && map[family]) || [];
         signals.forEach(function(signal) { state[signal] = 'granted'; });
       });
       state.security_storage = 'granted';
@@ -645,17 +651,66 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
+  function purposeKeyFamily(key) {
+    var normalized = String(key || '').trim().toLowerCase();
+    return PURPOSE_KEY_FAMILIES[normalized] || null;
+  }
+
+  function resolvePurposeForTrackerKey(purposeKey) {
+    var key = String(purposeKey || '').trim();
+    if (!key || !_config) return null;
+    var purposes = _config.purposes || [];
+    var i;
+    for (i = 0; i < purposes.length; i++) {
+      if (purposes[i].key === key || String(purposes[i].key).toLowerCase() === key.toLowerCase()) {
+        return purposes[i];
+      }
+    }
+    var family = purposeKeyFamily(key);
+    if (!family || family === 'essential') return null;
+    for (i = 0; i < purposes.length; i++) {
+      if (!purposes[i].isRequired && purposeKeyFamily(purposes[i].key) === family) {
+        return purposes[i];
+      }
+    }
+    return null;
+  }
+
+  function bindTrackerRule(rule) {
+    if (!rule) return rule;
+    if (rule.purposeId) {
+      var mapped = ((_config && _config.purposes) || []).find
+        ? ((_config && _config.purposes) || []).filter(function(p) { return p.id === rule.purposeId; })[0]
+        : null;
+      if (mapped) {
+        var boundMapped = {};
+        for (var mappedKey in rule) boundMapped[mappedKey] = rule[mappedKey];
+        boundMapped.purposeKey = mapped.key;
+        return boundMapped;
+      }
+      return rule;
+    }
+    if (rule.isEssential) return rule;
+    var resolved = resolvePurposeForTrackerKey(rule.purposeKey);
+    if (!resolved) return rule;
+    var bound = {};
+    for (var ruleKey in rule) bound[ruleKey] = rule[ruleKey];
+    bound.purposeId = resolved.id;
+    bound.purposeKey = resolved.key;
+    return bound;
+  }
+
   function allTrackerRules() {
     var configured = (_config && _config.trackerRules) || [];
-    var rules = configured.slice();
+    var rules = configured.map(bindTrackerRule);
     var seen = {};
-    configured.forEach(function(rule) {
+    rules.forEach(function(rule) {
       if (rule.id) seen[rule.id] = true;
       if (rule.domain) seen[String(rule.domain).toLowerCase()] = true;
     });
     BUILTIN_TRACKER_CATALOG.forEach(function(rule) {
       if (seen[rule.id] || (rule.domain && seen[String(rule.domain).toLowerCase()])) return;
-      rules.push(rule);
+      rules.push(bindTrackerRule(rule));
     });
     return rules;
   }
@@ -670,9 +725,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function purposeGrantedByKey(key) {
     if (!key || !consentIsServerConfirmed() || !_config) return false;
     var purposes = _config.purposes || [];
-    for (var i = 0; i < purposes.length; i++) {
+    var i;
+    for (i = 0; i < purposes.length; i++) {
       if (
         purposes[i].key === key &&
+        _decisions.purposes &&
+        _decisions.purposes[purposes[i].id] === true
+      ) return true;
+    }
+    var family = purposeKeyFamily(key);
+    if (!family) return false;
+    for (i = 0; i < purposes.length; i++) {
+      if (
+        purposeKeyFamily(purposes[i].key) === family &&
         _decisions.purposes &&
         _decisions.purposes[purposes[i].id] === true
       ) return true;
@@ -1325,13 +1390,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       var purposeKey = el.getAttribute('data-cmp-purpose');
       var granted = false;
 
-      if (consentIsServerConfirmed() && _config && _config.purposes) {
-        _config.purposes.forEach(function(p) {
-          if (p.key === purposeKey && _decisions.purposes && _decisions.purposes[p.id]) {
-            granted = true;
-          }
-        });
-      }
+      granted = purposeGrantedByKey(purposeKey);
 
       if (granted && el.getAttribute('type') === 'text/plain') {
         el.removeAttribute('type');
@@ -1387,7 +1446,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function shouldReshowBanner(stored, cfg) {
     if (cfg && cfg.showOnEveryVisit) return true;
-    return storedChoiceIsReject(stored) || hasMissingRequiredPurpose(stored, _config);
+    // Reject All is a valid recorded decision. Do not reopen the banner
+    // merely because optional purposes were denied.
+    return hasMissingRequiredPurpose(stored, _config);
   }
 
   function currentScopeSnapshot(config) {
@@ -1817,8 +1878,24 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function dntRequested() {
-    var n = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+    var nav = window.navigator || {};
+    var n = nav.doNotTrack || window.doNotTrack || nav.msDoNotTrack;
     return n === '1' || n === 'yes';
+  }
+
+  function visitorRequestedDoNotTrack() {
+    var cfg = (_config && _config.bannerConfig) || {};
+    if (cfg.respectDoNotTrack === false) return false;
+    return dntRequested();
+  }
+
+  function appendDoNotTrackNotice(parent) {
+    if (!parent || !visitorRequestedDoNotTrack() || consentIsServerConfirmed()) return;
+    var p = document.createElement('p');
+    p.setAttribute('data-cmp-dnt-notice', 'true');
+    p.textContent = 'Your browser sent a Do Not Track request. Optional cookies stay off unless you accept.';
+    p.style.cssText = 'margin:0;font-size:12px;line-height:1.5;opacity:0.8;';
+    parent.appendChild(p);
   }
 
   function appendChildProtectionNotice(parent) {
@@ -2041,6 +2118,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       banner.appendChild(text);
     }
 
+    appendDoNotTrackNotice(banner);
     appendChildProtectionNotice(banner);
     appendAgeAssuranceGate(banner);
 
@@ -2294,6 +2372,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
     titleBox.appendChild(pcTitle);
     titleBox.appendChild(pcSub);
+    appendDoNotTrackNotice(titleBox);
     appendChildProtectionNotice(titleBox);
     appendReconsentNotice(titleBox, false);
 

@@ -11,6 +11,7 @@ import {
 export type ResolveCaliforniaInput = {
   regulationKey?: string | null;
   region?: string | null;
+  country?: string | null;
   header: SecGpcHeaderState;
   client: ClientGpcState;
   consentWithdrawn?: boolean;
@@ -28,6 +29,7 @@ export function resolveCaliforniaOptOut(input: ResolveCaliforniaInput): Californ
   const applicable = californiaRuntimeApplies({
     regulationKey: input.regulationKey,
     region: input.region,
+    country: input.country,
   });
   const gpcActive = applicable && gpcSignalIsActive(input.header, input.client);
   const persisted = input.persisted ?? null;

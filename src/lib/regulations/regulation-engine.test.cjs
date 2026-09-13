@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "../../..");
 const outDir = path.join(root, ".tmp/regulations");
 
 execSync(
-  "npx tsc --outDir .tmp/regulations --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/regulations/catalog.ts src/lib/regulations/engine.ts src/lib/regulations/geo.ts src/lib/regulations/policy-selection.ts src/lib/regulations/legal-engine.ts src/lib/signals/google-consent-mode.ts src/lib/signals/iab-adapter.ts src/lib/signals/consent-integrations.ts src/lib/consent-proof.ts src/lib/intelligence/ab-test.ts src/lib/intelligence/ab-stats.ts src/lib/intelligence/simulator.ts src/lib/intelligence/data-flow.ts src/lib/intelligence/recommendations.ts src/lib/intelligence/firewall.ts src/lib/intelligence/graph-model.ts src/lib/sdk/enforcement.ts src/lib/monitoring/consent-quality.ts src/lib/monitoring/drift-engine.ts",
+    "npx tsc --outDir .tmp/regulations --module commonjs --moduleResolution node --target ES2022 --esModuleInterop --skipLibCheck --noEmit false src/lib/regulations/catalog.ts src/lib/regulations/engine.ts src/lib/regulations/geo.ts src/lib/regulations/policy-selection.ts src/lib/regulations/legal-engine.ts src/lib/signals/google-consent-mode.ts src/lib/sdk/purpose-aliases.ts src/lib/signals/iab-adapter.ts src/lib/signals/consent-integrations.ts src/lib/consent-proof.ts src/lib/intelligence/ab-test.ts src/lib/intelligence/ab-stats.ts src/lib/intelligence/simulator.ts src/lib/intelligence/data-flow.ts src/lib/intelligence/recommendations.ts src/lib/intelligence/firewall.ts src/lib/intelligence/graph-model.ts src/lib/sdk/enforcement.ts src/lib/monitoring/consent-quality.ts src/lib/monitoring/drift-engine.ts",
   { cwd: root, stdio: "pipe" },
 );
 
@@ -56,8 +56,16 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.equal(ranked[0].score, 100);
   const inGeo = matchRegulationFromGeo({ country: "IN", region: null });
   assert.equal(inGeo.key, "dpdp");
+  const canada = matchRegulationFromGeo({ country: "CA", region: null });
+  assert.equal(canada.key, "pipeda");
+  assert.notEqual(matchRegulationFromGeo({ country: "CA", region: "CA" })?.key, "ccpa");
+  assert.notEqual(matchRegulationFromGeo({ country: null, region: "CA" })?.key, "ccpa");
+  const eu = matchRegulationFromGeo({ country: null, region: "EU" });
+  assert.equal(eu.key, "gdpr");
   const fallback = matchRegulationFromGeo({ country: null, region: null });
   assert.equal(fallback, null);
+  const unknown = matchRegulationFromGeo({ country: "ZZ", region: null });
+  assert.equal(unknown, null);
 }
 
 {
@@ -66,6 +74,12 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   const website = resolveJurisdiction({ websiteDefaultRegion: "EU" });
   assert.equal(website.region, "EU");
   assert.equal(website.source, "website_default");
+  const canadaDefault = resolveJurisdiction({ websiteDefaultRegion: "CA" });
+  assert.deepEqual(canadaDefault, { country: "CA", region: null, source: "website_default" });
+  const standaloneCa = resolveJurisdiction({ region: "ca" });
+  assert.deepEqual(standaloneCa, { country: "CA", region: null, source: "hint" });
+  const usCa = resolveJurisdiction({ region: "US-CA" });
+  assert.deepEqual(usCa, { country: "US", region: "US-CA", source: "hint" });
   const invalid = resolveJurisdiction({ country: "not-a-country", region: "??" });
   assert.equal(invalid.source, "none");
 }
@@ -125,6 +139,15 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   });
   assert.equal(accepted.analytics_storage, "granted");
   assert.equal(accepted.ad_storage, "granted");
+  const templateKeys = mapDecisionsToGoogleConsent({
+    purposes: [
+      { key: "advertising", isRequired: false },
+      { key: "necessary", isRequired: true },
+    ],
+    grantedByPurposeKey: { advertising: true },
+  });
+  assert.equal(templateKeys.ad_storage, "granted");
+  assert.equal(templateKeys.analytics_storage, "denied");
   const rejected = mapDecisionsToGoogleConsent({
     purposes,
     grantedByPurposeKey: { analytics: false, ads: false },

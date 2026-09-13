@@ -80,8 +80,12 @@ export function rankRegulationsFromGeo(input: {
   region: string | null;
   at?: Date;
 }): RankedRegulation[] {
-  const country = (input.country ?? "").trim().toUpperCase();
-  const region = (input.region ?? "").trim().toUpperCase();
+  let country = (input.country ?? "").trim().toUpperCase();
+  let region = (input.region ?? "").trim().toUpperCase().replace(/_/g, "-");
+  if (region === "US-CA") {
+    country = country || "US";
+    region = "CA";
+  }
   const at = input.at ?? new Date();
   const ranked: RankedRegulation[] = [];
 
@@ -96,9 +100,13 @@ export function rankRegulationsFromGeo(input: {
     if (country && region && countries.includes(country) && regions.includes(region)) {
       match = "country_region";
       score = 100;
-    } else if (region && regions.includes(region)) {
+    } else if (region && regions.includes(region) && region !== "CA") {
+      // Bare CA without country US is Canada, not California.
       match = "region";
       score = 85;
+    } else if (region === "CA" && country === "US" && regions.includes("CA")) {
+      match = "country_region";
+      score = 100;
     } else if (country && countries.includes(country) && regions.length === 0) {
       match = "country_exact";
       score = 90;

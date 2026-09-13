@@ -101,7 +101,8 @@ export async function GET(
       : null;
     const resolved = resolveCaliforniaOptOut({
       regulationKey: resolvedContext.regulation?.key ?? website.defaultRegulationKey,
-      region: resolvedContext.geo.region ?? website.defaultRegion,
+      country: resolvedContext.geo.country,
+      region: resolvedContext.geo.region,
       header: gpc.header,
       client: gpc.client,
       persisted,
@@ -114,7 +115,8 @@ export async function GET(
         california: {
           enabled: californiaRuntimeApplies({
             regulationKey: resolvedContext.regulation?.key ?? website.defaultRegulationKey,
-            region: resolvedContext.geo.region ?? website.defaultRegion,
+            country: resolvedContext.geo.country,
+            region: resolvedContext.geo.region,
           }),
           doNotSellEnabled: declarations.doNotSellEnabled,
           doNotShareEnabled: declarations.doNotShareEnabled,
@@ -180,7 +182,8 @@ export async function POST(
       : null;
     const resolved = resolveCaliforniaOptOut({
       regulationKey: resolvedContext.regulation?.key ?? website.defaultRegulationKey,
-      region: resolvedContext.geo.region ?? website.defaultRegion,
+      country: resolvedContext.geo.country,
+      region: resolvedContext.geo.region,
       header: gpc.header,
       client: gpc.client,
       persisted,
@@ -208,7 +211,8 @@ export async function POST(
         california: {
           enabled: californiaRuntimeApplies({
             regulationKey: resolvedContext.regulation?.key ?? website.defaultRegulationKey,
-            region: resolvedContext.geo.region ?? website.defaultRegion,
+            country: resolvedContext.geo.country,
+            region: resolvedContext.geo.region,
           }),
           doNotSellEnabled: declarations.doNotSellEnabled,
           doNotShareEnabled: declarations.doNotShareEnabled,

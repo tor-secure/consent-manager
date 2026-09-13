@@ -1,3 +1,5 @@
+import { purposeKeyFamily } from "../sdk/purpose-aliases";
+
 export const GOOGLE_CONSENT_SIGNALS = [
   "ad_storage",
   "ad_user_data",
@@ -99,7 +101,14 @@ export function mapDecisionsToGoogleConsent(input: {
     const key = purpose.key.trim().toLowerCase();
     const granted = purpose.isRequired || input.grantedByPurposeKey[purpose.key] === true || input.grantedByPurposeKey[key] === true;
     if (!granted) continue;
-    const signals = config.purposeSignals[key] ?? DEFAULT_PURPOSE_SIGNAL_MAP[key] ?? [];
+    const family = purposeKeyFamily(key);
+    const signals =
+      config.purposeSignals[key] ??
+      config.purposeSignals[purpose.key] ??
+      (family ? config.purposeSignals[family] : undefined) ??
+      DEFAULT_PURPOSE_SIGNAL_MAP[key] ??
+      (family ? DEFAULT_PURPOSE_SIGNAL_MAP[family] : undefined) ??
+      [];
     for (const signal of signals) grantedSignals.add(signal);
   }
 

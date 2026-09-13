@@ -53,10 +53,12 @@ function Toggle({
   checked,
   onChange,
   label,
+  hint,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
+  hint?: string;
 }) {
   return (
     <label className="flex cursor-pointer items-center gap-3 py-0.5">
@@ -73,7 +75,10 @@ function Toggle({
           checked ? "translate-x-4" : "translate-x-0.5"
         }`} />
       </button>
-      <span className="text-sm text-[var(--foreground)]">{label}</span>
+      <span className="min-w-0">
+        <span className="block text-sm text-[var(--foreground)]">{label}</span>
+        {hint ? <span className="mt-0.5 block text-xs text-[var(--muted-foreground)]">{hint}</span> : null}
+      </span>
     </label>
   );
 }
@@ -438,7 +443,7 @@ export function BannerConfigForm({
                 </Field>
               </div>
               <div className="space-y-3">
-                <Toggle checked={config.respectDoNotTrack}    onChange={(v) => update("respectDoNotTrack", v)}    label="Respect Do Not Track (DNT) header" />
+                <Toggle checked={config.respectDoNotTrack}    onChange={(v) => update("respectDoNotTrack", v)}    label="Respect Do Not Track (DNT) header" hint="Shows a DNT notice and keeps optional cookies blocked until the visitor accepts. DNT never creates an Accept record." />
                 <Toggle checked={config.doNotSellEnabled} onChange={(v) => update("doNotSellEnabled", v)} label="Enable Do Not Sell My Personal Information" />
                 <Toggle checked={config.doNotShareEnabled} onChange={(v) => update("doNotShareEnabled", v)} label="Enable Do Not Share My Personal Information" />
                 <Toggle checked={config.gpcHonored} onChange={(v) => update("gpcHonored", v)} label="Honor Global Privacy Control (GPC) in the notice" />

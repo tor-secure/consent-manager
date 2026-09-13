@@ -686,7 +686,7 @@ function localizedConfig(store, requestedLang) {
   return body;
 }
 
-function createBrowser(store, storageSeed = {}) {
+function createBrowser(store, storageSeed = {}, options = {}) {
   const api = createApi(store);
   const document = {
     readyState: "complete",
@@ -827,7 +827,12 @@ function createBrowser(store, storageSeed = {}) {
       hostname: "example.com",
       origin: "https://example.com",
     },
-    navigator: { language: "en-US", languages: ["en-US", "en"] },
+    navigator: {
+      language: "en-US",
+      languages: ["en-US", "en"],
+      doNotTrack: options.doNotTrack ?? null,
+      msDoNotTrack: options.doNotTrack ?? null,
+    },
     pageYOffset: 240,
     scrollY: 240,
     innerWidth: 1024,
@@ -1073,10 +1078,18 @@ async function testRejectAllFlow() {
 
   const reload = createBrowser(store, Object.fromEntries(browser.storage.entries()));
   await loadSdk(reload);
-  assert.ok(
+  assert.equal(
     reload.document.getElementById("__cmp_banner__"),
-    "reject-all should show the consent banner again on the next page load",
+    null,
+    "reject-all is a valid decision and must not reopen the banner on the next page load",
   );
+  assert.ok(
+    reload.document.getElementById("__cmp_reopen__"),
+    "returning reject-all visitors must still be able to reopen the preference center",
+  );
+  assert.equal(reload.window.CMP.getConsent().decisions.purposes[ids.requiredPurpose], true);
+  assert.equal(reload.window.CMP.getConsent().decisions.purposes[ids.analyticsPurpose], false);
+  assert.equal(reload.analyticsScript.getAttribute("type"), "text/plain");
 }
 
 async function testPublishedPolicyRefresh() {
@@ -2095,6 +2108,238 @@ function testCaliforniaGpcRuntimeEnforcement() {
   assert.ok(mapping.some((row) => row.code === "CCPA_OPT_OUT_VENDOR_MAPPING_MISSING"));
 }
 
+async function testClosePopupCreatesNoConsent() {
+  const store = createStore();
+  store.config.bannerConfig.showCloseButton = true;
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  const close = collect(browser.document.body, (el) => el.getAttribute("aria-label") === "Close")[0];
+  assert.ok(close, "close control should render when enabled");
+  close.click();
+  await flush();
+  assert.equal(store.records.length, 0);
+  assert.equal(browser.window.CMP.getConsent().confirmed, false);
+  assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
+
+  const reload = createBrowser(store, Object.fromEntries(browser.storage.entries()));
+  await loadSdk(reload);
+  assert.ok(reload.document.getElementById("__cmp_banner__"), "closing the banner is not a decision");
+  assert.equal(reload.store.records.length, 0);
+}
+
+async function testCustomPurposeKeysAndExplicitMappings() {
+  const {
+    bindTrackerRuleToPurposes,
+    purposeKeysEquivalent,
+    resolvePurposeForTrackerKey,
+  } = require(findCompiled("src/lib/sdk/purpose-aliases.ts"));
+  const { BUILTIN_TRACKER_CATALOG } = require(findCompiled("src/lib/sdk/tracker-catalog.ts"));
+
+  const advertising = { id: ids.adsPurpose, key: "advertising", isRequired: false };
+  const functional = { id: "functional-purpose", key: "functional", isRequired: false };
+  const custom = { id: ids.analyticsPurpose, key: "site-stats", isRequired: false };
+  const required = { id: ids.requiredPurpose, key: "necessary", isRequired: true };
+
+  assert.equal(purposeKeysEquivalent("marketing", "advertising"), true);
+  assert.equal(purposeKeysEquivalent("functionality", "functional"), true);
+  assert.equal(purposeKeysEquivalent("analytics", "site-stats"), false);
+  assert.equal(resolvePurposeForTrackerKey("marketing", [advertising, required]).id, ids.adsPurpose);
+  assert.equal(resolvePurposeForTrackerKey("functionality", [functional, required]).key, "functional");
+  assert.equal(resolvePurposeForTrackerKey("analytics", [custom, required]), null);
+
+  const ga = BUILTIN_TRACKER_CATALOG.find((rule) => rule.id === "builtin-google-analytics");
+  const ads = BUILTIN_TRACKER_CATALOG.find((rule) => rule.id === "builtin-google-ads");
+  const maps = BUILTIN_TRACKER_CATALOG.find((rule) => rule.id === "builtin-google-maps");
+  const boundAds = bindTrackerRuleToPurposes(ads, [advertising, required]);
+  const boundMaps = bindTrackerRuleToPurposes(maps, [functional, required]);
+  const unboundGa = bindTrackerRuleToPurposes(ga, [custom, required]);
+  assert.equal(boundAds.purposeId, ids.adsPurpose);
+  assert.equal(boundMaps.purposeId, "functional-purpose");
+  assert.equal(unboundGa.purposeId, null, "custom keys require an explicit tracker mapping");
+
+  const mappedCustom = bindTrackerRuleToPurposes({
+    ...ga,
+    purposeId: ids.analyticsPurpose,
+    purposeKey: "analytics",
+  }, [custom, required]);
+  assert.equal(mappedCustom.purposeId, ids.analyticsPurpose);
+  assert.equal(mappedCustom.purposeKey, "site-stats");
+
+  const vendorOnly = {
+    id: "vendor-pixel",
+    name: "Vendor pixel",
+    type: "script",
+    domain: "ads.example",
+    identifier: "pixel.js",
+    purposeKey: null,
+    purposeId: null,
+    vendorId: ids.adsVendor,
+    isEssential: false,
+    status: "active",
+  };
+  const grants = {
+    purposes: { [ids.adsPurpose]: true, [ids.requiredPurpose]: true, [ids.analyticsPurpose]: false },
+    vendors: { [ids.adsVendor]: true },
+  };
+  assert.equal(shouldBlock(boundAds, grants), false);
+  assert.equal(shouldBlock(unboundGa, grants), true);
+  assert.equal(shouldBlock({ ...unboundGa, purposeId: ids.analyticsPurpose, purposeKey: "site-stats" }, grants), true);
+  assert.equal(shouldBlock({ ...unboundGa, purposeId: ids.analyticsPurpose, purposeKey: "site-stats" }, {
+    ...grants,
+    purposes: { ...grants.purposes, [ids.analyticsPurpose]: true },
+  }), false);
+  assert.equal(shouldBlock(vendorOnly, { purposes: {}, vendors: { [ids.adsVendor]: false } }), true);
+  assert.equal(shouldBlock(vendorOnly, { purposes: {}, vendors: { [ids.adsVendor]: true } }), false);
+  assert.equal(shouldBlock({
+    id: "required-script",
+    name: "Required",
+    type: "script",
+    domain: "cdn.example",
+    identifier: "required.js",
+    purposeKey: "necessary",
+    purposeId: ids.requiredPurpose,
+    vendorId: null,
+    isEssential: false,
+    status: "active",
+  }, { purposes: { [ids.requiredPurpose]: true }, vendors: {} }), false);
+
+  const store = createStore();
+  store.purposes[1] = { ...store.purposes[1], key: "site-stats", name: "Site stats" };
+  store.trackerRules[1] = { ...store.trackerRules[1], purposeKey: "site-stats" };
+  store.config.purposes = store.purposes;
+  store.config.trackerRules = store.trackerRules;
+  const browser = createBrowser(store);
+  browser.analyticsScript.setAttribute("data-cmp-purpose", "site-stats");
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(browser.window.CMP.getConsent().decisions.purposes[ids.analyticsPurpose], true);
+  assert.notEqual(
+    browser.document.scripts.find((script) => script.getAttribute("src") === "https://analytics.example/analytics.js").getAttribute("type"),
+    "text/plain",
+  );
+}
+
+async function testGtmLoaderAndGoogleConsentMode() {
+  const store = createStore();
+  store.config.signals.googleConsentMode = {
+    enabled: true,
+    waitForUpdateMs: 500,
+    purposeSignals: { analytics: ["analytics_storage"], advertising: ["ad_storage"] },
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  const gtm = appendResource(browser, "script", "https://www.googletagmanager.com/gtm.js?id=GTM-TEST");
+  assert.equal(gtm.getAttribute("type"), "text/plain");
+  assert.equal(gtm.getAttribute("src"), null);
+  const defaultSignal = browser.window.__gtagCalls.find((call) => call[0] === "consent" && call[1] === "default");
+  assert.equal(defaultSignal[2].analytics_storage, "denied");
+  assert.equal(defaultSignal[2].ad_storage, "denied");
+  assert.equal(defaultSignal[2].security_storage, "granted");
+
+  buttonByText(browser, "Reject all").click();
+  await flush();
+  const rejected = [...browser.window.__gtagCalls].reverse().find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(rejected[2].analytics_storage, "denied");
+  const afterReject = appendResource(browser, "script", "https://www.googletagmanager.com/gtm.js?id=GTM-LATER");
+  assert.equal(afterReject.getAttribute("type"), "text/plain");
+
+  const acceptStore = createStore();
+  acceptStore.config.signals.googleConsentMode = store.config.signals.googleConsentMode;
+  const acceptBrowser = createBrowser(acceptStore);
+  await loadSdk(acceptBrowser);
+  buttonByText(acceptBrowser, "Accept all").click();
+  await flush();
+  const granted = [...acceptBrowser.window.__gtagCalls].reverse().find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(granted[2].analytics_storage, "granted");
+  const afterAccept = appendResource(acceptBrowser, "script", "https://www.googletagmanager.com/gtm.js?id=GTM-OK");
+  assert.equal(afterAccept.getAttribute("src"), "https://www.googletagmanager.com/gtm.js?id=GTM-OK");
+}
+
+async function testDoNotTrackNeverCreatesConsent() {
+  const store = createStore();
+  store.config.bannerConfig.respectDoNotTrack = true;
+  const browser = createBrowser(store, {}, { doNotTrack: "1" });
+  await loadSdk(browser);
+  assert.ok(browser.document.getElementById("__cmp_banner__"));
+  const notice = collect(browser.document.body, (el) => el.getAttribute("data-cmp-dnt-notice") === "true")[0];
+  assert.ok(notice, "DNT notice should appear when the setting is on");
+  assert.equal(store.records.length, 0);
+  assert.equal(browser.window.CMP.getConsent().confirmed, false);
+  assert.equal(browser.analyticsScript.getAttribute("type"), "text/plain");
+
+  const ignored = createStore();
+  ignored.config.bannerConfig.respectDoNotTrack = false;
+  const ignoredBrowser = createBrowser(ignored, {}, { doNotTrack: "1" });
+  await loadSdk(ignoredBrowser);
+  assert.equal(
+    collect(ignoredBrowser.document.body, (el) => el.getAttribute("data-cmp-dnt-notice") === "true").length,
+    0,
+  );
+  assert.equal(ignored.records.length, 0);
+  assert.equal(ignoredBrowser.analyticsScript.getAttribute("type"), "text/plain");
+}
+
+async function testServerVerificationFailureKeepsOptionalBlocked() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  const snapshot = Object.fromEntries(browser.storage.entries());
+  store.records[0].policyVersionId = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+  const reload = createBrowser(store, snapshot);
+  await loadSdk(reload);
+  assert.ok(reload.document.getElementById("__cmp_banner__"));
+  assert.equal(reload.window.CMP.getConsent().confirmed, false);
+  assert.equal(reload.analyticsScript.getAttribute("type"), "text/plain");
+}
+
+async function testPurposeAndVendorScopeChangeRequiresReconsent() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  const snapshot = Object.fromEntries(browser.storage.entries());
+
+  store.config.purposes = [
+    ...store.config.purposes,
+    { id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee", key: "personalization", name: "Personalization", isRequired: false },
+  ];
+  const purposeReload = createBrowser(store, snapshot);
+  await loadSdk(purposeReload);
+  assert.ok(purposeReload.document.getElementById("__cmp_banner__"), "new purposes require re-consent");
+  assert.equal(purposeReload.analyticsScript.getAttribute("type"), "text/plain");
+
+  store.config.purposes = store.purposes;
+  store.config.vendors = [
+    ...store.vendors,
+    { id: "ffffffff-ffff-4fff-8fff-ffffffffffff", name: "New Vendor", domain: "new.example", iabVendorId: 300 },
+  ];
+  const vendorReload = createBrowser(store, snapshot);
+  await loadSdk(vendorReload);
+  assert.ok(vendorReload.document.getElementById("__cmp_banner__"), "new vendors require re-consent");
+}
+
+async function testRejectAllGoogleConsentModeStaysDenied() {
+  const store = createStore();
+  store.config.signals.googleConsentMode = {
+    enabled: true,
+    waitForUpdateMs: 500,
+    purposeSignals: { analytics: ["analytics_storage"], ads: ["ad_storage"] },
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Reject all").click();
+  await flush();
+  const update = [...browser.window.__gtagCalls].reverse().find((call) => call[0] === "consent" && call[1] === "update");
+  assert.equal(update[2].analytics_storage, "denied");
+  assert.equal(update[2].ad_storage, "denied");
+  assert.equal(update[2].security_storage, "granted");
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+}
+
 async function main() {
   await testBannerPaintsBeforeConfigReturns();
   await testAcceptAllFlow();
@@ -2122,6 +2367,13 @@ async function main() {
   await testHostScrollLockSurfaces();
   testChildProtectionEndToEnd();
   testCaliforniaGpcRuntimeEnforcement();
+  await testClosePopupCreatesNoConsent();
+  await testCustomPurposeKeysAndExplicitMappings();
+  await testGtmLoaderAndGoogleConsentMode();
+  await testDoNotTrackNeverCreatesConsent();
+  await testServerVerificationFailureKeepsOptionalBlocked();
+  await testPurposeAndVendorScopeChangeRequiresReconsent();
+  await testRejectAllGoogleConsentModeStaysDenied();
 
   console.log("consent manager e2e regression tests passed");
 }

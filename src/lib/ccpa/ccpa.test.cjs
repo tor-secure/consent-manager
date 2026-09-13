@@ -297,7 +297,9 @@ function testApplicability() {
   assert.equal(californiaRuntimeApplies({ regulationKey: "ccpa" }), true);
   assert.equal(californiaRuntimeApplies({ regulationKey: "cpra" }), true);
   assert.equal(californiaRuntimeApplies({ region: "US-CA" }), true);
-  assert.equal(californiaRuntimeApplies({ region: "CA" }), true);
+  assert.equal(californiaRuntimeApplies({ region: "CA" }), false);
+  assert.equal(californiaRuntimeApplies({ country: "CA", region: "CA" }), false);
+  assert.equal(californiaRuntimeApplies({ country: "US", region: "CA" }), true);
   assert.equal(californiaRuntimeApplies({ regulationKey: "gdpr", region: "DE" }), false);
   assert.equal(californiaRuntimeApplies({ regulationKey: "gdpr", region: "US" }), false);
 }
