@@ -66,7 +66,7 @@ export function StatCard({
   return (
     <div
       className={[
-        "rounded-2xl bg-[var(--card)] border border-[var(--border)] card-shadow p-5 sm:p-6 card-lift h-full",
+        "dash-card-in rounded-2xl bg-[var(--card)] border border-[var(--border)] card-shadow p-5 sm:p-6 card-lift h-full",
         className,
       ].join(" ")}
     >

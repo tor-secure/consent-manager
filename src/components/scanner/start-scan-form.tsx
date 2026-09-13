@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { Select } from "@/components/ui/select";
 
 export type WebsiteOption = { id: string; name: string; domain: string };
 
@@ -65,21 +66,20 @@ export function StartScanForm({ websites }: { websites: WebsiteOption[] }) {
 
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
         <div className="min-w-[220px] flex-1">
-          <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+          <label className="field-label">
             Website
           </label>
-          <select
+          <Select
             value={websiteId}
             onChange={(e) => setWebsiteId(e.target.value)}
             required
-            className="h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
           >
             {websites.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.domain})
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         <Button type="submit" loading={running}>

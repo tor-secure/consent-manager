@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { notify } from "@/components/feedback/notify";
+import { Select } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -178,15 +179,15 @@ export function TeamMembersPanel({
 
                     <td className="px-6 py-4">
                       {canManage && !isSelf ? (
-                        <select value={member.roleId}
+                        <Select value={member.roleId}
                           onChange={(e) => handleRoleChange(member, e.target.value)}
                           disabled={isChangingThis || isPending}
                           aria-label={`Change ${member.name}'s role`}
-                          className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 py-1.5 text-xs text-[var(--foreground)] shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:opacity-50 transition">
+                          size="sm">
                           {availableRoles.map((r) => (
                             <option key={r.id} value={r.id}>{r.name}</option>
                           ))}
-                        </select>
+                        </Select>
                       ) : (
                         <Badge
                           variant={member.roleName === "Owner" ? "purple" : member.roleName === "Admin" ? "primary" : "neutral"}

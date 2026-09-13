@@ -352,7 +352,7 @@ export function RightsRequestDetail({
           <input
             value={correctionName}
             onChange={(event) => setCorrectionName(event.target.value)}
-            className="w-full rounded-2xl border border-[var(--border)] px-3 py-2 text-sm"
+            className="field-input"
           />
           <button
             type="button"
@@ -382,7 +382,7 @@ export function RightsRequestDetail({
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
             rows={4}
-            className="w-full rounded-2xl border border-[var(--border)] px-3 py-2 text-sm"
+            className="field-input"
             placeholder="Internal notes only"
           />
           <div className="flex flex-wrap gap-2">

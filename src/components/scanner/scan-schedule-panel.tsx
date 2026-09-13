@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { Select } from "@/components/ui/select";
 
 export type ScheduleRow = {
   websiteId: string;
@@ -160,8 +161,9 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
                     </Checkbox>
                   </td>
                   <td className="px-5 py-4">
-                    <select
+                    <Select
                       value={current.frequency}
+                      size="sm"
                       onChange={(event) =>
                         setDraft((prev) => ({
                           ...prev,
@@ -171,12 +173,11 @@ export function ScanSchedulePanel({ schedules }: { schedules: ScheduleRow[] }) {
                           },
                         }))
                       }
-                      className="h-9 rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 text-sm"
                     >
                       <option value="daily">Daily</option>
                       <option value="weekly">Weekly</option>
                       <option value="monthly">Monthly</option>
-                    </select>
+                    </Select>
                   </td>
                   <td className="px-5 py-4 text-[var(--muted-foreground)]">{fmt(row.lastScanAt)}</td>
                   <td className="px-5 py-4 text-[var(--muted-foreground)]">

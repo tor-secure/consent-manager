@@ -96,7 +96,7 @@ function DataCategoriesInput({
     <div className="space-y-2.5">
       {/* Tag display + text input */}
       <div
-        className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-sm focus-within:border-[var(--ring)] focus-within:ring-2 focus-within:ring-[var(--ring)]/15 transition cursor-text"
+        className="field-input flex min-h-[2.75rem] flex-wrap items-center gap-1.5 py-1.5 cursor-text"
         onClick={() => document.getElementById("data-cat-input")?.focus()}
       >
         {value.map((cat) => (

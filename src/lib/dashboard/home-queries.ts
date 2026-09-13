@@ -135,7 +135,7 @@ export const loadHomeDashboardCounts = cache(async (organizationId: string) => {
 export type HomeDashboardCounts = Awaited<ReturnType<typeof loadHomeDashboardCounts>>;
 
 export const loadHomeChartAnalytics = cache(async (organizationId: string) => {
-  return loadConsentAnalytics(organizationId, { days: "30" }, "charts");
+  return loadConsentAnalytics(organizationId, { days: "30" }, "home");
 });
 
 /** Cheap existence checks for layout setup-mode. Not a substitute for home counts. */

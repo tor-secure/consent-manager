@@ -21,6 +21,19 @@ function getScrollOffset() {
 
 export function HomeInteractions() {
   useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    root.style.colorScheme = "light";
+    return () => {
+      if (hadDark) {
+        root.classList.add("dark");
+        root.style.colorScheme = "dark";
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     document.documentElement.classList.add("home-smooth-scroll");
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");

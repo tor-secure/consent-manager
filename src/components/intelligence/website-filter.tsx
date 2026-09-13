@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Select } from "@/components/ui/select";
 
 export function WebsiteFilter({
   action,
@@ -11,13 +12,13 @@ export function WebsiteFilter({
 }) {
   return (
     <form className="mb-4 flex flex-wrap gap-2" action={action}>
-      <select name="website" defaultValue={selected ?? ""} className="field-input h-10 min-w-[12rem]">
+      <Select name="website" defaultValue={selected ?? ""} className="min-w-[12rem]">
         {websites.map((site) => (
           <option key={site.id} value={site.id}>
             {site.name}
           </option>
         ))}
-      </select>
+      </Select>
       <button type="submit" className="btn btn-primary">
         View
       </button>

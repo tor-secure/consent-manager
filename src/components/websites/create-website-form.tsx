@@ -9,7 +9,7 @@ import { Alert } from "@/components/ui/alert";
 import { Field, FormActions, FormCard } from "@/components/ui/field";
 import { WebsiteDomainInput } from "@/components/websites/website-domain-input";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
-import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
+import { LocaleSelect } from "@/components/i18n/locale-select";
 
 export function CreateWebsiteForm() {
   const router = useRouter();
@@ -87,13 +87,12 @@ export function CreateWebsiteForm() {
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Default language" htmlFor="website-language">
-            <Select
+            <LocaleSelect
               id="website-language"
               value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-            >
-              <LocaleSelectOptions includeCurrent={language} />
-            </Select>
+              onChange={setLanguage}
+              includeCurrent={language}
+            />
           </Field>
           <Field label="Default region" htmlFor="website-region">
             <Select

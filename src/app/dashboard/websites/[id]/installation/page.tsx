@@ -182,7 +182,7 @@ export default function RootLayout({ children }) {
             <strong className="font-semibold">This snippet points at {appOrigin}.</strong>{" "}
             HTTPS websites cannot load a localhost script (mixed content). Set{" "}
             <code className="rounded-lg bg-[var(--warning-soft)] px-1.5 py-0.5 font-mono text-xs">CMP_PUBLIC_ORIGIN</code>{" "}
-            to your deployed ConsentFlow URL, then copy the snippet again.
+            to your deployed Consent Guru URL, then copy the snippet again.
           </p>
         </StatusBanner>
       ) : null}

@@ -3,13 +3,14 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { dashboardFetch } from "@/components/feedback/use-async-action";
+import { Select } from "@/components/ui/select";
 
 const ROLE_OPTIONS = [
   { value: "org:member", label: "Member" },
   { value: "org:admin", label: "Admin" },
 ] as const;
 
-const inputCls = "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)] disabled:opacity-60";
+const inputCls = "field-input";
 
 export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
   const router = useRouter();
@@ -93,7 +94,7 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
           {/* Email + role — stacked on mobile, side-by-side on sm+ */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 min-w-0">
-              <label htmlFor="invite-email" className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+              <label htmlFor="invite-email" className="field-label">
                 Email address
               </label>
               <input id="invite-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
@@ -102,16 +103,16 @@ export function InviteMemberForm({ canInvite }: { canInvite: boolean }) {
             </div>
 
             <div className="sm:w-36 sm:shrink-0">
-              <label htmlFor="invite-role" className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+              <label htmlFor="invite-role" className="field-label">
                 Role
               </label>
-              <select id="invite-role" value={role}
+              <Select id="invite-role" value={role}
                 onChange={(e) => setRole(e.target.value as "org:admin" | "org:member")}
-                disabled={isPending} className={inputCls}>
+                disabled={isPending}>
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 

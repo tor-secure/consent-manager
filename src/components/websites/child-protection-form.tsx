@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
 import type { ChildProtectionConfig } from "@/lib/children/types";
+import { Select } from "@/components/ui/select";
 
 const inputCls = "field-input";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
+      <label className="field-label">{label}</label>
       {children}
       {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
@@ -135,15 +136,14 @@ export function ChildProtectionForm({
           />
         </Field>
         <Field label="Minimum assurance to unlock restricted processing">
-          <select
-            className={inputCls}
+          <Select
             value={minimumAssurance}
             onChange={(event) => setMinimumAssurance(event.target.value as ChildProtectionConfig["minimumAssurance"])}
           >
             <option value="assured">Staff/third-party assurance</option>
             <option value="guardian">Guardian staff attestation</option>
             <option value="self_declaration">Self-declaration only (not verified)</option>
-          </select>
+          </Select>
         </Field>
         {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save child protection"}</Button>
@@ -159,14 +159,13 @@ export function ChildProtectionForm({
           <input className={inputCls} value={sessionId} onChange={(event) => setSessionId(event.target.value)} />
         </Field>
         <Field label="Attestation kind">
-          <select
-            className={inputCls}
+          <Select
             value={attestKind}
             onChange={(event) => setAttestKind(event.target.value === "guardian" ? "guardian" : "age")}
           >
             <option value="age">Age assured</option>
             <option value="guardian">Guardian approved</option>
-          </select>
+          </Select>
         </Field>
         <Button type="submit" disabled={attesting || !sessionId.trim()}>
           {attesting ? "Recording…" : "Record attestation"}

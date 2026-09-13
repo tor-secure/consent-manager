@@ -24,9 +24,9 @@ const tiers = [
 
 export function HomePricing() {
   return (
-    <section id="pricing" className="home-section bg-[#F8FAFF]">
+    <section id="pricing" className="home-section bg-[#F3FAF8]">
       <div className="home-fade-item mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5850EC]">Pricing</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">Pricing</p>
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#111827] sm:text-4xl">
           Start free, grow when you are ready
         </h2>
@@ -38,7 +38,7 @@ export function HomePricing() {
             <article
               key={tier.name}
               className={`rounded-2xl border bg-white p-6 ${
-                tier.featured ? "border-[#5850EC] shadow-[0_16px_40px_-24px_rgba(88,80,236,0.55)]" : "border-[#E5E7EB]"
+                tier.featured ? "border-[#00C4A7] shadow-[0_16px_40px_-24px_rgba(0,196,167,0.55)]" : "border-[#E5E7EB]"
               }`}
             >
               <h3 className="text-lg font-semibold text-[#111827]">{tier.name}</h3>

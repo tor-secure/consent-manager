@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Consent Guru — Dashboard Features Guide</title>
+  <style>
+  @page { size: A4; margin: 16mm 14mm 18mm; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: #111827;
+    background: #fff;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+  h1, h2, h3 { page-break-after: avoid; }
+  h1 { font-size: 26pt; line-height: 1.15; margin: 0 0 8px; color: #0B2C4A; }
+  h2 { font-size: 16pt; margin: 28px 0 10px; color: #0B2C4A; border-bottom: 2px solid #E6F9F5; padding-bottom: 6px; }
+  h3 { font-size: 12.5pt; margin: 18px 0 8px; color: #0B2C4A; }
+  p, li { orphans: 3; widows: 3; }
+  a { color: #0B2C4A; }
+  .cover {
+    page-break-after: always;
+    min-height: 240mm;
+    padding: 28mm 8mm 16mm;
+    background:
+      radial-gradient(ellipse 80% 50% at 100% 0%, rgba(0,196,167,0.16), transparent 55%),
+      linear-gradient(180deg, #F3FAF8 0%, #ffffff 55%);
+  }
+  .eyebrow {
+    display: inline-block;
+    background: #E6F9F5;
+    color: #0B2C4A;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 6px 10px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  .lede { font-size: 13.5pt; color: #4B5563; max-width: 42rem; }
+  .meta { margin-top: 36px; color: #4B5563; font-size: 10pt; }
+  .toc { page-break-after: always; }
+  .toc ol { padding-left: 1.2rem; }
+  .toc li { margin: 6px 0; }
+  .note {
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin: 12px 0 16px;
+    font-size: 10.5pt;
+    background: #E6F9F5;
+    border: 1px solid #99d5cf;
+  }
+  code {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 9.5pt;
+    background: #F3F4F6;
+    padding: 1px 5px;
+    border-radius: 6px;
+  }
+  pre {
+    background: #0B2C4A;
+    color: #E6F9F5;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 8.8pt;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; margin: 10px 0 16px; }
+  th, td { border: 1px solid #E5E7EB; padding: 7px 8px; text-align: left; vertical-align: top; }
+  th { background: #F3FAF8; color: #0B2C4A; }
+  ol, ul { margin: 8px 0 16px; }
+  li { margin: 4px 0; }
+  strong { color: #0B2C4A; }
+</style>
+</head>
+<body>
+  <section class="cover">
+    <div class="eyebrow">Consent Guru · Dashboard guide</div>
+    <h1>Dashboard Features</h1>
+    <p class="lede">What every dashboard feature is, and how to use it step by step — for someone opening the product for the first time.</p>
+    <div class="meta">
+      <p><strong>Product:</strong> Consent Guru</p>
+      <p><strong>Audience:</strong> site owners, privacy operators, marketers, and developers</p>
+      <p><strong>Source:</strong> docs/user-manual/Dashboard-Features-Guide.md</p>
+      <p><strong>Version:</strong> September 2026</p>
+      <p>This is an operations guide. It is not legal advice and not a compliance certification.</p>
+    </div>
+  </section>
+  <section class="toc">
+    <h2>Contents</h2>
+    <ol>
+      <li>How the dashboard is organized</li>
+      <li>The path to a live banner</li>
+      <li>Dashboard home</li>
+      <li>Websites, installation, regulations, enforcement, child protection</li>
+      <li>Consent Management — records, policies, Banner Studio, purposes, vendors, transfers, trackers</li>
+      <li>Discovery &amp; Monitoring — scanner, drift, risk, quality, analytics</li>
+      <li>Intelligence tools</li>
+      <li>Security &amp; Governance</li>
+      <li>Developer — SDK, API keys, integrations, webhooks</li>
+      <li>Administration — organization, retention, team</li>
+      <li>Public pages and common mistakes</li>
+    </ol>
+  </section>
+  <p>This is an operations guide. It explains what the software does. It is not legal advice and does not certify GDPR, CCPA, DPDP, or any other law.</p>
+<h2 id="how-the-dashboard-is-organized">How the dashboard is organized</h2>
+<p>After you <strong>Log in</strong> and pick (or create) an organization, you land on <code>/dashboard</code>.</p>
+<p><strong>Left sidebar</strong></p>
+<ol>
+<li><strong>Dashboard</strong> — home overview</li>
+<li><strong>Websites</strong> — your sites and install snippets</li>
+<li><strong>Consent Management</strong> — records, policies, purposes, vendors, transfers, trackers</li>
+<li><strong>Discovery &amp; Monitoring</strong> — scanner, drift, risk, quality, analytics</li>
+<li><strong>Intelligence</strong> — firewall, simulator, experiments, graphs, planning tools</li>
+<li><strong>Security &amp; Governance</strong> — audit logs, notifications, privacy rights</li>
+<li><strong>Developer</strong> — SDK, API keys, integrations, webhooks</li>
+<li><strong>Administration</strong> — organization, retention, team</li>
+</ol>
+<p>Most sidebar items open a <strong>hub page</strong> of cards. Click a card to open that feature.</p>
+<p><strong>Top header</strong></p>
+<ul>
+<li><strong>Organization switcher</strong> (left) — change workspace</li>
+<li><strong>Search</strong> (center) — find pages and records</li>
+<li><strong>Theme, notifications, account</strong> (right)</li>
+</ul>
+<p><strong>Roles</strong></p>
+<table>
+<tr><th>Role</th><th>Typical access</th></tr>
+<tr><td><strong>Owner</strong></td><td>Full control, including assigning Owner</td></tr>
+<tr><td><strong>Admin</strong></td><td>Can publish, scan, invite, and change settings</td></tr>
+<tr><td><strong>Member</strong></td><td>Can view; many create/publish/invite actions are blocked</td></tr>
+</table>
+<p>Owner and Admin together are called <strong>operators</strong> in this product.</p>
+<h2 id="the-path-to-a-live-banner">The path to a live banner</h2>
+<p>Until you finish this sequence, visitors will not see a working banner.</p>
+<ol>
+<li>Add a <strong>website</strong></li>
+<li>Create <strong>purposes</strong> (or use a template)</li>
+<li>Add <strong>vendors</strong> and set a real <strong>Role</strong> (not unknown)</li>
+<li>Create a <strong>policy</strong>, attach purposes, open <strong>Banner Studio</strong></li>
+<li>Fix the compliance checklist, then <strong>Publish</strong> (Owner/Admin)</li>
+<li>Copy the snippet from <strong>Websites → [site] → Installation</strong> into your site <code>&lt;head&gt;</code></li>
+</ol>
+<p>The home page <strong>Get live</strong> strip shows which of those steps are done.</p>
+<h2 id="1-dashboard-home">1. Dashboard home</h2>
+<p><strong>Path:</strong> Sidebar → <strong>Dashboard</strong> (<code>/dashboard</code>)</p>
+<p><strong>What it is</strong>  </p>
+<p>The overview of your organization for the last 30 days. It does not change live enforcement.</p>
+<p><strong>What you see</strong></p>
+<ul>
+<li><strong>Get live</strong> — Website → Purposes → Vendors → Policy → Publish → Install</li>
+<li><strong>Total records / Accepted / Granular / Withdrawn</strong></li>
+<li><strong>Daily choices</strong> chart (accept all, reject all, granular)</li>
+<li><strong>Consent mix</strong> pie chart</li>
+<li><strong>Purpose grants</strong>, <strong>By website</strong>, <strong>By country</strong> (or by device if country is unknown)</li>
+<li><strong>Recent consent records</strong></li>
+<li><strong>Inventory</strong> — websites, policies, vendors, trackers</li>
+<li>Setup checks: website registered, policy created, records collected, trackers detected</li>
+</ul>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Sign in and select your organization.</li>
+<li>Read <strong>Get live</strong>. Click any incomplete step.</li>
+<li>After the SDK is collecting choices, use the cards and charts.</li>
+<li>Click <strong>View analytics</strong> (top right) for filters, or <strong>View all</strong> on recent records.</li>
+</ol>
+<p><strong>If charts are empty</strong>  </p>
+<p>You do not have a published policy yet, or the snippet is not installed, or no visitor has chosen yet. That is expected.</p>
+<h2 id="2-websites">2. Websites</h2>
+<p><strong>Path:</strong> Sidebar → <strong>Websites</strong> (<code>/dashboard/websites</code>)</p>
+<p><strong>What it is</strong>  </p>
+<p>Each website is a domain you will put the consent banner on. The product gives it a <strong>site key</strong>. The script on your site uses that key.</p>
+<p><strong>How to add a website</strong></p>
+<ol>
+<li>Click <strong>Add website</strong>.</li>
+<li>Enter <strong>Website name</strong> (example: <code>Acme marketing site</code>).</li>
+<li>Enter <strong>Domain</strong> only — <code>example.com</code>, not <code>https://example.com</code>.</li>
+<li>Choose <strong>Default language</strong> (usually English).</li>
+<li>Choose <strong>Default region</strong>: India, European Union, United States, or United Kingdom.</li>
+<li>Click <strong>Add website</strong>.</li>
+<li>You are sent to <strong>Create consent policy</strong> for that site. You can finish the policy now or go back to Websites.</li>
+</ol>
+<p><strong>On the website detail page</strong> you will see:</p>
+<ul>
+<li>Domain, environment, language, region, verification, <strong>site key</strong></li>
+<li>Buttons: <strong>Child protection</strong>, <strong>Enforcement</strong>, <strong>Regulations</strong>, <strong>Settings</strong></li>
+<li>A link to <strong>Installation</strong></li>
+<li>Shortcuts to quality, risk, drift, firewall, and other tools</li>
+</ul>
+<p><strong>Important:</strong> In this product, region <strong>CA</strong> (on settings) means <strong>Canada</strong>, not California. California is <strong>United States</strong> plus a CCPA-style regulation.</p>
+<h3 id="2-1-website-settings">2.1 Website settings</h3>
+<p><strong>Path:</strong> Websites → open a site → <strong>Settings</strong></p>
+<p><strong>What it is</strong>  </p>
+<p>Edit the name, optional description, environment (production / staging / development), language, and region. Domain and site key cannot be changed after create.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Change the fields you need.</li>
+<li>Click <strong>Save changes</strong>.</li>
+<li>Use <strong>Cancel</strong> to go back without saving.</li>
+</ol>
+<h3 id="2-2-installation">2.2 Installation</h3>
+<p><strong>Path:</strong> Websites → open a site → <strong>Installation</strong></p>
+<p><strong>What it is</strong>  </p>
+<p>The page that shows the script you paste into your website so the banner can appear.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Confirm the page says a <strong>published</strong> policy is live. A draft policy will not serve a banner.</li>
+<li>Copy the snippet. It looks like a <code>&lt;script&gt;</code> tag with your site key.</li>
+<li>Paste it in your site <code>&lt;head&gt;</code> <strong>before</strong> Google Tag Manager, gtag, and other tags. Do not add <code>async</code> or <code>defer</code>.</li>
+<li>Open your live site in a private window and check that the banner appears.</li>
+</ol>
+<p><strong>Common mistake</strong>  </p>
+<p>Installing the snippet before you publish. The public config then returns “not found” and there is no banner.</p>
+<h3 id="2-3-regulations">2.3 Regulations</h3>
+<p><strong>Path:</strong> Websites → open a site → <strong>Regulations</strong></p>
+<p><strong>What it is</strong>  </p>
+<p>The legal <strong>profile</strong> for that site (DPDP, GDPR, CCPA, and others), plus Google Consent Mode and IAB options. This is not automatic IP geolocation. The SDK can send a country hint, or the site default is used.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Set the <strong>Fallback legal profile</strong>.</li>
+<li>Optionally add <strong>jurisdiction rules</strong>: country (ISO code like <code>DE</code>) → policy + regulation.</li>
+<li>Set <strong>Unknown tracker behavior</strong>: BLOCK (safest), WARN, or ALLOW.</li>
+<li>Enable <strong>Google Consent Mode</strong> if you use Google tags.</li>
+<li>Enable <strong>IAB TCF / GPP</strong> only if you have an external CMP ID and a synced vendor list. The UI stays <strong>Blocked</strong> until that is complete. This product is not IAB-certified.</li>
+<li>Click <strong>Save regulation settings</strong>.</li>
+</ol>
+<h3 id="2-4-enforcement">2.4 Enforcement</h3>
+<p><strong>Path:</strong> Websites → open a site → <strong>Enforcement</strong></p>
+<p><strong>What it is</strong>  </p>
+<p>A read-only view of how trackers are grouped for blocking:</p>
+<ul>
+<li><strong>Always allowed</strong> — essential, tied to a required purpose</li>
+<li><strong>Blocked until consent</strong> — optional, mapped to a purpose/vendor</li>
+<li><strong>Always blocked</strong> — unmapped optional trackers</li>
+</ul>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Map every optional tracker on <strong>Trackers</strong>.</li>
+<li>Re-open Enforcement to confirm the groups.</li>
+<li>Use <strong>Consent firewall</strong> to preview Accept all / Reject all / Essential only.</li>
+</ol>
+<h3 id="2-5-child-protection">2.5 Child protection</h3>
+<p><strong>Path:</strong> Websites → open a site → <strong>Child protection</strong>  </p>
+<p><strong>Who:</strong> Owner or Admin to save</p>
+<p><strong>What it is</strong>  </p>
+<p>Optional age / guardian controls. This is a technical lock. It does not certify legal parental consent.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Enable child protection only if the site is child-directed.</li>
+<li>Set minimum age, age assurance, guardian requirement, and restricted purposes (usually advertising).</li>
+<li>Save, then <strong>Publish</strong> the policy. Incomplete child settings can block publish.</li>
+<li>Staff attestation is the built-in unlock for a verified state. An email token only proves contact.</li>
+</ol>
+<h2 id="3-consent-management">3. Consent Management</h2>
+<p>Open <strong>Consent Management</strong> in the sidebar, then pick a card.</p>
+<h3 id="3-1-consent">3.1 Consent</h3>
+<p><strong>Path:</strong> <code>/dashboard/consent</code></p>
+<p><strong>What it is</strong>  </p>
+<p>The list of visitor choices stored after someone uses the banner (accept, reject, customize, or withdraw). Each record can have a <strong>proof</strong> (hash and signature) so you can check it was not changed.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Collect at least one live choice with the SDK installed.</li>
+<li>Open <strong>Consent</strong>. Filter by website if needed.</li>
+<li>Open a record to see status, website, policy version, and proof.</li>
+<li>Historical proof stays readable after withdraw or replace.</li>
+</ol>
+<p><strong>If the list is empty</strong>  </p>
+<p>Snippet missing, policy unpublished, or no visitor has chosen yet.</p>
+<h3 id="3-2-policies">3.2 Policies</h3>
+<p><strong>Path:</strong> <code>/dashboard/policies</code></p>
+<p><strong>What it is</strong>  </p>
+<p>A policy belongs to one website. It is a <strong>draft</strong> until you publish. Only the published version is what visitors see.</p>
+<p><strong>How to create a policy</strong></p>
+<ol>
+<li>Click <strong>Create policy</strong>.</li>
+<li>Pick a <strong>template</strong> (or Start from scratch):</li>
+</ol>
+<p>   - Standard (GDPR / ePrivacy)</p>
+<p>   - India (DPDP)</p>
+<p>   - US (CCPA-style opt-out)</p>
+<p>   - Necessary + analytics</p>
+<p>   - UK GDPR (if shown)</p>
+<ol>
+<li>Choose the <strong>Website</strong>.</li>
+<li>Enter a <strong>Policy name</strong>. Description is optional.</li>
+<li>Optionally tick <strong>Set as default policy</strong>.</li>
+<li>Click <strong>Create policy</strong>.</li>
+</ol>
+<p><strong>How to finish and publish</strong></p>
+<ol>
+<li>Open the policy.</li>
+<li>Attach <strong>purposes</strong>. Link <strong>vendors</strong> to those purposes.</li>
+<li>Open <strong>Banner Studio</strong>. Fill <strong>title</strong>, <strong>description</strong>, and <strong>privacy policy URL</strong> (required to publish).</li>
+<li>Optionally open <strong>Preference Center</strong> to preview the detailed panel.</li>
+<li>On the policy page, wait until the compliance panel has <strong>zero errors</strong>.</li>
+<li>Click <strong>Publish</strong> (Owner/Admin). Warnings do not block; errors do.</li>
+</ol>
+<p><strong>After publish</strong>  </p>
+<p>The Installation page can serve that version. Editing vendors later does <strong>not</strong> rewrite old published snapshots or old consent proof.</p>
+<h3 id="3-3-banner-studio">3.3 Banner Studio</h3>
+<p><strong>Path:</strong> Policies → open a policy → <strong>Banner Studio</strong> (<code>/dashboard/policies/[id]/studio</code>)</p>
+<p><strong>What it is</strong>  </p>
+<p>The visual editor for the notice visitors see: layout, colors, button labels, and behavior.</p>
+<p><strong>Tabs:</strong> Presets | Layout | Style | Text | Settings</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Open Banner Studio from the policy.</li>
+<li>Pick a <strong>preset</strong>, or set <strong>Layout</strong> (bar / box / dialog) and <strong>Position</strong> (bottom, top, corners, center).</li>
+<li>On <strong>Style</strong>, set colors and which buttons to show (Accept all, Reject all, Customize, Close).</li>
+<li>On <strong>Text</strong>, set title, description, button labels, and the privacy link URL.</li>
+<li>On <strong>Settings</strong>, set default choice (none / opt-in / opt-out), expiry days, and options such as Respect DNT or block the page until consent.</li>
+<li>Click <strong>Save draft</strong>.</li>
+<li>Return to the policy and <strong>Publish</strong> when ready.</li>
+</ol>
+<p><strong>Result of Save draft</strong>  </p>
+<p>The draft banner is stored. Visitors still see the last <strong>published</strong> version until you publish again.</p>
+<h3 id="3-4-preference-center">3.4 Preference Center</h3>
+<p><strong>Path:</strong> Policies → open a policy → <strong>Preference Center</strong></p>
+<p><strong>What it is</strong>  </p>
+<p>The detailed panel visitors open from <strong>Customize</strong>. They can turn individual purposes (and vendors, if shown) on or off.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Open the preview from the policy.</li>
+<li>Try <strong>Accept all</strong>, <strong>Reject all</strong>, <strong>Save preferences</strong>, and <strong>Withdraw</strong>.</li>
+<li>Confirm required purposes cannot be turned off.</li>
+<li>Publish the policy so the live site matches this preview.</li>
+</ol>
+<h3 id="3-5-purposes">3.5 Purposes</h3>
+<p><strong>Path:</strong> <code>/dashboard/purposes</code></p>
+<p><strong>What it is</strong>  </p>
+<p>The reasons you process data, shown to visitors — for example Necessary, Analytics, Advertising. The <strong>key</strong> (like <code>analytics</code>) never changes after create.</p>
+<p><strong>How to create a purpose</strong></p>
+<ol>
+<li>Click <strong>Create purpose</strong>.</li>
+<li>Pick a template or Custom.</li>
+<li>Fill <strong>Name</strong>, <strong>Key</strong>, and a visitor-facing <strong>Description</strong> (needed before publish).</li>
+<li>Tick <strong>Required</strong> only for strictly necessary processing (visitors cannot decline it).</li>
+<li>Add <strong>data categories</strong> (optional tags such as IP address).</li>
+<li>Add <strong>Retention period</strong> (example: <code>12 months</code>).</li>
+<li>Choose <strong>Legal basis</strong>: consent, contract, legitimate interests, legal obligation, vital interests, or public task.</li>
+<li>Click <strong>Create purpose</strong>.</li>
+</ol>
+<p><strong>How to edit</strong>  </p>
+<p>Open the purpose row. The key stays locked. Click <strong>Save purpose</strong>.</p>
+<h3 id="3-6-vendors">3.6 Vendors</h3>
+<p><strong>Path:</strong> <code>/dashboard/vendors</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Third parties that process data (analytics, ads, processors). You must set a <strong>Role</strong> and usually a <strong>privacy policy URL</strong>.</p>
+<p><strong>How to create a vendor</strong></p>
+<ol>
+<li>Click <strong>Create</strong> (or add from the catalog).</li>
+<li>Enter name, key, domain, and privacy policy URL.</li>
+<li>Set <strong>Role</strong>: controller, processor, subprocessor, independent controller, joint controller, service provider, or third party. Do <strong>not</strong> leave it unknown.</li>
+<li>If the role is processor/subprocessor on a GDPR-style site, set <strong>DPA status</strong> to something other than <code>not_configured</code>.</li>
+<li>For California-style policies, set sale / share / sensitive PI to applicable or not applicable — not <code>unknown</code>.</li>
+<li>Click <strong>Create vendor</strong>.</li>
+</ol>
+<p><strong>How to edit</strong>  </p>
+<p>Open the vendor. Save. Old published policies keep a frozen snapshot of what was published.</p>
+<h3 id="3-7-transfers">3.7 Transfers</h3>
+<p><strong>Path:</strong> <code>/dashboard/transfers</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Where you record <strong>cross-border transfers</strong> and <strong>processing activities</strong> (what a vendor does, in which country, with which safeguard).</p>
+<p><strong>How to add a transfer</strong></p>
+<ol>
+<li>Choose <strong>Vendor</strong> and optionally a <strong>Website</strong> (or organization-wide).</li>
+<li>Enter source and destination country (example: <code>DE</code> → <code>US</code>).</li>
+<li>Choose a <strong>Mechanism</strong>: adequacy, SCC, BCR, derogation, consent, or other.</li>
+<li>Add purpose and safeguards if asked.</li>
+<li>Save.</li>
+</ol>
+<p><strong>How to add a processing activity</strong></p>
+<ol>
+<li>Choose vendor, website, and purpose.</li>
+<li>Set processing role, data categories, location.</li>
+<li>Tick <strong>Transfer required</strong> if data leaves the country.</li>
+<li>Save.</li>
+</ol>
+<p>Missing transfer details can <strong>block publish</strong>.</p>
+<h3 id="3-8-trackers">3.8 Trackers</h3>
+<p><strong>Path:</strong> <code>/dashboard/trackers</code></p>
+<p><strong>What it is</strong>  </p>
+<p>The inventory the SDK uses to allow or block scripts, cookies, pixels, and iframes.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Run <strong>Scanner</strong>, or click to add a tracker manually.</li>
+<li>For each <strong>Unmapped</strong> row, choose a <strong>Vendor</strong> and <strong>Purpose</strong>, then <strong>Map Tracker</strong>.</li>
+<li>Mark <strong>Essential</strong> only if it is strictly necessary and tied to a <strong>required</strong> purpose.</li>
+<li>Use Ignore only if you understand the item still will not be authorized to run.</li>
+<li>Re-open website <strong>Enforcement</strong>.</li>
+</ol>
+<p><strong>Unmapped optional trackers stay blocked and can block publish.</strong></p>
+<h2 id="4-discovery-monitoring">4. Discovery &amp; Monitoring</h2>
+<h3 id="4-1-scanner">4.1 Scanner</h3>
+<p><strong>Path:</strong> <code>/dashboard/scanner</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Crawls the registered domain to find cookies, scripts, pixels, and other trackers.</p>
+<p><strong>How to run a scan</strong></p>
+<ol>
+<li>Confirm the website domain is correct.</li>
+<li>Select the website.</li>
+<li>Click <strong>Start scan</strong>.</li>
+<li>Open the completed scan.</li>
+<li>Map unmapped items on <strong>Trackers</strong>.</li>
+</ol>
+<p><strong>Automatic scanning</strong></p>
+<ol>
+<li>Turn <strong>Automatic</strong> on for a website.</li>
+<li>Choose daily, weekly, or monthly.</li>
+<li>Save. Scheduled runs also need an external cron job and <code>CRON_SECRET</code> on the server.</li>
+</ol>
+<h3 id="4-2-privacy-drift">4.2 Privacy drift</h3>
+<p><strong>Path:</strong> <code>/dashboard/monitoring</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Findings when the site changes: new scripts, lost mappings, “shadow” trackers, page URLs.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Complete a baseline scan after go-live.</li>
+<li>Filter by website, severity, type, and status (open / reviewed / resolved).</li>
+<li>Open a finding. Note the page URL if shown.</li>
+<li>Fix the tag or map the tracker.</li>
+<li><strong>Mark reviewed</strong> or <strong>Resolve</strong>.</li>
+</ol>
+<p>Findings do not close themselves. Open findings lower the quality score.</p>
+<h3 id="4-3-privacy-risk">4.3 Privacy risk</h3>
+<p><strong>Path:</strong> <code>/dashboard/risk</code></p>
+<p><strong>What it is</strong>  </p>
+<p>A priority view of unmapped trackers, gaps, and high-impact issues. It is <strong>not</strong> a legal risk assessment.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Open after a scan.</li>
+<li>Follow links to Trackers, Drift, or the website.</li>
+<li>Fix the highest items first.</li>
+</ol>
+<h3 id="4-4-consent-quality">4.4 Consent quality</h3>
+<p><strong>Path:</strong> <code>/dashboard/quality</code></p>
+<p><strong>What it is</strong>  </p>
+<p>An operational score from 0–100 based on published policy, tracker mapping, scan coverage, and open findings. <strong>Not</strong> a legal compliance percentage.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Publish a policy and map trackers.</li>
+<li>Read why points were lost.</li>
+<li>Follow the links (map trackers, publish, scan, review drift).</li>
+<li>Re-check after you fix gaps.</li>
+</ol>
+<h3 id="4-5-analytics">4.5 Analytics</h3>
+<p><strong>Path:</strong> <code>/dashboard/analytics</code></p>
+<p><strong>What it is</strong>  </p>
+<p>How visitors respond: totals, daily mix, websites, purposes, countries, devices, browsers, policy versions.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Collect live consent first.</li>
+<li>Set the date range: 7 / 30 / 90 days / All time.</li>
+<li>Filter by website if needed.</li>
+<li>Use <strong>Consent quality</strong> when you want configuration gaps, not rates.</li>
+</ol>
+<h2 id="5-intelligence">5. Intelligence</h2>
+<p>These tools help you plan and preview. They <strong>do not auto-publish</strong> a policy (except Autopilot steps that you explicitly approve). Pick a website on each page.</p>
+<h3 id="5-1-consent-firewall">5.1 Consent firewall</h3>
+<p><strong>What it is</strong>  </p>
+<p>Preview which trackers would be <strong>blocked or allowed</strong> for Reject all, Essential only, or Accept all — using the same rules as the live SDK.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Choose a scenario.</li>
+<li>Fix anything that stays blocked in every scenario (usually unmapped).</li>
+</ol>
+<h3 id="5-2-impact-simulator">5.2 Impact simulator</h3>
+<p><strong>What it is</strong>  </p>
+<p>Estimates how the <strong>quality score</strong> would change if you mapped trackers, resolved findings, published, or improved scan coverage.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Read each scenario’s projected change.</li>
+<li>Do the real work on Trackers / Drift / Policies, then refresh.</li>
+</ol>
+<h3 id="5-3-experiments">5.3 Experiments</h3>
+<p><strong>What it is</strong>  </p>
+<p>A/B tests for banner copy, layout, or buttons. Visitors are assigned a variant; the choice is recorded with that variant.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>You need a policy.</li>
+<li>Start the experiment (weighted variants).</li>
+<li>Let traffic collect.</li>
+<li>Pause when done.</li>
+<li>Put the winning copy into Banner Studio and publish.</li>
+</ol>
+<h3 id="5-4-dependency-graph">5.4 Dependency graph</h3>
+<p><strong>What it is</strong>  </p>
+<p>A map of purposes ↔ vendors ↔ trackers.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Look for missing links.</li>
+<li>Fix them on Purposes, Vendors, and Trackers.</li>
+</ol>
+<h3 id="5-5-recommendations">5.5 Recommendations</h3>
+<p><strong>What it is</strong>  </p>
+<p>An ordered list of configuration gaps with links to the page that fixes them.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Open the first item.</li>
+<li>Complete it, then return.</li>
+</ol>
+<h3 id="5-6-data-flow-map">5.6 Data flow map</h3>
+<p><strong>What it is</strong>  </p>
+<p>Shows “what leaves the site for which purpose” — purpose → vendors → trackers.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Trace each purpose.</li>
+<li>Fill missing vendor or tracker links before you publish changes.</li>
+</ol>
+<h3 id="5-7-cross-domain-consent">5.7 Cross-domain consent</h3>
+<p><strong>What it is</strong>  </p>
+<p>Export a signed consent bundle from website A and import it onto website B in the <strong>same organization</strong>.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Copy a <strong>Consent ID</strong> from Consent records.</li>
+<li>Select <strong>From website</strong> and click <strong>Export portable consent</strong>.</li>
+<li>Select <strong>Target website</strong> and click <strong>Import onto target website</strong>.</li>
+<li>Review the mapped decisions.</li>
+</ol>
+<h3 id="5-8-ai-consent-autopilot">5.8 AI consent autopilot</h3>
+<p><strong>What it is</strong>  </p>
+<p>An assisted “next best actions” plan from quality score and simulator results. It does not silently publish.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Generate / refresh the plan.</li>
+<li>Follow each step (or approve a reversible step if offered).</li>
+<li>Refresh to see an updated score.</li>
+</ol>
+<h3 id="5-9-consent-digital-twin">5.9 Consent digital twin</h3>
+<p><strong>What it is</strong>  </p>
+<p>A snapshot of the current setup plus projected score changes for “what if” scenarios.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Read baseline counts and open findings.</li>
+<li>Compare before/after snapshots if you generate them.</li>
+</ol>
+<h3 id="5-10-consent-roi-engine">5.10 Consent ROI engine</h3>
+<p><strong>What it is</strong>  </p>
+<p>Ranks fix scenarios by quality-score improvement × a points value. It is <strong>not</strong> a finance ledger.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Optionally set monthly sessions, costs, and target score.</li>
+<li>Run the engine.</li>
+<li>Do the top scenario’s real work, then re-run.</li>
+</ol>
+<h3 id="5-11-consent-negotiation-engine">5.11 Consent negotiation engine</h3>
+<p><strong>What it is</strong>  </p>
+<p>Builds an ordered plan to reach a target quality score (you can use <code>?target=90</code> in the URL).</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Select a website.</li>
+<li>Generate the plan.</li>
+<li>Open each action page in order.</li>
+</ol>
+<h3 id="5-12-ai-agent-permissioning">5.12 AI-agent permissioning</h3>
+<p><strong>What it is</strong>  </p>
+<p>Answers: given this visitor’s consent record, may an AI agent use these purposes or vendor domains?</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Copy a Consent ID.</li>
+<li>Select the website.</li>
+<li>Enter purpose keys (example: <code>analytics</code>) and/or vendor domains.</li>
+<li>Click <strong>Evaluate agent permission</strong>.</li>
+<li>Read allowed vs denied and the reasons.</li>
+</ol>
+<h3 id="5-13-data-redaction">5.13 Data redaction</h3>
+<p><strong>What it is</strong>  </p>
+<p>Filters analytics so only purposes granted (or essential) for that consent ID are shown. This is not a general “hide all personal data” tool.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Choose website and paste a Consent ID.</li>
+<li>Set 7 / 30 / 90 days.</li>
+<li>Load the redacted preview.</li>
+</ol>
+<h2 id="6-security-governance">6. Security &amp; Governance</h2>
+<h3 id="6-1-audit-logs">6.1 Audit logs</h3>
+<p><strong>What it is</strong>  </p>
+<p>Who created, updated, published, or changed vendor roles.</p>
+<p><strong>How to use it</strong>  </p>
+<p>Open after a publish failure or a config change. Search or scroll the list.</p>
+<h3 id="6-2-notifications">6.2 Notifications</h3>
+<p><strong>What it is</strong>  </p>
+<p>Workspace alerts (scans, findings, rights requests). The header bell opens the same stream.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Open a notification.</li>
+<li>Mark one read, or mark all read.</li>
+</ol>
+<h3 id="6-3-privacy-rights">6.3 Privacy Rights</h3>
+<p><strong>Path:</strong> <code>/dashboard/rights-requests</code></p>
+<p><strong>What it is</strong>  </p>
+<p>The operator inbox for data-subject requests (access, deletion, and similar). The public page <code>/privacy-request</code> is only for <strong>status</strong> and <strong>identity verify</strong> with a token — it is not the intake form. Intake is via API.</p>
+<p><strong>How operators use a request</strong> (Owner/Admin)</p>
+<ol>
+<li>Open the request.</li>
+<li>Assign yourself.</li>
+<li>Issue verification or staff-attest if needed.</li>
+<li>Generate an access/portability export, apply a correction, invoke withdrawal, or execute eligible deletion.</li>
+<li>Update status (in review, in progress, completed, rejected, cancelled) and notes.</li>
+<li>Downstream vendor chips are <strong>orchestration only</strong> — not proof a vendor deleted data.</li>
+</ol>
+<h2 id="7-developer">7. Developer</h2>
+<h3 id="7-1-sdk-api-keys">7.1 SDK &amp; API keys</h3>
+<p><strong>Path:</strong> <code>/dashboard/developers</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Install pointers plus API keys for your backends.</p>
+<p><strong>How to create a key</strong> (Owner/Admin)</p>
+<ol>
+<li>Enter a <strong>Key name</strong>.</li>
+<li>Choose <strong>live</strong> or <strong>test</strong>.</li>
+<li>Optional expiry date.</li>
+<li>Create the key. Copy the secret once.</li>
+<li>Revoke later if it is leaked or unused.</li>
+</ol>
+<p>Visitor sites should use the <strong>Installation snippet</strong>, not an API key in the browser.</p>
+<h3 id="7-2-integrations">7.2 Integrations</h3>
+<p><strong>What it is</strong>  </p>
+<p>Catalog of tools you can connect per website (analytics, tag manager, and similar). Google Consent Mode and IAB are mainly configured on <strong>Website → Regulations</strong>.</p>
+<p><strong>How to use it</strong> (Owner/Admin)</p>
+<ol>
+<li>Pick a website on the card.</li>
+<li>Click <strong>Connect</strong> or <strong>Disconnect</strong>.</li>
+</ol>
+<h3 id="7-3-webhooks">7.3 Webhooks</h3>
+<p><strong>Path:</strong> <code>/dashboard/developers/webhooks</code></p>
+<p><strong>What it is</strong>  </p>
+<p>Sends events to your HTTPS endpoint when consent or config changes.</p>
+<p><strong>Events you can subscribe to</strong></p>
+<ul>
+<li>Consent granted / declined / withdrawn</li>
+<li>Policy created / published / archived</li>
+<li>Website created / updated</li>
+<li>Scan completed</li>
+<li>Tracker detected</li>
+</ul>
+<p><strong>How to create one</strong> (Owner/Admin)</p>
+<ol>
+<li>Click to add an endpoint.</li>
+<li>Enter name and HTTPS URL.</li>
+<li>Tick events (or Select all).</li>
+<li>Save. Copy the <strong>signing secret</strong> once.</li>
+<li>Check deliveries if a downstream system missed an event.</li>
+</ol>
+<h2 id="8-administration">8. Administration</h2>
+<h3 id="8-1-organization-settings">8.1 Organization settings</h3>
+<p><strong>Who:</strong> Owner/Admin to edit; Members see read-only</p>
+<p><strong>What you can set</strong></p>
+<ul>
+<li>Organisation name, description, logo URL</li>
+<li>Timezone, default language, default region</li>
+<li>DPO and grievance officer contacts</li>
+<li>Mark onboarding completed</li>
+</ul>
+<p>Click <strong>Save settings</strong>. Billing is a placeholder — billing is not enabled yet.</p>
+<h3 id="8-2-data-retention">8.2 Data retention</h3>
+<p><strong>Who:</strong> Owner/Admin</p>
+<p><strong>What it is</strong>  </p>
+<p>How long evidence, current consent records, audit logs, and rights requests are kept (30–7300 days). <strong>Legal holds</strong> block deletion of a specific record.</p>
+<p><strong>How to use it</strong></p>
+<ol>
+<li>Set the day counts and save.</li>
+<li>To hold a record: choose type, paste resource ID, enter a reason, create the hold.</li>
+<li>Release the hold when the legal reason ends.</li>
+</ol>
+<h3 id="8-3-team-roles">8.3 Team &amp; roles</h3>
+<p><strong>Who:</strong> Owner/Admin to invite</p>
+<p><strong>How to invite</strong></p>
+<ol>
+<li>Enter <strong>Email</strong>.</li>
+<li>Choose <strong>Member</strong> (<code>org:member</code>) or <strong>Admin</strong> (<code>org:admin</code>).</li>
+<li>Send invite.</li>
+<li>Change role or remove later. Only an Owner can assign Owner.</li>
+</ol>
+<h2 id="public-pages-not-in-the-sidebar">Public pages (not in the sidebar)</h2>
+<table>
+<tr><th>Page</th><th>What it is</th><th>How to use</th></tr>
+<tr><td><code>/sdk-demo</code></td><td>Fake “external website” to test a site key</td><td>Paste site key → <strong>Load SDK</strong>. Invalid keys show <strong>Website not found</strong>. Use showBanner / acceptAll / rejectAll to test the public API.</td></tr>
+<tr><td><code>/privacy-request</code></td><td>Status / verify for a rights request</td><td>Paste the token you were given. <strong>Check status</strong> or <strong>Verify identity</strong> → Continue. Unknown tokens show <strong>Request not found</strong> or <strong>Verification failed</strong>.</td></tr>
+<tr><td><code>/guardian-consent</code></td><td>Guardian one-time token</td><td>Paste token → <strong>Verify token</strong>. Proving contact is not legal guardian authority.</td></tr>
+</table>
+<h2 id="quick-i-want-to-index">Quick “I want to…” index</h2>
+<table>
+<tr><th>I want to…</th><th>Go here</th></tr>
+<tr><td>Get a banner live</td><td>Get live strip on Dashboard, then Installation</td></tr>
+<tr><td>See who consented</td><td>Consent</td></tr>
+<tr><td>Change banner look</td><td>Policies → Banner Studio → Save draft → Publish</td></tr>
+<tr><td>Find cookies on my site</td><td>Scanner → Trackers</td></tr>
+<tr><td>See if tags drifted</td><td>Privacy drift</td></tr>
+<tr><td>Preview blocking</td><td>Consent firewall</td></tr>
+<tr><td>Invite a teammate</td><td>Administration → Team &amp; roles</td></tr>
+<tr><td>Copy the install script</td><td>Websites → [site] → Installation</td></tr>
+</table>
+<h2 id="common-mistakes">Common mistakes</h2>
+<ol>
+<li><strong>Snippet installed, no banner</strong> — policy is still a draft. Publish first.</li>
+<li><strong>Publish blocked</strong> — open the policy compliance panel. Typical causes: missing purpose description, vendor role unknown, missing privacy URL, unmapped tracker, missing banner title/privacy URL, incomplete child or transfer settings.</li>
+<li><strong>Vendor role left unknown</strong> — set a real role and save.</li>
+<li><strong>Region CA treated as California</strong> — in this product CA is Canada.</li>
+<li><strong>Essential tracker on an optional purpose</strong> — essential must map to a required purpose.</li>
+<li><strong>Quality score treated as legal compliance</strong> — it is an operations score only.</li>
+</ol>
+<p>*Consent Guru dashboard features guide. Operational scores and planners support configuration quality. They do not replace legal advice.*</p>
+</body>
+</html>

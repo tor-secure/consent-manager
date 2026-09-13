@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
+import type { ReactNode } from "react";
 
 import { db } from "@/db";
 import { consentRecords } from "@/db/schema/consent-records";
@@ -12,6 +13,8 @@ import { SetupGuide } from "@/components/dashboard/setup-guide";
 import { buildGetLiveSteps } from "@/lib/dashboard/get-live-path";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconText } from "@/components/ui/icon-text";
+import { PieChart } from "@/components/charts/pie-chart";
+import { GroupedBarChart, HorizontalBarChart } from "@/components/charts/bar-chart";
 
 function IconUsersGroup() {
   return (
@@ -33,11 +36,11 @@ function IconCheckCircle() {
   );
 }
 
-function IconClock() {
+function IconPartial() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
+      <path d="M12 6v6l4 2" />
     </svg>
   );
 }
@@ -54,7 +57,7 @@ function IconShieldAlert() {
 
 function IconGlobe() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <line x1="2" y1="12" x2="22" y2="12" />
       <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
@@ -64,7 +67,7 @@ function IconGlobe() {
 
 function IconPolicy() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
       <line x1="16" y1="13" x2="8" y2="13" />
@@ -73,217 +76,123 @@ function IconPolicy() {
   );
 }
 
-type TrendRow = {
-  day: string;
-  interactions: number;
-  acceptAll: number;
-  rejectAll: number;
-  granular: number;
-  withdrawals: number;
-};
-
-function formatChartDay(day: string) {
-  const parsed = new Date(`${day}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return day;
-  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-}
-
-function ConsentTrendChart({ rows }: { rows: TrendRow[] }) {
-  if (rows.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-12 text-center">
-        <p className="text-sm font-medium text-[var(--foreground)]">No consent events in the last 30 days</p>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          The chart appears after visitors submit a choice on a site with the SDK installed.
-        </p>
-      </div>
-    );
-  }
-
-  const consented = rows.map((row) => row.acceptAll + row.granular);
-  const withdrawn = rows.map((row) => row.withdrawals);
-  const points = rows.length;
-  const maxVal = Math.max(1, ...consented, ...withdrawn);
-  const yTicks = Array.from(new Set([0, Math.round(maxVal / 2), maxVal]));
-
-  const width = 520;
-  const height = 180;
-  const padX = 36;
-  const padY = 24;
-  const chartW = width - padX * 2;
-  const chartH = height - padY * 2;
-  const last = Math.max(points - 1, 1);
-
-  function toX(i: number) {
-    return padX + (i / last) * chartW;
-  }
-  function toY(v: number) {
-    return padY + chartH - (v / maxVal) * chartH;
-  }
-
-  function areaPath(data: number[]) {
-    if (data.length === 0) return "";
-    const start = `M ${toX(0)} ${toY(data[0])}`;
-    const line = data.slice(1).map((v, i) => `L ${toX(i + 1)} ${toY(v)}`).join(" ");
-    const end = `L ${toX(points - 1)} ${padY + chartH} L ${toX(0)} ${padY + chartH} Z`;
-    return `${start} ${line} ${end}`;
-  }
-
-  function linePath(data: number[]) {
-    if (data.length === 0) return "";
-    const start = `M ${toX(0)} ${toY(data[0])}`;
-    const line = data.slice(1).map((v, i) => `L ${toX(i + 1)} ${toY(v)}`).join(" ");
-    return `${start} ${line}`;
-  }
-
-  const labelIndexes =
-    points <= 5
-      ? rows.map((_, i) => i)
-      : [0, Math.floor((points - 1) / 2), points - 1];
-
+function IconVendor() {
   return (
-    <div className="w-full table-scroll scrollbar-thin">
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full min-w-[480px]" role="img" aria-label="Consent events over the last 30 days">
-        <defs>
-          <linearGradient id="activeFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {yTicks.map((t) => (
-          <g key={t}>
-            <line
-              x1={padX}
-              x2={width - padX}
-              y1={toY(t)}
-              y2={toY(t)}
-              stroke="var(--border)"
-              strokeDasharray="4 4"
-            />
-            <text
-              x={padX - 8}
-              y={toY(t) + 4}
-              textAnchor="end"
-              fontSize="10"
-              fill="var(--muted-foreground)"
-              fontFamily="inherit"
-            >
-              {t}
-            </text>
-          </g>
-        ))}
-
-        <path d={areaPath(consented)} fill="url(#activeFill)" />
-        <path d={linePath(consented)} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={toX(points - 1)} cy={toY(consented[points - 1])} r="4.5" fill="var(--card)" stroke="var(--primary)" strokeWidth="2.5" />
-        <path d={linePath(withdrawn)} fill="none" stroke="var(--danger)" strokeWidth="2" strokeDasharray="5 4" strokeLinecap="round" opacity="0.75" />
-
-        {labelIndexes.map((i) => (
-          <text
-            key={`${rows[i].day}-${i}`}
-            x={toX(i)}
-            y={height - 6}
-            textAnchor="middle"
-            fontSize="10"
-            fill="var(--muted-foreground)"
-            fontFamily="inherit"
-          >
-            {formatChartDay(rows[i].day)}
-          </text>
-        ))}
-      </svg>
-
-      <div className="mt-4 flex flex-wrap items-center gap-5 pl-2">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--primary)]" />
-          <span className="text-sm text-[var(--muted-foreground)]">Accept all + granular</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[var(--danger)]" />
-          <span className="text-sm text-[var(--muted-foreground)]">Withdrawals</span>
-        </div>
-      </div>
-    </div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18" />
+      <path d="M5 21V7l7-4 7 4v14" />
+      <path d="M9 21v-6h6v6" />
+    </svg>
   );
 }
 
-type PurposeSlice = {
-  name: string;
-  color: string;
-  value: number;
-};
-
-function DonutChart({ slices, total }: { slices: PurposeSlice[]; total: number }) {
-  const size = 200;
-  const radius = 80;
-  const cx = size / 2;
-  const cy = size / 2;
-  const circumference = 2 * Math.PI * radius;
-
-  if (slices.length === 0 || total === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-12 text-center">
-        <p className="text-sm font-medium text-[var(--foreground)]">No purpose decisions yet</p>
-        <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-          Granted choices per purpose show here after visitors save preferences.
-        </p>
-      </div>
-    );
-  }
-
+function IconTracker() {
   return (
-    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center">
-      <div className="relative shrink-0">
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Consent by purpose donut chart">
-          <circle cx={cx} cy={cy} r={radius} fill="none" stroke="var(--muted)" strokeWidth="28" />
-          {slices.map((s, i) => {
-            const pct = total > 0 ? s.value / total : 0;
-            const dash = pct * circumference;
-            const gap = circumference - dash;
-            const previousValue = slices
-              .slice(0, i)
-              .reduce((sum, slice) => sum + slice.value, 0);
-            const offset = -(previousValue / total) * circumference;
-            return (
-              <circle
-                key={i}
-                cx={cx}
-                cy={cy}
-                r={radius}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="28"
-                strokeDasharray={`${dash} ${gap}`}
-                strokeDashoffset={offset}
-                transform={`rotate(-90 ${cx} ${cy})`}
-                strokeLinecap="butt"
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-3xl font-bold text-[var(--foreground)]">{total.toLocaleString()}</p>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">Total</p>
-        </div>
-      </div>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.24 7.76a6 6 0 010 8.48M7.76 7.76a6 6 0 000 8.48" />
+      <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
+    </svg>
+  );
+}
 
-      <div className="flex-1 space-y-3 w-full min-w-0">
-        {slices.map((s, i) => {
-          const pct = total > 0 ? Math.round((s.value / total) * 100) : 0;
-          return (
-            <div key={i} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="h-3 w-3 rounded-full shrink-0" style={{ background: s.color }} />
-                <span className="text-sm font-medium text-[var(--secondary-foreground)] truncate">{s.name}</span>
-              </div>
-              <div className="flex items-baseline gap-1.5 shrink-0">
-                <span className="text-sm font-bold text-[var(--foreground)]">{pct}%</span>
-                <span className="hidden sm:inline text-xs text-[var(--muted-foreground)] tabular-nums">({s.value.toLocaleString()})</span>
-              </div>
-            </div>
-          );
-        })}
+function IconBars() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 20V10M12 20V4M6 20v-6" />
+    </svg>
+  );
+}
+
+function IconPie() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21.21 15.89A10 10 0 118 2.83" />
+      <path d="M22 12A10 10 0 0012 2v10z" />
+    </svg>
+  );
+}
+
+function IconTarget() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1.5" />
+    </svg>
+  );
+}
+
+function IconMap() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" />
+      <line x1="8" y1="3" x2="8" y2="18" />
+      <line x1="16" y1="6" x2="16" y2="21" />
+    </svg>
+  );
+}
+
+const PURPOSE_COLORS = [
+  "var(--info)",
+  "var(--purple)",
+  "var(--warning)",
+  "var(--danger)",
+  "var(--pink)",
+  "var(--success)",
+];
+
+function pct(part: number, total: number) {
+  if (!total) return 0;
+  return Math.round((part / total) * 100);
+}
+
+const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function formatChartDay(day: string) {
+  const [year, month, date] = day.split("-").map(Number);
+  if (!year || !month || !date) return day;
+  return `${date} ${SHORT_MONTHS[month - 1]}`;
+}
+
+function localIsoDay(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function lastNLocalDays(count: number) {
+  const days: string[] = [];
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  for (let offset = count - 1; offset >= 0; offset -= 1) {
+    const day = new Date(cursor);
+    day.setDate(cursor.getDate() - offset);
+    days.push(localIsoDay(day));
+  }
+  return days;
+}
+
+function ChartCardTitle({
+  icon,
+  title,
+  hint,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start gap-3">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--primary)]">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <CardTitle>{title}</CardTitle>
+          {hint ? <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">{hint}</p> : null}
+        </div>
       </div>
     </div>
   );
@@ -318,24 +227,6 @@ function AvatarFallback({ name, idx }: { name: string; idx: number }) {
   );
 }
 
-function ComplianceShield({ complete }: { complete: boolean }) {
-  return (
-    <div className="relative flex h-[140px] w-[140px] shrink-0 items-center justify-center">
-      <div className={`absolute inset-4 rounded-full ${complete ? "bg-[var(--success-soft)]" : "bg-[var(--secondary)]"}`} />
-      <div className={`absolute inset-8 rounded-full ${complete ? "bg-[var(--success-soft)]" : "bg-[var(--secondary)]"}`} />
-      <div
-        className={`relative flex h-16 w-16 items-center justify-center rounded-2xl ${
-          complete ? "gradient-success compliance-glow" : "bg-[var(--muted-foreground)]"
-        }`}
-      >
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          {complete ? <polyline points="20 6 9 17 4 12" /> : <line x1="12" y1="8" x2="12" y2="16" />}
-        </svg>
-      </div>
-    </div>
-  );
-}
-
 function ComplianceCheckItem({ label, done }: { label: string; done: boolean }) {
   return (
     <div className="flex items-center gap-3">
@@ -357,40 +248,65 @@ function ComplianceCheckItem({ label, done }: { label: string; done: boolean }) 
   );
 }
 
+function InventoryRow({
+  href,
+  icon,
+  label,
+  value,
+}: {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  value: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-3 rounded-xl px-1 py-2 text-[var(--foreground)] transition hover:bg-[var(--muted)]/70"
+    >
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-[var(--primary)]">
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-medium">{label}</span>
+      <span className="text-sm font-semibold tabular-nums">{value.toLocaleString()}</span>
+    </Link>
+  );
+}
+
 export async function HomeStatsSection() {
   const { organization } = await requireDashboardContext();
   const counts = await loadHomeDashboardCounts(organization.id);
-  const activeConsents = counts.acceptedConsents + counts.partialConsents;
+  const total = counts.totalConsents;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="dash-card-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        label="Total Consents"
+        label="Total records"
         value={counts.totalConsents}
         icon={<IconUsersGroup />}
         iconColor="blue"
         description="All recorded consents"
       />
       <StatCard
-        label="Active Consents"
-        value={activeConsents}
+        label="Accepted"
+        value={counts.acceptedConsents}
         icon={<IconCheckCircle />}
         iconColor="green"
-        description="Accepted or granular"
+        description={`${pct(counts.acceptedConsents, total)}% of records`}
       />
       <StatCard
-        label="Pending Requests"
-        value={counts.pendingConsents}
-        icon={<IconClock />}
-        iconColor="amber"
-        description="Awaiting a choice"
+        label="Granular"
+        value={counts.partialConsents}
+        icon={<IconPartial />}
+        iconColor="purple"
+        description={`${pct(counts.partialConsents, total)}% of records`}
       />
       <StatCard
-        label="Withdrawn Consents"
+        label="Withdrawn"
         value={counts.withdrawnConsents}
         icon={<IconShieldAlert />}
         iconColor="rose"
-        description="Visitor withdrew consent"
+        description={`${pct(counts.withdrawnConsents, total)}% of records`}
       />
     </div>
   );
@@ -403,47 +319,133 @@ export async function HomeLiveAndChartsSection() {
     loadHomeChartAnalytics(organization.id),
   ]);
 
-  const PURPOSE_COLORS = [
-    "var(--primary)",
-    "var(--accent)",
-    "var(--warning)",
-    "var(--danger)",
-    "var(--success)",
+  const trendByDay = new Map(analytics.trends.map((row) => [row.day, row]));
+  const barPoints = lastNLocalDays(30).map((day) => {
+    const row = trendByDay.get(day);
+    return {
+      label: formatChartDay(day),
+      values: {
+        acceptAll: row?.acceptAll ?? 0,
+        rejectAll: row?.rejectAll ?? 0,
+        granular: row?.granular ?? 0,
+      },
+    };
+  });
+
+  const outcomeSlices = [
+    { label: "Accepted", value: analytics.overview.accepted, color: "var(--success)" },
+    { label: "Rejected", value: analytics.overview.rejected, color: "var(--danger)" },
+    { label: "Granular", value: analytics.overview.partial, color: "var(--purple)" },
+    { label: "Withdrawn", value: analytics.overview.withdrawn, color: "var(--warning)" },
   ];
-  const donutSlices: PurposeSlice[] = analytics.purposes
-    .filter((row) => row.granted > 0)
-    .slice(0, 5)
-    .map((row, index) => ({
-      name: row.purposeName,
-      color: PURPOSE_COLORS[index % PURPOSE_COLORS.length],
+
+  const purposeTop = analytics.purposes.filter((row) => row.granted > 0);
+  const purposeHead = purposeTop.slice(0, 5);
+  const purposeRest = purposeTop.slice(5).reduce((sum, row) => sum + row.granted, 0);
+  const purposeSlices = [
+    ...purposeHead.map((row, index) => ({
+      label: row.purposeName,
       value: row.granted,
-    }));
-  const donutTotal = donutSlices.reduce((sum, slice) => sum + slice.value, 0);
+      color: PURPOSE_COLORS[index % PURPOSE_COLORS.length]!,
+    })),
+    ...(purposeRest > 0 ? [{ label: "Other", value: purposeRest, color: "var(--muted-foreground)" }] : []),
+  ];
+
+  const knownCountries = analytics.countries.filter((row) => row.key.toLowerCase() !== "unknown" && row.total > 0);
+  const geoRows = (knownCountries.length > 0 ? knownCountries : analytics.devices)
+    .slice(0, 8)
+    .map((row) => ({ label: row.name, value: row.total }));
+  const geoIsCountry = knownCountries.length > 0;
 
   return (
     <div className="space-y-6">
       <SetupGuide steps={buildGetLiveSteps(counts)} complete={counts.publishedCount > 0 && counts.totalConsents > 0} />
 
-      <div className="grid gap-5 lg:grid-cols-5">
-        <Card className="lg:col-span-3 min-w-0">
+      <div className="dash-card-grid grid gap-5 lg:grid-cols-12">
+        <Card className="dash-card-in min-w-0 lg:col-span-8">
           <CardHeader>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <CardTitle>Consent Overview</CardTitle>
-              <span className="text-sm text-[var(--muted-foreground)]">Last 30 days</span>
-            </div>
+            <ChartCardTitle icon={<IconBars />} title="Daily choices" hint="Accept, reject, and granular · last 30 days" />
           </CardHeader>
           <CardContent>
-            <ConsentTrendChart rows={analytics.trends} />
+            <GroupedBarChart
+              points={barPoints}
+              series={[
+                { key: "acceptAll", label: "Accept all", color: "var(--success)" },
+                { key: "rejectAll", label: "Reject all", color: "var(--danger)" },
+                { key: "granular", label: "Granular", color: "var(--purple)" },
+              ]}
+              label="Daily consent choices over the last 30 days"
+              emptyTitle="No consent events in the last 30 days"
+              emptyDescription="The bar chart appears after visitors submit a choice on a site with the SDK installed."
+            />
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 min-w-0">
+        <Card className="dash-card-in min-w-0 lg:col-span-4">
           <CardHeader>
-            <CardTitle>Consent by Purpose</CardTitle>
-            <p className="text-sm text-[var(--muted-foreground)]">Granted decisions · last 30 days</p>
+            <ChartCardTitle icon={<IconPie />} title="Consent mix" hint="Current records" />
           </CardHeader>
           <CardContent>
-            <DonutChart slices={donutSlices} total={donutTotal} />
+            <PieChart
+              slices={outcomeSlices}
+              label="Consent mix by record status"
+              emptyTitle="No consent records yet"
+              emptyDescription="Accepted, rejected, granular, and withdrawn records show here after visitors choose."
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="dash-card-grid grid gap-5 lg:grid-cols-3">
+        <Card className="dash-card-in min-w-0">
+          <CardHeader>
+            <ChartCardTitle icon={<IconTarget />} title="Purpose grants" hint="Top purposes · last 30 days" />
+          </CardHeader>
+          <CardContent>
+            <PieChart
+              slices={purposeSlices}
+              label="Granted consent decisions by purpose"
+              emptyTitle="No purpose decisions yet"
+              emptyDescription="Granted choices per purpose show here after visitors save preferences."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="dash-card-in min-w-0">
+          <CardHeader>
+            <ChartCardTitle icon={<IconGlobe />} title="By website" hint="Consent records" />
+          </CardHeader>
+          <CardContent>
+            <HorizontalBarChart
+              rows={analytics.websiteSummary.map((row) => ({
+                label: row.websiteName,
+                value: row.total,
+                hint: row.websiteDomain,
+              }))}
+              color="var(--primary)"
+              label="Consent records by website"
+              emptyTitle="No website records yet"
+              emptyDescription="Volume by site appears after the banner is live on a registered website."
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="dash-card-in min-w-0">
+          <CardHeader>
+            <ChartCardTitle
+              icon={<IconMap />}
+              title={geoIsCountry ? "By country" : "By device"}
+              hint={geoIsCountry ? "Visitor country" : "Device class when country is unknown"}
+            />
+          </CardHeader>
+          <CardContent>
+            <HorizontalBarChart
+              rows={geoRows}
+              color="var(--info)"
+              label={geoIsCountry ? "Consent records by country" : "Consent records by device"}
+              emptyTitle="No location or device data yet"
+              emptyDescription="Country and device breakdowns appear after the SDK records a visitor choice."
+            />
           </CardContent>
         </Card>
       </div>
@@ -495,15 +497,14 @@ export async function HomeRecentSection() {
     { label: "Consent records collected", done: counts.totalConsents > 0 },
     { label: "Trackers detected", done: counts.trackerCount > 0 },
   ];
-  const setupComplete = counts.websiteCount > 0 && counts.policyCount > 0 && counts.totalConsents > 0;
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-5 lg:grid-cols-5">
-        <Card className="lg:col-span-3 min-w-0">
+      <div className="dash-card-grid grid gap-5 lg:grid-cols-12">
+        <Card className="dash-card-in min-w-0 lg:col-span-8">
           <CardHeader>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <CardTitle>Recent Consent Requests</CardTitle>
+              <CardTitle>Recent consent records</CardTitle>
               <Link href="/dashboard/consent" className="btn btn-outline">
                 View all
               </Link>
@@ -517,91 +518,59 @@ export async function HomeRecentSection() {
                   Records appear here after visitors interact with your consent banner.
                 </p>
               </div>
-            ) : recentRequests.map((req, idx) => (
-              <div key={`${req.name}-${idx}`} className="rounded-2xl px-3 -mx-1 py-3 hover:bg-[var(--muted)]/60 transition-colors">
-                <IconText
-                  size="md"
-                  icon={<AvatarFallback name={req.name} idx={idx} />}
-                  iconClassName="overflow-hidden p-0"
-                  title={req.name}
-                  description={req.email}
-                  trailing={
-                    <span className="ml-auto flex shrink-0 items-start gap-2 sm:gap-4">
-                      <RequestStatusBadge status={req.status} />
-                      <span className="hidden sm:block w-12 text-right text-xs tabular-nums text-[var(--muted-foreground)]">
-                        {req.time}
+            ) : (
+              recentRequests.map((req, idx) => (
+                <div key={`${req.name}-${idx}`} className="rounded-2xl px-3 -mx-1 py-3 transition-colors hover:bg-[var(--muted)]/60">
+                  <IconText
+                    size="md"
+                    icon={<AvatarFallback name={req.name} idx={idx} />}
+                    iconClassName="overflow-hidden p-0"
+                    title={req.name}
+                    description={req.email}
+                    trailing={
+                      <span className="ml-auto flex shrink-0 items-start gap-2 sm:gap-4">
+                        <RequestStatusBadge status={req.status} />
+                        <span className="hidden w-12 text-right text-xs tabular-nums text-[var(--muted-foreground)] sm:block">
+                          {req.time}
+                        </span>
                       </span>
-                    </span>
-                  }
-                />
-              </div>
-            ))}
+                    }
+                  />
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 min-w-0">
+        <Card className="dash-card-in min-w-0 lg:col-span-4">
           <CardHeader>
-            <CardTitle>Compliance Status</CardTitle>
+            <CardTitle>Inventory</CardTitle>
+            <p className="text-sm text-[var(--muted-foreground)]">What this organisation has configured</p>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start sm:gap-6">
-              <ComplianceShield complete={setupComplete} />
-              <div className="flex-1 min-w-0 space-y-3 w-full text-center sm:text-left">
-                <div>
-                  <h4 className="text-base font-bold text-[var(--foreground)] sm:text-lg">
-                    {setupComplete ? "Collecting consent" : "Setup in progress"}
-                  </h4>
-                  <p className="mt-1 text-sm text-[var(--muted-foreground)] leading-relaxed">
-                    {setupComplete
-                      ? "Policies and live records are in place. Keep the SDK installed on each site."
-                      : "Complete the items below so analytics can show real visitor choices."}
-                  </p>
-                </div>
-                <div className="space-y-2.5 pt-1">
-                  {complianceChecks.map((item) => (
-                    <ComplianceCheckItem key={item.label} label={item.label} done={item.done} />
-                  ))}
-                </div>
-              </div>
+          <CardContent className="space-y-5">
+            <div className="divide-y divide-[var(--border)]">
+              <InventoryRow href="/dashboard/websites" icon={<IconGlobe />} label="Websites" value={counts.websiteCount} />
+              <InventoryRow href="/dashboard/policies" icon={<IconPolicy />} label="Policies" value={counts.policyCount} />
+              <InventoryRow href="/dashboard/vendors" icon={<IconVendor />} label="Vendors" value={counts.vendorCount} />
+              <InventoryRow href="/dashboard/trackers" icon={<IconTracker />} label="Trackers" value={counts.trackerCount} />
+            </div>
+            <div className="space-y-2.5 border-t border-[var(--border)] pt-4">
+              {complianceChecks.map((item) => (
+                <ComplianceCheckItem key={item.label} label={item.label} done={item.done} />
+              ))}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {counts.websiteCount === 0 && (
+      {counts.websiteCount === 0 ? (
         <EmptyState
           title="No websites yet"
           description="Add your first website to start collecting consent data and unlock all dashboard analytics."
           actionLabel="Add a website"
           actionHref="/dashboard/websites/new"
         />
-      )}
-
-      {counts.websiteCount > 0 && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Websites"
-            value={counts.websiteCount}
-            icon={<IconGlobe />}
-            iconColor="teal"
-            description="Registered websites"
-          />
-          <StatCard
-            label="Policies"
-            value={counts.policyCount}
-            icon={<IconPolicy />}
-            iconColor="purple"
-            description="Across all websites"
-          />
-          <StatCard
-            label="Trackers"
-            value={counts.trackerCount}
-            icon={<IconShieldAlert />}
-            iconColor="amber"
-            description="Detected across all websites"
-          />
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }

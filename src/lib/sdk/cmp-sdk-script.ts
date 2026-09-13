@@ -1779,7 +1779,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     btn.setAttribute('style',
       'position:fixed;bottom:16px;' + corner + 'z-index:2147483645;'
       + 'width:44px;height:44px;border-radius:999px;border:none;cursor:pointer;'
-      + 'background:' + (cfg.primaryColor || '#4f46e5') + ';color:#fff;'
+      + 'background:' + (cfg.primaryColor || '#0B2C4A') + ';color:#fff;'
       + 'box-shadow:0 8px 24px rgba(15,23,42,0.25);'
       + 'display:flex;align-items:center;justify-content:center;padding:0;'
     );
@@ -1887,7 +1887,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       el.id = id;
       (document.head || document.documentElement).appendChild(el);
     }
-    var rgb = hexToRgbList((cfg && (cfg.primaryColor || cfg.textColor)) || '#2c4a7c');
+    var rgb = hexToRgbList((cfg && (cfg.primaryColor || cfg.textColor)) || '#0B2C4A');
     el.textContent =
       '#__cmp_pc__ [data-cmp-scroll],#__cmp_banner__ [data-cmp-scroll]{' +
         'scrollbar-width:thin;' +
@@ -2386,7 +2386,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           reqTag.textContent = cfg.requiredLabel || 'Required';
           reqTag.setAttribute('style',
             'font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;'
-            + 'background:rgba(99,102,241,0.12);color:#4338ca;'
+            + 'background:rgba(0,196,167,0.16);color:#0B2C4A;'
           );
           nameRow.appendChild(reqTag);
         }

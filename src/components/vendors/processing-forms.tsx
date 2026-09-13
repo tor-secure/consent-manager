@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { notify } from "@/components/feedback/notify";
 import { TRANSFER_MECHANISMS, VENDOR_ROLES } from "@/lib/processing/types";
+import { Select } from "@/components/ui/select";
 
-const inputCls =
-  "h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
+const inputCls = "field-input";
 
 export function TransferForm({
   vendors,
@@ -61,15 +61,15 @@ export function TransferForm({
       <h2 className="text-base font-semibold text-[var(--foreground)]">Add transfer record</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">Vendor
-          <select className={`${inputCls} mt-1`} value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
+          <Select className="mt-1" value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
             {vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="text-sm">Website
-          <select className={`${inputCls} mt-1`} value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
+          <Select className="mt-1" value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
             <option value="">Organization-wide</option>
             {websites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="text-sm">Source country
           <input className={`${inputCls} mt-1`} value={sourceCountry} onChange={(e) => setSourceCountry(e.target.value)} placeholder="DE" />
@@ -81,9 +81,9 @@ export function TransferForm({
           <input className={`${inputCls} mt-1`} value={destinationRegion} onChange={(e) => setDestinationRegion(e.target.value)} placeholder="US" />
         </label>
         <label className="text-sm">Mechanism
-          <select className={`${inputCls} mt-1`} value={mechanism} onChange={(e) => setMechanism(e.target.value)}>
+          <Select className="mt-1" value={mechanism} onChange={(e) => setMechanism(e.target.value)}>
             {TRANSFER_MECHANISMS.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
-          </select>
+          </Select>
         </label>
       </div>
       <label className="text-sm">Transfer purpose
@@ -156,26 +156,26 @@ export function ProcessingActivityForm({
       <h2 className="text-base font-semibold text-[var(--foreground)]">Add processing activity</h2>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="text-sm">Vendor
-          <select className={`${inputCls} mt-1`} value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
+          <Select className="mt-1" value={vendorId} onChange={(e) => setVendorId(e.target.value)} required>
             {vendors.map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.name}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="text-sm">Website
-          <select className={`${inputCls} mt-1`} value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
+          <Select className="mt-1" value={websiteId} onChange={(e) => setWebsiteId(e.target.value)}>
             <option value="">Organization-wide</option>
             {websites.map((site) => <option key={site.id} value={site.id}>{site.name}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="text-sm">Purpose
-          <select className={`${inputCls} mt-1`} value={purposeId} onChange={(e) => setPurposeId(e.target.value)}>
+          <Select className="mt-1" value={purposeId} onChange={(e) => setPurposeId(e.target.value)}>
             <option value="">Select purpose</option>
             {purposes.map((purpose) => <option key={purpose.id} value={purpose.id}>{purpose.name}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="text-sm">Processing role
-          <select className={`${inputCls} mt-1`} value={processingRole} onChange={(e) => setProcessingRole(e.target.value)}>
+          <Select className="mt-1" value={processingRole} onChange={(e) => setProcessingRole(e.target.value)}>
             {VENDOR_ROLES.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
-          </select>
+          </Select>
         </label>
       </div>
       <label className="text-sm">Data categories
@@ -193,25 +193,25 @@ export function ProcessingActivityForm({
       </Checkbox>
       <div className="grid gap-4 sm:grid-cols-3">
         <label className="text-sm">California sale
-          <select className={`${inputCls} mt-1`} value={ccpaSale} onChange={(e) => setCcpaSale(e.target.value)}>
+          <Select className="mt-1" value={ccpaSale} onChange={(e) => setCcpaSale(e.target.value)}>
             <option value="unknown">Unknown</option>
             <option value="applicable">Applicable</option>
             <option value="not_applicable">Not applicable</option>
-          </select>
+          </Select>
         </label>
         <label className="text-sm">California sharing
-          <select className={`${inputCls} mt-1`} value={ccpaShare} onChange={(e) => setCcpaShare(e.target.value)}>
+          <Select className="mt-1" value={ccpaShare} onChange={(e) => setCcpaShare(e.target.value)}>
             <option value="unknown">Unknown</option>
             <option value="applicable">Applicable</option>
             <option value="not_applicable">Not applicable</option>
-          </select>
+          </Select>
         </label>
         <label className="text-sm">California sensitive PI
-          <select className={`${inputCls} mt-1`} value={ccpaSensitivePi} onChange={(e) => setCcpaSensitivePi(e.target.value)}>
+          <Select className="mt-1" value={ccpaSensitivePi} onChange={(e) => setCcpaSensitivePi(e.target.value)}>
             <option value="unknown">Unknown</option>
             <option value="applicable">Applicable</option>
             <option value="not_applicable">Not applicable</option>
-          </select>
+          </Select>
         </label>
       </div>
       <label className="text-sm">Description

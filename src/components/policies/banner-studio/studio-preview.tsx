@@ -49,7 +49,7 @@ function FallbackMockPage({
       {/* Hero */}
       <div className="px-8 pt-10 pb-6">
         <div className="mx-auto max-w-xl">
-          <div className="mb-2 h-2.5 w-20 rounded-full bg-indigo-200" />
+          <div className="mb-2 h-2.5 w-20 rounded-full bg-[#B7EDE4]" />
           <div className="mb-3 h-7 w-4/5 rounded-lg bg-[var(--secondary)]" />
           <div className="mb-1.5 h-3.5 w-full rounded-md bg-[var(--secondary)]" />
           <div className="mb-1.5 h-3.5 w-5/6 rounded-md bg-[var(--secondary)]" />

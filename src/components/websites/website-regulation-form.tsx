@@ -235,10 +235,11 @@ export function WebsiteRegulationForm({
                       setRows((current) => current.map((item, i) => (i === index ? { ...item, regionCode: value } : item)));
                     }}
                   />
-                  <select
-                    className="field-input sm:col-span-1"
+                  <Select
+                    className="sm:col-span-1"
                     value={row.policyId}
                     aria-label="Policy"
+                    size="sm"
                     onChange={(event) => {
                       const value = event.target.value;
                       setRows((current) => current.map((item, i) => (i === index ? { ...item, policyId: value } : item)));
@@ -249,11 +250,11 @@ export function WebsiteRegulationForm({
                         {policy.name} {policy.isDefault ? "(default)" : ""} {policy.status !== "active" ? `(${policy.status})` : ""}
                       </option>
                     ))}
-                  </select>
-                  <select
-                    className="field-input"
+                  </Select>
+                  <Select
                     value={row.regulationKey}
                     aria-label="Regulation"
+                    size="sm"
                     onChange={(event) => {
                       const value = event.target.value;
                       setRows((current) => current.map((item, i) => (i === index ? { ...item, regulationKey: value } : item)));
@@ -264,7 +265,7 @@ export function WebsiteRegulationForm({
                         {profile.label}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   <Button type="button" variant="ghost" onClick={() => setRows((current) => current.filter((_, i) => i !== index))}>
                     Remove
                   </Button>

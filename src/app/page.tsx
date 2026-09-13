@@ -33,7 +33,7 @@ const trustItems = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white text-[#111827]">
+    <div className="public-page min-h-screen bg-white text-[#111827]">
       <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
@@ -42,14 +42,14 @@ export default function Home() {
           className="home-section relative overflow-hidden"
           style={{
             background:
-              "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(88,80,236,0.12), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 90%, rgba(99,102,241,0.08), transparent 50%), linear-gradient(180deg, #ffffff 0%, #F8FAFF 100%)",
+              "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 90%, rgba(11,44,74,0.08), transparent 50%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
           }}
         >
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.35]"
             style={{
               backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(88,80,236,0.18) 1px, transparent 0)",
+                "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.22) 1px, transparent 0)",
               backgroundSize: "28px 28px",
               maskImage:
                 "radial-gradient(ellipse 60% 50% at 80% 20%, black, transparent), radial-gradient(ellipse 40% 35% at 8% 92%, black, transparent)",
@@ -66,7 +66,7 @@ export default function Home() {
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
-                  className="shrink-0 text-[#5850EC]"
+                  className="shrink-0 text-[#00C4A7]"
                 >
                   <path
                     d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75Z"
@@ -82,7 +82,7 @@ export default function Home() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span className="font-semibold text-[#5850EC]">GDPR, CCPA, LGPD & more</span>
+                <span className="font-semibold text-[#0B2C4A]">GDPR, CCPA, LGPD & more</span>
                 <span className="text-[#6B7280]" aria-hidden="true">
                   •
                 </span>
@@ -94,7 +94,7 @@ export default function Home() {
                 <span
                   className="bg-clip-text text-transparent"
                   style={{
-                    backgroundImage: "linear-gradient(90deg, #3B82F6 0%, #5850EC 55%, #7C3AED 100%)",
+                    backgroundImage: "linear-gradient(90deg, #0B2C4A 0%, #00C4A7 70%)",
                   }}
                 >
                   Stay compliant.
@@ -102,7 +102,7 @@ export default function Home() {
               </h1>
 
               <p className="mt-5 max-w-lg text-[15px] leading-7 text-[#4B5563] sm:text-base">
-                ConsentFlow helps you manage user consent transparently across web, mobile and apps
+                Consent Guru helps you manage user consent transparently across web, mobile and apps
                 — all in one powerful platform.
               </p>
 
@@ -112,9 +112,9 @@ export default function Home() {
                 </ArrowButton>
                 <Link
                   href="/sdk-demo"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#5850EC]/40 bg-white px-5 text-sm font-semibold text-[#5850EC] transition hover:border-[#5850EC] hover:bg-[#EEF2FF]"
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5]"
                 >
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#5850EC]/35">
+                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#00C4A7]/35">
                     <svg
                       width="10"
                       height="10"

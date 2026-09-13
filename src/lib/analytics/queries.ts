@@ -52,7 +52,7 @@ function optionalUuid(value: string | null | undefined): string | null {
   return UUID_RE.test(value) ? value : null;
 }
 
-export type ConsentAnalyticsMode = "full" | "charts" | "overview" | "breakdowns";
+export type ConsentAnalyticsMode = "full" | "charts" | "overview" | "breakdowns" | "home";
 
 async function loadConsentAnalyticsImpl(
   organizationId: string,
@@ -111,9 +111,9 @@ async function loadConsentAnalyticsImpl(
 
   const recordsWhereWithPurpose = and(recordsWhere, purposeExists);
 
-  const includeCharts = mode === "full" || mode === "charts" || mode === "overview";
-  const includeOverview = mode === "full" || mode === "overview";
-  const includeBreakdowns = mode === "full" || mode === "breakdowns";
+  const includeCharts = mode === "full" || mode === "charts" || mode === "overview" || mode === "home";
+  const includeOverview = mode === "full" || mode === "overview" || mode === "home";
+  const includeBreakdowns = mode === "full" || mode === "breakdowns" || mode === "home";
 
   if (scopedWebsiteIds.length === 0) {
     return emptyAnalytics(period.label, orgWebsites);

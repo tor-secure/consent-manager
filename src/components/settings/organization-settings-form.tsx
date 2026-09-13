@@ -6,7 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
-import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
+import { LocaleSelect } from "@/components/i18n/locale-select";
+import { Select } from "@/components/ui/select";
 
 export type OrgSettingsData = {
   name: string;
@@ -45,7 +46,7 @@ function Field({
     : children;
   return (
     <div>
-      <label htmlFor={fieldId} className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
+      <label htmlFor={fieldId} className="field-label">{label}</label>
       {control}
       {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
@@ -81,11 +82,7 @@ export function OrganizationSettingsForm({
   const { pending: saving, run } = useAsyncAction();
   const [error, setError]                       = useState("");
 
-  const inputCls = [
-    "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none",
-    "focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition",
-    "disabled:bg-[var(--muted)] disabled:text-[var(--muted-foreground)] disabled:cursor-not-allowed",
-  ].join(" ");
+  const inputCls = "field-input";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -189,8 +186,7 @@ export function OrganizationSettingsForm({
         </div>
         <div className="grid gap-5 p-6 sm:grid-cols-3">
           <Field label="Timezone">
-            <select value={timezone} onChange={(e) => setTimezone(e.target.value)}
-              disabled={readOnly} className={inputCls}>
+            <Select value={timezone} onChange={(e) => setTimezone(e.target.value)} disabled={readOnly}>
               <option value="UTC">UTC</option>
               <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
               <option value="Europe/London">Europe/London (GMT/BST)</option>
@@ -204,19 +200,20 @@ export function OrganizationSettingsForm({
               <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
               <option value="Asia/Dubai">Asia/Dubai (GST)</option>
               <option value="Asia/Tokyo">Asia/Tokyo (JST)</option>
-            </select>
+            </Select>
           </Field>
 
           <Field label="Default language">
-            <select value={defaultLanguage} onChange={(e) => setDefaultLanguage(e.target.value)}
-              disabled={readOnly} className={inputCls}>
-              <LocaleSelectOptions includeCurrent={defaultLanguage} />
-            </select>
+            <LocaleSelect
+              value={defaultLanguage}
+              onChange={setDefaultLanguage}
+              includeCurrent={defaultLanguage}
+              disabled={readOnly}
+            />
           </Field>
 
           <Field label="Default region">
-            <select value={defaultRegion} onChange={(e) => setDefaultRegion(e.target.value)}
-              disabled={readOnly} className={inputCls}>
+            <Select value={defaultRegion} onChange={(e) => setDefaultRegion(e.target.value)} disabled={readOnly}>
               <option value="">— None —</option>
               <option value="IN">India</option>
               <option value="EU">European Union</option>
@@ -226,7 +223,7 @@ export function OrganizationSettingsForm({
               <option value="CA">Canada</option>
               <option value="SG">Singapore</option>
               <option value="AE">UAE</option>
-            </select>
+            </Select>
           </Field>
         </div>
       </Card>

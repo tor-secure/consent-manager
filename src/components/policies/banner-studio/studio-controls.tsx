@@ -15,11 +15,12 @@ import {
   type BannerPreset,
   type BannerPresetCategory,
 } from "@/lib/banner-presets";
-import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
+import { LocaleSelect } from "@/components/i18n/locale-select";
+import { Select } from "@/components/ui/select";
 
 function PresetThumb({ preset }: { preset: BannerPreset }) {
   const bg = preset.overrides.backgroundColor ?? "#ffffff";
-  const primary = preset.overrides.primaryColor ?? "#2c4a7c";
+  const primary = preset.overrides.primaryColor ?? "#0B2C4A";
   const text = preset.overrides.textColor ?? "#0f172a";
   const layout = preset.overrides.layout ?? "bar";
   const position = preset.overrides.position ?? "bottom";
@@ -113,15 +114,14 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
           onChange={(e) => onChange(e.target.value)}
           maxLength={7}
           placeholder="#000000"
-          className="flex-1 rounded-xl border border-[var(--border)] px-2.5 py-1.5 font-mono text-xs shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20"
+          className="field-input is-sm flex-1 font-mono"
         />
       </div>
     </Field>
   );
 }
 
-const inputCls = "w-full rounded-xl border border-[var(--border)] px-2.5 py-1.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
-const selectCls = `${inputCls} bg-[var(--card)]`;
+const inputCls = "field-input is-sm";
 
 // ---------------------------------------------------------------------------
 // Tabs
@@ -433,11 +433,11 @@ export function StudioControls({
               <div>
                 <SectionLabel>Consent default</SectionLabel>
                 <Field label="Default choice">
-                  <select value={config.defaultConsent} onChange={(e) => onChange("defaultConsent", e.target.value as ConsentDefault)} className={selectCls}>
+                  <Select size="sm" value={config.defaultConsent} onChange={(e) => onChange("defaultConsent", e.target.value as ConsentDefault)}>
                     <option value="none">None — wait for explicit choice</option>
                     <option value="opt-in">Opt-in — grant by default</option>
                     <option value="opt-out">Opt-out — deny by default</option>
-                  </select>
+                  </Select>
                 </Field>
               </div>
 
@@ -498,12 +498,15 @@ export function StudioControls({
                 <SectionLabel>Locale</SectionLabel>
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="Language">
-                    <select value={config.language} onChange={(e) => onChange("language", e.target.value)} className={selectCls}>
-                      <LocaleSelectOptions includeCurrent={config.language} />
-                    </select>
+                    <LocaleSelect
+                      value={config.language}
+                      onChange={(language) => onChange("language", language)}
+                      includeCurrent={config.language}
+                      size="sm"
+                    />
                   </Field>
                   <Field label="Regulation">
-                    <select value={config.region} onChange={(e) => onChange("region", e.target.value)} className={selectCls}>
+                    <Select size="sm" value={config.region} onChange={(e) => onChange("region", e.target.value)}>
                       <option value="">— None —</option>
                       <option value="EU">EU (GDPR)</option>
                       <option value="IN">India (DPDP)</option>
@@ -511,7 +514,7 @@ export function StudioControls({
                       <option value="UK">UK (UK GDPR)</option>
                       <option value="AU">Australia</option>
                       <option value="CA">Canada (PIPEDA)</option>
-                    </select>
+                    </Select>
                   </Field>
                 </div>
               </div>

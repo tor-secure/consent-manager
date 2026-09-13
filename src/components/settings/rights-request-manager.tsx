@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { notify } from "@/components/feedback/notify";
+import { Select } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -285,7 +286,7 @@ function RequestCard({ request }: { request: RightsRequestRow }) {
                 maxLength={10000}
                 disabled={isPending}
                 placeholder="Internal notes visible only to your team…"
-                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)]"
+                className="field-input"
               />
 
               {/* Feedback */}
@@ -395,24 +396,24 @@ export function RightsRequestManager({
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
-        <select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
+        <Select value={typeFilter} onChange={(event) => setTypeFilter(event.target.value)} size="sm" className="w-[10.5rem]">
           <option value="all">All types</option>
           {["access", "correction", "erasure", "portability", "objection", "restriction", "withdraw_consent", "grievance", "nomination"].map((type) => (
             <option key={type} value={type}>{type}</option>
           ))}
-        </select>
-        <select value={jurisdictionFilter} onChange={(event) => setJurisdictionFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
+        </Select>
+        <Select value={jurisdictionFilter} onChange={(event) => setJurisdictionFilter(event.target.value)} size="sm" className="w-[10.5rem]">
           <option value="all">All jurisdictions</option>
           {["dpdp", "gdpr", "ccpa", "lgpd"].map((key) => (
             <option key={key} value={key}>{key.toUpperCase()}</option>
           ))}
-        </select>
-        <select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value)} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-xs">
+        </Select>
+        <Select value={verificationFilter} onChange={(event) => setVerificationFilter(event.target.value)} size="sm" className="w-[10.5rem]">
           <option value="all">All verification</option>
           {["pending", "verified", "failed", "expired", "unverified"].map((key) => (
             <option key={key} value={key}>{key}</option>
           ))}
-        </select>
+        </Select>
       </div>
       <div className="flex gap-0.5 rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-0.5 self-start soft-shadow w-fit">
         {(["open", "all", "completed", "overdue"] as const).map((f) => (

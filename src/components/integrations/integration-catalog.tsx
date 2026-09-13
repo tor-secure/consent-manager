@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { dashboardFetch } from "@/components/feedback/use-async-action";
+import { Select } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -202,17 +203,18 @@ function IntegrationCard({
       {/* Connect selector */}
       {unconnected.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <select
+          <Select
             value={selectedWebsiteId}
             onChange={(e) => setSelectedWebsiteId(e.target.value)}
-            className="h-9 flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-2.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition"
+            size="sm"
+            className="flex-1"
           >
             {unconnected.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name} ({w.domain})
               </option>
             ))}
-          </select>
+          </Select>
           <button
             type="button"
             disabled={isPending || busyId === "connect" || !selectedWebsiteId}

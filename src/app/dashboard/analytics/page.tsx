@@ -97,7 +97,7 @@ function EmptyNote({
   actionHref?: string;
 }) {
   return (
-    <Card>
+    <Card className="dash-card-in">
       <CardContent className="py-12 text-center">
         <p className="text-sm text-[var(--muted-foreground)]">{text}</p>
         {actionLabel && actionHref ? (
@@ -255,7 +255,7 @@ async function AnalyticsOverviewSection({
                 }
               />
             ) : (
-              <div className="grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-5">
+              <div className="dash-card-grid grid items-stretch gap-5 sm:grid-cols-2 xl:grid-cols-5">
                 <StatCard label="Total records" value={analytics.overview.total} icon={<IconTotal />} iconColor="blue" description="One row per consent record" />
                 <StatCard label="Accepted" value={analytics.overview.accepted} icon={<IconAccepted />} iconColor="green" description={`${analytics.overview.acceptRate}% of records`} />
                 <StatCard label="Rejected" value={analytics.overview.rejected} icon={<IconRejected />} iconColor="rose" description={`${analytics.overview.rejectRate}% of records`} />
@@ -273,7 +273,7 @@ async function AnalyticsOverviewSection({
             {analytics.trends.length === 0 ? (
               <EmptyNote text="Not enough event data to chart trends for this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -293,8 +293,11 @@ async function AnalyticsOverviewSection({
                           <tr key={row.day}>
                             <td className="px-6 py-3 font-medium text-[var(--foreground)]">{row.day}</td>
                             <td className="px-6 py-3">
-                              <div className="h-2 w-40 overflow-hidden rounded-full bg-[var(--secondary)]">
-                                <div className="h-full rounded-full bg-[var(--primary)]" style={{ width: `${(row.interactions / maxTrend) * 100}%` }} />
+                              <div className="h-3.5 w-40 overflow-hidden rounded-full bg-[var(--secondary)]">
+                                <div
+                                  className="dash-hbar-fill h-full rounded-full bg-[var(--primary)]"
+                                  style={{ width: `${(row.interactions / maxTrend) * 100}%` }}
+                                />
                               </div>
                             </td>
                             <td className="px-6 py-3 text-right tabular-nums">{row.interactions}</td>
@@ -318,7 +321,7 @@ async function AnalyticsOverviewSection({
               description={`Accept / reject / granular / withdraw rates from stored records and choice events · ${analytics.period}.`}
             />
             {analytics.overview.choiceEvents > 0 || analytics.overview.interactions > 0 ? (
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="dash-card-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Accept-all rate" value={`${analytics.overview.acceptAllRate}%`} icon={<IconAccepted />} iconColor="green" description="From choice events" />
                 <StatCard label="Reject-all rate" value={`${analytics.overview.rejectAllRate}%`} icon={<IconRejected />} iconColor="rose" description="From choice events" />
                 <StatCard label="Granular rate" value={`${analytics.overview.interactionGranularRate}%`} icon={<IconPartial />} iconColor="purple" description="From choice events" />
@@ -332,7 +335,7 @@ async function AnalyticsOverviewSection({
           {analytics.websiteSummary.length > 0 && (
             <section>
               <SectionHeader title="By website" description="Consent records per website." />
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -375,7 +378,7 @@ async function AnalyticsOverviewSection({
             {analytics.purposes.length === 0 ? (
               <EmptyNote text="No purpose decisions in this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -414,9 +417,9 @@ async function AnalyticsOverviewSection({
           {analytics.eventTypes.length > 0 && (
             <section>
               <SectionHeader title="Consent events" description="Count of each consent event type." />
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="dash-card-grid grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {analytics.eventTypes.map((ev) => (
-                  <Card key={ev.eventType} className="p-5 sm:p-6">
+                  <Card key={ev.eventType} className="dash-card-in p-5 sm:p-6">
                     <code className="block truncate font-mono text-[11px] font-medium text-[var(--muted-foreground)] bg-[var(--muted)] px-2.5 py-1 rounded-xl">{ev.eventType}</code>
                     <p className="mt-3 text-2xl font-bold tracking-tight text-[var(--foreground)]">{ev.count.toLocaleString()}</p>
                   </Card>
@@ -493,7 +496,7 @@ async function AnalyticsDeferredSection({
             {analytics.countries.length === 0 || analytics.countries.every((row) => row.key === "unknown") ? (
               <EmptyNote text="No reliable country data is stored for this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -527,7 +530,7 @@ async function AnalyticsDeferredSection({
             {analytics.devices.length === 0 || analytics.devices.every((row) => row.key === "unknown") ? (
               <EmptyNote text="No trustworthy device classification is stored for older records in this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -561,7 +564,7 @@ async function AnalyticsDeferredSection({
             {analytics.browsers.length === 0 || analytics.browsers.every((row) => row.key === "unknown") ? (
               <EmptyNote text="No normalized browser data is stored for this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -595,7 +598,7 @@ async function AnalyticsDeferredSection({
             {analytics.policyVersions.length === 0 ? (
               <EmptyNote text="No policy-version linked consent records in this period." />
             ) : (
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -637,7 +640,7 @@ async function AnalyticsDeferredSection({
                   </Link>
                 }
               />
-              <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="dash-card-grid grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total trackers" value={tk.total ?? 0} icon={<IconTotal />} iconColor="blue" />
                 <StatCard label="Essential" value={tk.essential ?? 0} icon={<IconAccepted />} iconColor="green" description="Never blocked" />
                 <StatCard label="Consent-controlled" value={tk.withPurpose ?? 0} icon={<IconPartial />} iconColor="purple" description="Require purpose grant" />
@@ -657,7 +660,7 @@ async function AnalyticsDeferredSection({
                   </Link>
                 }
               />
-              <div className="grid gap-5 sm:grid-cols-3">
+              <div className="dash-card-grid grid gap-5 sm:grid-cols-3">
                 <StatCard label="Scans run" value={sc.total ?? 0} icon={<IconTotal />} iconColor="blue" />
                 <StatCard label="Completed" value={sc.completed ?? 0} icon={<IconAccepted />} iconColor="green" />
                 <StatCard label="Items detected" value={sc.items ?? 0} icon={<IconPartial />} iconColor="purple" />
@@ -676,7 +679,7 @@ async function AnalyticsDeferredSection({
                   </Link>
                 }
               />
-              <Card>
+              <Card className="dash-card-in">
                 <CardContent className="p-0">
                   <div className="table-scroll scrollbar-thin">
                     <table className="min-w-full divide-y divide-[var(--border)] text-sm">
@@ -717,7 +720,7 @@ async function AnalyticsDeferredSection({
           )}
 
           {overview.websites.length > 0 && !hasData && recentEvents.length === 0 && (
-            <Card className="p-5 sm:p-6">
+            <Card className="dash-card-in p-5 sm:p-6">
               <div className="rounded-2xl border border-dashed border-[var(--border)] p-10 text-center bg-[var(--card)]">
                 <p className="text-base font-semibold text-[var(--foreground)]">No consent data yet</p>
                 <p className="mt-2 text-sm text-[var(--muted-foreground)] max-w-md mx-auto">

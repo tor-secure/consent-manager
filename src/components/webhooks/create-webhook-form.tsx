@@ -21,7 +21,7 @@ const ALL_EVENTS = [
 
 type CreatedEndpoint = { signingSecret: string; name: string };
 
-const inputCls = "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)] disabled:opacity-60";
+const inputCls = "field-input";
 
 export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedEndpoint) => void }) {
   const router = useRouter();
@@ -110,19 +110,19 @@ export function CreateWebhookForm({ onCreated }: { onCreated: (created: CreatedE
 
       <div className="space-y-5">
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">Name</label>
+          <label className="field-label">Name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={255}
             placeholder="Production webhook" className={inputCls} />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">Endpoint URL</label>
+          <label className="field-label">Endpoint URL</label>
           <input type="url" value={url} onChange={(e) => setUrl(e.target.value)} required
             placeholder="https://example.com/webhooks/cmp" className={inputCls} />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+          <label className="field-label">
             Description <span className="font-normal text-[var(--muted-foreground)]">(optional)</span>
           </label>
           <input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={500} className={inputCls} />

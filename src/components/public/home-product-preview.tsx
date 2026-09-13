@@ -15,7 +15,7 @@ export function HomeProductPreview() {
   ];
 
   const status = [
-    { label: "Granted", value: "69.3%", color: "#3B82F6" },
+    { label: "Granted", value: "69.3%", color: "#00C4A7" },
     { label: "Denied", value: "14.2%", color: "#EF4444" },
     { label: "Withdrawn", value: "9.1%", color: "#F59E0B" },
     { label: "No Response", value: "7.4%", color: "#22C55E" },
@@ -25,13 +25,13 @@ export function HomeProductPreview() {
     <div
       id="product"
       className="home-fade-item relative mx-auto w-full max-w-[640px] lg:max-w-none"
-      aria-label="ConsentFlow dashboard preview"
+      aria-label="Consent Guru dashboard preview"
     >
       <div
         className="pointer-events-none absolute -inset-8 -z-10 rounded-[2rem] opacity-80"
         style={{
           background:
-            "radial-gradient(ellipse at 70% 30%, rgba(88,80,236,0.18), transparent 55%), radial-gradient(ellipse at 30% 80%, rgba(59,130,246,0.12), transparent 50%)",
+            "radial-gradient(ellipse at 70% 30%, rgba(0,196,167,0.18), transparent 55%), radial-gradient(ellipse at 30% 80%, rgba(11,44,74,0.12), transparent 50%)",
         }}
         aria-hidden="true"
       />
@@ -40,10 +40,10 @@ export function HomeProductPreview() {
         <div className="grid min-h-[420px] sm:grid-cols-[148px_1fr]">
           <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-3 sm:block" aria-hidden="true">
             <div className="mb-4 flex items-center gap-2 px-2 pt-1">
-              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#5850EC] text-[10px] font-bold text-white">
-                CF
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0B2C4A] text-[10px] font-bold text-[#00C4A7]">
+                CG
               </span>
-              <span className="text-[11px] font-semibold text-[#111827]">ConsentFlow</span>
+              <span className="text-[11px] font-semibold text-[#111827]">Consent Guru</span>
             </div>
             <ul className="space-y-1">
               {sidebar.map((item) => (
@@ -52,14 +52,14 @@ export function HomeProductPreview() {
                     className={[
                       "flex items-center gap-2 rounded-lg px-2.5 py-2 text-[12px] font-medium",
                       item.active
-                        ? "bg-[#EEF2FF] text-[#5850EC]"
+                        ? "bg-[#E6F9F5] text-[#00C4A7]"
                         : "text-[#6B7280]",
                     ].join(" ")}
                   >
                     <span
                       className={[
                         "h-1.5 w-1.5 rounded-full",
-                        item.active ? "bg-[#5850EC]" : "bg-[#D1D5DB]",
+                        item.active ? "bg-[#00C4A7]" : "bg-[#D1D5DB]",
                       ].join(" ")}
                     />
                     {item.label}
@@ -97,8 +97,8 @@ export function HomeProductPreview() {
                 <svg viewBox="0 0 420 160" className="h-full w-full" aria-hidden="true">
                   <defs>
                     <linearGradient id="cf-line-fill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#5850EC" stopOpacity="0.28" />
-                      <stop offset="100%" stopColor="#5850EC" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#00C4A7" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#00C4A7" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   {[30, 60, 90, 120].map((y) => (
@@ -119,17 +119,17 @@ export function HomeProductPreview() {
                   <path
                     d="M0 118 C 40 110, 70 95, 105 88 C 140 81, 165 96, 200 78 C 235 60, 260 70, 295 52 C 330 34, 360 48, 420 28"
                     fill="none"
-                    stroke="#5850EC"
+                    stroke="#00C4A7"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
-                  <circle cx="295" cy="52" r="5" fill="#5850EC" stroke="white" strokeWidth="2" />
+                  <circle cx="295" cy="52" r="5" fill="#00C4A7" stroke="white" strokeWidth="2" />
                 </svg>
 
                 <div className="absolute left-[52%] top-2 hidden -translate-x-1/2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] text-[#374151] shadow-md sm:block">
                   <span className="font-medium text-[#111827]">May 12, 2025</span>
                   <span className="text-[#9CA3AF]"> • </span>
-                  Consent Rate: <span className="font-semibold text-[#5850EC]">92.6%</span>
+                  Consent Rate: <span className="font-semibold text-[#00C4A7]">92.6%</span>
                 </div>
               </div>
             </div>
@@ -138,13 +138,13 @@ export function HomeProductPreview() {
               <p className="text-[12px] font-semibold text-[#111827]">Consent Status</p>
               <div className="mt-2 flex items-center gap-3">
                 <svg viewBox="0 0 36 36" className="h-14 w-14 shrink-0" aria-hidden="true">
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#EEF2FF" strokeWidth="5" />
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#E6F9F5" strokeWidth="5" />
                   <circle
                     cx="18"
                     cy="18"
                     r="14"
                     fill="none"
-                    stroke="#3B82F6"
+                    stroke="#00C4A7"
                     strokeWidth="5"
                     strokeDasharray="60.5 27.5"
                     strokeDashoffset="0"

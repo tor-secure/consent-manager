@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { dashboardNavigationGroups, isPathActive, SETUP_NAV_HREFS } from "@/config/navigation";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 type NavItem = {
   label: string;
@@ -310,23 +311,16 @@ function SidebarGroup({
   );
 }
 
-function BrandLogo({ collapsed }: { collapsed: boolean }) {
+function BrandLockup({ collapsed }: { collapsed: boolean }) {
   return (
     <div
       suppressHydrationWarning
-      className={`icon-text-row px-1 py-2 ${collapsed ? "justify-center px-0" : ""}`}
+      className={`px-1 py-2 ${collapsed ? "flex justify-center px-0" : ""}`}
     >
-      <div data-icon-tile className="mt-0 flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary)]">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
-          <path d="M9 12l2 2 4-4" stroke="currentColor" className="text-[var(--primary)]" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
-      {!collapsed && (
-        <div className="icon-text-body self-center">
-          <p className="text-[17px] font-bold leading-snug tracking-tight text-[var(--foreground)]">ConsentFlow</p>
-          <p className="text-[12px] font-medium leading-snug text-[var(--muted-foreground)]">Consent Manager</p>
-        </div>
+      {collapsed ? (
+        <BrandLogo markOnly height={36} />
+      ) : (
+        <BrandLogo height={42} />
       )}
     </div>
   );
@@ -418,7 +412,7 @@ export function SidebarNav({
       className={`flex h-full flex-col ${collapsed ? "px-3 py-5" : "px-3 py-5 sm:px-4 sm:py-6"}`}
     >
       <div className="mb-6 shrink-0">
-        <BrandLogo collapsed={collapsed} />
+        <BrandLockup collapsed={collapsed} />
       </div>
 
       <nav

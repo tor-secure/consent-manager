@@ -10,7 +10,7 @@ export function HomeHowItWorks() {
   return (
     <section id="how-it-works" className="home-section bg-white">
       <div className="home-fade-item mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#5850EC]">How it works</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">How it works</p>
         <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#111827] sm:text-4xl">
           Live in five steps
         </h2>
@@ -19,8 +19,8 @@ export function HomeHowItWorks() {
         </p>
         <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {steps.map((step) => (
-            <li key={step.n} className="rounded-2xl border border-[#E5E7EB] bg-[#F8FAFF] p-5">
-              <p className="text-xs font-bold text-[#5850EC]">{step.n}</p>
+            <li key={step.n} className="rounded-2xl border border-[#E5E7EB] bg-[#F3FAF8] p-5">
+              <p className="text-xs font-bold text-[#00C4A7]">{step.n}</p>
               <h3 className="mt-2 text-sm font-semibold text-[#111827]">{step.title}</h3>
               <p className="mt-1.5 text-[13px] leading-5 text-[#6B7280]">{step.body}</p>
             </li>

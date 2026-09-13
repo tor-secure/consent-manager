@@ -17,15 +17,19 @@ import {
   type ConsentDefault,
   type NoticeTranslation,
 } from "@/lib/banner-config";
-import { LocaleSelectOptions } from "@/components/i18n/locale-select-options";
-import { localeLabel } from "@/lib/i18n/locale-registry";
+import { LocaleSelect } from "@/components/i18n/locale-select";
+import { localeLabel, LOCALE_OPTIONS } from "@/lib/i18n/locale-registry";
+import { Combobox } from "@/components/ui/combobox";
+import { Select } from "@/components/ui/select";
+
+const EXCLUDE_EN = ["en"];
+const ENGLISH_ROOT = [{ value: "en", label: "English (root)" }];
 
 // ---------------------------------------------------------------------------
 // Shared primitives
 // ---------------------------------------------------------------------------
 
-const inputCls =
-  "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition";
+const inputCls = "field-input";
 
 function Field({
   label,
@@ -38,7 +42,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">{label}</label>
+      <label className="field-label">{label}</label>
       {children}
       {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
@@ -404,18 +408,18 @@ export function BannerConfigForm({
           {activeTab === "behavior" && (
             <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-5">
               <Field label="Default consent">
-                <select value={config.defaultConsent} onChange={(e) => update("defaultConsent", e.target.value as ConsentDefault)} className={inputCls}>
+                <Select value={config.defaultConsent} onChange={(e) => update("defaultConsent", e.target.value as ConsentDefault)}>
                   <option value="none">Blocked until server-confirmed choice</option>
                   <option value="opt-in">Legacy opt-in setting (still blocked until confirmation)</option>
                   <option value="opt-out">Legacy opt-out setting (blocked by default)</option>
-                </select>
+                </Select>
               </Field>
               <Field label="Consent expires after (days)" hint="1–3650 days.">
                 <input type="number" min={1} max={3650} value={config.consentExpireDays} onChange={(e) => update("consentExpireDays", parseInt(e.target.value, 10) || 365)} className={inputCls} />
               </Field>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Regulation region" hint="Determines which rules apply.">
-                  <select value={config.region} onChange={(e) => update("region", e.target.value)} className={inputCls}>
+                  <Select value={config.region} onChange={(e) => update("region", e.target.value)}>
                     <option value="">— None —</option>
                     <option value="EU">EU (GDPR)</option>
                     <option value="IN">India (DPDP)</option>
@@ -423,12 +427,14 @@ export function BannerConfigForm({
                     <option value="UK">UK (UK GDPR)</option>
                     <option value="AU">Australia</option>
                     <option value="CA">Canada (PIPEDA)</option>
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Default language" hint="Shown when no translation matches.">
-                  <select value={config.language} onChange={(e) => update("language", e.target.value)} className={inputCls}>
-                    <LocaleSelectOptions includeCurrent={config.language} />
-                  </select>
+                  <LocaleSelect
+                    value={config.language}
+                    onChange={(language) => update("language", language)}
+                    includeCurrent={config.language}
+                  />
                 </Field>
               </div>
               <div className="space-y-3">
@@ -449,20 +455,20 @@ export function BannerConfigForm({
             <div className="rounded-2xl bg-[var(--card)] card-shadow p-6 space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Layout">
-                  <select value={config.layout} onChange={(e) => update("layout", e.target.value as BannerLayout)} className={inputCls}>
+                  <Select value={config.layout} onChange={(e) => update("layout", e.target.value as BannerLayout)}>
                     <option value="bar">Bar (full width)</option>
                     <option value="box">Box (compact)</option>
                     <option value="dialog">Dialog (centred modal)</option>
-                  </select>
+                  </Select>
                 </Field>
                 <Field label="Position">
-                  <select value={config.position} onChange={(e) => update("position", e.target.value as BannerPosition)} className={inputCls}>
+                  <Select value={config.position} onChange={(e) => update("position", e.target.value as BannerPosition)}>
                     <option value="bottom">Bottom</option>
                     <option value="top">Top</option>
                     <option value="bottom-left">Bottom left</option>
                     <option value="bottom-right">Bottom right</option>
                     <option value="center">Centred</option>
-                  </select>
+                  </Select>
                 </Field>
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
@@ -470,7 +476,7 @@ export function BannerConfigForm({
                   <Field key={key} label={{ primaryColor: "Primary colour", backgroundColor: "Background", textColor: "Text colour" }[key]}>
                     <div className="flex items-center gap-2">
                       <input type="color" value={config[key]} onChange={(e) => update(key, e.target.value)} className="h-9 w-10 cursor-pointer rounded-xl border p-0.5" />
-                      <input value={config[key]} onChange={(e) => update(key, e.target.value)} maxLength={7} className="flex-1 rounded-xl border border-[var(--border)] px-2 py-2 font-mono text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20" />
+                      <input value={config[key]} onChange={(e) => update(key, e.target.value)} maxLength={7} className="field-input flex-1 font-mono" />
                     </div>
                   </Field>
                 ))}
@@ -502,30 +508,29 @@ export function BannerConfigForm({
                   label="Supported languages"
                   hint="Optional allowlist for the public banner. Leave empty to accept any registered locale, then fall back as documented."
                 >
-                  <select
+                  <Combobox
                     multiple
-                    size={8}
                     value={config.supportedLocales ?? []}
-                    onChange={(e) => {
-                      const next = Array.from(e.target.selectedOptions).map((opt) => opt.value);
-                      update("supportedLocales", next);
-                    }}
-                    className={`${inputCls} h-40`}
-                  >
-                    <LocaleSelectOptions />
-                  </select>
+                    onChange={(next) => update("supportedLocales", next)}
+                    options={LOCALE_OPTIONS.map((entry) => ({ value: entry.code, label: entry.label }))}
+                    placeholder="No restriction"
+                    searchPlaceholder="Search languages"
+                    emptyText="No languages match"
+                  />
                 </Field>
                 <div className="mb-4 mt-5 flex flex-wrap items-center gap-3">
-                  <label className="text-sm font-semibold text-[var(--foreground)] shrink-0">Edit translation for:</label>
-                  <select
-                    value={selectedLang}
-                    onChange={(e) => setSelectedLang(e.target.value)}
-                    className="flex-1 rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-1.5 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition max-w-xs"
-                  >
-                    {SUPPORTED_LANGUAGES.filter((l) => l.code !== "en").map((l) => (
-                      <option key={l.code} value={l.code}>{l.label}</option>
-                    ))}
-                  </select>
+                  <label className="text-sm font-semibold text-[var(--foreground)] shrink-0" htmlFor="translation-language">
+                    Edit translation for:
+                  </label>
+                  <div className="min-w-0 flex-1 max-w-xs">
+                    <LocaleSelect
+                      id="translation-language"
+                      value={selectedLang}
+                      onChange={setSelectedLang}
+                      exclude={EXCLUDE_EN}
+                      size="sm"
+                    />
+                  </div>
                 </div>
 
                 {/* Fields for the selected language */}
@@ -606,18 +611,21 @@ export function BannerConfigForm({
           <div className="rounded-2xl bg-[var(--card)] card-shadow p-5">
             <p className="mb-3 text-sm font-semibold text-[var(--foreground)]">Live preview</p>
             <p className="mb-4 text-xs text-[var(--muted-foreground)]">Reflects current text, appearance, and the selected preview language.</p>
-            <label className="mb-2 block text-xs font-semibold text-[var(--muted-foreground)]">Preview language</label>
-            <select
-              value={activeTab === "translations" ? selectedLang : config.language}
-              onChange={(e) => {
-                setSelectedLang(e.target.value);
-                setTab("translations");
-              }}
-              className={`${inputCls} mb-3 text-xs`}
-            >
-              <option value="en">English (root)</option>
-              <LocaleSelectOptions />
-            </select>
+            <label className="mb-2 block text-xs font-semibold text-[var(--muted-foreground)]" htmlFor="preview-language">
+              Preview language
+            </label>
+            <div className="mb-3">
+              <LocaleSelect
+                id="preview-language"
+                value={activeTab === "translations" ? selectedLang : config.language}
+                onChange={(language) => {
+                  setSelectedLang(language);
+                  setTab("translations");
+                }}
+                extraOptions={ENGLISH_ROOT}
+                size="sm"
+              />
+            </div>
             <BannerPreview
               config={config}
               locale={activeTab === "translations" ? selectedLang : config.language}

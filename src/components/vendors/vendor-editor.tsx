@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { notify } from "@/components/feedback/notify";
 import { VENDOR_ROLES, DPA_STATUSES, DOWNSTREAM_DSAR_MODES } from "@/lib/processing/types";
+import { Select } from "@/components/ui/select";
 
 export type VendorEditorModel = {
   id: string;
@@ -32,15 +33,14 @@ export type VendorEditorModel = {
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">{label}</label>
+      <label className="field-label">{label}</label>
       {children}
       {hint && <p className="mt-1 text-xs text-[var(--muted-foreground)]">{hint}</p>}
     </div>
   );
 }
 
-const inputCls =
-  "h-10 w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 text-sm text-[var(--foreground)] outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20";
+const inputCls = "field-input";
 
 function isoDate(value: Date | string | null): string {
   if (!value) return "";
@@ -127,18 +127,18 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
           <Field label="Name"><input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} required /></Field>
           <Field label="Legal name"><input className={inputCls} value={legalName} onChange={(e) => setLegalName(e.target.value)} /></Field>
           <Field label="Role" hint="Required before publishing a policy that references this vendor. Unknown blocks publish.">
-            <select className={inputCls} value={role} onChange={(e) => setRole(e.target.value)} required>
+            <Select value={role} onChange={(e) => setRole(e.target.value)} required>
               {VENDOR_ROLES.filter((item) => item !== "unknown" || role === "unknown").map((item) => (
                 <option key={item} value={item}>{item.replaceAll("_", " ")}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Status">
-            <select className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
+            <Select value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="archived">Archived</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Key"><input className={inputCls} value={vendor.key} disabled /></Field>
           <Field label="Country / HQ"><input className={inputCls} value={country} onChange={(e) => setCountry(e.target.value)} placeholder="DE" /></Field>
@@ -163,17 +163,17 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
         <p className="text-xs text-[var(--muted-foreground)]">Recording a DPA status here is not proof that a DPA exists or is legally sufficient.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="DPA status">
-            <select className={inputCls} value={dpaStatus} onChange={(e) => setDpaStatus(e.target.value)}>
+            <Select value={dpaStatus} onChange={(e) => setDpaStatus(e.target.value)}>
               {DPA_STATUSES.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
-            </select>
+            </Select>
           </Field>
           <Field label="DPA reference"><input className={inputCls} value={dpaReference} onChange={(e) => setDpaReference(e.target.value)} /></Field>
           <Field label="DPA effective"><input type="date" className={inputCls} value={dpaEffectiveAt} onChange={(e) => setDpaEffectiveAt(e.target.value)} /></Field>
           <Field label="DPA review"><input type="date" className={inputCls} value={dpaReviewAt} onChange={(e) => setDpaReviewAt(e.target.value)} /></Field>
           <Field label="Downstream DSAR tracking">
-            <select className={inputCls} value={downstreamDsarMode} onChange={(e) => setDownstreamDsarMode(e.target.value)}>
+            <Select value={downstreamDsarMode} onChange={(e) => setDownstreamDsarMode(e.target.value)}>
               {DOWNSTREAM_DSAR_MODES.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}
-            </select>
+            </Select>
           </Field>
         </div>
       </section>
@@ -185,25 +185,25 @@ export function VendorEditor({ vendor }: { vendor: VendorEditorModel }) {
         </p>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field label="Sale">
-            <select className={inputCls} value={ccpaSale} onChange={(e) => setCcpaSale(e.target.value)}>
+            <Select value={ccpaSale} onChange={(e) => setCcpaSale(e.target.value)}>
               <option value="unknown">Unknown</option>
               <option value="applicable">Applicable</option>
               <option value="not_applicable">Not applicable</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Sharing">
-            <select className={inputCls} value={ccpaShare} onChange={(e) => setCcpaShare(e.target.value)}>
+            <Select value={ccpaShare} onChange={(e) => setCcpaShare(e.target.value)}>
               <option value="unknown">Unknown</option>
               <option value="applicable">Applicable</option>
               <option value="not_applicable">Not applicable</option>
-            </select>
+            </Select>
           </Field>
           <Field label="Sensitive PI">
-            <select className={inputCls} value={ccpaSensitivePi} onChange={(e) => setCcpaSensitivePi(e.target.value)}>
+            <Select value={ccpaSensitivePi} onChange={(e) => setCcpaSensitivePi(e.target.value)}>
               <option value="unknown">Unknown</option>
               <option value="applicable">Applicable</option>
               <option value="not_applicable">Not applicable</option>
-            </select>
+            </Select>
           </Field>
         </div>
       </section>

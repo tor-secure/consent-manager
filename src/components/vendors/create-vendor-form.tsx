@@ -12,6 +12,7 @@ import {
   type CatalogVendor,
 } from "@/lib/vendor-catalog";
 import { DPA_STATUSES, VENDOR_ROLES } from "@/lib/processing/types";
+import { Select } from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,7 +41,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-[var(--foreground)]">
+      <label className="field-label">
         {label}
       </label>
       {children}
@@ -552,7 +553,7 @@ export function CreateVendorForm() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           <Field label="Role" hint="Required to publish a policy that uses this vendor. Do not leave unknown.">
-            <select
+            <Select
               value={role}
               onChange={(e) => {
                 const next = e.target.value;
@@ -563,24 +564,22 @@ export function CreateVendorForm() {
                   setDpaStatus("not_applicable");
                 }
               }}
-              className="field-input"
               required
             >
               {VENDOR_ROLES.filter((item) => item !== "unknown").map((item) => (
                 <option key={item} value={item}>{item.replaceAll("_", " ")}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="DPA status">
-            <select
+            <Select
               value={dpaStatus}
               onChange={(e) => setDpaStatus(e.target.value)}
-              className="field-input"
             >
               {DPA_STATUSES.map((item) => (
                 <option key={item} value={item}>{item.replaceAll("_", " ")}</option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Country" hint="ISO 3166-1 alpha-2 code.">
             <input
@@ -593,30 +592,28 @@ export function CreateVendorForm() {
           </Field>
 
           <Field label="Source">
-            <select
+            <Select
               value={source}
               onChange={(e) =>
                 setSource(e.target.value as "custom" | "iab" | "google")
               }
-              className="field-input"
             >
               <option value="custom">Custom</option>
               <option value="iab">IAB</option>
               <option value="google">Google</option>
-            </select>
+            </Select>
           </Field>
 
           <Field label="Status">
-            <select
+            <Select
               value={status}
               onChange={(e) =>
                 setStatus(e.target.value as "active" | "inactive")
               }
-              className="field-input"
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
-            </select>
+            </Select>
           </Field>
         </div>
       </div>

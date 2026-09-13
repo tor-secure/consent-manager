@@ -16,9 +16,9 @@ const useCases = [
     title: "SaaS",
     description:
       "Manage consent seamlessly across your product and marketing sites.",
-    iconBg: "bg-[#EFF6FF]",
-    iconColor: "text-[#2563EB]",
-    accent: "bg-[#3B82F6]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#0B2C4A]",
+    accent: "bg-[#0B2C4A]",
     icon: (
       <path d="M6 16.5a4.5 4.5 0 0 1 .7-8.95A6 6 0 0 1 18 9.75a3.75 3.75 0 0 1 .15 7.5H6.75" />
     ),
@@ -27,9 +27,9 @@ const useCases = [
     title: "Media & Publishing",
     description:
       "Balance reader privacy with analytics and advertising partners.",
-    iconBg: "bg-[#F5F3FF]",
-    iconColor: "text-[#7C3AED]",
-    accent: "bg-[#8B5CF6]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#00C4A7]",
+    accent: "bg-[#00C4A7]",
     icon: (
       <path d="M6.75 4.5h10.5A1.5 1.5 0 0 1 18.75 6v13.5L12 16.5l-6.75 3V6A1.5 1.5 0 0 1 6.75 4.5Z" />
     ),
@@ -91,20 +91,20 @@ export function HomeUseCasesCta() {
       className="home-section relative overflow-hidden bg-[#F8FAFC]"
       style={{
         backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(88,80,236,0.12) 1px, transparent 0)",
+          "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.16) 1px, transparent 0)",
         backgroundSize: "26px 26px",
       }}
     >
       <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
         <div className="text-center">
-          <span className="home-fade-item inline-flex rounded-full bg-[#EEF2FF] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#4338CA]">
+          <span className="home-fade-item inline-flex rounded-full bg-[#E6F9F5] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#0B2C4A]">
             Use Cases
           </span>
           <h2 className="home-fade-item mt-4 text-balance text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
             Built for every industry
           </h2>
           <p className="home-fade-item mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-[#6B7280] sm:text-base">
-            Whether you&apos;re a startup or an enterprise, ConsentFlow adapts to your needs.
+            Whether you&apos;re a startup or an enterprise, Consent Guru adapts to your needs.
           </p>
         </div>
 
@@ -146,7 +146,7 @@ export function HomeUseCasesCta() {
           className="home-fade-item relative mt-12 overflow-hidden rounded-2xl px-6 py-8 sm:px-8 sm:py-9 lg:px-10"
           style={{
             background:
-              "linear-gradient(105deg, #4F46E5 0%, #5850EC 45%, #6366F1 78%, #7C3AED 100%)",
+              "linear-gradient(105deg, #0B2C4A 0%, #0E3D5C 42%, #00C4A7 100%)",
           }}
         >
           <div
@@ -169,7 +169,7 @@ export function HomeUseCasesCta() {
                   />
                   <path
                     d="M9.6 12.2l1.7 1.7 3.4-3.5"
-                    stroke="#5850EC"
+                    stroke="#00C4A7"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FormCard } from "@/components/ui/field";
 import { Checkbox } from "@/components/ui/checkbox";
 import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-action";
+import { Select } from "@/components/ui/select";
 
 export type RetentionFormData = {
   consentEvidenceRetentionDays: number;
@@ -53,7 +54,7 @@ function NumberField({
         disabled={disabled}
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
-        className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 disabled:bg-[var(--muted)]"
+        className="field-input"
       />
     </Field>
   );
@@ -226,24 +227,23 @@ export function DataRetentionPanel({
           {canEdit ? (
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Resource type" htmlFor="hold-type">
-                <select
+                <Select
                   id="hold-type"
                   value={holdForm.resourceType}
                   onChange={(event) => setHoldForm((current) => ({ ...current, resourceType: event.target.value }))}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
                 >
                   <option value="consent_evidence">Consent evidence</option>
                   <option value="consent_record">Current consent record</option>
                   <option value="audit_event">Audit event</option>
                   <option value="rights_request">Rights request</option>
-                </select>
+                </Select>
               </Field>
               <Field label="Resource ID" htmlFor="hold-id">
                 <input
                   id="hold-id"
                   value={holdForm.resourceId}
                   onChange={(event) => setHoldForm((current) => ({ ...current, resourceId: event.target.value }))}
-                  className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm font-mono"
+                  className="field-input font-mono"
                 />
               </Field>
               <div className="sm:col-span-2">
@@ -252,7 +252,7 @@ export function DataRetentionPanel({
                     id="hold-reason"
                     value={holdForm.reason}
                     onChange={(event) => setHoldForm((current) => ({ ...current, reason: event.target.value }))}
-                    className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm"
+                    className="field-input"
                   />
                 </Field>
               </div>

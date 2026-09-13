@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { loadOrgRiskSnapshot } from "@/lib/monitoring/privacy-intelligence";
 import {
   FINDING_SEVERITIES,
@@ -124,38 +125,38 @@ export default async function PrivacyRiskPage({
       </div>
 
       <form className="mb-4 flex flex-wrap gap-2" action="/dashboard/risk">
-        <select name="website" defaultValue={websiteFilter ?? ""} className="field-input h-10 min-w-[10rem]">
+        <Select name="website" defaultValue={websiteFilter ?? ""} className="min-w-[10rem]">
           <option value="">All websites</option>
           {orgWebsites.map((site) => (
             <option key={site.id} value={site.id}>
               {site.name}
             </option>
           ))}
-        </select>
-        <select name="severity" defaultValue={severity ?? ""} className="field-input h-10">
+        </Select>
+        <Select name="severity" defaultValue={severity ?? ""} className="min-w-[9rem]">
           <option value="">All severities</option>
           {FINDING_SEVERITIES.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
           ))}
-        </select>
-        <select name="type" defaultValue={findingType ?? ""} className="field-input h-10">
+        </Select>
+        <Select name="type" defaultValue={findingType ?? ""} className="min-w-[9rem]">
           <option value="">All types</option>
           {FINDING_TYPES.map((value) => (
             <option key={value} value={value}>
               {typeLabel(value)}
             </option>
           ))}
-        </select>
-        <select name="status" defaultValue={status ?? ""} className="field-input h-10">
+        </Select>
+        <Select name="status" defaultValue={status ?? ""} className="min-w-[9rem]">
           <option value="">All statuses</option>
           {FINDING_STATUSES.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
           ))}
-        </select>
+        </Select>
         <input type="date" name="from" defaultValue={params.from ?? ""} className="field-input h-10" aria-label="From date" />
         <input type="date" name="to" defaultValue={params.to ?? ""} className="field-input h-10" aria-label="To date" />
         <button type="submit" className="btn btn-primary">

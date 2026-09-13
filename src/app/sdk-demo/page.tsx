@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import Script from "next/script";
 import Link from "next/link";
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -135,6 +136,19 @@ function SdkDemoInner() {
       return [];
     }
   }, [recentKeysJson]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    root.classList.remove("dark");
+    root.style.colorScheme = "light";
+    return () => {
+      if (hadDark) {
+        root.classList.add("dark");
+        root.style.colorScheme = "dark";
+      }
+    };
+  }, []);
 
   function pushRecentKey(k: string) {
     if (!k) return;
@@ -281,11 +295,11 @@ function SdkDemoInner() {
   const hasConfig = configResponse?.success === true;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-[#E6F9F5]">
       <nav className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2.5 text-sm">
-          <Link href="/" className="font-medium text-slate-700 hover:text-slate-900">
-            Home
+          <Link href="/" className="inline-flex items-center" aria-label="Consent Guru home">
+            <BrandLogo height={32} />
           </Link>
           <ArrowButton href="/sign-up">Sign up</ArrowButton>
         </div>
@@ -328,7 +342,7 @@ function SdkDemoInner() {
                 value={inputKey}
                 onChange={(e) => setInputKey(e.target.value)}
                 placeholder="site_..."
-                className="flex-1 h-11 rounded-xl border border-slate-300 px-4 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none"
+                className="flex-1 h-11 rounded-xl border border-slate-300 px-4 text-sm focus:border-[#0B2C4A] focus:ring-2 focus:ring-[#00C4A7]/30 outline-none"
               />
               <button
                 type="submit"
@@ -453,7 +467,7 @@ function SdkDemoInner() {
                   <button
                     type="button"
                     onClick={() => switchOrigin("cross")}
-                    className="h-9 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-medium hover:bg-indigo-100 px-3"
+                    className="h-9 rounded-lg border border-[#B7EDE4] bg-[#E6F9F5] text-[#0B2C4A] text-xs font-medium hover:bg-[#d5f4ee] px-3"
                   >
                     Switch to {currentHostname === "localhost" ? "127.0.0.1" : "localhost"} (cross-origin)
                   </button>
@@ -587,11 +601,11 @@ function SdkDemoInner() {
                     </div>
 
                     <div className="grid grid-cols-3 gap-3 text-center">
-                      <div className="rounded-xl bg-indigo-50 p-3">
-                        <div className="text-lg font-semibold text-indigo-700">
+                      <div className="rounded-xl bg-[#E6F9F5] p-3">
+                        <div className="text-lg font-semibold text-[#0B2C4A]">
                           {configResponse.purposes?.length || 0}
                         </div>
-                        <div className="text-xs text-indigo-600/80">purposes</div>
+                        <div className="text-xs text-[#00A88F]">purposes</div>
                       </div>
                       <div className="rounded-xl bg-emerald-50 p-3">
                         <div className="text-lg font-semibold text-emerald-700">

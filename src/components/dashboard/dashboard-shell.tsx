@@ -3,6 +3,7 @@
 import { useState, useSyncExternalStore } from "react";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SkipLink } from "@/components/ui/skip-link";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 const SIDEBAR_STORAGE_KEY = "cmp:sidebar:collapsed";
 const SIDEBAR_EVENT = "cmp-sidebar-change";
@@ -131,17 +132,8 @@ export function DashboardShell({
             >
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border)]">
-                  <div className="flex items-center gap-3 px-1">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl gradient-primary">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" fill="white" />
-                        <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--primary)]" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold tracking-tight text-[var(--foreground)]">ConsentFlow</p>
-                      <p className="text-[13px] font-semibold text-[var(--muted-foreground)] leading-none">Workspace</p>
-                    </div>
+                  <div className="flex min-w-0 items-center px-1">
+                    <BrandLogo height={36} />
                   </div>
                   <button
                     type="button"

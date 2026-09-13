@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 const navItems: Array<{
   label: string;
@@ -16,30 +17,6 @@ const navItems: Array<{
   { label: "Developers", href: "/sdk-demo" },
 ];
 
-function ShieldLogo({ className = "h-9 w-9" }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#2c4a7c" />
-      <path
-        d="M20 8.5l9 3.5v7.2c0 5.4-3.6 10.3-9 12.1-5.4-1.8-9-6.7-9-12.1v-7.2L20 8.5z"
-        fill="white"
-        fillOpacity="0.22"
-      />
-      <path
-        d="M20 10.2l7.2 2.8v5.8c0 4.4-2.9 8.4-7.2 9.9-4.3-1.5-7.2-5.5-7.2-9.9v-5.8L20 10.2z"
-        fill="white"
-      />
-      <path
-        d="M16.2 20.1l2.4 2.4 5.2-5.2"
-        stroke="#2c4a7c"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 export function HomeNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isLoaded, isSignedIn } = useUser();
@@ -50,16 +27,8 @@ export function HomeNavbar() {
         aria-label="Primary"
         className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-4 px-5 sm:px-8"
       >
-        <Link href="/" className="flex items-center gap-3" aria-label="ConsentFlow home">
-          <ShieldLogo />
-          <span className="flex min-w-0 flex-col">
-            <span className="text-[17px] font-bold leading-none tracking-tight text-[#111827]">
-              ConsentFlow
-            </span>
-            <span className="mt-1 hidden text-[11px] font-medium leading-none text-[#6B7280] sm:block">
-              Consent Management Platform
-            </span>
-          </span>
+        <Link href="/" className="flex items-center" aria-label="Consent Guru home">
+          <BrandLogo height={40} priority />
         </Link>
 
         <div className="hidden items-center gap-1 lg:flex">
@@ -82,7 +51,7 @@ export function HomeNavbar() {
           ) : isSignedIn ? (
             <Link
               href="/dashboard"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#243e68]"
+              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00C4A7]"
             >
               Open workspace
               <span aria-hidden="true">→</span>
@@ -150,7 +119,7 @@ export function HomeNavbar() {
               ) : isSignedIn ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#2c4a7c] px-4 text-sm font-semibold text-white sm:col-span-2"
+                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white sm:col-span-2"
                   onClick={() => setMobileOpen(false)}
                 >
                   Open workspace

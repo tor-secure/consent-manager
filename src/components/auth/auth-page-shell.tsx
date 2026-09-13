@@ -4,10 +4,11 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { SkipLink } from "@/components/ui/skip-link";
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export const clerkAuthAppearance = {
   variables: {
-    colorPrimary: "#2c4a7c",
+    colorPrimary: "#0B2C4A",
     colorText: "#111827",
     colorTextSecondary: "#6B7280",
     colorBackground: "#ffffff",
@@ -29,20 +30,20 @@ export const clerkAuthAppearance = {
     socialButtonsBlockButton:
       "!bg-white !text-[#111827] h-11 rounded-xl border border-solid !border-[#D1D5DB] text-sm font-semibold hover:!bg-[#F9FAFB]",
     socialButtonsBlockButtonText: "!text-[#111827] font-semibold",
-    lastAuthenticationStrategyBadge: "!bg-[#EEF2FF] !text-[#243e68]",
+    lastAuthenticationStrategyBadge: "!bg-[#E6F9F5] !text-[#0B2C4A]",
     dividerLine: "!bg-[#E5E7EB]",
     dividerText: "!text-[#6B7280] text-xs font-medium",
     formFieldLabel: "!text-[#111827] text-sm font-semibold",
     formFieldInput:
-      "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#2c4a7c] focus:!ring-[#2c4a7c]",
+      "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#0B2C4A] focus:!ring-[#0B2C4A]",
     formButtonPrimary:
-      "arrow-btn !w-full justify-center !bg-[#645bff] !text-white hover:!bg-[#111] shadow-none",
+      "arrow-btn !w-full justify-center !bg-[#0B2C4A] !text-white hover:!bg-[#00C4A7] shadow-none",
     footerAction: "hidden",
     footerActionText: "hidden",
     footerActionLink: "hidden",
     identityPreviewText: "!text-[#111827]",
-    identityPreviewEditButton: "!text-[#2c4a7c]",
-    formFieldAction: "!text-[#2c4a7c]",
+    identityPreviewEditButton: "!text-[#0B2C4A]",
+    formFieldAction: "!text-[#0B2C4A]",
     footer: "!bg-transparent",
   },
 } as const;
@@ -51,8 +52,8 @@ const features = [
   {
     title: "Secure & Compliant",
     description: "Enterprise-grade security built for GDPR, CCPA, and global privacy laws.",
-    iconBg: "bg-[#EEF2FF]",
-    iconColor: "text-[#2c4a7c]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#0B2C4A]",
     icon: (
       <path d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75ZM9.75 12.5l1.5 1.5 3-3" />
     ),
@@ -67,32 +68,13 @@ const features = [
   {
     title: "Seamless Integration",
     description: "Drop-in SDK and APIs that connect with the tools you already use.",
-    iconBg: "bg-[#F5F3FF]",
-    iconColor: "text-[#7C3AED]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#00C4A7]",
     icon: (
       <path d="M9.75 8.25 6 12l3.75 3.75M14.25 8.25 18 12l-3.75 3.75M13.5 6l-3 12" />
     ),
   },
 ];
-
-function ShieldLogo({ size = 36 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" aria-hidden="true">
-      <rect width="40" height="40" rx="10" fill="#2c4a7c" />
-      <path
-        d="M20 10.2l7.2 2.8v5.8c0 4.4-2.9 8.4-7.2 9.9-4.3-1.5-7.2-5.5-7.2-9.9v-5.8L20 10.2z"
-        fill="white"
-      />
-      <path
-        d="M16.2 20.1l2.4 2.4 5.2-5.2"
-        stroke="#2c4a7c"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 function BrandPanel({
   badge,
@@ -106,19 +88,19 @@ function BrandPanel({
   showPlus?: boolean;
 }) {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[#F8FAFF] px-7 py-8 sm:px-8 lg:px-10 lg:py-10">
+    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[#F3FAF8] px-7 py-8 sm:px-8 lg:px-10 lg:py-10">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 1px 1px, rgba(79,70,229,0.14) 1px, transparent 0)",
+            "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.18) 1px, transparent 0)",
           backgroundSize: "22px 22px",
         }}
         aria-hidden="true"
       />
 
       <div className="relative">
-        <span className="inline-flex rounded-full border border-[#C7D2FE] bg-white px-3 py-1 text-[12px] font-semibold text-[#243e68]">
+        <span className="inline-flex rounded-full border border-[#B7EDE4] bg-white px-3 py-1 text-[12px] font-semibold text-[#0B2C4A]">
           {badge}
         </span>
         <p className="mt-4 max-w-md text-balance text-[1.85rem] font-bold leading-tight tracking-tight text-[#111827] sm:text-[2.05rem]">
@@ -164,7 +146,7 @@ function BrandPanel({
             <span className="h-2 w-2 rounded-full bg-[#FDE68A]" />
             <span className="h-2 w-2 rounded-full bg-[#86EFAC]" />
             <span className="ml-2 text-[10px] font-medium text-[#9CA3AF]">
-              dashboard.consentflow.app
+              dashboard.consentguru.app
             </span>
           </div>
           <div className="grid grid-cols-[1fr_0.85fr] gap-3">
@@ -177,13 +159,13 @@ function BrandPanel({
                 <path
                   d="M0 40 C 30 34, 45 28, 70 30 C 100 33, 120 18, 145 14 C 160 12, 170 16, 180 10"
                   fill="none"
-                  stroke="#2c4a7c"
+                  stroke="#0B2C4A"
                   strokeWidth="2.5"
                   strokeLinecap="round"
                 />
               </svg>
             </div>
-            <div className="flex items-center justify-center rounded-xl bg-[#EEF2FF] p-3">
+            <div className="flex items-center justify-center rounded-xl bg-[#E6F9F5] p-3">
               <svg viewBox="0 0 36 36" className="h-16 w-16">
                 <circle cx="18" cy="18" r="14" fill="none" stroke="#E0E7FF" strokeWidth="4" />
                 <circle
@@ -191,7 +173,7 @@ function BrandPanel({
                   cy="18"
                   r="14"
                   fill="none"
-                  stroke="#2c4a7c"
+                  stroke="#0B2C4A"
                   strokeWidth="4"
                   strokeDasharray="62 26"
                   transform="rotate(-90 18 18)"
@@ -201,7 +183,7 @@ function BrandPanel({
           </div>
           <div
             className={`absolute -right-2 -top-3 flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${
-              showPlus ? "bg-[#2c4a7c]" : "bg-[#2c4a7c]"
+              showPlus ? "bg-[#0B2C4A]" : "bg-[#0B2C4A]"
             }`}
           >
             {showPlus ? (
@@ -221,7 +203,7 @@ function BrandPanel({
                 />
                 <path
                   d="M9.75 12.5l1.5 1.5 3-3"
-                  stroke="#2c4a7c"
+                  stroke="#0B2C4A"
                   strokeWidth="1.8"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -238,19 +220,19 @@ function BrandPanel({
 const modeCopy = {
   "sign-in": {
     badge: "Welcome back 👋",
-    title: "Log in to your ConsentFlow account",
+    title: "Log in to your Consent Guru account",
     description: "Access your dashboard and manage consent with confidence.",
     showPlus: false,
   },
   "sign-up": {
     badge: "Create your account ✨",
-    title: "Get started with ConsentFlow",
+    title: "Get started with Consent Guru",
     description: "Create your account and start managing consent the right way.",
     showPlus: true,
   },
   "create-org": {
     badge: "Name your workspace",
-    title: "Create a ConsentFlow organization",
+    title: "Create a Consent Guru organization",
     description: "Add a workspace so you can create websites, publish a policy, and install the banner.",
     showPlus: true,
   },
@@ -283,16 +265,15 @@ export function AuthPageShell({
       className="cmp-auth-page min-h-screen px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
       style={{
         background:
-          "radial-gradient(ellipse 55% 35% at 15% 0%, rgba(79,70,229,0.09), transparent 55%), linear-gradient(180deg, #F3F4F6 0%, #EEF2FF 100%)",
+          "radial-gradient(ellipse 55% 35% at 15% 0%, rgba(0,196,167,0.14), transparent 55%), linear-gradient(180deg, #F3F4F6 0%, #E6F9F5 100%)",
       }}
     >
       <SkipLink href="#auth-form" />
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1100px] flex-col">
         <div className="flex flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)]">
           <header className="flex items-center justify-between border-b border-[#F3F4F6] px-6 py-4 sm:px-8">
-            <Link href="/" className="inline-flex items-center gap-2.5" aria-label="ConsentFlow home">
-              <ShieldLogo size={34} />
-              <span className="text-[17px] font-bold tracking-tight text-[#111827]">ConsentFlow</span>
+            <Link href="/" className="inline-flex items-center" aria-label="Consent Guru home">
+              <BrandLogo height={36} />
             </Link>
 
             {mode === "sign-in" ? (
@@ -308,7 +289,7 @@ export function AuthPageShell({
             ) : (
               <p className="text-sm text-[#4B5563]">
                 Already have a workspace?{" "}
-                <Link href="/dashboard" className="font-semibold text-[#2c4a7c] hover:text-[#243e68]">
+                <Link href="/dashboard" className="font-semibold text-[#0B2C4A] hover:text-[#00C4A7]">
                   Open dashboard
                 </Link>
               </p>
@@ -333,7 +314,7 @@ export function AuthPageShell({
                     viewBox="0 0 24 24"
                     fill="none"
                     aria-hidden="true"
-                    className="mt-0.5 shrink-0 text-[#2c4a7c]"
+                    className="mt-0.5 shrink-0 text-[#0B2C4A]"
                   >
                     <path
                       d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75Z"
@@ -355,8 +336,8 @@ export function AuthPageShell({
         </div>
 
         <p className="mt-5 text-center text-xs text-[#6B7280]">
-          By continuing, you start a ConsentFlow workspace for consent management.{" "}
-          <Link href="/#how-it-works" className="font-medium text-[#2c4a7c] hover:underline">
+          By continuing, you start a Consent Guru workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
             See how it works
           </Link>
           .

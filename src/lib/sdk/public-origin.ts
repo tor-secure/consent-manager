@@ -1,6 +1,6 @@
 /**
  * Absolute origin of this CMP app, used in embed snippets so customer sites
- * load `/api/sdk/script` from ConsentFlow instead of their own hostname.
+ * load `/api/sdk/script` from Consent Guru instead of their own hostname.
  */
 
 export function resolvePublicAppOrigin(input: {

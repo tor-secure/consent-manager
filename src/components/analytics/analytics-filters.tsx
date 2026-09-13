@@ -2,6 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { Select } from "@/components/ui/select";
 
 const RANGES = [
   { label: "7 days", value: "7" },
@@ -129,11 +130,12 @@ function FilterSelect({
   return (
     <label className="text-xs font-medium text-[var(--muted-foreground)]">
       {label}
-      <select
+      <Select
         value={value}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 block h-9 min-w-[140px] rounded-xl border border-[var(--border)] bg-[var(--card)] px-2 text-sm text-[var(--foreground)]"
+        size="sm"
+        className="mt-1 min-w-[140px]"
       >
         <option value="">All</option>
         {options.map((option) => (
@@ -141,7 +143,7 @@ function FilterSelect({
             {option.label}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

@@ -6,8 +6,8 @@ const featureCards = [
     description:
       "Create beautiful, brand-aligned banners that provide clear choices to your users.",
     href: "#product",
-    iconBg: "bg-[#EEF2FF]",
-    iconColor: "text-[#5850EC]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#00C4A7]",
     icon: (
       <path d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75ZM9.75 12.5l1.6 1.6 3.4-3.4" />
     ),
@@ -17,8 +17,8 @@ const featureCards = [
     description:
       "Collect consent for cookies, categories, purposes and vendors with ease.",
     href: "#how-it-works",
-    iconBg: "bg-[#EFF6FF]",
-    iconColor: "text-[#2563EB]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#0B2C4A]",
     icon: (
       <>
         <path d="M4.5 7.5h15M7.5 7.5v3M16.5 7.5v5" />
@@ -45,8 +45,8 @@ const featureCards = [
     description:
       "Integrate in minutes with our SDKs, plugins and APIs for any platform.",
     href: "/sdk-demo",
-    iconBg: "bg-[#F5F3FF]",
-    iconColor: "text-[#7C3AED]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#00C4A7]",
     icon: <path d="m8.25 8.25-4.5 3.75 4.5 3.75M15.75 8.25l4.5 3.75-4.5 3.75" />,
   },
   {
@@ -54,8 +54,8 @@ const featureCards = [
     description:
       "Track consent rates, user preferences and performance with detailed reports.",
     href: "#features",
-    iconBg: "bg-[#FDF2F8]",
-    iconColor: "text-[#DB2777]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#0B2C4A]",
     icon: <path d="M5.25 18.75V12m6.75 6.75V5.25m6.75 13.5v-9" />,
   },
   {
@@ -63,8 +63,8 @@ const featureCards = [
     description:
       "Enterprise-grade security, scalability and 99.99% uptime you can trust.",
     href: "#features",
-    iconBg: "bg-[#EFF6FF]",
-    iconColor: "text-[#2563EB]",
+    iconBg: "bg-[#E6F9F5]",
+    iconColor: "text-[#0B2C4A]",
     icon: (
       <>
         <rect x="5.25" y="10.5" width="13.5" height="10.5" rx="2" />
@@ -126,7 +126,7 @@ export function HomeTrustedFeatures() {
               <p className="mt-2 text-sm leading-6 text-[#6B7280]">{card.description}</p>
               <Link
                 href={card.href}
-                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#2563EB] transition hover:text-[#1D4ED8]"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#0B2C4A] transition hover:text-[#00C4A7]"
               >
                 Learn more <span aria-hidden="true">→</span>
               </Link>

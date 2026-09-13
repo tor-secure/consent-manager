@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Select } from "@/components/ui/select";
 import {
   FINDING_SEVERITIES,
   FINDING_STATUSES,
@@ -176,37 +177,37 @@ export default async function MonitoringPage({
       </div>
 
       <form className="mb-4 flex flex-wrap gap-2" action="/dashboard/monitoring">
-        <select name="website" aria-label="Filter by website" defaultValue={websiteFilter ?? ""} className="field-input h-10 min-w-[10rem]">
+        <Select name="website" aria-label="Filter by website" defaultValue={websiteFilter ?? ""} className="min-w-[10rem]">
           <option value="">All websites</option>
           {orgWebsites.map((site) => (
             <option key={site.id} value={site.id}>
               {site.name}
             </option>
           ))}
-        </select>
-        <select name="severity" aria-label="Filter by severity" defaultValue={severity ?? ""} className="field-input h-10">
+        </Select>
+        <Select name="severity" aria-label="Filter by severity" defaultValue={severity ?? ""} className="min-w-[9rem]">
           <option value="">All severities</option>
           {FINDING_SEVERITIES.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
           ))}
-        </select>
-        <select name="type" aria-label="Filter by finding type" defaultValue={findingType ?? ""} className="field-input h-10">
+        </Select>
+        <Select name="type" aria-label="Filter by finding type" defaultValue={findingType ?? ""} className="min-w-[9rem]">
           <option value="">All types</option>
           {FINDING_TYPES.map((value) => (
             <option key={value} value={value}>
               {typeLabel(value)}
             </option>
           ))}
-        </select>
-        <select name="status" aria-label="Filter by status" defaultValue={status ?? "open"} className="field-input h-10">
+        </Select>
+        <Select name="status" aria-label="Filter by status" defaultValue={status ?? "open"} className="min-w-[9rem]">
           {FINDING_STATUSES.map((value) => (
             <option key={value} value={value}>
               {value}
             </option>
           ))}
-        </select>
+        </Select>
         <button type="submit" className="btn btn-primary">
           Filter
         </button>

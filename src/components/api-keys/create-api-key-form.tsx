@@ -7,7 +7,7 @@ import { dashboardFetch, useAsyncAction } from "@/components/feedback/use-async-
 
 type CreatedKey = { fullKey: string; name: string };
 
-const inputCls = "w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition disabled:bg-[var(--muted)] disabled:opacity-60";
+const inputCls = "field-input";
 
 export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKey) => void }) {
   const router = useRouter();
@@ -71,13 +71,13 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">Key name</label>
+          <label className="field-label">Key name</label>
           <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={255}
             placeholder="Production integration" className={inputCls} />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">Environment</label>
+          <label className="field-label">Environment</label>
           <div className="flex flex-wrap gap-4">
             {(["live", "test"] as const).map((env) => (
               <label key={env} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -91,12 +91,12 @@ export function CreateApiKeyForm({ onCreated }: { onCreated: (created: CreatedKe
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-semibold text-[var(--foreground)]">
+          <label className="field-label">
             Expiry date <span className="font-normal text-[var(--muted-foreground)]">(optional)</span>
           </label>
           <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
             min={new Date().toISOString().split("T")[0]}
-            className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-sm shadow-sm outline-none focus:border-[var(--ring)] focus:ring-2 focus:ring-[var(--ring)]/20 transition" />
+            className="field-input" />
         </div>
       </div>
 
