@@ -1451,6 +1451,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     parent.appendChild(note);
   }
 
+  function cmpMountRoot() {
+    return document.body || document.documentElement;
+  }
+
   function showPreferenceCenterWhenReady() {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', function() { renderPreferenceCenter(); });
@@ -1460,11 +1464,28 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function showBannerWhenReady() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', renderBanner);
-    } else {
+    function paint() {
       renderBanner();
     }
+    if (document.body) {
+      paint();
+      return;
+    }
+    document.addEventListener('DOMContentLoaded', paint);
+    var started = Date.now();
+    (function waitBody() {
+      if (document.getElementById('__cmp_banner__')) return;
+      if (document.body) {
+        paint();
+        return;
+      }
+      if (Date.now() - started >= 1000) {
+        paint();
+        return;
+      }
+      if (window.requestAnimationFrame) window.requestAnimationFrame(waitBody);
+      else window.setTimeout(waitBody, 16);
+    })();
   }
 
   function loadStoredConsent() {
@@ -1920,7 +1941,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           removeBanner();
         }
       });
-      document.body.appendChild(overlay);
+      document.body ? document.body.appendChild(overlay) : cmpMountRoot().appendChild(overlay);
     }
 
     var banner = document.createElement('div');
@@ -2089,7 +2110,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       banner.appendChild(powered);
     }
 
-    document.body.appendChild(banner);
+    cmpMountRoot().appendChild(banner);
     _hostScroll.sync();
   }
 
@@ -3112,7 +3133,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     scheduleConfigRefresh();
     initExternalSignals();
     _california = loadStoredCalifornia();
-    syncCaliforniaOptOut({}, function() {
 
     var stored = loadStoredConsent();
     if (
@@ -3138,6 +3158,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           }
         });
       }
+      syncCaliforniaOptOut({}, function() {
+        applyTrackerEnforcement();
+        publishExternalSignals();
+      });
       return;
     }
 
@@ -3182,10 +3206,26 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
       );
     }
+    syncCaliforniaOptOut({}, function() {
+      applyTrackerEnforcement();
+      publishExternalSignals();
     });
   }
 
   pauseTaggedScripts();
+
+  try {
+    var cachedRaw = sessionStorage.getItem('__cmp_cfg_' + SITE_KEY);
+    var cachedCfg = cachedRaw ? JSON.parse(cachedRaw) : null;
+    if (
+      cachedCfg &&
+      cachedCfg.success &&
+      cachedCfg.bannerConfig &&
+      Date.now() - (cachedCfg.__cmpCachedAt || 0) < 60000
+    ) {
+      applyLoadedConfig(cachedCfg);
+    }
+  } catch (eCache) {}
 
   fetchConfigJson()
     .then(function(data) {
@@ -3194,6 +3234,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         scheduleConfigRefresh();
         return;
       }
+      try {
+        data.__cmpCachedAt = Date.now();
+        sessionStorage.setItem('__cmp_cfg_' + SITE_KEY, JSON.stringify(data));
+      } catch (eWrite) {}
       applyLoadedConfig(data);
     })
     .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });
@@ -3212,9 +3256,18 @@ export function buildEmbedSnippet(options: {
   siteKey: string;
   cdnUrl: string;
 }): string {
+  let preconnect = "";
+  try {
+    const origin = new URL(options.cdnUrl).origin;
+    if (origin) {
+      preconnect = `<link rel="preconnect" href="${origin}" crossorigin>\n<link rel="dns-prefetch" href="${origin}">\n`;
+    }
+  } catch {
+    /* relative cdn URLs skip preconnect */
+  }
   return `<!-- Consent Management Platform -->
 <!-- Load synchronously before optional trackers. -->
-<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
+${preconnect}<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
 <!-- /CMP -->`;
 }
 

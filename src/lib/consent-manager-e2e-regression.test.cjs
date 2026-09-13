@@ -1482,6 +1482,7 @@ function testSynchronousBootstrapSnippet() {
   });
   assert.match(snippet, /<script src="https:\/\/cmp\.example\/api\/sdk\/script"/);
   assert.match(snippet, /data-site-key="site_bootstrap_test"/);
+  assert.match(snippet, /rel="preconnect"/);
   assert.doesNotMatch(snippet, /\basync\b|\bdefer\b/);
 }
 
