@@ -4,9 +4,11 @@ import { createHash } from "node:crypto";
 import { promises as dns } from "node:dns";
 
 import {
-  SITE_VERIFICATION_META_NAME,
   SITE_VERIFICATION_TXT_PREFIX,
   SITE_VERIFICATION_WELL_KNOWN_PATH,
+  apexHostname,
+  htmlHasVerificationMeta,
+  verificationFetchHosts,
 } from "@/lib/website-domain-verify-constants";
 import { assertSafeScanUrl } from "@/lib/scanner/ssrf-guard";
 
@@ -43,7 +45,8 @@ export async function checkDnsTxt(domain: string, token: string): Promise<boolea
   }
 }
 
-async function fetchText(url: string): Promise<string | null> {
+async function fetchText(url: string, hops = 0): Promise<string | null> {
+  if (hops > 3) return null;
   try {
     await assertSafeScanUrl(url);
   } catch {
@@ -61,7 +64,15 @@ async function fetchText(url: string): Promise<string | null> {
         "User-Agent": "ConsentManager-DomainVerify/1.0",
       },
     });
-    if (response.status >= 300 && response.status < 400) return null;
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) return null;
+      const next = new URL(location, url);
+      const from = new URL(url);
+      if (next.protocol !== "https:" && next.protocol !== "http:") return null;
+      if (apexHostname(from.hostname) !== apexHostname(next.hostname)) return null;
+      return fetchText(next.href, hops + 1);
+    }
     if (!response.ok) return null;
     const contentType = response.headers.get("content-type") ?? "";
     if (
@@ -81,26 +92,21 @@ async function fetchText(url: string): Promise<string | null> {
 }
 
 export async function checkMetaTag(domain: string, token: string): Promise<boolean> {
-  for (const protocol of ["https", "http"] as const) {
-    const html = await fetchText(`${protocol}://${domain}/`);
-    if (!html) continue;
-    const pattern = new RegExp(
-      `<meta[^>]+name=["']${SITE_VERIFICATION_META_NAME}["'][^>]+content=["']${token}["']`,
-      "i",
-    );
-    const patternAlt = new RegExp(
-      `<meta[^>]+content=["']${token}["'][^>]+name=["']${SITE_VERIFICATION_META_NAME}["']`,
-      "i",
-    );
-    if (pattern.test(html) || patternAlt.test(html)) return true;
+  for (const host of verificationFetchHosts(domain)) {
+    for (const protocol of ["https", "http"] as const) {
+      const html = await fetchText(`${protocol}://${host}/`);
+      if (html && htmlHasVerificationMeta(html, token)) return true;
+    }
   }
   return false;
 }
 
 export async function checkWellKnownFile(domain: string, token: string): Promise<boolean> {
-  for (const protocol of ["https", "http"] as const) {
-    const body = await fetchText(`${protocol}://${domain}${SITE_VERIFICATION_WELL_KNOWN_PATH}`);
-    if (body && body.trim() === token) return true;
+  for (const host of verificationFetchHosts(domain)) {
+    for (const protocol of ["https", "http"] as const) {
+      const body = await fetchText(`${protocol}://${host}${SITE_VERIFICATION_WELL_KNOWN_PATH}`);
+      if (body && body.trim() === token) return true;
+    }
   }
   return false;
 }

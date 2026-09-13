@@ -81,6 +81,7 @@ compile(
     "src/lib/sdk/enforcement.ts",
     "src/lib/sdk/public-http.ts",
     "src/lib/sdk/public-origin.ts",
+    "src/lib/sdk/origin-allowlist.ts",
     "src/lib/ccpa/types.ts",
     "src/lib/ccpa/gpc.ts",
     "src/lib/ccpa/state.ts",
@@ -110,6 +111,7 @@ compile(
     "src/lib/processing/snapshot.ts",
     "src/lib/processing/validate.ts",
     "src/lib/safe-url.ts",
+    "src/lib/website-domain-verify-constants.ts",
     "src/lib/webhooks/delivery.ts",
     "src/lib/webhooks/secret-crypto.ts",
   ],
@@ -126,6 +128,7 @@ copyCompiled("src/lib/scanner/ssrf-guard.js", "scanner-security/ssrf-guard.js");
 copyCompiled("src/lib/scanner/tracker-signatures.js", "scanner-security/tracker-signatures.js");
 copyCompiled("src/lib/scanner/html-analyser.js", "scanner-security/html-analyser.js");
 copyCompiled("src/lib/rate-limit.js", "rate-limit/rate-limit.js");
+copyCompiled("src/lib/sdk/origin-allowlist.js", "origin-allowlist/origin-allowlist.js");
 copyCompiled("src/lib/api-key-auth-logic.js", "enforcement/api-key-auth-logic.js");
 copyCompiled("src/lib/consent-evaluation-core.js", "enforcement/consent-evaluation-core.js");
 copyCompiled("src/lib/policy-context.js", "policy-context/policy-context.js");

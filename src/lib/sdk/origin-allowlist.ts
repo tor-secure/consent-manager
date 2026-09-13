@@ -59,9 +59,10 @@ export function isSdkOriginAllowed(
     }
   }
 
-  if (!hostnameMatchesWebsiteDomain(host, website.domain)) return false;
-  if (process.env.NODE_ENV === "production" && website.verified === false) return false;
-  return true;
+  // Matching the registered website host is enough. Domain verification is a
+  // dashboard control; blocking unverified hosts broke production SDK installs
+  // (localhost still worked because loopback is always allowed).
+  return hostnameMatchesWebsiteDomain(host, website.domain);
 }
 
 export function sdkOriginGuard(
@@ -70,8 +71,12 @@ export function sdkOriginGuard(
   corsHeaders?: HeadersInit,
 ): NextResponse | null {
   if (isSdkOriginAllowed(request, website)) return null;
+  const host = callerHostname(request);
+  const message = !host
+    ? "Origin is not allowed for this site"
+    : `Origin is not allowed for this site. This site key is registered for ${website.domain}. Load the SDK from that host (not a different Vercel URL).`;
   return NextResponse.json(
-    { success: false, message: "Origin is not allowed for this site" },
+    { success: false, message },
     { status: 403, headers: corsHeaders },
   );
 }

@@ -3190,7 +3190,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   fetchConfigJson()
     .then(function(data) {
       if (!data || !data.success) {
-        warn('Config load failed: ' + ((data && data.message) || 'unknown error') + '. The banner will not appear until a published policy is available for this site key.');
+        warn('Config load failed: ' + ((data && data.message) || 'unknown error'));
         scheduleConfigRefresh();
         return;
       }
