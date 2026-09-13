@@ -953,6 +953,67 @@ function buttonByText(browser, text) {
   return found;
 }
 
+async function testBannerPaintsBeforeConfigReturns() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: browser.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: browser.window,
+      document: browser.document,
+      console,
+      fetch: browser.window.fetch,
+      localStorage: browser.window.localStorage,
+      sessionStorage: browser.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: browser.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  assert.ok(
+    browser.document.getElementById("__cmp_banner__"),
+    "banner must paint before /api/sdk/{siteKey}/config returns",
+  );
+  buttonByText(browser, "Accept all").click();
+  assert.equal(
+    browser.document.getElementById("__cmp_banner__"),
+    null,
+    "Accept must close the banner before config or the server respond",
+  );
+  await flush();
+  assert.equal(
+    browser.document.getElementById("__cmp_banner__"),
+    null,
+    "live config must not bring the banner back after Accept",
+  );
+  assert.ok(store.records[0], "accept before config should still persist once config arrives");
+
+  const reload = createBrowser(store, Object.fromEntries(browser.storage.entries()));
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: reload.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: reload.window,
+      document: reload.document,
+      console,
+      fetch: reload.window.fetch,
+      localStorage: reload.window.localStorage,
+      sessionStorage: reload.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: reload.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  assert.equal(
+    reload.document.getElementById("__cmp_banner__"),
+    null,
+    "confirmed consent must not flash a banner while config loads",
+  );
+}
+
 async function testAcceptAllFlow() {
   const store = createStore();
   const browser = createBrowser(store);
@@ -2035,6 +2096,7 @@ function testCaliforniaGpcRuntimeEnforcement() {
 }
 
 async function main() {
+  await testBannerPaintsBeforeConfigReturns();
   await testAcceptAllFlow();
   await testRejectAllFlow();
   await testPublishedPolicyRefresh();

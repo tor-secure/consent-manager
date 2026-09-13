@@ -156,6 +156,7 @@ ${apiBaseLine}
   var _submitBusy = false;
   var _withdrawBusy = false;
   var _queuedSubmit = null;
+  var _choiceUiHeld = false;
   var _retryJob = null;
   var _submitButtons = [];
   var _tcString = null;
@@ -293,8 +294,32 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var configured = Number(window.__CMP_CONFIRMATION_DISPLAY_MS);
     var delay = isFinite(configured)
       ? Math.max(0, Math.min(3000, configured))
-      : 600;
+      : 0;
+    if (delay <= 0) {
+      closeUi();
+      return;
+    }
     window.setTimeout(closeUi, delay);
+  }
+
+  function holdChoiceUi() {
+    _choiceUiHeld = true;
+    removeBanner();
+    if (typeof removePreferenceCenter === 'function') removePreferenceCenter();
+  }
+
+  function restoreChoiceUi() {
+    _choiceUiHeld = false;
+    showBannerWhenReady();
+  }
+
+  function finishChoice(err, closeUi) {
+    if (err) {
+      restoreChoiceUi();
+      return;
+    }
+    _choiceUiHeld = false;
+    if (closeUi) afterConfirmation(closeUi);
   }
 
   function applyAssignedAbTest(data) {
@@ -1620,6 +1645,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function flushConsentSubmit() {
     if (_submitBusy || !_queuedSubmit || !_config) return;
+    if (!_config.websiteId || !_policyContext || !_policyContext.token) return;
     var job = _queuedSubmit;
     _queuedSubmit = null;
     _submitBusy = true;
@@ -2056,16 +2082,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     if (cfg.showAcceptAll) {
       btns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
-        submitConsent('accept-all', [], [], function(err) {
-          if (!err) afterConfirmation(removeBanner);
-        });
+        if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
+          holdChoiceUi();
+        }
       }));
     }
     if (cfg.showRejectAll) {
       btns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
-        submitConsent('reject-all', [], [], function(err) {
-          if (!err) afterConfirmation(removeBanner);
-        });
+        if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
+          holdChoiceUi();
+        }
       }));
     }
     if (cfg.showCustomize) {
@@ -2544,9 +2570,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           var offeredVendors = Object.keys(localDecisions.vendors).map(function(id) {
             return { vendorId: id, granted: !!localDecisions.vendors[id] };
           });
-          submitConsent('granular', offeredPurposes, offeredVendors, function(err) {
-            if (!err) afterConfirmation(removePreferenceCenter);
-          });
+          if (submitConsent('granular', offeredPurposes, offeredVendors, function(err) { finishChoice(err); })) {
+            holdChoiceUi();
+          }
         });
         osec.appendChild(ob);
       });
@@ -2647,9 +2673,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
 
     actionRow.appendChild(pcBtn(cfg.rejectAllLabel || 'Reject all', false, function() {
-      submitConsent('reject-all', [], [], function(err) {
-        if (!err) afterConfirmation(removePreferenceCenter);
-      });
+      if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
+        holdChoiceUi();
+      }
     }));
     actionRow.appendChild(pcBtn(cfg.savePreferencesLabel || 'Save preferences', true, function() {
       // Build decision arrays for buildDecisionRows
@@ -2669,14 +2695,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           granted: !!localDecisions.vendors[vkeys[j]]
         });
       }
-      submitConsent('granular', purposeDecisions, vendorDecisions, function(err) {
-        if (!err) afterConfirmation(removePreferenceCenter);
-      });
+      if (submitConsent('granular', purposeDecisions, vendorDecisions, function(err) { finishChoice(err); })) {
+        holdChoiceUi();
+      }
     }));
     actionRow.appendChild(pcBtn(cfg.acceptAllLabel || 'Accept all', false, function() {
-      submitConsent('accept-all', [], [], function(err) {
-        if (!err) afterConfirmation(removePreferenceCenter);
-      });
+      if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
+        holdChoiceUi();
+      }
     }));
 
     var pcStatus = document.createElement('div');
@@ -2742,34 +2768,35 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     },
     acceptAll: function() {
       return new Promise(function(resolve, reject) {
-        submitConsent('accept-all', [], [], function(err, consentId) {
-          if (err) { reject(err); return; }
-          afterConfirmation(function() { removeBanner(); removePreferenceCenter(); });
+        var queued = submitConsent('accept-all', [], [], function(err, consentId) {
+          if (err) { restoreChoiceUi(); reject(err); return; }
+          _choiceUiHeld = false;
           resolve(consentId);
         });
+        if (queued) holdChoiceUi();
+        else reject(new Error('A consent request is already being submitted'));
       });
     },
     rejectAll: function() {
       return new Promise(function(resolve, reject) {
-        submitConsent('reject-all', [], [], function(err, consentId) {
-          if (err) { reject(err); return; }
-          afterConfirmation(function() { removeBanner(); removePreferenceCenter(); });
+        var queued = submitConsent('reject-all', [], [], function(err, consentId) {
+          if (err) { restoreChoiceUi(); reject(err); return; }
+          _choiceUiHeld = false;
           resolve(consentId);
         });
+        if (queued) holdChoiceUi();
+        else reject(new Error('A consent request is already being submitted'));
       });
     },
     saveGranular: function(purposeDecisions, vendorDecisions) {
       return new Promise(function(resolve, reject) {
-        submitConsent('granular', purposeDecisions || [], vendorDecisions || [], function(err, consentId) {
-          if (err) { reject(err); return; }
-          afterConfirmation(function() {
-            _hostScroll.beginTransition();
-            removePreferenceCenter();
-            removeBanner();
-            _hostScroll.endTransition();
-          });
+        var queued = submitConsent('granular', purposeDecisions || [], vendorDecisions || [], function(err, consentId) {
+          if (err) { restoreChoiceUi(); reject(err); return; }
+          _choiceUiHeld = false;
           resolve(consentId);
         });
+        if (queued) holdChoiceUi();
+        else reject(new Error('A consent request is already being submitted'));
       });
     },
     exportPortableConsent: function(targetWebsiteId) {
@@ -3114,9 +3141,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
   function fetchConfigJson() {
     return fetch(configRequestUrl(), {
-      cache: 'no-store',
-      mode: 'cors',
-      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      cache: 'default',
+      mode: 'cors'
     }).then(function(r) {
       return r.json().then(function(data) {
         return data;
@@ -3133,6 +3159,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     scheduleConfigRefresh();
     initExternalSignals();
     _california = loadStoredCalifornia();
+
+    if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+      flushConsentSubmit();
+      return;
+    }
 
     var stored = loadStoredConsent();
     if (
@@ -3210,22 +3241,124 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       applyTrackerEnforcement();
       publishExternalSignals();
     });
+    flushConsentSubmit();
   }
 
   pauseTaggedScripts();
 
-  try {
-    var cachedRaw = sessionStorage.getItem('__cmp_cfg_' + SITE_KEY);
-    var cachedCfg = cachedRaw ? JSON.parse(cachedRaw) : null;
-    if (
-      cachedCfg &&
-      cachedCfg.success &&
-      cachedCfg.bannerConfig &&
-      Date.now() - (cachedCfg.__cmpCachedAt || 0) < 60000
-    ) {
-      applyLoadedConfig(cachedCfg);
+  // ── Instant paint ────────────────────────────────────────────────────────
+  // First paint must not wait on the network. Use a still-valid cached config
+  // when we can submit from it; otherwise paint the last known (or default)
+  // notice immediately and attach a fresh policy context when config arrives.
+  var CONFIG_CACHE_KEY = '__cmp_cfg_' + SITE_KEY;
+  var CONFIG_CACHE_MIN_CONTEXT_MS = 2 * 60 * 1000;
+  var CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+  function defaultVisualBannerConfig() {
+    return {
+      title: 'We value your privacy',
+      description: 'We use cookies and similar technologies to enhance your browsing experience, serve personalized content, and analyze traffic. By clicking "Accept all", you consent to our use of cookies.',
+      acceptAllLabel: 'Accept all',
+      rejectAllLabel: 'Reject all',
+      customizeLabel: 'Customize',
+      showAcceptAll: true,
+      showRejectAll: true,
+      showCustomize: false,
+      showPoweredBy: false,
+      showCloseButton: false,
+      layout: 'bar',
+      position: 'bottom',
+      primaryColor: '#171717',
+      backgroundColor: '#ffffff',
+      textColor: '#171717',
+      borderRadius: 8,
+      overlayEnabled: false,
+      blockPageUntilConsent: false
+    };
+  }
+
+  function cachedConfigHasBanner(cfg) {
+    return !!(cfg && cfg.success && cfg.bannerConfig);
+  }
+
+  function cachedConfigUsable(cfg) {
+    if (!cachedConfigHasBanner(cfg) || !cfg.websiteId) return false;
+    var age = Date.now() - (cfg.__cmpCachedAt || 0);
+    if (!(age >= 0 && age < CONFIG_CACHE_MAX_AGE_MS)) return false;
+    var ctx = presentedPolicyContext(cfg);
+    var expiresAt = ctx && ctx.claims ? ctx.claims.expiresAt : (ctx && ctx.expiresAt);
+    if (!ctx || !ctx.token || !expiresAt) return false;
+    var expires = Date.parse(expiresAt);
+    return isFinite(expires) && expires - Date.now() > CONFIG_CACHE_MIN_CONTEXT_MS;
+  }
+
+  function readAnyCachedConfig() {
+    var raw = null;
+    try { raw = localStorage.getItem(CONFIG_CACHE_KEY); } catch (e1) {}
+    if (!raw) {
+      try { raw = sessionStorage.getItem(CONFIG_CACHE_KEY); } catch (e2) {}
     }
-  } catch (eCache) {}
+    if (!raw) return null;
+    try {
+      var cfg = JSON.parse(raw);
+      var age = Date.now() - (cfg && cfg.__cmpCachedAt || 0);
+      if (!cachedConfigHasBanner(cfg) || !(age >= 0 && age < CONFIG_CACHE_MAX_AGE_MS)) return null;
+      return cfg;
+    } catch (e3) {
+      return null;
+    }
+  }
+
+  function writeCachedConfig(data) {
+    try {
+      data.__cmpCachedAt = Date.now();
+      var serialized = JSON.stringify(data);
+      try { localStorage.setItem(CONFIG_CACHE_KEY, serialized); } catch (e1) {}
+      try { sessionStorage.setItem(CONFIG_CACHE_KEY, serialized); } catch (e2) {}
+    } catch (eWrite) {}
+  }
+
+  function hasConfirmedLocalConsent() {
+    var stored = loadStoredConsent();
+    return !!(
+      stored &&
+      stored.status === 'confirmed' &&
+      stored.serverConfirmed === true &&
+      stored.consentId
+    );
+  }
+
+  function paintVisualBanner(cfg, extras) {
+    extras = extras || {};
+    _config = {
+      success: true,
+      websiteId: extras.websiteId || '',
+      bannerConfig: cfg,
+      purposes: extras.purposes || [],
+      vendors: extras.vendors || [],
+      resolvedLanguage: extras.resolvedLanguage || '',
+      childProtection: extras.childProtection || null,
+      california: extras.california || null
+    };
+    showBannerWhenReady();
+  }
+
+  var paintedFromCache = false;
+  var cachedCfg = readAnyCachedConfig();
+  if (cachedCfg && cachedConfigUsable(cachedCfg)) {
+    try {
+      applyLoadedConfig(cachedCfg);
+      paintedFromCache = !!_config;
+    } catch (eCache) {}
+  } else if (!hasConfirmedLocalConsent()) {
+    try {
+      if (cachedCfg && cachedCfg.bannerConfig) {
+        paintVisualBanner(cachedCfg.bannerConfig, cachedCfg);
+      } else {
+        paintVisualBanner(defaultVisualBannerConfig(), {});
+      }
+    } catch (eVisual) {}
+  }
 
   fetchConfigJson()
     .then(function(data) {
@@ -3234,10 +3367,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         scheduleConfigRefresh();
         return;
       }
-      try {
-        data.__cmpCachedAt = Date.now();
-        sessionStorage.setItem('__cmp_cfg_' + SITE_KEY, JSON.stringify(data));
-      } catch (eWrite) {}
+      writeCachedConfig(data);
+      if (paintedFromCache && _config) {
+        var liveRevision = configRevision(applyAssignedAbTest(data));
+        if (liveRevision === _configRevision) {
+          // Same notice as the one already on screen: just refresh the signed
+          // policy context so submissions carry the newest token.
+          rememberPolicyContext(presentedPolicyContext(data));
+          flushConsentSubmit();
+          return;
+        }
+      }
       applyLoadedConfig(data);
     })
     .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });

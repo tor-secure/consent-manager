@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -34,7 +34,7 @@ import {
   buildPolicyNoticeSnapshot,
   issuePolicyContext,
 } from "@/lib/policy-context";
-import { parseChildProtectionConfig } from "@/lib/children/config";
+import { childProtectionActive, parseChildProtectionConfig } from "@/lib/children/config";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 import { publicChildSnapshot } from "@/lib/children/service";
 import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
@@ -58,9 +58,7 @@ export async function GET(
 
     const corsHeaders = {
       ...publicCorsHeaders("GET, OPTIONS"),
-      "Cache-Control": "private, no-store, no-cache, must-revalidate, max-age=0",
-      Pragma: "no-cache",
-      Expires: "0",
+      "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
       Vary: "Accept-Language",
     };
 
@@ -113,14 +111,104 @@ export async function GET(
     const originError = sdkOriginGuard(request, website, corsHeaders);
     if (originError) return originError;
 
-    const resolved = await resolveWebsiteConsentContext({
-      websiteId: website.id,
-      organizationId: website.organizationId,
-      websiteDefaultRegion: website.defaultRegion,
-      defaultRegulationKey: website.defaultRegulationKey,
-      country: countryHint,
-      region: regionHint,
-    });
+    const childConfig = parseChildProtectionConfig(website.childProtection);
+    const needsChildSnapshot =
+      childProtectionActive(childConfig) || childConfig.ageAssuranceRequired;
+
+    // Everything below only depends on the website row, so fetch it in one
+    // round-trip batch. The banner paints from a local visual cache first.
+    const [resolved, orgRow, trackerRows, negotiation, childSnapshot] = await Promise.all([
+      resolveWebsiteConsentContext({
+        websiteId: website.id,
+        organizationId: website.organizationId,
+        websiteDefaultRegion: website.defaultRegion,
+        defaultRegulationKey: website.defaultRegulationKey,
+        country: countryHint,
+        region: regionHint,
+      }),
+      // Organization grievance contact for the public notice
+      // (DPDP Rules 2025 Rule 3(1)(d)).
+      db
+        .select({
+          grievanceOfficerName:  organizations.grievanceOfficerName,
+          grievanceOfficerEmail: organizations.grievanceOfficerEmail,
+          grievancePortalUrl:    organizations.grievancePortalUrl,
+          dpoName:               organizations.dpoName,
+          dpoEmail:              organizations.dpoEmail,
+        })
+        .from(organizations)
+        .where(eq(organizations.id, website.organizationId))
+        .limit(1)
+        .then((rows) => rows[0]),
+      // Tracker rules for client-side enforcement.
+      db
+        .select({
+          id: trackers.id,
+          name: trackers.name,
+          type: trackers.type,
+          domain: trackers.domain,
+          identifier: trackers.identifier,
+          purposeId: trackers.purposeId,
+          vendorId: trackers.vendorId,
+          isEssential: trackers.isEssential,
+          status: trackers.status,
+          category: trackers.category,
+          cookieNames: trackers.cookieNames,
+          storageTypes: trackers.storageTypes,
+          localStorageKeys: trackers.localStorageKeys,
+          sessionStorageKeys: trackers.sessionStorageKeys,
+          indexedDbNames: trackers.indexedDbNames,
+          scriptUrlPatterns: trackers.scriptUrlPatterns,
+          iframeUrlPatterns: trackers.iframeUrlPatterns,
+          pixelUrlPatterns: trackers.pixelUrlPatterns,
+          party: trackers.party,
+          duration: trackers.duration,
+          deletionBehavior: trackers.deletionBehavior,
+          ccpaSale: trackers.ccpaSale,
+          ccpaShare: trackers.ccpaShare,
+          ccpaSensitivePi: trackers.ccpaSensitivePi,
+        })
+        .from(trackers)
+        .where(
+          and(
+            eq(trackers.websiteId, website.id),
+            eq(trackers.status, "active"),
+          ),
+        )
+        .orderBy(trackers.name),
+      db
+        .select({
+          enabled: negotiationConfigurations.enabled,
+          offers: negotiationConfigurations.offers,
+        })
+        .from(negotiationConfigurations)
+        .where(eq(negotiationConfigurations.websiteId, website.id))
+        .limit(1)
+        .then(
+          (rows): { enabled: boolean; offers: unknown } | undefined => rows[0],
+          (error) => {
+            logger.warn("SDK config skipped negotiation offers", {
+              route: "GET /api/sdk/[siteKey]/config",
+              operation: "sdk.config.negotiation",
+              error,
+            });
+            return undefined;
+          },
+        ),
+      needsChildSnapshot
+        ? publicChildSnapshot({
+            organizationId: website.organizationId,
+            websiteId: website.id,
+          }).catch((error): null => {
+            logger.warn("SDK config skipped child-protection snapshot", {
+              route: "GET /api/sdk/[siteKey]/config",
+              operation: "sdk.config.child",
+              error,
+            });
+            return null;
+          })
+        : Promise.resolve(null),
+    ]);
 
     if (!resolved.selectedPolicy) {
       return NextResponse.json(
@@ -134,8 +222,8 @@ export async function GET(
       name: resolved.selectedPolicy.name,
     };
 
-    // Only published versions may be shown to external visitors.
-    const allVersions = await db
+    // Only the latest published version may be shown to external visitors.
+    const [latestVersion] = await db
       .select({
         id: consentPolicyVersions.id,
         version: consentPolicyVersions.version,
@@ -143,10 +231,14 @@ export async function GET(
         configuration: consentPolicyVersions.configuration,
       })
       .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
-      .orderBy(consentPolicyVersions.version);
-
-    const latestVersion = allVersions.findLast((v) => v.isPublished) ?? null;
+      .where(
+        and(
+          eq(consentPolicyVersions.policyId, policy.id),
+          eq(consentPolicyVersions.isPublished, true),
+        ),
+      )
+      .orderBy(desc(consentPolicyVersions.version))
+      .limit(1);
 
     if (!latestVersion) {
       return NextResponse.json(
@@ -154,20 +246,6 @@ export async function GET(
         { status: 404, headers: corsHeaders },
       );
     }
-
-    // Resolve the organization's grievance contact for inclusion in the
-    // public notice (DPDP Rules 2025 Rule 3(1)(d)).
-    const [orgRow] = await db
-      .select({
-        grievanceOfficerName:  organizations.grievanceOfficerName,
-        grievanceOfficerEmail: organizations.grievanceOfficerEmail,
-        grievancePortalUrl:    organizations.grievancePortalUrl,
-        dpoName:               organizations.dpoName,
-        dpoEmail:              organizations.dpoEmail,
-      })
-      .from(organizations)
-      .where(eq(organizations.id, website.organizationId))
-      .limit(1);
 
     const grievance = {
       grievanceOfficerName:  orgRow?.grievanceOfficerName  ?? null,
@@ -199,109 +277,82 @@ export async function GET(
     const resolvedNotice = resolveTranslation(bannerConfig, requestedLang);
     const localizedConfig = applyResolvedNotice(bannerConfig, resolvedNotice);
 
-    // Purposes attached to this version.
-    const versionPurposes = await db
-      .select({
-        id: purposes.id,
-        key: purposes.key,
-        name: purposes.name,
-        description: purposes.description,
-        isRequired: purposes.isRequired,
-        // DPDP Rule 3 enrichment — included in the SDK payload so the
-        // Preference Center can display retention period and data categories.
-        dataCategories:  purposes.dataCategories,
-        retentionPeriod: purposes.retentionPeriod,
-        legalBasis:      purposes.legalBasis,
-        iabTcfPurposeId: purposes.iabTcfPurposeId,
-        iabGppPurposeId: purposes.iabGppPurposeId,
-      })
-      .from(policyPurposes)
-      .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
-      .where(eq(policyPurposes.policyVersionId, latestVersion.id))
-      .orderBy(purposes.name);
+    const integrations = parseConsentIntegrations(website.consentIntegrations);
 
-    // Vendors linked through attached purposes.
-    const purposeIds = versionPurposes.map((p) => p.id);
+    // Purposes and vendors attached to this version, plus the GVL when TCF is
+    // on. All three depend only on the version id, so run them together.
+    const [versionPurposes, vendorRows, currentGvl] = await Promise.all([
+      db
+        .select({
+          id: purposes.id,
+          key: purposes.key,
+          name: purposes.name,
+          description: purposes.description,
+          isRequired: purposes.isRequired,
+          // DPDP Rule 3 enrichment — included in the SDK payload so the
+          // Preference Center can display retention period and data categories.
+          dataCategories:  purposes.dataCategories,
+          retentionPeriod: purposes.retentionPeriod,
+          legalBasis:      purposes.legalBasis,
+          iabTcfPurposeId: purposes.iabTcfPurposeId,
+          iabGppPurposeId: purposes.iabGppPurposeId,
+        })
+        .from(policyPurposes)
+        .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
+        .where(eq(policyPurposes.policyVersionId, latestVersion.id))
+        .orderBy(purposes.name),
+      // Vendors linked through the purposes attached to this version.
+      db
+        .select({
+          id: vendors.id,
+          name: vendors.name,
+          domain: vendors.domain,
+          privacyPolicyUrl: vendors.privacyPolicyUrl,
+          iabVendorId: vendors.iabVendorId,
+          role: vendors.role,
+          ccpaSale: vendors.ccpaSale,
+          ccpaShare: vendors.ccpaShare,
+          ccpaSensitivePi: vendors.ccpaSensitivePi,
+        })
+        .from(policyPurposes)
+        .innerJoin(vendorPurposes, eq(vendorPurposes.purposeId, policyPurposes.purposeId))
+        .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
+        .where(eq(policyPurposes.policyVersionId, latestVersion.id))
+        .orderBy(vendors.name),
+      integrations.iabTcf.enabled
+        ? getCurrentGvl().catch((error): null => {
+            logger.warn("SDK config skipped IAB GVL cache", {
+              route: "GET /api/sdk/[siteKey]/config",
+              operation: "sdk.config.gvl",
+              error,
+            });
+            return null;
+          })
+        : Promise.resolve(null),
+    ]);
 
-    const vpLinks =
-      purposeIds.length > 0
-        ? await db
-            .select({ vendorId: vendorPurposes.vendorId })
-            .from(vendorPurposes)
-            .where(inArray(vendorPurposes.purposeId, purposeIds))
-        : [];
-
-    const vendorIds = [...new Set(vpLinks.map((v) => v.vendorId))];
-
-    const resolvedVendors =
-      vendorIds.length > 0
-        ? await db
-            .select({
-              id: vendors.id,
-              name: vendors.name,
-              domain: vendors.domain,
-              privacyPolicyUrl: vendors.privacyPolicyUrl,
-              iabVendorId: vendors.iabVendorId,
-              role: vendors.role,
-              ccpaSale: vendors.ccpaSale,
-              ccpaShare: vendors.ccpaShare,
-              ccpaSensitivePi: vendors.ccpaSensitivePi,
-            })
-            .from(vendors)
-            .where(inArray(vendors.id, vendorIds))
-            .orderBy(vendors.name)
-        : [];
-
-    // Tracker rules for client-side enforcement.
-    // Includes domain, identifier, purposeId, vendorId, isEssential.
-    const trackerRows = await db
-      .select({
-        id: trackers.id,
-        name: trackers.name,
-        type: trackers.type,
-        domain: trackers.domain,
-        identifier: trackers.identifier,
-        purposeId: trackers.purposeId,
-        vendorId: trackers.vendorId,
-        isEssential: trackers.isEssential,
-        status: trackers.status,
-        category: trackers.category,
-        cookieNames: trackers.cookieNames,
-        storageTypes: trackers.storageTypes,
-        localStorageKeys: trackers.localStorageKeys,
-        sessionStorageKeys: trackers.sessionStorageKeys,
-        indexedDbNames: trackers.indexedDbNames,
-        scriptUrlPatterns: trackers.scriptUrlPatterns,
-        iframeUrlPatterns: trackers.iframeUrlPatterns,
-        pixelUrlPatterns: trackers.pixelUrlPatterns,
-        party: trackers.party,
-        duration: trackers.duration,
-        deletionBehavior: trackers.deletionBehavior,
-        ccpaSale: trackers.ccpaSale,
-        ccpaShare: trackers.ccpaShare,
-        ccpaSensitivePi: trackers.ccpaSensitivePi,
-      })
-      .from(trackers)
-      .where(
-        and(
-          eq(trackers.websiteId, website.id),
-          eq(trackers.status, "active"),
-        ),
-      )
-      .orderBy(trackers.name);
+    const resolvedVendors = [
+      ...new Map(vendorRows.map((vendor) => [vendor.id, vendor])).values(),
+    ];
 
     // Build purposeKey map: purposeId → key (for human-readable enforcement logs).
-    const trackerPurposeIds = [
-      ...new Set(trackerRows.map((t) => t.purposeId).filter(Boolean) as string[]),
+    // Version purposes already carry their keys; only look up trackers that
+    // point at purposes outside this version.
+    const purposeKeyMap = new Map(versionPurposes.map((p) => [p.id, p.key]));
+    const missingPurposeIds = [
+      ...new Set(
+        trackerRows
+          .map((t) => t.purposeId)
+          .filter((id): id is string => Boolean(id) && !purposeKeyMap.has(id as string)),
+      ),
     ];
-    const purposeKeyRows =
-      trackerPurposeIds.length > 0
-        ? await db
-            .select({ id: purposes.id, key: purposes.key })
-            .from(purposes)
-            .where(inArray(purposes.id, trackerPurposeIds))
-        : [];
-    const purposeKeyMap = new Map(purposeKeyRows.map((p) => [p.id, p.key]));
+    if (missingPurposeIds.length > 0) {
+      const purposeKeyRows = await db
+        .select({ id: purposes.id, key: purposes.key })
+        .from(purposes)
+        .where(inArray(purposes.id, missingPurposeIds));
+      for (const row of purposeKeyRows) purposeKeyMap.set(row.id, row.key);
+    }
 
     const vendorById = new Map(resolvedVendors.map((vendor) => [vendor.id, vendor]));
     const trackerRules: TrackerRule[] = trackerRows.map((t) => {
@@ -343,19 +394,6 @@ export async function GET(
       };
     });
 
-    const integrations = parseConsentIntegrations(website.consentIntegrations);
-    let currentGvl: { version: number } | null = null;
-    if (integrations.iabTcf.enabled) {
-      try {
-        currentGvl = await getCurrentGvl();
-      } catch (error) {
-        logger.warn("SDK config skipped IAB GVL cache", {
-          route: "GET /api/sdk/[siteKey]/config",
-          operation: "sdk.config.gvl",
-          error,
-        });
-      }
-    }
     const purposeMappings = versionPurposes.map((purpose) =>
       purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter(Number.isInteger);
     const vendorMappings = resolvedVendors.map((vendor) =>
@@ -384,23 +422,6 @@ export async function GET(
       showCustomize: resolved.legalEngine.ux.preferenceCenterRequired && localizedConfig.showCustomize,
       consentModel: resolved.legalEngine.ux.consentModel,
     };
-    let negotiation: { enabled: boolean; offers: unknown } | undefined;
-    try {
-      [negotiation] = await db
-        .select({
-          enabled: negotiationConfigurations.enabled,
-          offers: negotiationConfigurations.offers,
-        })
-        .from(negotiationConfigurations)
-        .where(eq(negotiationConfigurations.websiteId, website.id))
-        .limit(1);
-    } catch (error) {
-      logger.warn("SDK config skipped negotiation offers", {
-        route: "GET /api/sdk/[siteKey]/config",
-        operation: "sdk.config.negotiation",
-        error,
-      });
-    }
     const negotiationOffers = publicNegotiationOffers({
       enabled: negotiation?.enabled ?? false,
       offers: negotiation?.offers ?? [],
@@ -497,20 +518,6 @@ export async function GET(
         : [],
     );
 
-    let childSnapshot: Awaited<ReturnType<typeof publicChildSnapshot>> = null;
-    try {
-      childSnapshot = await publicChildSnapshot({
-        organizationId: website.organizationId,
-        websiteId: website.id,
-      });
-    } catch (error) {
-      logger.warn("SDK config skipped child-protection snapshot", {
-        route: "GET /api/sdk/[siteKey]/config",
-        operation: "sdk.config.child",
-        error,
-      });
-    }
-    const childConfig = parseChildProtectionConfig(website.childProtection);
     const childView = childSnapshot?.view;
     const childNotice = !childView?.enabled
       ? null
