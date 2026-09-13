@@ -202,23 +202,21 @@ export async function appendConsentEvent({
   const webhookEventType = resolveConsentWebhookEventType(eventType, eventData, record.status);
   if (!webhookEventType) return;
 
-  try {
-    await deliverWebhookEvent({
-      organizationId: record.organizationId,
-      eventId: event.id,
-      eventType: webhookEventType,
-      payload: {
-        consentRecordId: record.id,
-        consentId: record.consentId,
-        websiteId: record.websiteId,
-        policyVersionId,
-        source,
-        status: record.status,
-        eventType: event.eventType,
-        eventData,
-      },
-    });
-  } catch (error) {
+  void deliverWebhookEvent({
+    organizationId: record.organizationId,
+    eventId: event.id,
+    eventType: webhookEventType,
+    payload: {
+      consentRecordId: record.id,
+      consentId: record.consentId,
+      websiteId: record.websiteId,
+      policyVersionId,
+      source,
+      status: record.status,
+      eventType: event.eventType,
+      eventData,
+    },
+  }).catch((error) => {
     logger.error("Webhook dispatch failed for consent event", {
       operation: "consent.webhook.dispatch",
       consentRecordId,
@@ -226,7 +224,7 @@ export async function appendConsentEvent({
       eventType,
       error,
     });
-  }
+  });
 }
 
 function resolveConsentWebhookEventType(

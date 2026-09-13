@@ -28,7 +28,7 @@ Module._load = function patchedLoad(request, parent, isMain) {
         return Response.json(body, init);
       }
     }
-    return { NextResponse };
+    return { NextResponse, after(task) { void Promise.resolve(typeof task === "function" ? task() : task); } };
   }
   if (request === "@/db") return { db: {} };
   if (request === "@/lib/logger") return { logger: { error() {}, warn() {}, info() {}, debug() {} } };

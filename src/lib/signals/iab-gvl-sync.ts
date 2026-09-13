@@ -5,6 +5,9 @@ import { db } from "@/db";
 import { iabGvlCache } from "@/db/schema/iab-gvl-cache";
 import { fetchOfficialGvl, OFFICIAL_GVL_URL } from "./iab-gvl";
 
+const GVL_MEMORY_TTL_MS = 60_000;
+let currentGvlMemory: { expiresAt: number; row: typeof iabGvlCache.$inferSelect | null } | null = null;
+
 export async function syncOfficialGvl() {
   const gvl = await fetchOfficialGvl();
   await db.transaction(async (tx) => {
@@ -24,11 +27,16 @@ export async function syncOfficialGvl() {
       set: { payload: gvl.payload, sha256: gvl.sha256, status: "current", fetchedAt: new Date(), validatedAt: new Date() },
     });
   });
+  currentGvlMemory = null;
   return { version: gvl.vendorListVersion, vendorCount: Object.keys(gvl.vendors).length, sha256: gvl.sha256 };
 }
 
 export async function getCurrentGvl() {
+  if (currentGvlMemory && currentGvlMemory.expiresAt > Date.now()) {
+    return currentGvlMemory.row;
+  }
   const [row] = await db.select().from(iabGvlCache)
     .where(eq(iabGvlCache.status, "current")).orderBy(desc(iabGvlCache.version)).limit(1);
-  return row ?? null;
+  currentGvlMemory = { expiresAt: Date.now() + GVL_MEMORY_TTL_MS, row: row ?? null };
+  return currentGvlMemory.row;
 }

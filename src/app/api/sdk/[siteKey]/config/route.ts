@@ -345,14 +345,16 @@ export async function GET(
 
     const integrations = parseConsentIntegrations(website.consentIntegrations);
     let currentGvl: { version: number } | null = null;
-    try {
-      currentGvl = await getCurrentGvl();
-    } catch (error) {
-      logger.warn("SDK config skipped IAB GVL cache", {
-        route: "GET /api/sdk/[siteKey]/config",
-        operation: "sdk.config.gvl",
-        error,
-      });
+    if (integrations.iabTcf.enabled) {
+      try {
+        currentGvl = await getCurrentGvl();
+      } catch (error) {
+        logger.warn("SDK config skipped IAB GVL cache", {
+          route: "GET /api/sdk/[siteKey]/config",
+          operation: "sdk.config.gvl",
+          error,
+        });
+      }
     }
     const purposeMappings = versionPurposes.map((purpose) =>
       purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter(Number.isInteger);

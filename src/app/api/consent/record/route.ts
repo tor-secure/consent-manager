@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { eq, and, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -16,6 +16,7 @@ import { parseBannerConfig } from "@/lib/banner-config";
 import { parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
 import { evidenceCaliforniaOptOut, publicCaliforniaState, resolveCaliforniaOptOut } from "@/lib/ccpa/state";
+import { californiaRuntimeApplies } from "@/lib/ccpa/types";
 import { loadCaliforniaOptOut, upsertCaliforniaOptOut } from "@/lib/ccpa/service";
 import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { logger } from "@/lib/logger";
@@ -57,13 +58,24 @@ import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { decodeGppSections, encodeGppString, encodeTcString, getIabRegistration } from "@/lib/signals/iab-adapter";
 import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
 import { resolveRegulationProfile } from "@/lib/regulations/engine";
-import { parseChildProtectionConfig } from "@/lib/children/config";
+import { childProtectionActive, parseChildProtectionConfig } from "@/lib/children/config";
 import { denyRestrictedDecisions } from "@/lib/children/evaluate";
 import { loadLatestSession, rowToState } from "@/lib/children/service";
 import { publicAgeView } from "@/lib/children/state";
 import { evidenceProcessingInventory, isFrozenProcessingSnapshot } from "@/lib/processing/snapshot";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
+
+function scheduleConsentSideEffect(
+  work: () => Promise<unknown>,
+  context: { operation: string } & Record<string, unknown>,
+) {
+  after(() =>
+    work().catch((error) => {
+      logger.error("Consent side effect failed", { ...context, error });
+    }),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // GET /api/consent/record?consentId=<cid>&websiteId=<id>
@@ -107,6 +119,8 @@ export async function GET(request: Request) {
         siteKey: websites.siteKey,
         domain: websites.domain,
         verified: websites.verified,
+        defaultRegulationKey: websites.defaultRegulationKey,
+        defaultRegion: websites.defaultRegion,
       })
       .from(consentRecords)
       .innerJoin(websites, eq(consentRecords.websiteId, websites.id))
@@ -138,41 +152,40 @@ export async function GET(request: Request) {
     // so the SDK re-shows the banner. We do NOT mutate the DB on GET.
     const expired = isConsentExpired(record);
 
-    const decisions = expired
-      ? []
-      : await db
-          .select({
-            purposeId: consentDecisions.purposeId,
-            vendorId: consentDecisions.vendorId,
-            granted: consentDecisions.granted,
-            decision: consentDecisions.decision,
-            decidedAt: consentDecisions.decidedAt,
-          })
-          .from(consentDecisions)
-          .where(eq(consentDecisions.consentRecordId, record.id));
-
-    const [site] = await db
-      .select({
-        defaultRegulationKey: websites.defaultRegulationKey,
-        defaultRegion: websites.defaultRegion,
-      })
-      .from(websites)
-      .where(eq(websites.id, websiteId))
-      .limit(1);
-    const californiaRow = await loadCaliforniaOptOut({
-      organizationId: record.organizationId,
-      websiteId: websiteId,
-      consentId,
+    const californiaApplies = californiaRuntimeApplies({
+      regulationKey: record.defaultRegulationKey,
+      region: record.defaultRegion,
     });
+    const [decisions, californiaRow] = await Promise.all([
+      expired
+        ? Promise.resolve([])
+        : db
+            .select({
+              purposeId: consentDecisions.purposeId,
+              vendorId: consentDecisions.vendorId,
+              granted: consentDecisions.granted,
+              decision: consentDecisions.decision,
+              decidedAt: consentDecisions.decidedAt,
+            })
+            .from(consentDecisions)
+            .where(eq(consentDecisions.consentRecordId, record.id)),
+      californiaApplies
+        ? loadCaliforniaOptOut({
+            organizationId: record.organizationId,
+            websiteId: websiteId,
+            consentId,
+          })
+        : Promise.resolve(null),
+    ]);
     const gpc = parseGpcFromRequest(request.headers, null);
     const california = publicCaliforniaState(resolveCaliforniaOptOut({
-      regulationKey: californiaRow?.jurisdiction ?? site?.defaultRegulationKey,
-      region: site?.defaultRegion,
+      regulationKey: californiaRow?.jurisdiction ?? record.defaultRegulationKey,
+      region: record.defaultRegion,
       header: gpc.header,
       client: gpc.client,
       persisted: californiaRow,
       consentWithdrawn: Boolean(record.withdrawnAt),
-      jurisdiction: californiaRow?.jurisdiction ?? site?.defaultRegulationKey ?? null,
+      jurisdiction: californiaRow?.jurisdiction ?? record.defaultRegulationKey ?? null,
       policyVersionId: californiaRow?.policyVersionId ?? record.policyVersionId,
     }));
 
@@ -415,31 +428,64 @@ export async function POST(request: Request) {
       );
     }
 
+    const childConfig = parseChildProtectionConfig(website.childProtection);
+    const integrations = parseConsentIntegrations(website.consentIntegrations);
+    const registration = getIabRegistration(process.env, website.iabRegistration);
+    const regulation =
+      resolveRegulationProfile({ key: policyContext.jurisdiction }) ??
+      resolveRegulationProfile({ key: website.defaultRegulationKey });
+    const californiaApplies = californiaRuntimeApplies({
+      regulationKey: policyContext.jurisdiction || website.defaultRegulationKey,
+      region: website.defaultRegion,
+    });
+    const needsTcf =
+      integrations.iabTcf.enabled === true &&
+      Boolean(regulation?.rules.signalRequirements.iabTcf) &&
+      registration.valid;
+
     // Resolve only the policy/version that the signed context says was shown.
     // Never switch to a newer active/default version during consent recording.
-    const [contextVersion] = await db
-      .select({
-        id: consentPolicyVersions.id,
-        version: consentPolicyVersions.version,
-        isPublished: consentPolicyVersions.isPublished,
-        configuration: consentPolicyVersions.configuration,
-        processingSnapshot: consentPolicyVersions.processingSnapshot,
-      })
-      .from(consentPolicyVersions)
-      .innerJoin(
-        consentPolicies,
-        eq(consentPolicyVersions.policyId, consentPolicies.id),
-      )
-      .where(
-        and(
-          eq(consentPolicyVersions.id, policyContext.policyVersionId),
-          eq(consentPolicyVersions.policyId, policyContext.policyId),
-          eq(consentPolicyVersions.version, policyContext.policyVersionNumber),
-          eq(consentPolicies.id, policyContext.policyId),
-          eq(consentPolicies.websiteId, website.id),
-        ),
-      )
-      .limit(1);
+    const [contextRows, ageRow, persistedCalifornia, currentGvl] = await Promise.all([
+      db
+        .select({
+          id: consentPolicyVersions.id,
+          version: consentPolicyVersions.version,
+          isPublished: consentPolicyVersions.isPublished,
+          configuration: consentPolicyVersions.configuration,
+          processingSnapshot: consentPolicyVersions.processingSnapshot,
+        })
+        .from(consentPolicyVersions)
+        .innerJoin(
+          consentPolicies,
+          eq(consentPolicyVersions.policyId, consentPolicies.id),
+        )
+        .where(
+          and(
+            eq(consentPolicyVersions.id, policyContext.policyVersionId),
+            eq(consentPolicyVersions.policyId, policyContext.policyId),
+            eq(consentPolicyVersions.version, policyContext.policyVersionNumber),
+            eq(consentPolicies.id, policyContext.policyId),
+            eq(consentPolicies.websiteId, website.id),
+          ),
+        )
+        .limit(1),
+      childProtectionActive(childConfig) || childConfig.ageAssuranceRequired
+        ? loadLatestSession({
+            organizationId: website.organizationId,
+            websiteId: website.id,
+            consentId: isNew ? null : String(rawConsentId).trim(),
+          })
+        : Promise.resolve(null),
+      californiaApplies && !isNew
+        ? loadCaliforniaOptOut({
+            organizationId: website.organizationId,
+            websiteId: website.id,
+            consentId: String(rawConsentId).trim(),
+          })
+        : Promise.resolve(null),
+      needsTcf ? getCurrentGvl() : Promise.resolve(null),
+    ]);
+    const [contextVersion] = contextRows;
 
     if (!contextVersion) {
       return NextResponse.json(
@@ -474,26 +520,19 @@ export async function POST(request: Request) {
       versionPurposes.filter((p) => p.isRequired).map((p) => p.id),
     );
 
-    const vpLinks =
+    const mappedVendorRows =
       purposeIds.length > 0
         ? await db
-            .select({ vendorId: vendorPurposes.vendorId })
+            .select({ id: vendors.id, iabVendorId: vendors.iabVendorId })
             .from(vendorPurposes)
+            .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
             .where(inArray(vendorPurposes.purposeId, purposeIds))
         : [];
+    const mappedVendors = [
+      ...new Map(mappedVendorRows.map((vendor) => [vendor.id, vendor])).values(),
+    ];
+    const vendorIds = mappedVendors.map((vendor) => vendor.id);
 
-    const vendorIds = [...new Set(vpLinks.map((v) => v.vendorId))];
-    const mappedVendors = vendorIds.length
-      ? await db.select({ id: vendors.id, iabVendorId: vendors.iabVendorId })
-          .from(vendors).where(inArray(vendors.id, vendorIds))
-      : [];
-
-    const childConfig = parseChildProtectionConfig(website.childProtection);
-    const ageRow = await loadLatestSession({
-      organizationId: website.organizationId,
-      websiteId: website.id,
-      consentId: isNew ? null : String(rawConsentId).trim(),
-    });
     let decisionRows = buildDecisionRows(
       submission,
       purposeIds,
@@ -519,13 +558,6 @@ export async function POST(request: Request) {
       bannerConfig as unknown as Record<string, unknown>,
       {},
     );
-    const persistedCalifornia = isNew
-      ? null
-      : await loadCaliforniaOptOut({
-          organizationId: website.organizationId,
-          websiteId: website.id,
-          consentId,
-        });
     const gpc = parseGpcFromRequest(request.headers, body.gpc);
     const californiaResolved = resolveCaliforniaOptOut({
       regulationKey: policyContext.jurisdiction || website.defaultRegulationKey,
@@ -542,9 +574,6 @@ export async function POST(request: Request) {
       jurisdiction: policyContext.jurisdiction,
       policyVersionId: contextVersion.id,
     });
-    const integrations = parseConsentIntegrations(website.consentIntegrations);
-    const registration = getIabRegistration(process.env, website.iabRegistration);
-    const currentGvl = await getCurrentGvl();
     const mappedPurposeIds = versionPurposes.map((purpose) =>
       purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter((id): id is number => Number.isInteger(id));
     const mappedVendorIds = vendorIds.map((id) =>
@@ -562,9 +591,6 @@ export async function POST(request: Request) {
         : null;
       return row.granted && Number.isInteger(id) ? [id as number] : [];
     });
-    const regulation =
-      resolveRegulationProfile({ key: policyContext.jurisdiction }) ??
-      resolveRegulationProfile({ key: website.defaultRegulationKey });
     const sectionMap: Record<string, number[]> = {
       gdpr: [2], uk_gdpr: [2], ccpa: [7, 8], vcdpa: [7, 9], cpa: [7, 10], ucpa: [7, 11],
     };
@@ -855,13 +881,19 @@ export async function POST(request: Request) {
 
     if (idempotentEvidence) {
       const prior = idempotentEvidence as typeof consentEvidenceSnapshots.$inferSelect;
-      await upsertCaliforniaOptOut({
-        organizationId: website.organizationId,
-        websiteId: website.id,
-        consentId: prior.consentId,
-        expiresAt,
-        resolved: californiaResolved,
-      });
+      if (californiaApplies) {
+        scheduleConsentSideEffect(
+          () =>
+            upsertCaliforniaOptOut({
+              organizationId: website.organizationId,
+              websiteId: website.id,
+              consentId: prior.consentId,
+              expiresAt,
+              resolved: californiaResolved,
+            }),
+          { operation: "consent.california.upsert", consentId: prior.consentId },
+        );
+      }
       const [priorRecord] = prior.consentRecordId
         ? await db
             .select({ expiresAt: consentRecords.expiresAt })
@@ -905,49 +937,52 @@ export async function POST(request: Request) {
       );
     }
 
-    await upsertCaliforniaOptOut({
-      organizationId: website.organizationId,
-      websiteId: website.id,
-      consentId: savedRecord.consentId,
-      expiresAt: savedRecord.expiresAt,
-      resolved: californiaResolved,
-    });
+    if (californiaApplies) {
+      scheduleConsentSideEffect(
+        () =>
+          upsertCaliforniaOptOut({
+            organizationId: website.organizationId,
+            websiteId: website.id,
+            consentId: savedRecord.consentId,
+            expiresAt: savedRecord.expiresAt,
+            resolved: californiaResolved,
+          }),
+        { operation: "consent.california.upsert", consentId: savedRecord.consentId },
+      );
+    }
 
-    // ── Append consent event (best-effort — must not fail the response) ──
-    // The consent record is already committed at this point. An event-append
-    // failure is logged but never surfaces as a 500 to the visitor.
+    // Event append is best-effort and must not delay the visitor response.
+    // The consent record is already committed at this point.
     const eventType = isNew
       ? "consent.created"
       : wasExpiredRecord
         ? "consent.expired_and_renewed"
         : "consent.updated";
 
-    try {
-      await appendConsentEvent({
-        consentRecordId: savedRecord.id,
-        policyVersionId: contextVersion.id,
-        eventType,
-        eventData: {
-          choice: submission.choice,
-          status: overallStatus,
-          decisionCount: decisionRows.length,
-          policyVersionNumber: contextVersion.version,
-          policyContextId: policyContext.contextId,
-          noticeHash: policyContext.noticeHash,
-          purposeKeys,
-          ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
-        },
-      });
-    } catch (eventError) {
-      // Non-fatal — the consent is saved; only the event log entry is missing.
-      logger.error("Append consent event failed", {
+    scheduleConsentSideEffect(
+      () =>
+        appendConsentEvent({
+          consentRecordId: savedRecord.id,
+          policyVersionId: contextVersion.id,
+          eventType,
+          eventData: {
+            choice: submission.choice,
+            status: overallStatus,
+            decisionCount: decisionRows.length,
+            policyVersionNumber: contextVersion.version,
+            policyContextId: policyContext.contextId,
+            noticeHash: policyContext.noticeHash,
+            purposeKeys,
+            ...(wasExpiredRecord ? { previouslyExpired: true } : {}),
+          },
+        }),
+      {
         operation: "consent.event.append",
         consentRecordId: savedRecord.id,
         policyVersionId: contextVersion.id,
         eventType,
-        error: eventError,
-      });
-    }
+      },
+    );
 
     return NextResponse.json(
       {

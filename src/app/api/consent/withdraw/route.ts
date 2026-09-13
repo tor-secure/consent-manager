@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { desc, eq, and, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -189,17 +189,26 @@ export async function POST(request: Request) {
     }
 
     try {
-      await appendConsentEvent({
-        consentRecordId: record.id,
-        policyVersionId: record.policyVersionId,
-        eventType: "consent.withdrawn",
-        eventData: {
-          previousStatus: record.status,
-          withdrawnAt: now.toISOString(),
-        },
-      });
+      after(() =>
+        appendConsentEvent({
+          consentRecordId: record.id,
+          policyVersionId: record.policyVersionId,
+          eventType: "consent.withdrawn",
+          eventData: {
+            previousStatus: record.status,
+            withdrawnAt: now.toISOString(),
+          },
+        }).catch((eventError) => {
+          logger.error("Append withdrawal consent event failed", {
+            operation: "consent.withdraw.event",
+            consentRecordId: record.id,
+            policyVersionId: record.policyVersionId,
+            error: eventError,
+          });
+        }),
+      );
     } catch (eventError) {
-      logger.error("Append withdrawal consent event failed", {
+      logger.error("Schedule withdrawal consent event failed", {
         operation: "consent.withdraw.event",
         consentRecordId: record.id,
         policyVersionId: record.policyVersionId,
