@@ -1240,6 +1240,36 @@ async function testConsentFailuresRemainBlocked() {
   }
 }
 
+async function testExpiredPolicyContextRetriesOnce() {
+  const store = createStore();
+  let posts = 0;
+  store.consentPostInterceptor = (body, _init, api) => {
+    posts += 1;
+    if (posts === 1) {
+      return {
+        status: 409,
+        body: {
+          success: false,
+          code: "POLICY_CONTEXT_EXPIRED",
+          message: "Policy context expired; reload the consent notice and try again",
+        },
+      };
+    }
+    return api.submitConsent(body);
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  await flush();
+  await flush();
+
+  assert.equal(posts, 2, "expired policy context should refresh config and retry once");
+  assert.equal(store.records.length, 1);
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+}
+
 async function testConsentTimeoutRemainsBlocked() {
   const store = createStore();
   store.consentPostInterceptor = (_body, init) =>
@@ -2347,6 +2377,7 @@ async function main() {
   await testPublishedPolicyRefresh();
   await testServerConfirmedConsentStateMachine();
   await testConsentFailuresRemainBlocked();
+  await testExpiredPolicyContextRetriesOnce();
   await testConsentTimeoutRemainsBlocked();
   await testPendingReloadAndCrossTabWithdrawal();
   await testPendingStorageNeverActivatesProcessing();

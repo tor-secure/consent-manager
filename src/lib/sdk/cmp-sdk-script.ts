@@ -1740,22 +1740,30 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       timeoutId = window.setTimeout(function() { controller.abort(); }, timeoutMs);
     }
 
-    fetch(API_BASE + '/api/consent/record', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: controller ? controller.signal : undefined
-    })
-    .then(function(r) {
-      return r.json().then(function(data) {
-        return { ok: r.ok, status: r.status, data: data };
-      });
-    })
-    .then(function(result) {
-      var data = result.data;
-      if (!result.ok || !confirmedResponse(data)) {
-        throw new Error('Consent confirmation failed');
+    function failedConsentMessage(data) {
+      var detail = data && typeof data.message === 'string' ? data.message.trim() : '';
+      if (detail) {
+        return detail + (detail.indexOf('Optional processing remains blocked') === -1
+          ? ' Optional processing remains blocked. Please retry.'
+          : '');
       }
+      return 'Consent could not be confirmed. Optional processing remains blocked. Please retry.';
+    }
+
+    function postConsentRecord() {
+      return fetch(API_BASE + '/api/consent/record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller ? controller.signal : undefined
+      }).then(function(r) {
+        return r.json().then(function(data) {
+          return { ok: r.ok, status: r.status, data: data };
+        });
+      });
+    }
+
+    function applyConfirmedConsent(data) {
       if (timeoutId) window.clearTimeout(timeoutId);
       _retryJob = null;
       var applied = saveConsent(
@@ -1773,6 +1781,38 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if (applied) job.callback(null, data.consentId);
         else job.callback(new Error('A newer consent state is already active'));
       }
+    }
+
+    postConsentRecord()
+    .then(function(result) {
+      var data = result.data;
+      if (result.ok && confirmedResponse(data)) {
+        applyConfirmedConsent(data);
+        return;
+      }
+      if (
+        !job.contextRetry &&
+        data &&
+        data.code === 'POLICY_CONTEXT_EXPIRED'
+      ) {
+        return fetchConfigJson().then(function(next) {
+          if (!next || !next.success) throw new Error(failedConsentMessage(data));
+          _config = applyAssignedAbTest(next);
+          rememberPolicyContext(presentedPolicyContext(next));
+          if (!_policyContext || !_policyContext.token) throw new Error(failedConsentMessage(data));
+          body.policyContext = _policyContext;
+          body.language = (_config && _config.resolvedLanguage) || body.language;
+          job.contextRetry = true;
+          return postConsentRecord().then(function(retryResult) {
+            var retryData = retryResult.data;
+            if (!retryResult.ok || !confirmedResponse(retryData)) {
+              throw new Error(failedConsentMessage(retryData));
+            }
+            applyConfirmedConsent(retryData);
+          });
+        });
+      }
+      throw new Error(failedConsentMessage(data));
     })
     .catch(function(err) {
       if (timeoutId) window.clearTimeout(timeoutId);
@@ -1781,17 +1821,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       persistUnconfirmedState(
         'FAILED',
         job,
-        'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
+        err && err.message ? String(err.message) : failedConsentMessage(null)
       );
       if (job.callback) job.callback(new Error('Consent could not be saved. Please retry.'));
     })
     .then(function() {
       _submitBusy = false;
-      renderSubmissionState(
-        _consentState === 'FAILED'
-          ? 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
-          : (_consentState === 'GRANTED' || _consentState === 'DENIED' ? 'Consent confirmed' : '')
-      );
+      if (_consentState === 'GRANTED' || _consentState === 'DENIED') {
+        renderSubmissionState('Consent confirmed');
+      }
     });
   }
 
