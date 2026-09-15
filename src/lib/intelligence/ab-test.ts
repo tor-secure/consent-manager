@@ -1,3 +1,5 @@
+import { stickyUnitInterval } from "../policy/lifecycle-core";
+
 export type AbTestVariant = {
   id: string;
   label: string;
@@ -66,6 +68,11 @@ export function pickAbVariant(test: BannerAbTest, random = Math.random): AbTestV
     if (cursor <= 0) return test.variants[i];
   }
   return test.variants[test.variants.length - 1];
+}
+
+export function pickAbVariantSticky(test: BannerAbTest, visitorKey: string): AbTestVariant {
+  const unit = stickyUnitInterval(`${visitorKey}:${test.variants.map((row) => `${row.id}:${row.weight}`).join("|")}`);
+  return pickAbVariant(test, () => unit);
 }
 
 export function applyAbOverrides<T extends Record<string, unknown>>(

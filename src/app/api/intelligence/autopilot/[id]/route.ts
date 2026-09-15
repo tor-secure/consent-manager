@@ -7,6 +7,13 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { autopilotPlans } from "@/db/schema/intelligence";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
+import {
+  applyAutopilotStep,
+  restoreWebsiteTrackers,
+  snapshotWebsiteTrackers,
+  type AutopilotRollbackState,
+} from "@/lib/intelligence/autopilot-apply";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 const actionSchema = z.object({
@@ -36,9 +43,15 @@ export async function POST(
     resolveLocalUser(session.userId),
     resolveLocalOrganization(session.orgId),
   ]);
-  if (!user || !organization || !(await resolveActiveMembership(organization.id, user.id))) {
+  if (!user || !organization) {
     return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
   }
+  const membership = await resolveActiveMembership(organization.id, user.id);
+  if (!membership) {
+    return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
+  }
+  const operatorError = requireOperatorRole(membership.roleName);
+  if (operatorError) return operatorError;
   const limit = rateLimit({
     key: `autopilot-action:${organization.id}:${user.id}:${getClientIp(request)}`,
     limit: 30,
@@ -66,28 +79,85 @@ export async function POST(
     if (!step || step.applyMode !== "operator_approval" || !step.reversible || step.legalPublication) {
       return NextResponse.json({ success: false, message: "Only an approved safe reversible step may be applied" }, { status: 422 });
     }
-  }
-  if (body.data.action === "rollback" && !current.rollbackState) {
-    return NextResponse.json({ success: false, message: "No rollback state is available" }, { status: 409 });
-  }
-  const nextStatus = body.data.action === "approve" ? "approved" : body.data.action === "apply" ? "partially_applied" : "rolled_back";
-  const nextPlan =
-    body.data.action === "apply" && parsedPlan.success
+    const before = await snapshotWebsiteTrackers(current.websiteId);
+    const applied = await applyAutopilotStep({
+      organizationId: organization.id,
+      websiteId: current.websiteId,
+      confirmed: true,
+      step: {
+        id: step.id as "map_unclassified" | "complete_coverage",
+        title: step.id,
+        description: "",
+        before: 0,
+        after: 0,
+        delta: 0,
+        applyMode: step.applyMode,
+        reversible: step.reversible,
+        legalPublication: step.legalPublication,
+      },
+    });
+    if (!applied.applied) {
+      return NextResponse.json({ success: false, message: applied.message }, { status: 422 });
+    }
+    const nextPlan = parsedPlan.success
       ? {
           ...parsedPlan.data,
           appliedStepIds: [...new Set([...(parsedPlan.data.appliedStepIds ?? []), body.data.stepId!])],
         }
       : current.plan;
+    const [updated] = await db
+      .update(autopilotPlans)
+      .set({
+        status: "partially_applied",
+        version: current.version + 1,
+        rollbackState: before,
+        plan: nextPlan,
+        updatedAt: new Date(),
+      })
+      .where(eq(autopilotPlans.id, current.id))
+      .returning();
+    await db.insert(auditLogs).values({
+      organizationId: organization.id,
+      userId: user.id,
+      action: "autopilot.plan.apply",
+      resourceType: "autopilot_plan",
+      resourceId: current.id,
+      metadata: { mutated: applied.mutated, stepId: body.data.stepId, fromVersion: current.version },
+    });
+    return NextResponse.json({ success: true, plan: updated, apply: applied });
+  }
+
+  if (body.data.action === "rollback") {
+    if (!current.rollbackState) {
+      return NextResponse.json({ success: false, message: "No rollback state is available" }, { status: 409 });
+    }
+    await restoreWebsiteTrackers(current.rollbackState as AutopilotRollbackState);
+    const [updated] = await db
+      .update(autopilotPlans)
+      .set({
+        status: "rolled_back",
+        version: current.version + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(autopilotPlans.id, current.id))
+      .returning();
+    await db.insert(auditLogs).values({
+      organizationId: organization.id,
+      userId: user.id,
+      action: "autopilot.plan.rollback",
+      resourceType: "autopilot_plan",
+      resourceId: current.id,
+      metadata: { fromVersion: current.version },
+    });
+    return NextResponse.json({ success: true, plan: updated });
+  }
+
   const [updated] = await db
     .update(autopilotPlans)
     .set({
-      status: nextStatus,
+      status: "approved",
       version: current.version + 1,
-      rollbackState:
-        body.data.action === "rollback"
-          ? current.rollbackState
-          : { status: current.status, version: current.version, plan: current.plan },
-      plan: nextPlan,
+      rollbackState: { status: current.status, version: current.version, plan: current.plan },
       updatedAt: new Date(),
     })
     .where(eq(autopilotPlans.id, current.id))
@@ -95,7 +165,7 @@ export async function POST(
   await db.insert(auditLogs).values({
     organizationId: organization.id,
     userId: user.id,
-    action: `autopilot.plan.${body.data.action}`,
+    action: "autopilot.plan.approve",
     resourceType: "autopilot_plan",
     resourceId: current.id,
     metadata: { fromVersion: current.version, toVersion: updated.version, confirmed: true },

@@ -573,5 +573,14 @@ for (const route of [
   assert.doesNotMatch(service, /guardianVerified:\s*true/, "server does not accept a client guardianVerified flag");
 }
 
+{
+  const clerkWebhook = read("src/app/api/webhooks/clerk/route.ts");
+  assertIncludes(clerkWebhook, "claimInboundWebhook", "Clerk webhook claims svix-id before processing");
+  assertIncludes(clerkWebhook, 'provider: "clerk"', "Clerk webhook idempotency is provider-scoped");
+  const stripeWebhook = read("src/app/api/webhooks/stripe/route.ts");
+  assertIncludes(stripeWebhook, "verifyStripeSignature", "Stripe webhook verifies Stripe-Signature");
+  assertIncludes(stripeWebhook, "claimInboundWebhook", "Stripe webhook is replay-safe");
+}
+
 console.log("tenant isolation regression tests passed");
 

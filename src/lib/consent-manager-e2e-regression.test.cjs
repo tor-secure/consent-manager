@@ -48,6 +48,7 @@ const {
   buildGrantsFromDecisions,
   domainMatches,
   shouldBlock,
+  requestMatchesTracker: _requestMatchesTracker,
 } = require(findCompiled("src/lib/sdk/enforcement.ts"));
 const {
   isValidConsentId,

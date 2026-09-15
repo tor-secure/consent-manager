@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import postgres from "postgres";
 
+import { hashForPublishedVersion } from "../src/lib/policy/lifecycle-core";
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required");
@@ -50,6 +52,53 @@ async function main() {
     "phase5 tables:",
     pending.map((row) => row.table_name).join(",") || "(none)",
   );
+
+  const policyVersionCols = await sql`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'consent_policy_versions'
+      AND column_name IN (
+        'version',
+        'status',
+        'is_published',
+        'configuration',
+        'processing_snapshot',
+        'config_hash',
+        'scheduled_publish_at',
+        'unpublished_at',
+        'effective_from',
+        'published_at',
+        'created_at',
+        'updated_at'
+      )
+    ORDER BY column_name
+  `;
+  console.log(
+    "consent_policy_versions lifecycle columns:",
+    policyVersionCols.map((row) => row.column_name).join(",") || "(none)",
+  );
+
+  const missingHash = await sql`
+    SELECT id, configuration, processing_snapshot
+    FROM consent_policy_versions
+    WHERE config_hash IS NULL
+  `;
+  let hashed = 0;
+  for (const row of missingHash) {
+    const configHash = hashForPublishedVersion({
+      id: String(row.id),
+      configuration: row.configuration,
+      processingSnapshot: row.processing_snapshot,
+    });
+    await sql`
+      UPDATE consent_policy_versions
+      SET config_hash = ${configHash}
+      WHERE id = ${row.id} AND config_hash IS NULL
+    `;
+    hashed += 1;
+  }
+  console.log(`config_hash backfilled: ${hashed}`);
 
   const journal = JSON.parse(
     readFileSync(path.resolve("drizzle/meta/_journal.json"), "utf8"),

@@ -16,6 +16,9 @@ import {
 import type { AiProvider } from "@/lib/ai/types";
 import type { ConsentQualityInput } from "@/lib/monitoring/consent-quality";
 import type { ConsentGraphSnapshot } from "./graph-model";
+import { trackers } from "@/db/schema/trackers";
+import { websites } from "@/db/schema/websites";
+import { trackersFromTwinPayload } from "./twin-restore";
 import { buildAutopilotPlan } from "./autopilot-engine";
 
 export async function runAuditedIntelligence(input: {
@@ -106,6 +109,62 @@ export async function listDigitalTwinSnapshots(organizationId: string, websiteId
       ),
     )
     .orderBy(desc(digitalTwinSnapshots.createdAt));
+}
+
+export async function restoreDigitalTwinSnapshot(input: {
+  organizationId: string;
+  websiteId: string;
+  snapshotId: string;
+  actorUserId: string;
+}) {
+  const [website] = await db
+    .select({ id: websites.id })
+    .from(websites)
+    .where(and(eq(websites.id, input.websiteId), eq(websites.organizationId, input.organizationId)))
+    .limit(1);
+  if (!website) return { ok: false as const, message: "Website not found" };
+
+  const [snapshot] = await db
+    .select()
+    .from(digitalTwinSnapshots)
+    .where(
+      and(
+        eq(digitalTwinSnapshots.id, input.snapshotId),
+        eq(digitalTwinSnapshots.organizationId, input.organizationId),
+        eq(digitalTwinSnapshots.websiteId, input.websiteId),
+      ),
+    )
+    .limit(1);
+  if (!snapshot) return { ok: false as const, message: "Snapshot not found" };
+
+  const rows = trackersFromTwinPayload(snapshot.inputPayload);
+  let updated = 0;
+  for (const row of rows) {
+    const result = await db
+      .update(trackers)
+      .set({
+        purposeId: row.purposeId,
+        vendorId: row.vendorId,
+        status: row.status,
+        isEssential: row.isEssential,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(trackers.id, row.id), eq(trackers.websiteId, input.websiteId)))
+      .returning({ id: trackers.id });
+    if (result.length) updated += 1;
+  }
+
+  await db.insert(auditLogs).values({
+    organizationId: input.organizationId,
+    userId: input.actorUserId,
+    action: "digital_twin.restored",
+    resourceType: "digital_twin_snapshot",
+    resourceId: snapshot.id,
+    description: `Restored tracker mappings from snapshot ${snapshot.id}`,
+    metadata: { websiteId: input.websiteId, trackerCount: rows.length, updated },
+  });
+
+  return { ok: true as const, snapshotId: snapshot.id, trackerCount: rows.length, updated };
 }
 
 export function diffTwinPayloads(before: unknown, after: unknown) {

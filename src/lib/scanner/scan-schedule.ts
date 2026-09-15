@@ -1,4 +1,4 @@
-export const SCAN_FREQUENCIES = ["daily", "weekly", "monthly"] as const;
+export const SCAN_FREQUENCIES = ["hourly", "daily", "weekly", "monthly"] as const;
 
 export type ScanFrequency = (typeof SCAN_FREQUENCIES)[number];
 
@@ -8,6 +8,7 @@ export const SCAN_LOCK_MS = 20 * 60 * 1000;
 export const MAX_SCHEDULED_SCANS_PER_TICK = 5;
 
 const MIN_INTERVAL_MS: Record<ScanFrequency, number> = {
+  hourly: 50 * 60 * 1000,
   daily: 20 * 60 * 60 * 1000,
   weekly: 6 * 24 * 60 * 60 * 1000,
   monthly: 25 * 24 * 60 * 60 * 1000,
@@ -32,6 +33,10 @@ export function computeNextScanAt(
   frequency: ScanFrequency,
 ): Date {
   const next = new Date(from.getTime());
+  if (frequency === "hourly") {
+    next.setUTCHours(next.getUTCHours() + 1);
+    return next;
+  }
   if (frequency === "daily") {
     next.setUTCDate(next.getUTCDate() + 1);
     return next;

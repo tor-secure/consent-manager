@@ -393,6 +393,13 @@
       "when": 1789029752928,
       "tag": "0055_ccpa_gpc_runtime",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1789060000000,
+      "tag": "0056_policy_lifecycle",
+      "breakpoints": true
     }
   ]
 }

@@ -11,7 +11,7 @@ import { StartScanForm } from "@/components/scanner/start-scan-form";
 import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
 import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";

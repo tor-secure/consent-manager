@@ -1,4 +1,4 @@
-import { buildBlocklist, buildGrantsFromDecisions, type ConsentGrants, type TrackerRule } from "../sdk/enforcement";
+import { buildBlocklist, buildGrantsFromDecisions, firewallDecisionReason, type ConsentGrants, type TrackerRule } from "../sdk/enforcement";
 import type { ConsentGraphSnapshot } from "./graph-model";
 
 export type FirewallScenario = "reject-all" | "accept-all" | "essential-only";
@@ -33,16 +33,19 @@ export function evaluateFirewall(rules: TrackerRule[], grants: ConsentGrants) {
       id: row.id,
       name: row.name,
       domain: row.domain,
-      reason: row.isEssential
-        ? "essential"
-        : !row.purposeId && !row.vendorId
-          ? "unclassified"
-          : "consent_denied",
+      purposeKey: row.purposeKey,
+      vendorId: row.vendorId,
+      decision: "BLOCK" as const,
+      reason: firewallDecisionReason(row, grants),
     })),
     allowed: list.allowed.map((row) => ({
       id: row.id,
       name: row.name,
       domain: row.domain,
+      purposeKey: row.purposeKey,
+      vendorId: row.vendorId,
+      decision: "ALLOW" as const,
+      reason: firewallDecisionReason(row, grants),
     })),
   };
 }

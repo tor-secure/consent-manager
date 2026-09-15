@@ -77,6 +77,7 @@ compile(
     "src/lib/portable-consent-proof.ts",
     "src/lib/portable-consent-core.ts",
     "src/lib/redaction-core.ts",
+    "src/lib/policy/lifecycle-core.ts",
     "src/lib/sdk/cmp-sdk-script.ts",
     "src/lib/sdk/purpose-aliases.ts",
     "src/lib/sdk/tracker-catalog.ts",
@@ -116,6 +117,8 @@ compile(
     "src/lib/website-domain-verify-constants.ts",
     "src/lib/webhooks/delivery.ts",
     "src/lib/webhooks/secret-crypto.ts",
+    "src/lib/billing/stripe.ts",
+    "src/lib/intelligence/twin-restore.ts",
   ],
   ["--rootDir", "."],
 );
@@ -138,6 +141,8 @@ copyCompiled("src/lib/portable-consent-proof.js", "portable-redaction/portable-c
 copyCompiled("src/lib/portable-consent-core.js", "portable-redaction/portable-consent-core.js");
 copyCompiled("src/lib/redaction-core.js", "portable-redaction/redaction-core.js");
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
+copyCompiled("src/lib/billing/stripe.js", "billing/stripe.js");
+copyCompiled("src/lib/intelligence/twin-restore.js", "twin-restore/twin-restore.js");
 copyCompiled("src/lib/trackers/management.js", "tracker-management/trackers/management.js");
 copyCompiled("src/lib/ccpa/types.js", "tracker-management/ccpa/types.js");
 copyCompiled("src/lib/retention/core.js", "retention/retention/core.js");

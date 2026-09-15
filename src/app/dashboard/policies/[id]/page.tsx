@@ -22,6 +22,7 @@ import {
   type AvailableVendor,
 } from "@/components/policies/policy-vendor-manager-panel";
 import { PolicyPublishSection } from "@/components/policies/policy-publish-section";
+import { PolicyLifecycleControls } from "@/components/policies/policy-lifecycle-controls";
 import { PolicySetupChecklist, type SetupCheck } from "@/components/policies/policy-setup-checklist";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -449,6 +450,15 @@ export default async function PolicyDetailPage({
               publishedAt={latestVersion?.publishedAt ?? null}
               hasPurposes={hasPurposes}
               blockers={setupItems}
+            />
+            <PolicyLifecycleControls
+              policyId={policy.id}
+              versions={versions.map((row) => ({
+                id: row.id,
+                version: row.version,
+                isPublished: row.isPublished,
+                status: row.status,
+              }))}
             />
             </div>
           </CardContent>

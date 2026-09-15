@@ -52,6 +52,18 @@ export const consentPolicyVersions = pgTable(
       withTimezone: true,
     }),
 
+    scheduledPublishAt: timestamp("scheduled_publish_at", {
+      withTimezone: true,
+    }),
+
+    unpublishedAt: timestamp("unpublished_at", {
+      withTimezone: true,
+    }),
+
+    configHash: varchar("config_hash", {
+      length: 64,
+    }),
+
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })

@@ -15,6 +15,7 @@ import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 import { requireOperatorRole } from "@/lib/org-roles";
+import { assertScanEntitlement, incrementUsage } from "@/lib/billing/entitlements";
 
 // POST /api/scanner/run
 // Body: { websiteId: string }
@@ -65,6 +66,10 @@ export async function POST(request: Request) {
     }
     const operatorError = requireOperatorRole(membership.roleName);
     if (operatorError) return operatorError;
+    const scanQuota = await assertScanEntitlement(organization.id);
+    if (!scanQuota.ok) {
+      return NextResponse.json({ success: false, message: scanQuota.message }, { status: 402 });
+    }
 
     const body = await request.json();
     const websiteId = String(body.websiteId ?? "").trim();
@@ -122,6 +127,7 @@ export async function POST(request: Request) {
     }
 
     const result = await runScan(website.id, website.domain, { triggeredBy: "manual" });
+    await incrementUsage(scanQuota.subscriptionId, "scans");
     await touchScheduleAfterScan({
       websiteId: website.id,
       scanId: result.scanId,

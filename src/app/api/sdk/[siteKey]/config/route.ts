@@ -19,6 +19,7 @@ import {
   publicCorsHeaders,
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
+import { etagMatches, hashForPublishedVersion, sdkConfigCacheHeaders } from "@/lib/policy/lifecycle-core";
 import { logger } from "@/lib/logger";
 import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
 import { publicRegulationSummary } from "@/lib/regulations/engine";
@@ -58,8 +59,7 @@ export async function GET(
 
     const corsHeaders = {
       ...publicCorsHeaders("GET, OPTIONS"),
-      "Cache-Control": "private, max-age=15, stale-while-revalidate=60",
-      Vary: "Accept-Language",
+      ...sdkConfigCacheHeaders("pending"),
     };
 
     const trimmedKey = siteKey?.trim() ?? "";
@@ -229,6 +229,8 @@ export async function GET(
         version: consentPolicyVersions.version,
         isPublished: consentPolicyVersions.isPublished,
         configuration: consentPolicyVersions.configuration,
+        processingSnapshot: consentPolicyVersions.processingSnapshot,
+        configHash: consentPolicyVersions.configHash,
       })
       .from(consentPolicyVersions)
       .where(
@@ -245,6 +247,21 @@ export async function GET(
         { success: false, message: "No published policy version found" },
         { status: 404, headers: corsHeaders },
       );
+    }
+
+    const configHash =
+      latestVersion.configHash ||
+      hashForPublishedVersion({
+        id: latestVersion.id,
+        configuration: latestVersion.configuration,
+        processingSnapshot: latestVersion.processingSnapshot,
+      });
+    const cacheHeaders = {
+      ...publicCorsHeaders("GET, OPTIONS"),
+      ...sdkConfigCacheHeaders(configHash),
+    };
+    if (etagMatches(request.headers.get("if-none-match"), configHash)) {
+      return new NextResponse(null, { status: 304, headers: cacheHeaders });
     }
 
     const grievance = {
@@ -539,6 +556,7 @@ export async function GET(
           versionId: latestVersion.id,
           version: latestVersion.version,
           isPublished: latestVersion.isPublished,
+          configHash,
           selection: resolved.selection.reason,
         },
         bannerConfig: legalBannerConfig,
@@ -626,7 +644,7 @@ export async function GET(
         },
         ageContext: childSnapshot?.ageContext ?? null,
       },
-      { headers: corsHeaders },
+      { headers: cacheHeaders },
     );
   } catch (error) {
     logger.error("SDK config load failed", {

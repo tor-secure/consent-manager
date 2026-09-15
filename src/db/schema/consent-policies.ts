@@ -34,6 +34,8 @@ export const consentPolicies = pgTable("consent_policies", {
     .notNull()
     .default(false),
 
+  liveVersionId: uuid("live_version_id"),
+
   createdAt: timestamp("created_at", {
     withTimezone: true,
   })

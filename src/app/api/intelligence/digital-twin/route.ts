@@ -5,10 +5,12 @@ import { z } from "zod";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
+import { requireOperatorRole } from "@/lib/org-roles";
 import {
   captureDigitalTwinSnapshot,
   diffTwinPayloads,
   listDigitalTwinSnapshots,
+  restoreDigitalTwinSnapshot,
 } from "@/lib/intelligence/service";
 import { simulateCumulativeImpact } from "@/lib/intelligence/simulator";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
@@ -21,8 +23,9 @@ async function context() {
     resolveLocalUser(session.userId),
     resolveLocalOrganization(session.orgId),
   ]);
-  if (!user || !organization || !(await resolveActiveMembership(organization.id, user.id))) return null;
-  return { user, organization };
+  const membership = user && organization ? await resolveActiveMembership(organization.id, user.id) : null;
+  if (!user || !organization || !membership) return null;
+  return { user, organization, membership };
 }
 
 export async function GET(request: Request) {
@@ -57,6 +60,8 @@ export async function POST(request: Request) {
   const parsed = z
     .object({
       websiteId: z.string().uuid(),
+      action: z.enum(["simulate", "restore"]).default("simulate"),
+      snapshotId: z.string().uuid().optional(),
       scenarioIds: z
         .array(z.enum(["map_unclassified", "resolve_findings", "publish_policy", "complete_coverage"]))
         .max(4)
@@ -65,6 +70,22 @@ export async function POST(request: Request) {
     })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ success: false, message: "Invalid request" }, { status: 400 });
+
+  if (parsed.data.action === "restore") {
+    const operatorError = requireOperatorRole(ctx.membership.roleName);
+    if (operatorError) return operatorError;
+    if (!parsed.data.snapshotId) {
+      return NextResponse.json({ success: false, message: "snapshotId is required" }, { status: 400 });
+    }
+    const restored = await restoreDigitalTwinSnapshot({
+      organizationId: ctx.organization.id,
+      websiteId: parsed.data.websiteId,
+      snapshotId: parsed.data.snapshotId,
+      actorUserId: ctx.user.id,
+    });
+    if (!restored.ok) return NextResponse.json({ success: false, message: restored.message }, { status: 404 });
+    return NextResponse.json({ success: true, restore: restored, publishesPolicy: false });
+  }
 
   const [graph, loaded] = await Promise.all([
     loadConsentGraph(ctx.organization.id, parsed.data.websiteId),

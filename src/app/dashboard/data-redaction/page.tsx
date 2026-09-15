@@ -14,7 +14,7 @@ export default async function DataRedactionPage() {
       <PageHeader
         eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="Real-time data redaction"
-        description="MVP: filters the analytics purpose breakdown to only expose granted (or essential) purposes for a chosen consent record."
+        description="Uses the same redaction engine as /api/v1/redact. Dry run is the default."
       />
 
       {sites.length === 0 ? (

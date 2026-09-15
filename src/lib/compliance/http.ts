@@ -60,6 +60,7 @@ export async function authorizeOwnedPolicy(policyId: string) {
       policyStatus: consentPolicies.status,
       websiteId: websites.id,
       websiteName: websites.name,
+      websiteSiteKey: websites.siteKey,
       websiteOrganizationId: websites.organizationId,
       defaultRegulationKey: websites.defaultRegulationKey,
       defaultRegion: websites.defaultRegion,

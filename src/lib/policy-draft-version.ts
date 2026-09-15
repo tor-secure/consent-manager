@@ -34,7 +34,13 @@ async function loadVersions(policyId: string): Promise<PolicyVersionRow[]> {
       .from(consentPolicyVersions)
       .where(eq(consentPolicyVersions.policyId, policyId))
       .orderBy(consentPolicyVersions.version);
-    return rows.map((row) => ({ ...row, processingSnapshot: {} }));
+    return rows.map((row) => ({
+      ...row,
+      processingSnapshot: {},
+      scheduledPublishAt: null,
+      unpublishedAt: null,
+      configHash: null,
+    }));
   }
 }
 

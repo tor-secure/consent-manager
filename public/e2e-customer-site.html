@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CMP E2E customer website</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; margin: 24px; max-width: 920px; }
+    #log { white-space: pre-wrap; font: 12px/1.4 ui-monospace, monospace; background: #111; color: #eee; padding: 12px; min-height: 180px; }
+    nav a { margin-right: 12px; }
+  </style>
+</head>
+<body>
+  <h1>External customer site (E2E harness)</h1>
+  <p>This page loads the public CMP SDK the same way a customer website would. It does not import internal CMP modules.</p>
+  <nav>
+    <a href="./e2e-customer-site.html" id="home-link">Home</a>
+    <a href="./e2e-customer-about.html" id="about-link">About</a>
+    <a href="./e2e-customer-products.html" id="products-link">Products</a>
+    <a href="./e2e-customer-contact.html" id="contact-link">Contact</a>
+  </nav>
+  <p id="status">Waiting for SDK…</p>
+  <div id="log"></div>
+  <script>
+    window.__E2E = {
+      logs: [],
+      probes: [],
+      network: [],
+      cookies: "",
+      storage: {},
+      consent: null,
+      bannerVisible: false,
+      cmpReady: false,
+      preInitFetch: null
+    };
+    function e2eLog(msg) {
+      window.__E2E.logs.push(msg);
+      var el = document.getElementById("log");
+      if (el) el.textContent = window.__E2E.logs.join("\n");
+    }
+    var params = new URLSearchParams(location.search);
+    var siteKey = params.get("siteKey") || "";
+    document.querySelectorAll("nav a").forEach(function (a) {
+      var href = new URL(a.getAttribute("href"), location.href);
+      if (siteKey) href.searchParams.set("siteKey", siteKey);
+      a.setAttribute("href", href.pathname + href.search);
+    });
+    e2eLog("page=" + location.pathname + " siteKey=" + siteKey);
+
+    window.__E2E.preInitStartedAt = Date.now();
+    fetch("https://cmp-e2e-preinit.test/collect?source=before-sdk").then(function () {
+      window.__E2E.preInitFetch = { reachedNetwork: true, blockedByCmp: false };
+      e2eLog("PRE-INIT fetch settled (network allowed or CORS-failed after send)");
+    }).catch(function (err) {
+      window.__E2E.preInitFetch = { error: String(err), blockedByCmp: /CMP blocked/i.test(String(err)) };
+      e2eLog("PRE-INIT fetch error: " + err);
+    });
+
+    var TRACKERS = [
+      { id: "analytics", category: "Analytics", url: "https://cmp-e2e-analytics.test/collect" },
+      { id: "advertising", category: "Advertising", url: "https://cmp-e2e-ads.test/pixel.gif" },
+      { id: "marketing", category: "Marketing", url: "https://cmp-e2e-marketing.test/track" },
+      { id: "social", category: "Social", url: "https://cmp-e2e-social.test/like" },
+      { id: "personalization", category: "Personalization", url: "https://cmp-e2e-personalize.test/id" },
+      { id: "custom", category: "Custom", url: "https://cmp-e2e-custom.test/event" }
+    ];
+
+    window.__E2E.runNetworkProbes = async function (label) {
+      var results = [];
+      for (var i = 0; i < TRACKERS.length; i++) {
+        var t = TRACKERS[i];
+        var row = { label: label, id: t.id, category: t.category, url: t.url, fetch: null, xhr: null, beacon: null };
+        try {
+          await fetch(t.url, { method: "POST", body: "{}" });
+          row.fetch = { generated: true, blockedByCmp: false, promise: "fulfilled" };
+        } catch (err) {
+          row.fetch = { generated: true, blockedByCmp: /CMP blocked/i.test(String(err)), error: String(err), promise: "rejected" };
+        }
+        row.xhr = await new Promise(function (resolve) {
+          try {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", t.url);
+            xhr.onload = function () { resolve({ generated: true, blockedByCmp: false, status: xhr.status }); };
+            xhr.onerror = function () { resolve({ generated: true, blockedByCmp: false, networkError: true, aborted: xhr.__cmpBlocked === true }); };
+            xhr.send();
+            if (xhr.__cmpBlocked) {
+              resolve({ generated: true, blockedByCmp: true, aborted: true });
+            }
+            setTimeout(function () {
+              resolve({ generated: true, blockedByCmp: !!xhr.__cmpBlocked, timeout: true });
+            }, 800);
+          } catch (err) {
+            resolve({ generated: true, blockedByCmp: /CMP blocked/i.test(String(err)), error: String(err) });
+          }
+        });
+        try {
+          var beaconOk = navigator.sendBeacon(t.url, "probe");
+          row.beacon = { generated: true, sendBeaconReturned: beaconOk, blockedByCmp: beaconOk === false };
+        } catch (err) {
+          row.beacon = { generated: true, error: String(err) };
+        }
+        results.push(row);
+      }
+      window.__E2E.probes.push({ at: Date.now(), label: label, results: results });
+      e2eLog("probes " + label + " done");
+      return results;
+    };
+
+    window.__E2E.snapshotEnv = function () {
+      var cookies = "";
+      try { cookies = document.cookie; } catch (e) { cookies = "unreadable"; }
+      var storage = {};
+      try {
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          storage[k] = localStorage.getItem(k);
+        }
+      } catch (e2) {}
+      var banner = document.querySelector("[class*='cmp'], #cmp-banner, [id*='cmp-banner'], [data-cmp-banner]");
+      var banners = Array.prototype.map.call(document.querySelectorAll("button"), function (b) { return b.textContent.trim(); });
+      window.__E2E.cookies = cookies;
+      window.__E2E.storage = storage;
+      window.__E2E.bannerButtons = banners;
+      window.__E2E.bannerVisible = banners.some(function (t) {
+        return /accept/i.test(t) || /reject/i.test(t) || /customize|preferences/i.test(t);
+      });
+      window.__E2E.consent = window.CMP && window.CMP.getConsent ? window.CMP.getConsent() : null;
+      window.__E2E.cmpReady = !!(window.CMP && window.CMP.getConsent);
+      return {
+        cookies: cookies,
+        storageKeys: Object.keys(storage),
+        bannerVisible: window.__E2E.bannerVisible,
+        bannerButtons: banners.filter(Boolean).slice(0, 20),
+        consent: window.__E2E.consent,
+        cmpReady: window.__E2E.cmpReady,
+        preInitFetch: window.__E2E.preInitFetch,
+        probeCount: window.__E2E.probes.length
+      };
+    };
+
+    if (siteKey) {
+      var s = document.createElement("script");
+      s.src = "/api/sdk/script?siteKey=" + encodeURIComponent(siteKey);
+      s.setAttribute("data-site-key", siteKey);
+      s.onload = function () { e2eLog("SDK script loaded"); document.getElementById("status").textContent = "SDK script loaded"; };
+      s.onerror = function () { e2eLog("SDK script FAILED"); };
+      document.head.appendChild(s);
+    } else {
+      e2eLog("No siteKey query param");
+    }
+  </script>
+</body>
+</html>

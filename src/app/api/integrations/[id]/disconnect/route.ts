@@ -5,7 +5,10 @@ import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { websiteIntegrations } from "@/db/schema/website-integrations";
+import { integrations } from "@/db/schema/integrations";
+import { auditLogs } from "@/db/schema/audit-logs";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { applyIntegrationRuntime, runtimeKindForIntegration, serializeRuntime } from "@/lib/integrations/runtime";
 import { requireOperatorRole } from "@/lib/org-roles";
 
 // DELETE /api/integrations/[id]/disconnect
@@ -55,7 +58,11 @@ export async function DELETE(
 
     // Load the connection row first to get websiteId.
     const [connection] = await db
-      .select({ id: websiteIntegrations.id, websiteId: websiteIntegrations.websiteId })
+      .select({
+        id: websiteIntegrations.id,
+        websiteId: websiteIntegrations.websiteId,
+        integrationId: websiteIntegrations.integrationId,
+      })
       .from(websiteIntegrations)
       .where(eq(websiteIntegrations.id, id))
       .limit(1);
@@ -83,6 +90,25 @@ export async function DELETE(
       );
     }
 
+    const [integration] = await db
+      .select({ key: integrations.key, category: integrations.category })
+      .from(integrations)
+      .where(eq(integrations.id, connection.integrationId))
+      .limit(1);
+    const [website] = await db
+      .select({ id: websites.id, consentIntegrations: websites.consentIntegrations })
+      .from(websites)
+      .where(eq(websites.id, connection.websiteId))
+      .limit(1);
+    const kind = integration ? runtimeKindForIntegration(integration.key, integration.category) : "none";
+    if (website && kind !== "none") {
+      const next = applyIntegrationRuntime(website.consentIntegrations, kind, false);
+      await db
+        .update(websites)
+        .set({ consentIntegrations: serializeRuntime(next), updatedAt: new Date() })
+        .where(eq(websites.id, website.id));
+    }
+
     await db
       .delete(websiteIntegrations)
       .where(
@@ -92,7 +118,16 @@ export async function DELETE(
         ),
       );
 
-    return NextResponse.json({ success: true });
+    await db.insert(auditLogs).values({
+      organizationId: organization.id,
+      userId: localUser.id,
+      action: "integration.disconnected",
+      resourceType: "website_integration",
+      resourceId: connection.id,
+      metadata: { websiteId: connection.websiteId, runtimeKind: kind },
+    });
+
+    return NextResponse.json({ success: true, runtimeKind: kind });
   } catch (error) {
     console.error("Integration disconnect failed:", error);
     return NextResponse.json(

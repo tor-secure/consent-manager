@@ -172,6 +172,7 @@ ${apiBaseLine}
   var _tcfQueue = [];
   var _gppQueue = [];
   var _configRevision = '';
+  var _configHash = '';
   var _california = null;
   var _quarantinedNodes = [];
   var _enforcementObserver = null;
@@ -336,24 +337,31 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var id = null;
     var i;
     var selected = null;
-    try { id = sessionStorage.getItem(storeKey); } catch (eAb) {}
+    try { id = localStorage.getItem(storeKey) || sessionStorage.getItem(storeKey); } catch (eAb) {}
     for (i = 0; i < variants.length; i++) {
       if (variants[i] && variants[i].id === id) { selected = variants[i]; break; }
     }
     if (!selected) {
       var total = 0;
       for (i = 0; i < variants.length; i++) total += Math.max(0, Number(variants[i].weight) || 0);
+      var unit = 0;
+      try {
+        var seed = SITE_KEY + ':' + (localStorage.getItem('cmp_vid') || '');
+        var h = 2166136261;
+        for (i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+        unit = (h >>> 0) / 4294967296;
+      } catch (eHash) { unit = Math.random(); }
       if (total <= 0) {
-        selected = variants[Math.min(variants.length - 1, Math.floor(Math.random() * variants.length))];
+        selected = variants[Math.min(variants.length - 1, Math.floor(unit * variants.length))];
       } else {
-        var cursor = Math.random() * total;
+        var cursor = unit * total;
         for (i = 0; i < variants.length; i++) {
           cursor -= Math.max(0, Number(variants[i].weight) || 0);
           if (cursor <= 0) { selected = variants[i]; break; }
         }
         if (!selected) selected = variants[variants.length - 1];
       }
-      try { if (selected && selected.id) sessionStorage.setItem(storeKey, selected.id); } catch (eStore) {}
+      try { if (selected && selected.id) { localStorage.setItem(storeKey, selected.id); sessionStorage.setItem(storeKey, selected.id); } } catch (eStore) {}
     }
     if (!selected) return data;
     _abVariantId = selected.id;
@@ -998,7 +1006,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       var candidate = new URL(url, window.location && window.location.href);
       var api = new URL(API_BASE, window.location && window.location.href);
       return candidate.origin === api.origin &&
-        candidate.pathname.indexOf('/api/sdk/') !== -1;
+        candidate.pathname.indexOf('/api/') === 0;
     } catch (e) {
       return false;
     }
@@ -1240,12 +1248,75 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
+  function shouldBlockNetworkUrl(url, kind) {
+    if (isCmpInternalResource(url)) return false;
+    var rule = findTrackerRule(url, kind === 'fetch' ? 'pixel' : kind);
+    if (rule) return isBlocked(rule);
+    if (!isThirdPartyResource(url)) return false;
+    return unknownTrackerBehavior() === 'BLOCK';
+  }
+
+  function installNetworkGuard() {
+    if (window.__cmpNetworkPatched) return;
+    window.__cmpNetworkPatched = true;
+    if (typeof window.fetch === 'function') {
+      var nativeFetch = window.fetch.bind(window);
+      window.fetch = function(input, init) {
+        var url = '';
+        try {
+          url = typeof input === 'string' ? input : (input && input.url) || '';
+        } catch (eUrl) {}
+        if (shouldBlockNetworkUrl(url, 'fetch')) {
+          recordEnforcement('BLOCKED', findTrackerRule(url, 'pixel'), 'fetch', url, 'network-consent-not-granted');
+          return Promise.reject(new TypeError('CMP blocked fetch'));
+        }
+        return nativeFetch(input, init);
+      };
+    }
+    if (window.XMLHttpRequest && window.XMLHttpRequest.prototype) {
+      var nativeOpen = window.XMLHttpRequest.prototype.open;
+      window.XMLHttpRequest.prototype.open = function(method, url) {
+        this.__cmpUrl = String(url || '');
+        if (shouldBlockNetworkUrl(this.__cmpUrl, 'fetch')) {
+          recordEnforcement('BLOCKED', findTrackerRule(this.__cmpUrl, 'pixel'), 'xhr', this.__cmpUrl, 'network-consent-not-granted');
+          this.__cmpBlocked = true;
+        }
+        return nativeOpen.apply(this, arguments);
+      };
+      var nativeSend = window.XMLHttpRequest.prototype.send;
+      window.XMLHttpRequest.prototype.send = function() {
+        if (this.__cmpBlocked) {
+          try { this.abort(); } catch (eAbort) {}
+          return;
+        }
+        return nativeSend.apply(this, arguments);
+      };
+    }
+    if (typeof navigator !== 'undefined' && navigator && typeof navigator.sendBeacon === 'function') {
+      var nativeBeacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = function(url, data) {
+        if (shouldBlockNetworkUrl(String(url || ''), 'beacon')) {
+          recordEnforcement('BLOCKED', findTrackerRule(String(url || ''), 'pixel'), 'beacon', String(url || ''), 'network-consent-not-granted');
+          return false;
+        }
+        return nativeBeacon(url, data);
+      };
+    }
+  }
+
   function installCookieGuard() {
     try {
-      var prototype = Object.getPrototypeOf(document);
-      var descriptor =
-        Object.getOwnPropertyDescriptor(document, 'cookie') ||
-        (prototype && Object.getOwnPropertyDescriptor(prototype, 'cookie'));
+      // Walk the prototype chain. In Chromium/Electron, cookie accessors often
+      // live on Document.prototype while Object.getPrototypeOf(document) is an
+      // intermediate HTMLDocument that has no own 'cookie' descriptor.
+      var owner = document;
+      var descriptor = null;
+      while (owner) {
+        descriptor = Object.getOwnPropertyDescriptor(owner, 'cookie');
+        if (descriptor && descriptor.get && descriptor.set) break;
+        owner = Object.getPrototypeOf(owner);
+        descriptor = null;
+      }
       if (!descriptor || !descriptor.get || !descriptor.set) return;
       Object.defineProperty(document, 'cookie', {
         configurable: true,
@@ -1288,6 +1359,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     patchKnownStorage(window.localStorage, 'localStorage');
     patchKnownStorage(window.sessionStorage, 'sessionStorage');
     installCookieGuard();
+    installNetworkGuard();
     if (window.MutationObserver) {
       _enforcementObserver = new window.MutationObserver(function(mutations) {
         if (_enforcementMutating) return;
@@ -1796,6 +1868,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         data.code === 'POLICY_CONTEXT_EXPIRED'
       ) {
         return fetchConfigJson().then(function(next) {
+          if (next && next.unchanged) throw new Error(failedConsentMessage(data));
           if (!next || !next.success) throw new Error(failedConsentMessage(data));
           _config = applyAssignedAbTest(next);
           rememberPolicyContext(presentedPolicyContext(next));
@@ -3212,6 +3285,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         _config = nextConfig;
         rememberPolicyContext(presentedPolicyContext(data));
         _configRevision = nextRevision;
+        _configHash = (data.policy && data.policy.configHash) || _configHash;
         applyTrackerEnforcement();
         publishExternalSignals();
 
@@ -3257,10 +3331,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     });
   }
   function fetchConfigJson() {
+    var headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
+    if (_configHash) headers['If-None-Match'] = '"' + _configHash + '"';
     return fetch(configRequestUrl(), {
-      cache: 'default',
-      mode: 'cors'
+      cache: 'no-store',
+      mode: 'cors',
+      headers: headers
     }).then(function(r) {
+      if (r.status === 304) return { success: true, unchanged: true };
       return r.json().then(function(data) {
         return data;
       }, function() {
@@ -3273,6 +3351,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _config = applyAssignedAbTest(data);
     rememberPolicyContext(presentedPolicyContext(data));
     _configRevision = configRevision(_config);
+    _configHash = (data.policy && data.policy.configHash) || '';
     scheduleConfigRefresh();
     initExternalSignals();
     _california = loadStoredCalifornia();
@@ -3479,7 +3558,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   fetchConfigJson()
     .then(function(data) {
-      if (!data || !data.success) {
+      if (!data || data.unchanged) {
+        if (data && data.unchanged && _config) {
+          flushConsentSubmit();
+          return;
+        }
+        warn('Config load failed: ' + ((data && data.message) || 'unknown error'));
+        scheduleConfigRefresh();
+        return;
+      }
+      if (!data.success) {
         warn('Config load failed: ' + ((data && data.message) || 'unknown error'));
         scheduleConfigRefresh();
         return;
@@ -3488,8 +3576,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (paintedFromCache && _config) {
         var liveRevision = configRevision(applyAssignedAbTest(data));
         if (liveRevision === _configRevision) {
-          // Same notice as the one already on screen: just refresh the signed
-          // policy context so submissions carry the newest token.
           rememberPolicyContext(presentedPolicyContext(data));
           flushConsentSubmit();
           return;

@@ -9,6 +9,7 @@ import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
+import { assertWebsiteEntitlement } from "@/lib/billing/entitlements";
 import { isSchemaMismatchError, postgresErrorCode } from "@/lib/schema-mismatch";
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -149,6 +150,14 @@ export async function POST(request: Request) {
           message: "You do not belong to this organization.",
         },
         { status: 403 },
+      );
+    }
+
+    const entitlement = await assertWebsiteEntitlement(organization.id);
+    if (!entitlement.ok) {
+      return NextResponse.json(
+        { success: false, message: entitlement.message },
+        { status: 402 },
       );
     }
 

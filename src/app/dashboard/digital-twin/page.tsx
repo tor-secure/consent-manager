@@ -14,6 +14,7 @@ import { diffTwinPayloads, listDigitalTwinSnapshots } from "@/lib/intelligence/s
 import { Field, FormCard } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { RestoreTwinButton } from "@/components/intelligence/restore-twin-button";
 
 function deltaLabel(delta: number) {
   if (delta === 0) return "no change";
@@ -183,6 +184,7 @@ export default async function DigitalTwinPage({
                       <div key={item.id} className="rounded-xl border border-[var(--border)] p-3 text-sm">
                         <span className="font-medium">{item.source}</span>
                         <span className="text-[var(--muted-foreground)]"> · {item.createdAt.toLocaleString()} · score {item.qualityScore ?? "unknown"} · {item.graphHash.slice(0, 12)}</span>
+                        {websiteId ? <RestoreTwinButton websiteId={websiteId} snapshotId={item.id} /> : null}
                       </div>
                     ))}
                     {!history.length ? <p className="text-sm text-[var(--muted-foreground)]">No snapshots captured yet.</p> : null}

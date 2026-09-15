@@ -164,6 +164,9 @@ function IntegrationCard({
       {integration.description && (
         <p className="mt-3 text-sm text-[var(--muted-foreground)]">{integration.description}</p>
       )}
+      <p className="mt-2 text-xs text-[var(--muted-foreground)]">
+        Connecting Google Consent Mode / GTM / IAB items updates website runtime signals consumed by the SDK. Other catalog items store connection state only.
+      </p>
 
       {/* Connected websites */}
       {integration.connections.length > 0 && (
@@ -193,6 +196,25 @@ function IntegrationCard({
                   className="btn btn-danger btn-sm shrink-0"
                 >
                   {busyId === c.connectionId ? "…" : "Disconnect"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending || busyId === `test-${c.connectionId}`}
+                  onClick={async () => {
+                    setBusyId(`test-${c.connectionId}`);
+                    await dashboardFetch(
+                      `/api/integrations/${c.connectionId}/test`,
+                      { method: "POST" },
+                      {
+                        successMessage: "Connection tested",
+                        errorFallback: "Unable to test this connection",
+                      },
+                    );
+                    setBusyId(null);
+                  }}
+                  className="btn btn-outline btn-sm shrink-0"
+                >
+                  Test
                 </button>
               </li>
             ))}

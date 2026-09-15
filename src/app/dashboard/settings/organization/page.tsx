@@ -11,6 +11,7 @@ import {
   OrganizationSettingsForm,
   type OrgSettingsData,
 } from "@/components/settings/organization-settings-form";
+import { OrganizationBillingCard } from "@/components/settings/organization-billing-card";
 import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card } from "@/components/ui/card";
@@ -123,7 +124,8 @@ export default async function OrganizationSettingsPage() {
       </Card>
 
       {/* Settings form */}
-      <div className="max-w-2xl">
+      <div className="max-w-2xl space-y-6">
+        <OrganizationBillingCard />
         <OrganizationSettingsForm
           initial={settingsData}
           readOnly={!canEdit}

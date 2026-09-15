@@ -375,7 +375,8 @@ function testPublishRouteIsAuthoritative() {
   assert.doesNotMatch(source, /body\.organizationId/);
   assert.match(source, /status: 422/);
   assert.match(source, /processingSnapshot/);
-  assert.match(source, /isPublished, false/);
+  assert.match(source, /markVersionPublished\(/);
+  assert.match(source, /isPublished, true/);
 }
 
 testJurisdictionResolutionIgnoresClient();

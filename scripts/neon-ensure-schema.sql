@@ -644,6 +644,28 @@ CREATE INDEX IF NOT EXISTS "guardian_requests_session_idx"
 
 ALTER TABLE "consent_policy_versions"
   ADD COLUMN IF NOT EXISTS "processing_snapshot" jsonb DEFAULT '{}'::jsonb NOT NULL;
+ALTER TABLE "consent_policy_versions"
+  ADD COLUMN IF NOT EXISTS "scheduled_publish_at" timestamp with time zone;
+ALTER TABLE "consent_policy_versions"
+  ADD COLUMN IF NOT EXISTS "unpublished_at" timestamp with time zone;
+ALTER TABLE "consent_policy_versions"
+  ADD COLUMN IF NOT EXISTS "config_hash" varchar(64);
+ALTER TABLE "consent_policies"
+  ADD COLUMN IF NOT EXISTS "live_version_id" uuid;
+UPDATE "consent_policy_versions" AS v
+SET "is_published" = false,
+    "status" = 'archived',
+    "unpublished_at" = NOW()
+WHERE v."is_published" = true
+  AND v."id" NOT IN (
+    SELECT DISTINCT ON ("policy_id") "id"
+    FROM "consent_policy_versions"
+    WHERE "is_published" = true
+    ORDER BY "policy_id", "version" DESC
+  );
+CREATE UNIQUE INDEX IF NOT EXISTS "consent_policy_versions_one_published"
+  ON "consent_policy_versions" ("policy_id")
+  WHERE "is_published" = true;
 ALTER TABLE "vendor_purposes"
   ADD COLUMN IF NOT EXISTS "processing_role" varchar(40);
 ALTER TABLE "vendor_purposes"
@@ -782,5 +804,15 @@ ALTER TABLE "trackers" ADD COLUMN IF NOT EXISTS "ccpa_sensitive_pi" varchar(40) 
 ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_sale" varchar(40) DEFAULT 'unknown' NOT NULL;
 ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_share" varchar(40) DEFAULT 'unknown' NOT NULL;
 ALTER TABLE "processing_activities" ADD COLUMN IF NOT EXISTS "ccpa_sensitive_pi" varchar(40) DEFAULT 'unknown' NOT NULL;
+
+CREATE TABLE IF NOT EXISTS "inbound_webhooks" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "provider" varchar(50) NOT NULL,
+  "event_id" varchar(255) NOT NULL,
+  "event_type" varchar(120),
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "inbound_webhooks_provider_event_unique" ON "inbound_webhooks" ("provider", "event_id");
+CREATE INDEX IF NOT EXISTS "inbound_webhooks_created_idx" ON "inbound_webhooks" ("created_at");
 
 

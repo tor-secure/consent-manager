@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { authorizeOwnedPolicy } from "@/lib/compliance/http";
 import { requireOperatorRole } from "@/lib/org-roles";
@@ -16,6 +15,7 @@ import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { loadQualityScoreInput } from "@/lib/monitoring/privacy-intelligence";
 import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { captureDigitalTwinSnapshot } from "@/lib/intelligence/service";
+import { markVersionPublished } from "@/lib/policy/lifecycle";
 import { buildLivePolicyProcessingSnapshot } from "@/lib/processing/service";
 import { policyValidationFailureMessage } from "@/lib/schema-mismatch";
 
@@ -96,35 +96,48 @@ export async function POST(
       frozenAt: now,
     });
 
-    const [updatedVersion] = await db
-      .update(consentPolicyVersions)
-      .set({
-        isPublished: true,
-        status: "active",
-        publishedAt: now,
-        effectiveFrom: now,
-        processingSnapshot,
-        updatedAt: now,
-      })
+    const [existingPublished] = await db
+      .select({ id: consentPolicyVersions.id })
+      .from(consentPolicyVersions)
       .where(
         and(
           eq(consentPolicyVersions.id, validated.versionId),
-          eq(consentPolicyVersions.isPublished, false),
+          eq(consentPolicyVersions.isPublished, true),
         ),
       )
-      .returning();
-
-    if (!updatedVersion) {
+      .limit(1);
+    if (existingPublished) {
       return NextResponse.json(
         { success: false, message: "This policy version is already published." },
         { status: 409 },
       );
     }
 
-    await db
-      .update(consentPolicies)
-      .set({ status: "active", updatedAt: now })
-      .where(eq(consentPolicies.id, authz.policy.policyId));
+    const [versionRow] = await db
+      .select({ configuration: consentPolicyVersions.configuration })
+      .from(consentPolicyVersions)
+      .where(eq(consentPolicyVersions.id, validated.versionId))
+      .limit(1);
+    const configuration =
+      versionRow?.configuration &&
+      typeof versionRow.configuration === "object" &&
+      !Array.isArray(versionRow.configuration)
+        ? (versionRow.configuration as Record<string, unknown>)
+        : {};
+    const updatedVersion = await markVersionPublished({
+      policyId: authz.policy.policyId,
+      versionId: validated.versionId,
+      processingSnapshot,
+      configuration,
+      now,
+    });
+
+    if (!updatedVersion) {
+      return NextResponse.json(
+        { success: false, message: "This policy version could not be published." },
+        { status: 409 },
+      );
+    }
 
     await writeComplianceAudit({
       organizationId: authz.organization.id,

@@ -100,7 +100,7 @@ export async function GET(request: Request) {
       );
     }
 
-    if (!(await callerMayExport(request, record.organizationId, record.sourceDomain))) {
+    if (!(await callerMayExport(request, record.organizationId))) {
       return NextResponse.json(
         { success: false, message: "Origin is not authorized for this website" },
         { status: 403, headers: CORS_HEADERS },
@@ -195,7 +195,7 @@ export async function GET(request: Request) {
   }
 }
 
-async function callerMayExport(request: Request, organizationId: string, _domain: string): Promise<boolean> {
+async function callerMayExport(request: Request, organizationId: string): Promise<boolean> {
   const session = await auth();
   if (session.isAuthenticated && session.orgId && session.userId) {
     const [organization, user] = await Promise.all([

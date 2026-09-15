@@ -6,7 +6,9 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { integrations } from "@/db/schema/integrations";
 import { websiteIntegrations } from "@/db/schema/website-integrations";
+import { auditLogs } from "@/db/schema/audit-logs";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { applyIntegrationRuntime, runtimeKindForIntegration, serializeRuntime } from "@/lib/integrations/runtime";
 import { requireOperatorRole } from "@/lib/org-roles";
 
 // POST /api/integrations/connect
@@ -65,7 +67,10 @@ export async function POST(request: Request) {
 
     // Verify the website belongs to this org — tenant isolation.
     const [website] = await db
-      .select({ id: websites.id })
+      .select({
+        id: websites.id,
+        consentIntegrations: websites.consentIntegrations,
+      })
       .from(websites)
       .where(
         and(
@@ -84,7 +89,12 @@ export async function POST(request: Request) {
 
     // Verify the integration exists and is active.
     const [integration] = await db
-      .select({ id: integrations.id, name: integrations.name })
+      .select({
+        id: integrations.id,
+        name: integrations.name,
+        key: integrations.key,
+        category: integrations.category,
+      })
       .from(integrations)
       .where(
         and(
@@ -132,10 +142,34 @@ export async function POST(request: Request) {
         enabled: true,
         configuration: {},
         connectedAt: new Date(),
+        lastVerifiedAt: new Date(),
       })
       .returning();
 
-    return NextResponse.json({ success: true, connection }, { status: 201 });
+    const kind = runtimeKindForIntegration(integration.key, integration.category);
+    if (kind !== "none") {
+      const next = applyIntegrationRuntime(website.consentIntegrations, kind, true);
+      await db
+        .update(websites)
+        .set({ consentIntegrations: serializeRuntime(next), updatedAt: new Date() })
+        .where(eq(websites.id, website.id));
+    }
+
+    await db.insert(auditLogs).values({
+      organizationId: organization.id,
+      userId: localUser.id,
+      action: "integration.connected",
+      resourceType: "website_integration",
+      resourceId: connection.id,
+      metadata: { websiteId: website.id, integrationKey: integration.key, runtimeKind: kind },
+    });
+
+    return NextResponse.json({
+      success: true,
+      connection,
+      runtime: kind !== "none",
+      runtimeKind: kind,
+    }, { status: 201 });
   } catch (error) {
     console.error("Integration connect failed:", error);
     return NextResponse.json(

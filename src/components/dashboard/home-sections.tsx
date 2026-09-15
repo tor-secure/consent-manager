@@ -456,7 +456,6 @@ export async function HomeLiveAndChartsSection() {
 export async function HomeRecentSection() {
   const { organization } = await requireDashboardContext();
   const counts = await loadHomeDashboardCounts(organization.id);
-  const renderedAt = Date.now();
 
   const recentRecords = await db
     .select({
@@ -475,12 +474,12 @@ export async function HomeRecentSection() {
     if (r.status === "accepted" || r.status === "partial") status = "Approved";
     else if (r.status === "withdrawn" || r.status === "rejected") status = "Withdrawn";
 
-    const minutes = Math.max(1, Math.floor((renderedAt - new Date(r.createdAt).getTime()) / 60000));
-    let time = `${minutes}m ago`;
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      time = `${hours}h ago`;
-    }
+    const time = new Intl.DateTimeFormat("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(r.createdAt));
 
     const meta = r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : {};
     const metaEmail = typeof meta.email === "string" ? meta.email : "";
@@ -530,7 +529,7 @@ export async function HomeRecentSection() {
                     trailing={
                       <span className="ml-auto flex shrink-0 items-start gap-2 sm:gap-4">
                         <RequestStatusBadge status={req.status} />
-                        <span className="hidden w-12 text-right text-xs tabular-nums text-[var(--muted-foreground)] sm:block">
+                        <span className="hidden min-w-16 text-right text-xs tabular-nums text-[var(--muted-foreground)] sm:block">
                           {req.time}
                         </span>
                       </span>

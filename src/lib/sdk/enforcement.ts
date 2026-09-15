@@ -210,6 +210,42 @@ export function domainMatches(url: string, blockedDomain: string): boolean {
   }
 }
 
+export function requestMatchesTracker(
+  url: string,
+  rule: TrackerRule,
+  kind: "script" | "iframe" | "pixel" | "beacon" | "fetch" = "fetch",
+): boolean {
+  if (rule.status !== "active") return false;
+  if (rule.domain && domainMatches(url, rule.domain)) return true;
+  if (rule.identifier && url.toLowerCase().includes(rule.identifier.toLowerCase())) return true;
+  const patterns = [
+    ...(rule.scriptUrlPatterns ?? []),
+    ...(kind === "iframe" ? (rule.iframeUrlPatterns ?? []) : []),
+    ...(kind === "pixel" || kind === "beacon" || kind === "fetch"
+      ? (rule.pixelUrlPatterns ?? [])
+      : []),
+  ];
+  return patterns.some((pattern) => url.toLowerCase().includes(pattern.toLowerCase()));
+}
+
+export function firewallDecisionReason(rule: TrackerRule, grants: ConsentGrants): string {
+  if (californiaBlocks(rule, grants.california)) {
+    return "california_opt_out";
+  }
+  if (rule.isEssential) return "essential_allowed";
+  if (rule.purposeId && (grants.childRestrictedPurposeIds ?? []).includes(rule.purposeId)) {
+    return "child_restricted_purpose";
+  }
+  if (rule.purposeId && grants.purposes[rule.purposeId] !== true) {
+    return `purpose_denied:${rule.purposeKey ?? rule.purposeId}`;
+  }
+  if (rule.vendorId && grants.vendors[rule.vendorId] !== true) {
+    return `vendor_denied:${rule.vendorId}`;
+  }
+  if (!rule.purposeId && !rule.vendorId) return "unclassified_fail_closed";
+  return "consent_granted";
+}
+
 // ---------------------------------------------------------------------------
 // buildGrantsFromDecisions
 // Converts the flat decisions array from /api/consent/record into ConsentGrants.

@@ -70,21 +70,22 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get the latest published version, falling back to latest draft.
     const allVersions = await db
       .select()
       .from(consentPolicyVersions)
-      .where(eq(consentPolicyVersions.policyId, policy.id))
+      .where(
+        and(
+          eq(consentPolicyVersions.policyId, policy.id),
+          eq(consentPolicyVersions.isPublished, true),
+        ),
+      )
       .orderBy(consentPolicyVersions.version);
 
-    const latestVersion =
-      allVersions.findLast((v) => v.isPublished) ??
-      allVersions[allVersions.length - 1] ??
-      null;
+    const latestVersion = allVersions[allVersions.length - 1] ?? null;
 
     if (!latestVersion) {
       return NextResponse.json(
-        { success: false, message: "No policy version found" },
+        { success: false, message: "No published policy version found" },
         { status: 404 },
       );
     }

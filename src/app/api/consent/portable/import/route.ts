@@ -64,7 +64,7 @@ export async function POST(request: Request) {
       isNull(websites.deletedAt),
     )).limit(1);
     if (!target) return failure(404, "Target website not found");
-    if (!(await callerMayImport(request, target.organizationId, target.domain))) {
+    if (!(await callerMayImport(request, target.organizationId))) {
       return failure(403, "Origin is not authorized for the target website");
     }
 
@@ -253,7 +253,7 @@ function resolveSuppliedBundle(body: Record<string, unknown>):
   return null;
 }
 
-async function callerMayImport(request: Request, organizationId: string, _domain: string): Promise<boolean> {
+async function callerMayImport(request: Request, organizationId: string): Promise<boolean> {
   const session = await auth();
   if (session.isAuthenticated && session.orgId && session.userId) {
     const [organization, user] = await Promise.all([

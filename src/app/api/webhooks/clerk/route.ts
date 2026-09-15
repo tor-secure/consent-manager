@@ -9,6 +9,7 @@ import {
   ensureMembershipForClerkRole,
 } from "@/lib/local-membership";
 import { logger } from "@/lib/logger";
+import { claimInboundWebhook, releaseInboundWebhook } from "@/lib/webhooks/inbound-idempotency";
 import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -58,10 +59,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
 
+  const svixId = request.headers.get("svix-id")?.trim();
+  if (!svixId) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  const claimed = await claimInboundWebhook({ provider: "clerk", eventId: svixId });
+  if (!claimed.claimed) {
+    return NextResponse.json({ success: true, duplicate: true });
+  }
+
   let event: { type?: string; data?: Record<string, unknown> };
   try {
     event = JSON.parse(payload) as { type?: string; data?: Record<string, unknown> };
   } catch {
+    await releaseInboundWebhook("clerk", svixId);
     return NextResponse.json({ success: false, message: "Invalid JSON" }, { status: 400 });
   }
 
@@ -100,7 +111,50 @@ export async function POST(request: Request) {
         await deactivateMembership(ids.organization.id, ids.user.id);
       }
     }
+
+    if (event.type === "user.deleted" && clerkUserId) {
+      await db
+        .update(users)
+        .set({ status: "deleted", deletedAt: new Date(), updatedAt: new Date() })
+        .where(eq(users.clerkUserId, clerkUserId));
+    }
+
+    if (event.type === "user.updated" && clerkUserId) {
+      const email =
+        typeof data.email_addresses === "object" && Array.isArray(data.email_addresses)
+          ? String((data.email_addresses[0] as { email_address?: string } | undefined)?.email_address ?? "")
+          : "";
+      const name = typeof data.first_name === "string" || typeof data.last_name === "string"
+        ? `${String(data.first_name ?? "")} ${String(data.last_name ?? "")}`.trim()
+        : "";
+      await db
+        .update(users)
+        .set({
+          ...(email ? { email } : {}),
+          ...(name ? { name } : {}),
+          updatedAt: new Date(),
+        })
+        .where(eq(users.clerkUserId, clerkUserId));
+    }
+
+    if (event.type === "organization.deleted" && clerkOrgId) {
+      await db
+        .update(organizations)
+        .set({ status: "deleted", deletedAt: new Date(), updatedAt: new Date() })
+        .where(eq(organizations.clerkOrganizationId, clerkOrgId));
+    }
+
+    if (event.type === "organization.updated" && clerkOrgId) {
+      const name = typeof data.name === "string" ? data.name : "";
+      if (name) {
+        await db
+          .update(organizations)
+          .set({ name, updatedAt: new Date() })
+          .where(eq(organizations.clerkOrganizationId, clerkOrgId));
+      }
+    }
   } catch (error) {
+    await releaseInboundWebhook("clerk", svixId);
     logger.error("Clerk webhook handling failed", {
       operation: "clerk.webhook",
       type: event.type,

@@ -8,7 +8,7 @@ import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
 import { categoriseTrackers, type TrackerRule } from "@/lib/sdk/enforcement";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
 import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
@@ -222,6 +222,7 @@ export default async function EnforcementPage({
           <>
             How the CMP SDK enforces consent for trackers on{" "}
             <span className="font-medium text-[var(--foreground)]">{website.domain}</span>.
+            JavaScript cannot block HttpOnly cookies, browser-managed third-party cookies, tags that run before the CMP, or GTM inner tags.
           </>
         }
         action={

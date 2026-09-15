@@ -46,6 +46,12 @@ export function AnalyticsFilters({
 
   return (
     <div className="flex flex-wrap items-end gap-3">
+      <a
+        href={`/api/analytics/consent/export?${params.toString()}`}
+        className="btn btn-outline h-9 text-sm"
+      >
+        Export CSV
+      </a>
       <div className="flex items-center gap-1 rounded-md border bg-[var(--card)] p-1">
         {RANGES.map((range) => {
           const active = currentDays === range.value;

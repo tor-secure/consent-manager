@@ -28,6 +28,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/guardian-consent(.*)",
   "/api/cron(.*)",
   "/api/webhooks/clerk(.*)",
+  "/api/webhooks/stripe(.*)",
   "/api/v1(.*)",
   "/api/agent(.*)",
 ]);

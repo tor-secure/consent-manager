@@ -3,6 +3,14 @@
     {
       "path": "/api/cron/scans",
       "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/iab-gvl",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/policies",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

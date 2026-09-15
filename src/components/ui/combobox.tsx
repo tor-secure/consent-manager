@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { createPortal } from "react-dom";
 
@@ -44,6 +45,18 @@ type ComboboxProps = ComboboxBase &
       }
   );
 
+function clientMountedSubscribe() {
+  return () => undefined;
+}
+
+function clientMountedSnapshot() {
+  return true;
+}
+
+function serverMountedSnapshot() {
+  return false;
+}
+
 export function Combobox(props: ComboboxProps) {
   const {
     id,
@@ -73,14 +86,10 @@ export function Combobox(props: ComboboxProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(clientMountedSubscribe, clientMountedSnapshot, serverMountedSnapshot);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number; maxHeight: number } | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const showSearch = searchable ?? options.length >= 8;
   const selectedOptions = options.filter((option) => selectedValues.includes(option.value));
@@ -93,6 +102,9 @@ export function Combobox(props: ComboboxProps) {
         option.value.toLowerCase().includes(needle),
     );
   }, [options, query]);
+
+  const boundedActiveIndex =
+    filtered.length === 0 ? 0 : Math.min(Math.max(activeIndex, 0), filtered.length - 1);
 
   function updatePosition() {
     const trigger = triggerRef.current;
@@ -115,20 +127,12 @@ export function Combobox(props: ComboboxProps) {
   useLayoutEffect(() => {
     if (!open) return;
     updatePosition();
-    const selectedIndex = filtered.findIndex((option) => selectedValues.includes(option.value));
-    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
     const frame = window.requestAnimationFrame(() => {
       if (showSearch) searchRef.current?.focus();
       else panelRef.current?.focus();
     });
     return () => window.cancelAnimationFrame(frame);
-    // Opening should snap to the current selection once; query/filter updates are handled separately.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  useEffect(() => {
-    setActiveIndex((index) => Math.min(index, Math.max(filtered.length - 1, 0)));
-  }, [filtered]);
+  }, [open, showSearch]);
 
   useEffect(() => {
     if (!open) return;
@@ -186,6 +190,8 @@ export function Combobox(props: ComboboxProps) {
     if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       setOpen(true);
+      const selectedIndex = filtered.findIndex((option) => selectedValues.includes(option.value));
+      setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
     }
   }
 
@@ -198,7 +204,7 @@ export function Combobox(props: ComboboxProps) {
       setActiveIndex((index) => Math.max(index - 1, 0));
     } else if (event.key === "Enter") {
       event.preventDefault();
-      const option = filtered[activeIndex];
+      const option = filtered[boundedActiveIndex];
       if (option) selectOption(option);
     } else if (event.key === "Home") {
       event.preventDefault();
@@ -213,7 +219,7 @@ export function Combobox(props: ComboboxProps) {
     if (!open) return;
     const active = panelRef.current?.querySelector<HTMLElement>("[data-active='true']");
     active?.scrollIntoView({ block: "nearest" });
-  }, [activeIndex, open, filtered]);
+  }, [boundedActiveIndex, open, filtered]);
 
   const triggerLabel = selectedOptions.length === 0
     ? placeholder
@@ -258,7 +264,7 @@ export function Combobox(props: ComboboxProps) {
                   aria-autocomplete="list"
                   aria-controls={listId}
                   aria-activedescendant={
-                    filtered[activeIndex] ? `${listId}-opt-${activeIndex}` : undefined
+                    filtered[boundedActiveIndex] ? `${listId}-opt-${boundedActiveIndex}` : undefined
                   }
                   onChange={(event) => {
                     setQuery(event.target.value);
@@ -274,7 +280,7 @@ export function Combobox(props: ComboboxProps) {
               ) : (
                 filtered.map((option, index) => {
                   const selectedOption = selectedValues.includes(option.value);
-                  const active = index === activeIndex;
+                  const active = index === boundedActiveIndex;
                   return (
                     <button
                       key={`${option.value}-${index}`}
@@ -338,11 +344,18 @@ export function Combobox(props: ComboboxProps) {
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
         aria-label={ariaLabel}
-        aria-required={required || undefined}
         onClick={() => {
           if (disabled) return;
-          setOpen((current) => !current);
-          if (open) setQuery("");
+          setOpen((current) => {
+            const next = !current;
+            if (next) {
+              const selectedIndex = filtered.findIndex((option) => selectedValues.includes(option.value));
+              setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+            } else {
+              setQuery("");
+            }
+            return next;
+          });
         }}
         onKeyDown={onTriggerKeyDown}
       >

@@ -106,7 +106,7 @@ export default async function ConsentFirewallPage({
                                 <span className="text-[var(--muted-foreground)]"> · {row.domain}</span>
                               ) : null}
                             </span>
-                            <Badge variant={row.reason === "unclassified" ? "warning" : "neutral"}>
+                            <Badge variant={row.reason.includes("unclassified") ? "warning" : "neutral"}>
                               {row.reason.replaceAll("_", " ")}
                             </Badge>
                           </li>
@@ -123,11 +123,14 @@ export default async function ConsentFirewallPage({
                         <li className="text-sm text-[var(--muted-foreground)]">Nothing allowed in this scenario.</li>
                       ) : (
                         result.allowed.map((row) => (
-                          <li key={row.id} className="text-sm">
-                            {row.name}
-                            {row.domain ? (
-                              <span className="text-[var(--muted-foreground)]"> · {row.domain}</span>
-                            ) : null}
+                          <li key={row.id} className="flex items-center justify-between gap-3 text-sm">
+                            <span>
+                              {row.name}
+                              {row.domain ? (
+                                <span className="text-[var(--muted-foreground)]"> · {row.domain}</span>
+                              ) : null}
+                            </span>
+                            <Badge variant="success">{row.reason.replaceAll("_", " ")}</Badge>
                           </li>
                         ))
                       )}

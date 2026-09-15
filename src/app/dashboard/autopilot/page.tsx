@@ -97,7 +97,7 @@ export default async function AutopilotPage({
       <PageHeader
         eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
         title="AI consent autopilot"
-        description="Generates an ordered configuration plan by combining quality score inputs, consent dependency graph, and the privacy impact simulator. This is an assisted autopilot (no auto-publishing yet)."
+        description="Generates an ordered configuration plan from quality score, dependency graph, and the impact simulator. Approved reversible steps mutate tracker mappings; they never auto-publish a policy."
       />
 
       {sites.length === 0 ? (

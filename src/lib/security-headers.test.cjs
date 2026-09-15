@@ -75,7 +75,9 @@ assert.equal(shouldEnforceCsrfOrigin("POST", "/api/consent/record"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/sdk/script"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/rights-request"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/api/rights-request/verify"), false);
-assert.equal(shouldEnforceCsrfOrigin("POST", "/api/cron/scans"), false);
+assert.equal(isPublicCrossOriginApiPath("/api/webhooks/clerk"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/webhooks/stripe"), true);
+assert.equal(shouldEnforceCsrfOrigin("POST", "/api/webhooks/stripe"), false);
 assert.equal(shouldEnforceCsrfOrigin("POST", "/dashboard"), false);
 
 const requestOrigin = "https://cmp.example.test";

@@ -59,8 +59,8 @@ function candidate(overrides = {}) {
   };
 }
 
-assert.equal(isScanFrequency("hourly"), false);
-assert.deepEqual([...SCAN_FREQUENCIES], ["daily", "weekly", "monthly"]);
+assert.equal(isScanFrequency("hourly"), true);
+assert.deepEqual([...SCAN_FREQUENCIES], ["hourly", "daily", "weekly", "monthly"]);
 
 {
   const daily = computeNextScanAt(now, "daily");
