@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { WhatsAppFloat } from "@/components/public/whatsapp-float";
 
 const navItems: Array<{
   label: string;
@@ -105,6 +106,7 @@ export function HomeNavbar() {
   }
 
   return (
+    <>
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white">
       <nav
         aria-label="Primary"
@@ -199,5 +201,7 @@ export function HomeNavbar() {
         </div>
       </div>
     </header>
+    <WhatsAppFloat />
+    </>
   );
 }

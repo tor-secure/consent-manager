@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SkipLink } from "@/components/ui/skip-link";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { WhatsAppFloat } from "@/components/public/whatsapp-float";
 
 export const clerkAuthAppearance = {
   variables: {
@@ -336,6 +337,7 @@ export function AuthPageShell({
           .
         </p>
       </div>
+      <WhatsAppFloat />
     </div>
   );
 }
