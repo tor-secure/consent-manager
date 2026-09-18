@@ -26,7 +26,7 @@ export const BLOGS: BlogPost[] = [
     region: "India",
     publishedAt: "2026-09-02",
     readMinutes: 8,
-    cover: "/images/blogs/india-dpdp-act-consent-manager.svg",
+    cover: "/images/blogs/india-dpdp-act-consent-manager.png",
     imageAlt: "Illustrated cover for India’s DPDP Act and consent managers",
     sections: [
       {
@@ -60,7 +60,7 @@ export const BLOGS: BlogPost[] = [
     region: "European Union",
     publishedAt: "2026-08-28",
     readMinutes: 7,
-    cover: "/images/blogs/gdpr-consent-vs-legitimate-interest.svg",
+    cover: "/images/blogs/gdpr-consent-vs-legitimate-interest.png",
     imageAlt: "Illustrated cover comparing GDPR consent and legitimate interest",
     sections: [
       {
@@ -93,7 +93,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-08-22",
     readMinutes: 6,
-    cover: "/images/blogs/why-businesses-need-a-consent-manager.svg",
+    cover: "/images/blogs/why-businesses-need-a-consent-manager.png",
     imageAlt: "Illustrated cover on why businesses need a consent manager",
     sections: [
       {
@@ -120,7 +120,7 @@ export const BLOGS: BlogPost[] = [
     region: "United States",
     publishedAt: "2026-08-18",
     readMinutes: 7,
-    cover: "/images/blogs/ccpa-cpra-california-opt-out.svg",
+    cover: "/images/blogs/ccpa-cpra-california-opt-out.png",
     imageAlt: "Illustrated cover for CCPA and CPRA opt-out design",
     sections: [
       {
@@ -147,7 +147,7 @@ export const BLOGS: BlogPost[] = [
     region: "Brazil",
     publishedAt: "2026-08-12",
     readMinutes: 6,
-    cover: "/images/blogs/lgpd-brazil-consent-requirements.svg",
+    cover: "/images/blogs/lgpd-brazil-consent-requirements.png",
     imageAlt: "Illustrated cover for Brazil LGPD consent requirements",
     sections: [
       {
@@ -173,7 +173,7 @@ export const BLOGS: BlogPost[] = [
     region: "Canada",
     publishedAt: "2026-08-06",
     readMinutes: 6,
-    cover: "/images/blogs/pipeda-canada-meaningful-consent.svg",
+    cover: "/images/blogs/pipeda-canada-meaningful-consent.png",
     imageAlt: "Illustrated cover for PIPEDA meaningful consent in Canada",
     sections: [
       {
@@ -199,7 +199,7 @@ export const BLOGS: BlogPost[] = [
     region: "Singapore",
     publishedAt: "2026-07-30",
     readMinutes: 6,
-    cover: "/images/blogs/pdpa-singapore-consent-obligations.svg",
+    cover: "/images/blogs/pdpa-singapore-consent-obligations.png",
     imageAlt: "Illustrated cover for Singapore PDPA consent obligations",
     sections: [
       {
@@ -225,7 +225,7 @@ export const BLOGS: BlogPost[] = [
     region: "Thailand",
     publishedAt: "2026-07-24",
     readMinutes: 6,
-    cover: "/images/blogs/pdpa-thailand-cross-border-rules.svg",
+    cover: "/images/blogs/pdpa-thailand-cross-border-rules.png",
     imageAlt: "Illustrated cover for Thailand PDPA cross-border rules",
     sections: [
       {
@@ -251,7 +251,7 @@ export const BLOGS: BlogPost[] = [
     region: "South Korea",
     publishedAt: "2026-07-18",
     readMinutes: 7,
-    cover: "/images/blogs/pipa-south-korea-consent-banners.svg",
+    cover: "/images/blogs/pipa-south-korea-consent-banners.png",
     imageAlt: "Illustrated cover for South Korea PIPA consent banners",
     sections: [
       {
@@ -277,7 +277,7 @@ export const BLOGS: BlogPost[] = [
     region: "Japan",
     publishedAt: "2026-07-12",
     readMinutes: 6,
-    cover: "/images/blogs/appi-japan-cookie-consent.svg",
+    cover: "/images/blogs/appi-japan-cookie-consent.png",
     imageAlt: "Illustrated cover for Japan APPI cookie consent",
     sections: [
       {
@@ -303,7 +303,7 @@ export const BLOGS: BlogPost[] = [
     region: "Australia",
     publishedAt: "2026-07-06",
     readMinutes: 6,
-    cover: "/images/blogs/australia-privacy-act-reforms.svg",
+    cover: "/images/blogs/australia-privacy-act-reforms.png",
     imageAlt: "Illustrated cover for Australia Privacy Act reforms",
     sections: [
       {
@@ -329,7 +329,7 @@ export const BLOGS: BlogPost[] = [
     region: "United Kingdom",
     publishedAt: "2026-06-28",
     readMinutes: 6,
-    cover: "/images/blogs/uk-gdpr-post-brexit-cmp.svg",
+    cover: "/images/blogs/uk-gdpr-post-brexit-cmp.png",
     imageAlt: "Illustrated cover for UK GDPR and consent management",
     sections: [
       {
@@ -355,7 +355,7 @@ export const BLOGS: BlogPost[] = [
     region: "South Africa",
     publishedAt: "2026-06-20",
     readMinutes: 6,
-    cover: "/images/blogs/popia-south-africa-consent.svg",
+    cover: "/images/blogs/popia-south-africa-consent.png",
     imageAlt: "Illustrated cover for South Africa POPIA consent",
     sections: [
       {
@@ -381,7 +381,7 @@ export const BLOGS: BlogPost[] = [
     region: "United Arab Emirates",
     publishedAt: "2026-06-12",
     readMinutes: 6,
-    cover: "/images/blogs/uae-pdpl-consent-management.svg",
+    cover: "/images/blogs/uae-pdpl-consent-management.png",
     imageAlt: "Illustrated cover for UAE PDPL consent management",
     sections: [
       {
@@ -407,7 +407,7 @@ export const BLOGS: BlogPost[] = [
     region: "Saudi Arabia",
     publishedAt: "2026-06-04",
     readMinutes: 6,
-    cover: "/images/blogs/saudi-pdpl-data-protection.svg",
+    cover: "/images/blogs/saudi-pdpl-data-protection.png",
     imageAlt: "Illustrated cover for Saudi PDPL data protection",
     sections: [
       {
@@ -433,7 +433,7 @@ export const BLOGS: BlogPost[] = [
     region: "China",
     publishedAt: "2026-05-28",
     readMinutes: 7,
-    cover: "/images/blogs/china-pipl-separate-consent.svg",
+    cover: "/images/blogs/china-pipl-separate-consent.png",
     imageAlt: "Illustrated cover for China PIPL separate consent",
     sections: [
       {
@@ -459,7 +459,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-05-20",
     readMinutes: 7,
-    cover: "/images/blogs/cookie-consent-best-practices.svg",
+    cover: "/images/blogs/cookie-consent-best-practices.png",
     imageAlt: "Illustrated cover for cookie consent best practices",
     sections: [
       {
@@ -485,7 +485,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-05-12",
     readMinutes: 8,
-    cover: "/images/blogs/recording-consent-evidence-audits.svg",
+    cover: "/images/blogs/recording-consent-evidence-audits.png",
     imageAlt: "Illustrated cover for consent evidence and audits",
     sections: [
       {
@@ -511,7 +511,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-05-04",
     readMinutes: 6,
-    cover: "/images/blogs/withdrawing-consent-without-friction.svg",
+    cover: "/images/blogs/withdrawing-consent-without-friction.png",
     imageAlt: "Illustrated cover for withdrawing consent without friction",
     sections: [
       {
@@ -537,7 +537,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-04-26",
     readMinutes: 6,
-    cover: "/images/blogs/preference-centers-and-consent-managers.svg",
+    cover: "/images/blogs/preference-centers-and-consent-managers.png",
     imageAlt: "Illustrated cover for preference centers and consent managers",
     sections: [
       {
@@ -563,7 +563,7 @@ export const BLOGS: BlogPost[] = [
     region: "EU & United States",
     publishedAt: "2026-04-18",
     readMinutes: 8,
-    cover: "/images/blogs/iab-tcf-and-global-privacy-platform.svg",
+    cover: "/images/blogs/iab-tcf-and-global-privacy-platform.png",
     imageAlt: "Illustrated cover for IAB TCF and Global Privacy Platform",
     sections: [
       {
@@ -589,7 +589,7 @@ export const BLOGS: BlogPost[] = [
     region: "US, EU, India",
     publishedAt: "2026-04-10",
     readMinutes: 7,
-    cover: "/images/blogs/childrens-privacy-coppa-and-dpdp.svg",
+    cover: "/images/blogs/childrens-privacy-coppa-and-dpdp.png",
     imageAlt: "Illustrated cover for children’s privacy under COPPA and DPDP",
     sections: [
       {
@@ -615,7 +615,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-04-02",
     readMinutes: 7,
-    cover: "/images/blogs/cross-border-transfers-and-consent.svg",
+    cover: "/images/blogs/cross-border-transfers-and-consent.png",
     imageAlt: "Illustrated cover for cross-border transfers and consent",
     sections: [
       {
@@ -641,7 +641,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-03-24",
     readMinutes: 6,
-    cover: "/images/blogs/vendor-management-under-privacy-laws.svg",
+    cover: "/images/blogs/vendor-management-under-privacy-laws.png",
     imageAlt: "Illustrated cover for vendor management under privacy laws",
     sections: [
       {
@@ -667,7 +667,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-03-16",
     readMinutes: 6,
-    cover: "/images/blogs/mobile-app-consent-sdks.svg",
+    cover: "/images/blogs/mobile-app-consent-sdks.png",
     imageAlt: "Illustrated cover for mobile app consent SDKs",
     sections: [
       {
@@ -693,7 +693,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-03-08",
     readMinutes: 8,
-    cover: "/images/blogs/multi-jurisdiction-consent-orchestration.svg",
+    cover: "/images/blogs/multi-jurisdiction-consent-orchestration.png",
     imageAlt: "Illustrated cover for multi-jurisdiction consent orchestration",
     sections: [
       {
@@ -719,7 +719,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-02-28",
     readMinutes: 6,
-    cover: "/images/blogs/data-subject-rights-and-your-cmp.svg",
+    cover: "/images/blogs/data-subject-rights-and-your-cmp.png",
     imageAlt: "Illustrated cover for data subject rights and consent managers",
     sections: [
       {
@@ -745,7 +745,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-02-18",
     readMinutes: 6,
-    cover: "/images/blogs/age-assurance-and-parental-consent.svg",
+    cover: "/images/blogs/age-assurance-and-parental-consent.png",
     imageAlt: "Illustrated cover for age assurance and parental consent",
     sections: [
       {
@@ -771,7 +771,7 @@ export const BLOGS: BlogPost[] = [
     region: "Global",
     publishedAt: "2026-02-08",
     readMinutes: 7,
-    cover: "/images/blogs/ai-agents-permissioning-and-privacy.svg",
+    cover: "/images/blogs/ai-agents-permissioning-and-privacy.png",
     imageAlt: "Illustrated cover for AI agents and privacy permissioning",
     sections: [
       {
@@ -797,7 +797,7 @@ export const BLOGS: BlogPost[] = [
     region: "Worldwide",
     publishedAt: "2026-01-28",
     readMinutes: 9,
-    cover: "/images/blogs/privacy-laws-around-the-world-2026.svg",
+    cover: "/images/blogs/privacy-laws-around-the-world-2026.png",
     imageAlt: "Illustrated cover for a 2026 global privacy law field guide",
     sections: [
       {
