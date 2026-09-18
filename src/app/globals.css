@@ -1291,6 +1291,62 @@ html, body {
     -webkit-overflow-scrolling: touch;
   }
 
+  /* Home comparison: sideways swipe without trapping vertical page scroll */
+  .comparison-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    /* Default touch-action — allow vertical page scroll and horizontal pan */
+    touch-action: auto;
+  }
+
+  .comparison-matrix {
+    width: max-content;
+    min-width: 980px;
+    border-collapse: separate;
+    border-spacing: 0;
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .comparison-matrix th,
+  .comparison-matrix td {
+    padding: 0.625rem 0.75rem;
+    vertical-align: middle;
+  }
+
+  .comparison-matrix thead th {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .comparison-col-feature {
+    width: 7.75rem;
+    min-width: 7.75rem;
+    max-width: 7.75rem;
+  }
+
+  .comparison-col {
+    width: 7.25rem;
+    min-width: 7.25rem;
+    max-width: 7.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .comparison-col-feature {
+      width: 11.5rem;
+      min-width: 11.5rem;
+      max-width: 11.5rem;
+    }
+
+    .comparison-col {
+      width: 8.5rem;
+      min-width: 8.5rem;
+      max-width: 8.5rem;
+    }
+  }
+
   .data-table {
     width: 100%;
     min-width: 36rem;

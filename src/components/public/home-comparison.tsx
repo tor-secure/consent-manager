@@ -50,7 +50,7 @@ function FeatureMatrix({
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+    <div className="rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
       <div className="grid gap-6 border-b border-[#E5E7EB] px-5 py-5 sm:px-6 lg:grid-cols-[1.4fr_0.8fr]">
         <div>
           <h3 className="text-lg font-bold text-[#0F172A]">{title}</h3>
@@ -61,25 +61,22 @@ function FeatureMatrix({
           <p className="mt-1 text-sm text-[#4B5563]">{highlightSub}</p>
         </div>
       </div>
-      <p className="px-5 pb-2 text-xs font-medium text-[#6B7280] sm:hidden">Swipe sideways to compare →</p>
-      <div className="table-scroll touch-pan-x overscroll-x-contain snap-x snap-mandatory">
-        <table className="w-max min-w-[980px] table-fixed border-separate border-spacing-0 text-center text-[13px]">
+      <p className="px-5 pb-2 text-xs font-medium text-[#6B7280] sm:hidden">
+        Swipe sideways to compare →
+      </p>
+      <div className="comparison-scroll">
+        <table className="comparison-matrix">
           <thead>
             <tr className="bg-[#0B2C4A] text-white">
-              <th className="sticky left-0 z-20 w-[140px] min-w-[140px] max-w-[140px] bg-[#0B2C4A] px-3 py-3 text-left font-semibold sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px]">
+              <th className="comparison-col-feature sticky left-0 z-20 bg-[#0B2C4A] text-left font-semibold">
                 Features
               </th>
+              <th className="comparison-col bg-[#6D28D9] font-semibold">Consent Guru</th>
               {competitors.map((name) => (
-                <th
-                  key={name}
-                  className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-3 font-semibold"
-                >
+                <th key={name} className="comparison-col font-semibold">
                   {name}
                 </th>
               ))}
-              <th className="sticky right-0 z-20 w-[132px] min-w-[132px] max-w-[132px] bg-[#6D28D9] px-3 py-3 font-semibold sm:static sm:z-auto">
-                Consent Guru
-              </th>
             </tr>
           </thead>
           <tbody>
@@ -88,39 +85,33 @@ function FeatureMatrix({
               return (
                 <tr key={row.name} className={rowBg}>
                   <th
-                    className={`sticky left-0 z-10 w-[140px] min-w-[140px] max-w-[140px] px-3 py-2.5 text-left font-medium text-[#0F172A] sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px] ${rowBg}`}
+                    className={`comparison-col-feature sticky left-0 z-10 text-left font-medium text-[#0F172A] ${rowBg}`}
                   >
                     {row.name}
                   </th>
+                  <td className="comparison-col bg-[#F5F3FF]">
+                    <Mark on ours />
+                  </td>
                   {row.marks.map((on, markIndex) => (
-                    <td
-                      key={`${row.name}-${competitors[markIndex]}`}
-                      className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-2.5"
-                    >
+                    <td key={`${row.name}-${competitors[markIndex]}`} className="comparison-col">
                       <Mark on={on} />
                     </td>
                   ))}
-                  <td className="sticky right-0 z-10 w-[132px] min-w-[132px] max-w-[132px] bg-[#F5F3FF] px-3 py-2.5 sm:static sm:z-auto">
-                    <Mark on ours />
-                  </td>
                 </tr>
               );
             })}
             <tr className="bg-[#0B2C4A] text-white">
-              <th className="sticky left-0 z-10 w-[140px] min-w-[140px] max-w-[140px] bg-[#0B2C4A] px-3 py-3 text-left font-semibold sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px]">
+              <th className="comparison-col-feature sticky left-0 z-10 bg-[#0B2C4A] text-left font-semibold">
                 Total core features covered
               </th>
+              <td className="comparison-col bg-[#6D28D9] font-bold">
+                {FEATURE_COUNT} / {FEATURE_COUNT}
+              </td>
               {competitorTotals.map((total, index) => (
-                <td
-                  key={competitors[index]}
-                  className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-3 font-semibold"
-                >
+                <td key={competitors[index]} className="comparison-col font-semibold">
                   {total} / {FEATURE_COUNT}
                 </td>
               ))}
-              <td className="sticky right-0 z-10 w-[132px] min-w-[132px] max-w-[132px] bg-[#6D28D9] px-3 py-3 font-bold sm:static sm:z-auto">
-                {FEATURE_COUNT} / {FEATURE_COUNT}
-              </td>
             </tr>
           </tbody>
         </table>
