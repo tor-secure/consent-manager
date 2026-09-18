@@ -19,6 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://consentguru.com"),
   title: "Consent Guru — Consent Management Platform",
   description:
     "Consent Guru helps you manage user consent transparently across web, mobile and apps — GDPR, CCPA, LGPD and more.",

@@ -1,6 +1,14 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import { usePathname } from "next/navigation";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+} from "react";
 
 export type Theme = "light" | "dark";
 
@@ -16,10 +24,15 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = "cmp:theme";
 const THEME_EVENT = "cmp-theme-change";
 
-function applyTheme(theme: Theme) {
+function isDashboardPath(pathname: string) {
+  return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+}
+
+function applyVisualTheme(theme: Theme, pathname: string) {
+  const dark = isDashboardPath(pathname) && theme === "dark";
   const root = document.documentElement;
-  root.classList.toggle("dark", theme === "dark");
-  root.style.colorScheme = theme;
+  root.classList.toggle("dark", dark);
+  root.style.colorScheme = dark ? "dark" : "light";
 }
 
 function readStoredTheme(): Theme {
@@ -29,7 +42,6 @@ function readStoredTheme(): Theme {
   } catch {
     /* ignore */
   }
-  if (document.documentElement.classList.contains("dark")) return "dark";
   try {
     if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
   } catch {
@@ -40,7 +52,6 @@ function readStoredTheme(): Theme {
 
 function subscribeToTheme(onStoreChange: () => void) {
   const syncTheme = () => {
-    applyTheme(readStoredTheme());
     onStoreChange();
   };
   window.addEventListener("storage", syncTheme);
@@ -56,6 +67,7 @@ function subscribeToHydration() {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname() ?? "/";
   const theme = useSyncExternalStore<Theme>(
     subscribeToTheme,
     readStoredTheme,
@@ -63,15 +75,22 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   );
   const resolved = useSyncExternalStore(subscribeToHydration, () => true, () => false);
 
-  const setTheme = useCallback((next: Theme) => {
-    applyTheme(next);
-    try {
-      window.localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      /* ignore */
-    }
-    window.dispatchEvent(new Event(THEME_EVENT));
-  }, []);
+  useEffect(() => {
+    applyVisualTheme(theme, pathname);
+  }, [theme, pathname]);
+
+  const setTheme = useCallback(
+    (next: Theme) => {
+      applyVisualTheme(next, pathname);
+      try {
+        window.localStorage.setItem(STORAGE_KEY, next);
+      } catch {
+        /* ignore */
+      }
+      window.dispatchEvent(new Event(THEME_EVENT));
+    },
+    [pathname],
+  );
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");

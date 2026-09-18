@@ -146,7 +146,7 @@ function BrandPanel({
             <span className="h-2 w-2 rounded-full bg-[#FDE68A]" />
             <span className="h-2 w-2 rounded-full bg-[#86EFAC]" />
             <span className="ml-2 text-[10px] font-medium text-[#9CA3AF]">
-              dashboard.consentguru.app
+              consentguru.com
             </span>
           </div>
           <div className="grid grid-cols-[1fr_0.85fr] gap-3">
@@ -247,15 +247,8 @@ export function AuthPageShell({
 }) {
   useEffect(() => {
     const root = document.documentElement;
-    const hadDark = root.classList.contains("dark");
     root.classList.remove("dark");
     root.style.colorScheme = "light";
-    return () => {
-      if (hadDark) {
-        root.classList.add("dark");
-        root.style.colorScheme = "dark";
-      }
-    };
   }, []);
 
   const copy = modeCopy[mode];

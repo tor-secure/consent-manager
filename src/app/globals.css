@@ -118,6 +118,13 @@ html {
 
 html:has(.public-page) {
   scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+html:has(.public-page),
+html:has(.public-page) body {
+  background: #ffffff;
+  color: #111827;
 }
 
 html, body {
@@ -1658,10 +1665,8 @@ html, body {
   }
 
   .public-page {
-    background:
-      radial-gradient(ellipse 80% 50% at 12% -10%, color-mix(in srgb, var(--primary) 14%, transparent), transparent 52%),
-      radial-gradient(ellipse 60% 40% at 92% 8%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 46%),
-      var(--background);
+    background: #ffffff;
+    color: #111827;
   }
 
   .public-hero {

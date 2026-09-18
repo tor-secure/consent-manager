@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
+import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { DpdpCourse } from "@/components/e-learning/dpdp-course";
 
@@ -12,8 +13,9 @@ export const metadata: Metadata = {
 
 export default function ELearningPage() {
   return (
-    <div className="public-page min-h-screen bg-[#F8FAFC] text-[#111827]">
+    <div className="public-page min-h-screen bg-white text-[#111827]">
       <SkipLink />
+      <HomeInteractions />
       <HomeNavbar />
       <main id="main-content">
         <DpdpCourse />

@@ -43,7 +43,7 @@ function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; pla
         <span className="h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#34D399]" />
         <span className="ml-3 truncate rounded-md bg-white/10 px-2 py-0.5 text-[11px] text-white/70">
-          app.consentguru.in
+          consentguru.com
         </span>
       </div>
 
@@ -51,7 +51,7 @@ function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; pla
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Website</p>
           <div className="rounded-xl bg-white/10 px-3 py-2 font-mono text-sm text-white">
-            shop.example.in
+            shop.example.com
           </div>
           <div className={`h-2 overflow-hidden rounded-full bg-white/10 ${playing ? "how-it-works-bar" : ""}`}>
             <div className="h-full w-2/3 rounded-full bg-[#00C4A7]" />
@@ -92,15 +92,15 @@ function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; pla
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Go live</p>
           <div className="rounded-xl border border-[#00C4A7]/40 bg-[#00C4A7]/10 px-4 py-6 text-center">
             <p className={`text-3xl font-extrabold text-[#5EEAD4] ${playing ? "how-it-works-pulse" : ""}`}>LIVE</p>
-            <p className="mt-1 text-sm text-white/70">Published to shop.example.in</p>
+            <p className="mt-1 text-sm text-white/70">Published to shop.example.com</p>
           </div>
         </div>
       ) : null}
 
       {scene === "install" ? (
         <pre className="overflow-x-auto rounded-xl bg-black/40 p-3 text-[11px] leading-5 text-[#A5F3FC]">
-{`<script src="https://cdn.consentguru.in/sdk.js"
-  data-site="shop.example.in"
+{`<script src="https://consentguru.com/sdk.js"
+  data-site="shop.example.com"
   async></script>`}
         </pre>
       ) : null}
