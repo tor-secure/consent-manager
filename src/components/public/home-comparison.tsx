@@ -1,5 +1,4 @@
 import { ArrowButton } from "@/components/ui/arrow-button";
-import { PenaltyCallout } from "@/components/public/penalty-callout";
 import {
   FEATURE_COUNT,
   GLOBAL_COMPETITORS,
@@ -63,17 +62,24 @@ function FeatureMatrix({
         </div>
       </div>
       <p className="px-5 pb-2 text-xs font-medium text-[#6B7280] sm:hidden">Swipe sideways to compare →</p>
-      <div className="overflow-x-auto">
-        <table className="min-w-[980px] w-full text-center text-[13px]">
+      <div className="table-scroll touch-pan-x overscroll-x-contain snap-x snap-mandatory">
+        <table className="w-max min-w-[980px] table-fixed border-separate border-spacing-0 text-center text-[13px]">
           <thead>
             <tr className="bg-[#0B2C4A] text-white">
-              <th className="sticky left-0 z-20 bg-[#0B2C4A] px-3 py-3 text-left font-semibold">Features</th>
+              <th className="sticky left-0 z-20 w-[140px] min-w-[140px] max-w-[140px] bg-[#0B2C4A] px-3 py-3 text-left font-semibold sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px]">
+                Features
+              </th>
               {competitors.map((name) => (
-                <th key={name} className="px-3 py-3 font-semibold">
+                <th
+                  key={name}
+                  className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-3 font-semibold"
+                >
                   {name}
                 </th>
               ))}
-              <th className="bg-[#6D28D9] px-3 py-3 font-semibold">Consent Guru</th>
+              <th className="sticky right-0 z-20 w-[132px] min-w-[132px] max-w-[132px] bg-[#6D28D9] px-3 py-3 font-semibold sm:static sm:z-auto">
+                Consent Guru
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -81,30 +87,38 @@ function FeatureMatrix({
               const rowBg = index % 2 === 0 ? "bg-white" : "bg-[#F8FAFC]";
               return (
                 <tr key={row.name} className={rowBg}>
-                  <th className={`sticky left-0 z-10 px-3 py-2.5 text-left font-medium text-[#0F172A] ${rowBg}`}>
+                  <th
+                    className={`sticky left-0 z-10 w-[140px] min-w-[140px] max-w-[140px] px-3 py-2.5 text-left font-medium text-[#0F172A] sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px] ${rowBg}`}
+                  >
                     {row.name}
                   </th>
                   {row.marks.map((on, markIndex) => (
-                    <td key={`${row.name}-${competitors[markIndex]}`} className="px-3 py-2.5">
+                    <td
+                      key={`${row.name}-${competitors[markIndex]}`}
+                      className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-2.5"
+                    >
                       <Mark on={on} />
                     </td>
                   ))}
-                  <td className="bg-[#F5F3FF] px-3 py-2.5">
+                  <td className="sticky right-0 z-10 w-[132px] min-w-[132px] max-w-[132px] bg-[#F5F3FF] px-3 py-2.5 sm:static sm:z-auto">
                     <Mark on ours />
                   </td>
                 </tr>
               );
             })}
             <tr className="bg-[#0B2C4A] text-white">
-              <th className="sticky left-0 z-10 bg-[#0B2C4A] px-3 py-3 text-left font-semibold">
+              <th className="sticky left-0 z-10 w-[140px] min-w-[140px] max-w-[140px] bg-[#0B2C4A] px-3 py-3 text-left font-semibold sm:w-[180px] sm:min-w-[180px] sm:max-w-[180px]">
                 Total core features covered
               </th>
               {competitorTotals.map((total, index) => (
-                <td key={competitors[index]} className="px-3 py-3 font-semibold">
+                <td
+                  key={competitors[index]}
+                  className="w-[148px] min-w-[148px] max-w-[148px] snap-start px-3 py-3 font-semibold"
+                >
                   {total} / {FEATURE_COUNT}
                 </td>
               ))}
-              <td className="bg-[#6D28D9] px-3 py-3 font-bold">
+              <td className="sticky right-0 z-10 w-[132px] min-w-[132px] max-w-[132px] bg-[#6D28D9] px-3 py-3 font-bold sm:static sm:z-auto">
                 {FEATURE_COUNT} / {FEATURE_COUNT}
               </td>
             </tr>
@@ -117,7 +131,7 @@ function FeatureMatrix({
 
 export function HomeComparison() {
   return (
-    <section id="comparison" className="relative overflow-hidden bg-[#F8FAFF]">
+    <section id="comparison" className="relative bg-[#F8FAFF]">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -192,7 +206,6 @@ export function HomeComparison() {
             Sign up
           </ArrowButton>
         </div>
-        <PenaltyCallout className="mt-5" />
       </div>
     </section>
   );
