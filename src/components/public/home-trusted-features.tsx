@@ -44,7 +44,7 @@ const featureCards = [
     title: "Easy Integration",
     description:
       "Integrate in minutes with our SDKs, plugins and APIs for any platform.",
-    href: "/sdk-demo",
+    href: "#how-it-works",
     iconBg: "bg-[#E6F9F5]",
     iconColor: "text-[#00C4A7]",
     icon: <path d="m8.25 8.25-4.5 3.75 4.5 3.75M15.75 8.25l4.5 3.75-4.5 3.75" />,

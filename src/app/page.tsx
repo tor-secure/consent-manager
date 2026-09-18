@@ -7,6 +7,7 @@ import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
 import { HomeHowItWorks } from "@/components/public/home-how-it-works";
 import { HomePricing } from "@/components/public/home-pricing";
+import { HomeComparison } from "@/components/public/home-comparison";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import Link from "next/link";
 
@@ -24,9 +25,9 @@ const trustItems = [
     ),
   },
   {
-    label: "Try the live SDK demo",
+    label: "Built for DPDP, GDPR, and global laws",
     icon: (
-      <path d="M12 6v6l3.75 2.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+      <path d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3c2.5 2.7 3.75 5.7 3.75 9S14.5 18.3 12 21c-2.5-2.7-3.75-5.7-3.75-9S9.5 5.7 12 3Z" />
     ),
   },
 ];
@@ -59,36 +60,6 @@ export default function Home() {
 
           <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-14 sm:px-8 sm:py-16 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-20">
             <div className="home-fade-item max-w-xl">
-              <div className="mb-6 inline-flex max-w-full items-center gap-2 rounded-full border border-[#E5E7EB] bg-white/90 px-3 py-1.5 text-[12px] shadow-sm backdrop-blur">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                  className="shrink-0 text-[#00C4A7]"
-                >
-                  <path
-                    d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75Z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9.75 12.5l1.6 1.6 3.4-3.4"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                <span className="font-semibold text-[#0B2C4A]">GDPR, CCPA, LGPD & more</span>
-                <span className="text-[#6B7280]" aria-hidden="true">
-                  •
-                </span>
-                <span className="truncate text-[#4B5563]">Compliance made simple</span>
-              </div>
-
               <h1 className="text-balance text-[2.35rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl lg:text-[3.4rem]">
                 Build trust. Collect consent.{" "}
                 <span
@@ -111,21 +82,10 @@ export default function Home() {
                   Sign up
                 </ArrowButton>
                 <Link
-                  href="/sdk-demo"
-                  className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5]"
+                  href="/#comparison"
+                  className="inline-flex h-12 items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5]"
                 >
-                  <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-[#00C4A7]/35">
-                    <svg
-                      width="10"
-                      height="10"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      aria-hidden="true"
-                    >
-                      <path d="M8 5.5v13l11-6.5L8 5.5Z" />
-                    </svg>
-                  </span>
-                  Try the SDK demo
+                  See why we are better
                 </Link>
               </div>
 
@@ -157,6 +117,7 @@ export default function Home() {
         </section>
 
         <HomeTrustedFeatures />
+        <HomeComparison />
         <HomeHowItWorks />
         <HomeUseCasesCta />
         <HomePricing />

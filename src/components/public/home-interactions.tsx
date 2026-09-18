@@ -5,7 +5,7 @@ import { useEffect } from "react";
 const anchorTargets: Record<string, string> = {
   product: "product",
   features: "features",
-  solutions: "solutions",
+  comparison: "comparison",
   resources: "resources",
   pricing: "pricing",
   "how-it-works": "how-it-works",

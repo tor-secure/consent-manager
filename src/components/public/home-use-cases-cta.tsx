@@ -68,19 +68,109 @@ const useCases = [
     ),
   },
   {
-    title: "& More",
+    title: "Travel & Hospitality",
     description:
-      "Flexible consent workflows that adapt to any industry or use case.",
-    iconBg: "bg-[#F3F4F6]",
-    iconColor: "text-[#4B5563]",
-    accent: "bg-[#9CA3AF]",
+      "Capture booking and marketing consent across brands, properties, and regions.",
+    iconBg: "bg-[#EEF2FF]",
+    iconColor: "text-[#4F46E5]",
+    accent: "bg-[#6366F1]",
+    icon: (
+      <path d="M3.75 12h16.5M6 18.75h12M8.25 12V6.75A2.25 2.25 0 0 1 10.5 4.5h3A2.25 2.25 0 0 1 15.75 6.75V12" />
+    ),
+  },
+  {
+    title: "Telecom",
+    description:
+      "Align app, web, and storefront consent with purpose-level vendor controls.",
+    iconBg: "bg-[#F5F3FF]",
+    iconColor: "text-[#7C3AED]",
+    accent: "bg-[#8B5CF6]",
     icon: (
       <>
-        <circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none" />
-        <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
-        <circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none" />
+        <path d="M5 19h14" />
+        <path d="M8 16a8 8 0 0 1 8 0M10.5 13a4.5 4.5 0 0 1 3 0" />
+        <circle cx="12" cy="10" r="1.1" fill="currentColor" stroke="none" />
       </>
     ),
+  },
+  {
+    title: "Public sector",
+    description:
+      "Record evidence, honor withdrawals, and keep notices versioned for audits.",
+    iconBg: "bg-[#FEF3C7]",
+    iconColor: "text-[#B45309]",
+    accent: "bg-[#F59E0B]",
+    icon: (
+      <path d="M4.5 19.5h15M6 19.5V9.75L12 6l6 3.75V19.5M10 19.5v-4.5h4v4.5" />
+    ),
+  },
+  {
+    title: "Marketplaces",
+    description:
+      "Separate seller, buyer, and advertising purposes without forked banners.",
+    iconBg: "bg-[#ECFEFF]",
+    iconColor: "text-[#0E7490]",
+    accent: "bg-[#06B6D4]",
+    icon: (
+      <path d="M4.5 8.25 12 4.5l7.5 3.75v7.5L12 19.5 4.5 15.75v-7.5ZM12 4.5v15M4.5 8.25 12 12l7.5-3.75" />
+    ),
+  },
+  {
+    title: "Gaming",
+    description:
+      "Gate optional tracking, age-gate child accounts, and keep SDKs in sync.",
+    iconBg: "bg-[#FDF2F8]",
+    iconColor: "text-[#BE185D]",
+    accent: "bg-[#EC4899]",
+    icon: (
+      <path d="M7.5 15.75h9A3.75 3.75 0 0 0 20.25 12 6.75 6.75 0 0 0 7.2 9.3 4.5 4.5 0 0 0 7.5 15.75ZM9.75 12h.008M14.25 10.5v3M12.75 12h3" />
+    ),
+  },
+  {
+    title: "Agencies",
+    description:
+      "Run multiple client sites from one workspace with shared purposes and vendors.",
+    iconBg: "bg-[#F3F4F6]",
+    iconColor: "text-[#374151]",
+    accent: "bg-[#6B7280]",
+    icon: (
+      <path d="M4.5 19.5V6.75A1.5 1.5 0 0 1 6 5.25h4.5v14.25M12 19.5V9h6A1.5 1.5 0 0 1 19.5 10.5V19.5M3.75 19.5h16.5" />
+    ),
+  },
+];
+
+const workspaceCapabilities = [
+  {
+    title: "Websites & SDK install",
+    description: "Register domains, publish a banner, and drop one snippet that enforces purposes at runtime.",
+  },
+  {
+    title: "Policies & Banner Studio",
+    description: "Version notices, map purposes, and ship GDPR, DPDP, or US templates without a code freeze.",
+  },
+  {
+    title: "Scanner & tracker inventory",
+    description: "Discover pixels, compare them to approved vendors, and fail closed until legal maps them.",
+  },
+  {
+    title: "Rights requests & evidence",
+    description: "Intake access, deletion, and withdrawal with consent IDs, policy snapshots, and exports.",
+  },
+  {
+    title: "Child protection",
+    description: "Age assurance, guardian flows, and restricted processing so kids never inherit adult opt-ins.",
+  },
+  {
+    title: "Vendors, TCF & GPP",
+    description: "IAB vendor lists, Google Consent Mode, and jurisdiction rules from one purpose catalog.",
+  },
+  {
+    title: "Analytics & experiments",
+    description: "Consent rates, quality scores, A/B tests, and ROI views that legal and growth can share.",
+  },
+  {
+    title: "AI, firewall & redaction",
+    description: "Autopilot, agent permissioning, consent firewall, and real-time redaction when choice changes.",
   },
 ];
 
@@ -108,14 +198,14 @@ export function HomeUseCasesCta() {
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 lg:gap-3">
+        <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {useCases.map((item) => (
             <article
               key={item.title}
-              className="home-fade-item flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-3.5 py-3.5 text-center shadow-[0_6px_18px_-12px_rgba(15,23,42,0.28)]"
+              className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 text-left shadow-[0_6px_18px_-12px_rgba(15,23,42,0.28)] sm:px-5"
             >
               <div
-                className={`mx-auto flex h-9 w-9 items-center justify-center rounded-full ${item.iconBg} ${item.iconColor}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full ${item.iconBg} ${item.iconColor}`}
               >
                 <svg
                   width="18"
@@ -131,19 +221,40 @@ export function HomeUseCasesCta() {
                   {item.icon}
                 </svg>
               </div>
-              <h3 className="mt-2.5 text-[13px] font-bold tracking-tight text-[#0F172A]">
+              <h3 className="mt-2.5 text-[15px] font-bold tracking-tight text-[#0F172A]">
                 {item.title}
               </h3>
-              <p className="mt-1.5 text-[11px] leading-4 text-[#6B7280]">
+              <p className="mt-1.5 text-[13px] leading-5 text-[#6B7280]">
                 {item.description}
               </p>
-              <span className={`mx-auto mt-2.5 h-0.5 w-7 rounded-full ${item.accent}`} aria-hidden="true" />
+              <span className={`mt-2.5 h-0.5 w-7 rounded-full ${item.accent}`} aria-hidden="true" />
             </article>
           ))}
         </div>
 
+        <div className="mt-14">
+          <h3 className="text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
+            What you actually run in the workspace
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6B7280] sm:text-[15px]">
+            Same product surfaces your team already uses after sign-up — not a separate marketing
+            stack.
+          </p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            {workspaceCapabilities.map((item) => (
+              <article
+                key={item.title}
+                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-sm"
+              >
+                <h4 className="text-sm font-bold text-[#0F172A]">{item.title}</h4>
+                <p className="mt-1.5 text-sm leading-6 text-[#6B7280]">{item.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
         <div
-          className="home-fade-item relative mt-12 overflow-hidden rounded-2xl px-6 py-8 sm:px-8 sm:py-9 lg:px-10"
+          className="relative mt-12 overflow-hidden rounded-2xl px-6 py-8 sm:px-8 sm:py-9 lg:px-10"
           style={{
             background:
               "linear-gradient(105deg, #0B2C4A 0%, #0E3D5C 42%, #00C4A7 100%)",

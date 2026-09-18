@@ -9,6 +9,7 @@ const footerColumns = [
       { label: "Overview", href: "/#product" },
       { label: "Features", href: "/#features" },
       { label: "How it works", href: "/#how-it-works" },
+      { label: "Why us", href: "/#comparison" },
       { label: "Pricing", href: "/#pricing" },
     ],
   },
@@ -20,9 +21,8 @@ const footerColumns = [
     ],
   },
   {
-    title: "Developers",
+    title: "Get started",
     links: [
-      { label: "SDK demo", href: "/sdk-demo" },
       { label: "Sign up", href: "/sign-up" },
     ],
   },

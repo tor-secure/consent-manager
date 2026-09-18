@@ -15,9 +15,9 @@ const navItems: Array<{
   { label: "Product", href: "/#product", hash: "#product" },
   { label: "How it works", href: "/#how-it-works", hash: "#how-it-works" },
   { label: "Solutions", href: "/#solutions", hash: "#solutions" },
+  { label: "Why us", href: "/#comparison", hash: "#comparison" },
   { label: "Blogs", href: "/blogs" },
   { label: "Pricing", href: "/#pricing", hash: "#pricing" },
-  { label: "Developers", href: "/sdk-demo" },
 ];
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
