@@ -6,10 +6,20 @@ import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { BlogCover } from "@/components/public/blog-cover";
 import { formatBlogDate, getAllBlogs } from "@/content/blogs";
+import { socialMetadata } from "@/lib/site-metadata";
+
+const blogsTitle = "Blogs";
+const blogsDescription = "Stay relevant with news of the DPDP Act and related privacy topics.";
 
 export const metadata: Metadata = {
-  title: "Blogs — Consent Guru",
-  description: "Stay relevant with news of the DPDP Act and related privacy topics.",
+  title: blogsTitle,
+  description: blogsDescription,
+  alternates: { canonical: "/blogs" },
+  ...socialMetadata({
+    title: `${blogsTitle} — Consent Guru`,
+    description: blogsDescription,
+    path: "/blogs",
+  }),
 };
 
 export default function BlogsPage() {

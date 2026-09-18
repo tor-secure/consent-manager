@@ -12,6 +12,7 @@ import {
   getBlogBySlug,
   getRelatedBlogs,
 } from "@/content/blogs";
+import { socialMetadata } from "@/lib/site-metadata";
 
 export const dynamicParams = false;
 
@@ -30,8 +31,18 @@ export async function generateMetadata({
     return { title: "Article not found — Consent Guru" };
   }
   return {
-    title: `${post.title} — Consent Guru`,
+    title: post.title,
     description: post.excerpt,
+    alternates: { canonical: `/blogs/${post.slug}` },
+    ...socialMetadata({
+      title: `${post.title} — Consent Guru`,
+      description: post.excerpt,
+      path: `/blogs/${post.slug}`,
+      image: post.cover,
+      imageAlt: post.imageAlt,
+      type: "article",
+      publishedTime: `${post.publishedAt}T00:00:00+05:30`,
+    }),
   };
 }
 

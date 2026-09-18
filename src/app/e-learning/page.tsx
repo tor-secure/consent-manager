@@ -5,10 +5,21 @@ import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { DpdpCourse } from "@/components/e-learning/dpdp-course";
 
+import { socialMetadata } from "@/lib/site-metadata";
+
+const elearningTitle = "E-learning — DPDP Act";
+const elearningDescription =
+  "Ten modules on India’s Digital Personal Data Protection Act. Sign in to learn; progress stays in your browser.";
+
 export const metadata: Metadata = {
-  title: "E-learning — DPDP Act | Consent Guru",
-  description:
-    "Ten modules on India’s Digital Personal Data Protection Act. Sign in to learn; progress stays in your browser.",
+  title: elearningTitle,
+  description: elearningDescription,
+  alternates: { canonical: "/e-learning" },
+  ...socialMetadata({
+    title: `${elearningTitle} — Consent Guru`,
+    description: elearningDescription,
+    path: "/e-learning",
+  }),
 };
 
 export default function ELearningPage() {
