@@ -17,6 +17,7 @@ const navItems: Array<{
   { label: "Solutions", href: "/#solutions", hash: "#solutions" },
   { label: "Why us", href: "/#comparison", hash: "#comparison" },
   { label: "Blogs", href: "/blogs" },
+  { label: "E learning", href: "/e-learning" },
   { label: "Pricing", href: "/#pricing", hash: "#pricing" },
 ];
 
@@ -121,11 +122,17 @@ export function HomeNavbar() {
               data-smooth-anchor={item.hash ? true : undefined}
               onClick={() => setMobileOpen(false)}
               className={`inline-flex items-center rounded-lg px-3 py-2 text-[14px] font-medium transition hover:bg-[#F3F4F6] hover:text-[#111827] ${
-                item.href === "/blogs" && pathname.startsWith("/blogs")
+                (item.href === "/blogs" && pathname.startsWith("/blogs")) ||
+                (item.href === "/e-learning" && pathname.startsWith("/e-learning"))
                   ? "bg-[#F3F4F6] text-[#111827]"
                   : "text-[#374151]"
               }`}
-              aria-current={item.href === "/blogs" && pathname.startsWith("/blogs") ? "page" : undefined}
+              aria-current={
+                (item.href === "/blogs" && pathname.startsWith("/blogs")) ||
+                (item.href === "/e-learning" && pathname.startsWith("/e-learning"))
+                  ? "page"
+                  : undefined
+              }
             >
               {item.label}
             </Link>

@@ -1,4 +1,5 @@
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { PenaltyCallout } from "@/components/public/penalty-callout";
 
 const useCases = [
   {
@@ -319,6 +320,7 @@ export function HomeUseCasesCta() {
             </div>
           </div>
         </div>
+        <PenaltyCallout className="mt-5" />
       </div>
     </section>
   );

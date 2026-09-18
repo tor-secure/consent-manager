@@ -1949,7 +1949,9 @@ html, body {
   }
 
   .home-io-ready .home-section.is-outview {
-    animation: home-section-fade-out 480ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
   .home-io-ready .home-fade-item {
@@ -1964,7 +1966,39 @@ html, body {
   }
 
   .home-io-ready .home-fade-item.is-outview {
-    animation: home-item-fade-out 420ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  .how-it-works-pulse {
+    animation: how-it-works-pulse 1.6s ease-in-out infinite;
+  }
+
+  .how-it-works-bar {
+    animation: how-it-works-bar 2.4s ease-in-out infinite;
+  }
+
+  @keyframes how-it-works-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.72;
+      transform: scale(1.04);
+    }
+  }
+
+  @keyframes how-it-works-bar {
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 1;
+    }
   }
 
   .logo-marquee-track {

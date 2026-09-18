@@ -1,4 +1,5 @@
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { PenaltyCallout } from "@/components/public/penalty-callout";
 
 const tiers = [
   {
@@ -106,7 +107,8 @@ export function HomePricing() {
             </article>
           ))}
         </div>
-        <p className="mt-8 text-xs leading-5 text-[#6B7280]">
+        <PenaltyCallout className="mt-8" />
+        <p className="mt-4 text-xs leading-5 text-[#6B7280]">
           Plans are shown for marketing. Sign up to create a workspace — checkout is not required yet.
         </p>
       </div>

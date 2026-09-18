@@ -9,6 +9,7 @@ import { HomeHowItWorks } from "@/components/public/home-how-it-works";
 import { HomePricing } from "@/components/public/home-pricing";
 import { HomeComparison } from "@/components/public/home-comparison";
 import { ArrowButton } from "@/components/ui/arrow-button";
+import { PenaltyCallout } from "@/components/public/penalty-callout";
 import Link from "next/link";
 
 const trustItems = [
@@ -88,6 +89,8 @@ export default function Home() {
                   See why we are better
                 </Link>
               </div>
+
+              <PenaltyCallout className="mt-6 max-w-lg" />
 
               <ul className="mt-8 flex flex-col gap-3 text-[13px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
                 {trustItems.map((item) => (

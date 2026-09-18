@@ -157,15 +157,12 @@ export function HomeInteractions() {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-inview");
             entry.target.classList.remove("is-outview");
-          } else {
-            entry.target.classList.remove("is-inview");
-            entry.target.classList.add("is-outview");
           }
         });
       },
       {
-        rootMargin: "-8% 0px -8% 0px",
-        threshold: [0.12, 0.28],
+        rootMargin: "0px 0px -8% 0px",
+        threshold: 0.08,
       },
     );
 
@@ -176,16 +173,12 @@ export function HomeInteractions() {
             entry.target.classList.add("is-visible");
             entry.target.classList.add("is-inview");
             entry.target.classList.remove("is-outview");
-          } else {
-            entry.target.classList.remove("is-visible");
-            entry.target.classList.remove("is-inview");
-            entry.target.classList.add("is-outview");
           }
         });
       },
       {
-        rootMargin: "0px 0px -10% 0px",
-        threshold: 0.12,
+        rootMargin: "0px 0px -8% 0px",
+        threshold: 0.08,
       },
     );
 

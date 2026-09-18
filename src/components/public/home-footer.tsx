@@ -10,6 +10,7 @@ const footerColumns = [
       { label: "Features", href: "/#features" },
       { label: "How it works", href: "/#how-it-works" },
       { label: "Why us", href: "/#comparison" },
+      { label: "E learning", href: "/e-learning" },
       { label: "Pricing", href: "/#pricing" },
     ],
   },
@@ -31,6 +32,7 @@ const footerColumns = [
     links: [
       { label: "About", href: "/#company" },
       { label: "Blogs", href: "/blogs" },
+      { label: "E learning", href: "/e-learning" },
     ],
   },
 ];

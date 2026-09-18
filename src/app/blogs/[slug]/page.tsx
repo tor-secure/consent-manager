@@ -5,6 +5,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { BlogCover } from "@/components/public/blog-cover";
 import {
   formatBlogDate,
   getAllBlogs,
@@ -84,8 +85,7 @@ export default async function BlogArticlePage({
           <div className="bg-white">
             <div className="mx-auto max-w-[800px] px-5 sm:px-8">
               <div className="-mt-2 overflow-hidden rounded-2xl border border-[#E5E7EB] shadow-sm sm:-mt-6">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={post.cover} alt={post.imageAlt} className="h-auto w-full" />
+                <BlogCover post={post} />
               </div>
 
               <div className="py-10 sm:py-12">
@@ -126,8 +126,7 @@ export default async function BlogArticlePage({
                     href={`/blogs/${item.slug}`}
                     className="flex h-full flex-col overflow-hidden rounded-xl border border-[#E5E7EB] bg-white transition hover:border-[#00C4A7]/40"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={item.cover} alt={item.imageAlt} className="aspect-[16/9] w-full object-cover" />
+                    <BlogCover post={item} className="rounded-none" />
                     <span className="p-3 text-sm font-medium leading-snug text-[#111827]">{item.title}</span>
                   </Link>
                 </li>

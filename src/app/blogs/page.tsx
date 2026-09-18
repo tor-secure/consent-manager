@@ -4,12 +4,12 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { BlogCover } from "@/components/public/blog-cover";
 import { formatBlogDate, getAllBlogs } from "@/content/blogs";
 
 export const metadata: Metadata = {
   title: "Blogs — Consent Guru",
-  description:
-    "Read up to 30 articles on DPDP, GDPR, CCPA, LGPD, and other privacy laws, plus why a consent manager matters.",
+  description: "Stay relevant with news of the DPDP Act and related privacy topics.",
 };
 
 export default function BlogsPage() {
@@ -29,15 +29,14 @@ export default function BlogsPage() {
           }}
         >
           <div className="relative mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">
-              Insights
+            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#00C4A7] sm:text-base">
+              Blogs
             </p>
-            <h1 className="mt-3 max-w-3xl text-balance text-[2.2rem] font-bold leading-[1.1] tracking-tight text-[#111827] sm:text-5xl">
+            <h1 className="mt-3 max-w-3xl text-balance text-[2.6rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-6xl">
               Privacy laws, consent, and the systems that make them real
             </h1>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#4B5563] sm:text-base">
-              {blogs.length} articles on DPDP, GDPR, CPRA, LGPD, PIPL, PDPA, and other regimes — plus
-              how a consent manager records choice, evidence, and withdrawal.
+              Stay relevant with news of DPDP Act.
             </p>
           </div>
         </section>
@@ -50,14 +49,7 @@ export default function BlogsPage() {
                   href={`/blogs/${post.slug}`}
                   className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#00C4A7]/40 hover:shadow-md"
                 >
-                  <div className="relative aspect-[16/9] overflow-hidden bg-[#0B2C4A]">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={post.cover}
-                      alt={post.imageAlt}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
-                    />
-                  </div>
+                  <BlogCover post={post} />
                   <div className="flex flex-1 flex-col gap-3 p-5">
                     <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
                       <span className="rounded-full bg-[#E6F9F5] px-2.5 py-1 text-[#0B2C4A]">
