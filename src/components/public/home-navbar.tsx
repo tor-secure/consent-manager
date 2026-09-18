@@ -2,6 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -9,17 +10,98 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 const navItems: Array<{
   label: string;
   href: string;
+  hash?: string;
 }> = [
-  { label: "Product", href: "#product" },
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Solutions", href: "#solutions" },
-  { label: "Pricing", href: "#pricing" },
+  { label: "Product", href: "/#product", hash: "#product" },
+  { label: "How it works", href: "/#how-it-works", hash: "#how-it-works" },
+  { label: "Solutions", href: "/#solutions", hash: "#solutions" },
+  { label: "Blogs", href: "/blogs" },
+  { label: "Pricing", href: "/#pricing", hash: "#pricing" },
   { label: "Developers", href: "/sdk-demo" },
 ];
 
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
+
+function GuestAuthButtons({
+  mobile,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
+  return (
+    <>
+      <ArrowButton href="/sign-in" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+        Log in
+      </ArrowButton>
+      <ArrowButton href="/sign-up" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+        Sign up
+      </ArrowButton>
+    </>
+  );
+}
+
+function ClerkAuthButtons({
+  mobile,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
+  const { isLoaded, isSignedIn } = useUser();
+
+  if (!isLoaded) {
+    return (
+      <span
+        aria-hidden="true"
+        className={mobile ? "h-10 rounded-lg bg-[#F3F4F6] sm:col-span-2" : "h-10 w-44 rounded-lg bg-[#F3F4F6]"}
+      />
+    );
+  }
+
+  if (isSignedIn) {
+    return (
+      <Link
+        href="/dashboard"
+        onClick={onNavigate}
+        className={
+          mobile
+            ? "inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white sm:col-span-2"
+            : "inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00C4A7]"
+        }
+      >
+        Open workspace
+        {mobile ? null : <span aria-hidden="true">→</span>}
+      </Link>
+    );
+  }
+
+  return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
+}
+
+function AuthButtons({
+  mobile,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
+  if (!clerkPublishableKey) {
+    return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
+  }
+  return <ClerkAuthButtons mobile={mobile} onNavigate={onNavigate} />;
+}
+
 export function HomeNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isLoaded, isSignedIn } = useUser();
+  const pathname = usePathname();
+
+  function itemHref(item: (typeof navItems)[number]) {
+    if (item.hash && pathname === "/") {
+      return item.hash;
+    }
+    return item.href;
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white">
@@ -35,10 +117,15 @@ export function HomeNavbar() {
           {navItems.map((item) => (
             <Link
               key={item.label}
-              href={item.href}
-              data-smooth-anchor
+              href={itemHref(item)}
+              data-smooth-anchor={item.hash ? true : undefined}
               onClick={() => setMobileOpen(false)}
-              className="inline-flex items-center rounded-lg px-3 py-2 text-[14px] font-medium text-[#374151] transition hover:bg-[#F3F4F6] hover:text-[#111827]"
+              className={`inline-flex items-center rounded-lg px-3 py-2 text-[14px] font-medium transition hover:bg-[#F3F4F6] hover:text-[#111827] ${
+                item.href === "/blogs" && pathname.startsWith("/blogs")
+                  ? "bg-[#F3F4F6] text-[#111827]"
+                  : "text-[#374151]"
+              }`}
+              aria-current={item.href === "/blogs" && pathname.startsWith("/blogs") ? "page" : undefined}
             >
               {item.label}
             </Link>
@@ -46,22 +133,7 @@ export function HomeNavbar() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
-          {!isLoaded ? (
-            <span aria-hidden="true" className="h-10 w-44 rounded-lg bg-[#F3F4F6]" />
-          ) : isSignedIn ? (
-            <Link
-              href="/dashboard"
-              className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-[#00C4A7]"
-            >
-              Open workspace
-              <span aria-hidden="true">→</span>
-            </Link>
-          ) : (
-            <>
-              <ArrowButton href="/sign-in">Log in</ArrowButton>
-              <ArrowButton href="/sign-up">Sign up</ArrowButton>
-            </>
-          )}
+          <AuthButtons />
         </div>
 
         <button
@@ -105,8 +177,8 @@ export function HomeNavbar() {
             {navItems.map((item) => (
               <Link
                 key={item.label}
-                href={item.href}
-                data-smooth-anchor
+                href={itemHref(item)}
+                data-smooth-anchor={item.hash ? true : undefined}
                 className="rounded-lg px-3 py-3 text-sm font-medium text-[#374151]"
                 onClick={() => setMobileOpen(false)}
               >
@@ -114,26 +186,7 @@ export function HomeNavbar() {
               </Link>
             ))}
             <div className="mt-3 grid gap-2 border-t border-[#E5E7EB] pt-4 sm:grid-cols-2">
-              {!isLoaded ? (
-                <span aria-hidden="true" className="h-10 rounded-lg bg-[#F3F4F6] sm:col-span-2" />
-              ) : isSignedIn ? (
-                <Link
-                  href="/dashboard"
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white sm:col-span-2"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  Open workspace
-                </Link>
-              ) : (
-                <>
-                  <ArrowButton href="/sign-in" onClick={() => setMobileOpen(false)} className="w-full">
-                    Log in
-                  </ArrowButton>
-                  <ArrowButton href="/sign-up" onClick={() => setMobileOpen(false)} className="w-full">
-                    Sign up
-                  </ArrowButton>
-                </>
-              )}
+              <AuthButtons mobile onNavigate={() => setMobileOpen(false)} />
             </div>
           </div>
         </div>

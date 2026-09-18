@@ -6,17 +6,17 @@ const footerColumns = [
   {
     title: "Product",
     links: [
-      { label: "Overview", href: "#product" },
-      { label: "Features", href: "#features" },
-      { label: "How it works", href: "#how-it-works" },
-      { label: "Pricing", href: "#pricing" },
+      { label: "Overview", href: "/#product" },
+      { label: "Features", href: "/#features" },
+      { label: "How it works", href: "/#how-it-works" },
+      { label: "Pricing", href: "/#pricing" },
     ],
   },
   {
     title: "Solutions",
     links: [
-      { label: "By Industry", href: "#solutions" },
-      { label: "By Use Case", href: "#solutions" },
+      { label: "By Industry", href: "/#solutions" },
+      { label: "By Use Case", href: "/#solutions" },
     ],
   },
   {
@@ -29,7 +29,8 @@ const footerColumns = [
   {
     title: "Company",
     links: [
-      { label: "About", href: "#company" },
+      { label: "About", href: "/#company" },
+      { label: "Blogs", href: "/blogs" },
     ],
   },
 ];

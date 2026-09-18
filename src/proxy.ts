@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
+import { isClerkConfigured } from "@/lib/clerk-config";
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
@@ -18,6 +19,7 @@ const isPublicRoute = createRouteMatcher([
   "/privacy-request(.*)",
   "/guardian-consent(.*)",
   "/sdk-demo(.*)",
+  "/blogs(.*)",
   "/api/health",
   "/api/sdk(.*)",
   "/api/consent/record(.*)",
@@ -33,7 +35,15 @@ const isPublicRoute = createRouteMatcher([
   "/api/agent(.*)",
 ]);
 
-export default clerkMiddleware(
+async function withBaselineHeaders(request: NextRequest, response: NextResponse) {
+  applyBaselineSecurityHeaders(response.headers, {
+    protocol: request.nextUrl.protocol,
+    forwardedProto: request.headers.get("x-forwarded-proto"),
+  });
+  return response;
+}
+
+const clerkProxy = clerkMiddleware(
   async (auth, request) => {
     const { pathname } = request.nextUrl;
 
@@ -73,12 +83,7 @@ export default clerkMiddleware(
       await auth.protect();
     }
 
-    const response = NextResponse.next();
-    applyBaselineSecurityHeaders(response.headers, {
-      protocol: request.nextUrl.protocol,
-      forwardedProto: request.headers.get("x-forwarded-proto"),
-    });
-    return response;
+    return withBaselineHeaders(request, NextResponse.next());
   },
   {
     contentSecurityPolicy: {
@@ -87,6 +92,19 @@ export default clerkMiddleware(
     },
   },
 );
+
+async function unconfiguredProxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (request.method === "OPTIONS" && isPublicCrossOriginApiPath(pathname)) {
+    const preflight = publicOptionsResponse("GET, POST, OPTIONS");
+    return withBaselineHeaders(request, preflight);
+  }
+
+  return withBaselineHeaders(request, NextResponse.next());
+}
+
+export default isClerkConfigured() ? clerkProxy : unconfiguredProxy;
 
 export const config = {
   matcher: [

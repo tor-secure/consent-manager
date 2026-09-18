@@ -1,7 +1,9 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import { isClerkPublishableKeySet } from "@/lib/clerk-config";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
 import "./globals.css";
@@ -40,11 +42,17 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          <ClerkProvider dynamic>
-            {children}
-          </ClerkProvider>
+          <OptionalClerkProvider>{children}</OptionalClerkProvider>
         </ThemeProvider>
       </body>
     </html>
   );
+}
+
+function OptionalClerkProvider({ children }: { children: ReactNode }) {
+  if (!isClerkPublishableKeySet()) {
+    return children;
+  }
+
+  return <ClerkProvider dynamic>{children}</ClerkProvider>;
 }
