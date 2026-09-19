@@ -67,7 +67,7 @@ export default async function BlogArticlePage({
       <main id="main-content">
         <article>
           <header className="border-b border-[#E5E7EB] bg-[#F3FAF8]">
-            <div className="mx-auto max-w-[800px] px-5 py-10 sm:px-8 sm:py-14">
+            <div className="mx-auto max-w-[800px] px-5 py-5 sm:px-8 sm:py-7">
               <p>
                 <Link
                   href="/blogs"

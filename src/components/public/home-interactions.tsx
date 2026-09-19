@@ -16,7 +16,7 @@ const anchorTargets: Record<string, string> = {
 
 function getScrollOffset() {
   const header = document.querySelector("header");
-  return (header?.getBoundingClientRect().height ?? 72) + 16;
+  return (header?.getBoundingClientRect().height ?? 72) + 4;
 }
 
 export function HomeInteractions() {
@@ -40,7 +40,11 @@ export function HomeInteractions() {
         return false;
       }
 
-      const top = target.getBoundingClientRect().top + window.scrollY - getScrollOffset();
+      // Anchor to the padded content wrapper inside section targets so the heading
+      // lands directly below the sticky navbar, matching a normal page load.
+      const sectionContent = target.tagName === "SECTION" ? target.firstElementChild : null;
+      const contentTarget = sectionContent?.firstElementChild ?? sectionContent ?? target;
+      const top = (contentTarget ?? target).getBoundingClientRect().top + window.scrollY - getScrollOffset();
 
       window.scrollTo({
         top: Math.max(0, top),

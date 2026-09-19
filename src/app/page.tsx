@@ -59,7 +59,7 @@ export default function Home() {
             aria-hidden="true"
           />
 
-          <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-14 sm:px-8 sm:py-16 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-20">
+          <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-3 sm:px-8 sm:py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-8">
             <div className="home-fade-item max-w-xl">
               <h1 className="text-balance text-[2.35rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl lg:text-[3.4rem]">
                 Build trust. Collect consent.{" "}

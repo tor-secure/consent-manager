@@ -32,7 +32,7 @@ const founders = [
   {
     name: "Sheik Salim Abdul Rahaman",
     role: "Co-Founder",
-    image: "/images/founders/SSAR-v3.png",
+    image: "/images/founders/SSAR.png",
     description:
       "Sheik Salim brings approximately 15 years of experience across technology, cybersecurity, enterprise solutions, and digital innovation.",
     detail:
@@ -41,7 +41,7 @@ const founders = [
   {
     name: "Dr. Ananth Prabhu Gurpur",
     role: "Co-Founder",
-    image: "/images/founders/APG-v3.png",
+    image: "/images/founders/APG.png",
     description:
       "Dr. Ananth Prabhu Gurpur brings a distinctive combination of academia, cybersecurity research, cyber law, digital forensics, and technology.",
     detail:
@@ -86,7 +86,7 @@ export default function AboutPage() {
         <section className="relative overflow-hidden border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#00C4A7]/10" aria-hidden="true" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-[#0B2C4A]/[0.04]" aria-hidden="true" />
-          <div className="relative mx-auto max-w-[1200px] px-5 py-20 sm:px-8 sm:py-28 lg:py-32">
+          <div className="relative mx-auto max-w-[1200px] px-5 py-5 sm:px-8 sm:py-7 lg:py-10">
             <div className="max-w-3xl">
               <SectionLabel>About ConsentGuru</SectionLabel>
               <h1 className="mt-5 max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-[#0B2C4A] sm:text-6xl">

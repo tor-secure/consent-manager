@@ -38,7 +38,7 @@ export default function BlogsPage() {
               "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
           }}
         >
-          <div className="relative mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
+          <div className="relative mx-auto max-w-[1200px] px-5 py-3 sm:px-8 sm:py-5">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#00C4A7] sm:text-base">
               Blogs
             </p>

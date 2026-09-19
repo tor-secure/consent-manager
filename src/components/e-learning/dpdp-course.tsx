@@ -72,7 +72,7 @@ export function DpdpCourse() {
   if (!active) return null;
 
   return (
-    <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-10 sm:px-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:py-14">
+    <div className="mx-auto grid max-w-[1200px] gap-8 px-5 py-5 sm:px-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:py-8">
       <aside className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">DPDP Act</p>
         <h1 className="mt-2 text-2xl font-bold tracking-tight text-[#111827]">E-learning</h1>
