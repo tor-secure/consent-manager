@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, count } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -177,7 +178,7 @@ export async function POST(request: Request) {
         { status: 422 },
       );
     }
-    console.error("Role change failed:", error);
+    logger.error("Role change failed", { error });
     return NextResponse.json({ success: false, message: "Failed to change role" }, { status: 500 });
   }
 }

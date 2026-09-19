@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -171,7 +172,7 @@ export async function POST(request: Request) {
       runtimeKind: kind,
     }, { status: 201 });
   } catch (error) {
-    console.error("Integration connect failed:", error);
+    logger.error("Integration connect failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to connect integration" },
       { status: 500 },

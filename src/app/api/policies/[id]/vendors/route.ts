@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -188,7 +189,7 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    console.error("Attach vendor to policy failed:", error);
+    logger.error("Attach vendor to policy failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to attach vendor" },
       { status: 500 },

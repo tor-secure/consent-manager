@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -13,6 +14,7 @@ import {
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { defaultBannerConfig, parseBannerConfig } from "@/lib/banner-config";
 import { getPolicyTemplate } from "@/lib/templates/policy-templates";
 import { getPurposeTemplate, isPurposeTemplateKey } from "@/lib/templates/purpose-templates";
@@ -61,6 +63,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
 
@@ -208,7 +212,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Policy creation failed:", error);
+    logger.error("Policy creation failed", { error });
     return NextResponse.json(
       { success: false, message: creationFailureMessage("policy", error) },
       { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },

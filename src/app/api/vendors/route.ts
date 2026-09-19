@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -9,6 +10,7 @@ import {
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { parseVendorRole, parseDpaStatus, parseDownstreamDsarMode, parseStringList, PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
 import { parseCcpaApplicability } from "@/lib/ccpa/types";
 import { writeProcessingAudit } from "@/lib/processing/service";
@@ -44,7 +46,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, vendors: rows });
   } catch (error) {
-    console.error("Vendor list failed:", error);
+    logger.error("Vendor list failed", { error });
     return NextResponse.json({ success: false, message: "Failed to list vendors" }, { status: 500 });
   }
 }
@@ -91,6 +93,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
 
@@ -205,12 +209,12 @@ export async function POST(request: Request) {
         description: `Created vendor ${vendor.name}`,
       });
     } catch (auditError) {
-      console.error("Vendor created but audit write failed:", auditError);
+      logger.error("Vendor created but audit write failed", { error: auditError });
     }
 
     return NextResponse.json({ success: true, vendor }, { status: 201 });
   } catch (error) {
-    console.error("Vendor creation failed:", error);
+    logger.error("Vendor creation failed", { error });
     return NextResponse.json(
       { success: false, message: creationFailureMessage("vendor", error) },
       { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },

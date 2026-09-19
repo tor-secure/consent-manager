@@ -1,5 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -103,7 +104,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Revoke invitation failed:", error);
+    logger.error("Revoke invitation failed", { error });
     return NextResponse.json({ success: false, message: "Failed to revoke invitation" }, { status: 500 });
   }
 }

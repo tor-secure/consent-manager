@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 import { authorizeOwnedPolicy } from "@/lib/compliance/http";
 import { ignoreClientComplianceClaims, validateOwnedPolicy } from "@/lib/compliance/service";
@@ -45,7 +46,7 @@ export async function POST(
       validation: validated.result,
     });
   } catch (error) {
-    console.error("Policy validate failed:", error);
+    logger.error("Policy validate failed", { error });
     return NextResponse.json(
       { success: false, message: policyValidationFailureMessage(error) },
       { status: 503 },

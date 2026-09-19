@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
@@ -11,6 +12,12 @@ import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { loadSetupComplete } from "@/lib/dashboard/home-queries";
 import { SetupGuideHeaderButton } from "@/components/dashboard/setup-guide";
+import { NOINDEX_ROBOTS } from "@/lib/site-metadata";
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  robots: NOINDEX_ROBOTS,
+};
 
 function HeaderLeft() {
   return (

@@ -39,7 +39,7 @@ import {
   publicOptionsResponse,
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 import {
   buildAnalyticsHints,
@@ -292,7 +292,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `consent-record:${websiteId}:${getClientIp(request)}`,
       limit: 120,
       windowMs: 60_000,

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -127,7 +128,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, removedCount: deleted.length });
   } catch (error) {
-    console.error("Detach vendor from policy failed:", error);
+    logger.error("Detach vendor from policy failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to detach vendor" },
       { status: 500 },

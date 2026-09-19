@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -168,7 +169,7 @@ export async function POST(
         });
       }
     } catch (snapshotError) {
-      console.error("Policy published but digital twin snapshot failed:", snapshotError);
+      logger.error("Policy published but digital twin snapshot failed", { error: snapshotError });
     }
 
     return NextResponse.json(
@@ -186,7 +187,7 @@ export async function POST(
       { status: 200 },
     );
   } catch (error) {
-    console.error("Publish policy failed:", error);
+    logger.error("Publish policy failed", { error });
     return NextResponse.json(
       { success: false, message: policyValidationFailureMessage(error) },
       { status: 503 },

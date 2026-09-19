@@ -21,7 +21,9 @@ const isPublicRoute = createRouteMatcher([
   "/guardian-consent(.*)",
   "/sdk-demo(.*)",
   "/blogs(.*)",
+  "/e-learning(.*)",
   "/api/health",
+  "/api/health/ready",
   "/api/sdk(.*)",
   "/api/consent/record(.*)",
   "/api/consent/withdraw(.*)",
@@ -105,7 +107,34 @@ async function unconfiguredProxy(request: NextRequest) {
   return withBaselineHeaders(request, NextResponse.next());
 }
 
-export default isClerkConfigured() ? clerkProxy : unconfiguredProxy;
+async function productionUnconfiguredProxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (request.method === "OPTIONS" && isPublicCrossOriginApiPath(pathname)) {
+    const preflight = publicOptionsResponse("GET, POST, OPTIONS");
+    return withBaselineHeaders(request, preflight);
+  }
+
+  if (
+    pathname === "/api/health" ||
+    pathname === "/api/health/ready" ||
+    (isPublicRoute(request) && !pathname.startsWith("/api/"))
+  ) {
+    return withBaselineHeaders(request, NextResponse.next());
+  }
+
+  const unavailable = NextResponse.json(
+    { success: false, message: "Authentication is not configured." },
+    { status: 503 },
+  );
+  return withBaselineHeaders(request, unavailable);
+}
+
+export default isClerkConfigured()
+  ? clerkProxy
+  : process.env.NODE_ENV === "production"
+    ? productionUnconfiguredProxy
+    : unconfiguredProxy;
 
 export const config = {
   matcher: [

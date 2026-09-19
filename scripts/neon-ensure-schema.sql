@@ -815,4 +815,11 @@ CREATE TABLE IF NOT EXISTS "inbound_webhooks" (
 CREATE UNIQUE INDEX IF NOT EXISTS "inbound_webhooks_provider_event_unique" ON "inbound_webhooks" ("provider", "event_id");
 CREATE INDEX IF NOT EXISTS "inbound_webhooks_created_idx" ON "inbound_webhooks" ("created_at");
 
+CREATE TABLE IF NOT EXISTS "rate_limit_buckets" (
+  "bucket_key" varchar(300) PRIMARY KEY NOT NULL,
+  "hit_count" integer NOT NULL,
+  "reset_at" timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "rate_limit_buckets_reset_idx" ON "rate_limit_buckets" ("reset_at");
+
 

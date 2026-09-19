@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 import { runRetentionCleanup } from "@/lib/retention/cleanup";
 import { RETENTION_RULES } from "@/lib/retention/core";
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
       rules: RETENTION_RULES,
     });
   } catch (error) {
-    console.error("Retention purge failed:", error);
+    logger.error("Retention purge failed", { error });
     return NextResponse.json({ success: false, message: "Failed to execute retention purge" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -338,7 +339,7 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("Consent evidence fetch failed:", error);
+    logger.error("Consent evidence fetch failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to fetch consent evidence" },
       { status: 500 },

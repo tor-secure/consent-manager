@@ -59,10 +59,11 @@ export function isSdkOriginAllowed(
     }
   }
 
-  // Matching the registered website host is enough. Domain verification is a
-  // dashboard control; blocking unverified hosts broke production SDK installs
-  // (localhost still worked because loopback is always allowed).
-  return hostnameMatchesWebsiteDomain(host, website.domain);
+  if (!hostnameMatchesWebsiteDomain(host, website.domain)) return false;
+  if (process.env.NODE_ENV === "production" && website.verified !== true) {
+    return false;
+  }
+  return true;
 }
 
 export function sdkOriginGuard(

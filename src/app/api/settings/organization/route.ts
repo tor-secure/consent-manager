@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -240,7 +241,7 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ success: true, organization: updated });
   } catch (error) {
-    console.error("Organization settings update failed:", error);
+    logger.error("Organization settings update failed", { error });
     return NextResponse.json({ success: false, message: "Failed to update organization settings" }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -81,7 +82,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Detach vendor purpose failed:", error);
+    logger.error("Detach vendor purpose failed", { error });
     return NextResponse.json({ success: false, message: "Failed to detach purpose" }, { status: 500 });
   }
 }

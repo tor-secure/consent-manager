@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 
@@ -7,8 +8,10 @@ import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { memberships } from "@/db/schema/memberships";
 import { users } from "@/db/schema/users";
+import { roles } from "@/db/schema/roles";
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 import { resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { assertWebsiteEntitlement } from "@/lib/billing/entitlements";
 import { isSchemaMismatchError, postgresErrorCode } from "@/lib/schema-mismatch";
 
@@ -132,8 +135,9 @@ export async function POST(request: Request) {
 
     // Verify the user has an active membership in this specific organization.
     const [membership] = await db
-      .select({ id: memberships.id })
+      .select({ id: memberships.id, roleName: roles.name })
       .from(memberships)
+      .innerJoin(roles, eq(memberships.roleId, roles.id))
       .where(
         and(
           eq(memberships.organizationId, organization.id),
@@ -152,6 +156,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const entitlement = await assertWebsiteEntitlement(organization.id);
     if (!entitlement.ok) {
@@ -215,7 +221,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Website creation failed:", error);
+    logger.error("Website creation failed", { error });
 
     if (isUniqueConstraintError(error)) {
       return NextResponse.json(

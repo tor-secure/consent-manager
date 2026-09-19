@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -129,7 +130,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, runtimeKind: kind });
   } catch (error) {
-    console.error("Integration disconnect failed:", error);
+    logger.error("Integration disconnect failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to disconnect integration" },
       { status: 500 },

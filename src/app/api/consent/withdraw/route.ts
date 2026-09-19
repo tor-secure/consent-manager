@@ -15,7 +15,7 @@ import {
   publicOptionsResponse,
   readPublicJsonObject,
 } from "@/lib/sdk/public-http";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 const CORS_HEADERS = publicCorsHeaders("POST, OPTIONS");
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `consent-withdraw:${websiteId}:${getClientIp(request)}`,
       limit: 30,
       windowMs: 60_000,

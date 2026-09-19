@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-logs";
@@ -49,7 +50,7 @@ export async function GET() {
         "Changing retention configuration does not rewrite existing historical consent evidence. Deleting current consent state does not delete historical consent evidence.",
     });
   } catch (error) {
-    console.error("Retention GET failed:", error);
+    logger.error("Retention GET failed", { error });
     return NextResponse.json({ success: false, message: "Failed to load retention settings" }, { status: 500 });
   }
 }
@@ -113,7 +114,7 @@ export async function PATCH(request: Request) {
         "Changing retention configuration does not rewrite existing historical consent evidence.",
     });
   } catch (error) {
-    console.error("Retention PATCH failed:", error);
+    logger.error("Retention PATCH failed", { error });
     return NextResponse.json({ success: false, message: "Failed to update retention settings" }, { status: 500 });
   }
 }

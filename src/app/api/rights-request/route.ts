@@ -7,7 +7,7 @@ import {
   isRightsRequestType,
 } from "@/lib/privacy-rights/types";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "websiteId is required" }, { status: 400 });
     }
 
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `rights-request:${websiteId}:${getClientIp(request)}`,
       limit: 5,
       windowMs: 60 * 60_000,
@@ -96,11 +96,9 @@ export async function POST(request: Request) {
         acknowledgeBy: created.deadlines.acknowledgeBy.toISOString(),
         dueAt: created.deadlines.dueAt.toISOString(),
         deadlineKind: created.deadlines.deadlineKind,
-        verificationToken: created.tokens.identityToken,
-        statusToken: created.tokens.statusToken,
         verificationExpiresAt: created.tokens.verificationExpiresAt.toISOString(),
         message:
-          "Request received. Use the verification token to prove control of this identity before the request becomes actionable. Deadlines are configured targets, not a legal-compliance certification.",
+          "Request received. Use the requester reference if you contact the organization. A verification challenge is issued out of band; this response does not include proof tokens.",
       },
       { status: 201 },
     );

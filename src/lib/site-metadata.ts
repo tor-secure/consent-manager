@@ -64,3 +64,14 @@ export function socialMetadata({
     },
   };
 }
+
+export const NOINDEX_ROBOTS = { index: false, follow: false } as const;
+
+export function unlistedPageMetadata(title: string, description: string): Metadata {
+  return {
+    title,
+    description,
+    robots: NOINDEX_ROBOTS,
+    ...socialMetadata({ title, description }),
+  };
+}

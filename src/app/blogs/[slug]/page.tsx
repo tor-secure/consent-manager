@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
 import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
@@ -12,7 +13,7 @@ import {
   getBlogBySlug,
   getRelatedBlogs,
 } from "@/content/blogs";
-import { socialMetadata } from "@/lib/site-metadata";
+import { socialMetadata, SITE_NAME, SITE_URL } from "@/lib/site-metadata";
 
 export const dynamicParams = false;
 
@@ -58,12 +59,29 @@ export default async function BlogArticlePage({
   }
 
   const related = getRelatedBlogs(post.slug);
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    image: post.cover.startsWith("http") ? post.cover : `${SITE_URL}${post.cover}`,
+    datePublished: `${post.publishedAt}T00:00:00+05:30`,
+    author: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    mainEntityOfPage: `${SITE_URL}/blogs/${post.slug}`,
+  };
 
   return (
     <div className="public-page min-h-screen bg-white text-[#111827]">
       <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
+      <script
+        type="application/ld+json"
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
       <main id="main-content">
         <article>
           <header className="border-b border-[#E5E7EB] bg-[#F3FAF8]">

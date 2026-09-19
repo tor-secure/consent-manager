@@ -1,5 +1,6 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -140,7 +141,7 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("Send invitation failed:", error);
+    logger.error("Send invitation failed", { error });
     return NextResponse.json({ success: false, message: "Failed to send invitation" }, { status: 500 });
   }
 }

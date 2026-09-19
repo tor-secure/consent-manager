@@ -25,7 +25,7 @@ Module._load = function patchedLoad(request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { buildHealthResponse, runHealthCheck } = require(compiledPath);
+const { buildHealthResponse, buildLivenessResponse, runHealthCheck } = require(compiledPath);
 
 function assertSafeBody(body) {
   const serialized = JSON.stringify(body);
@@ -38,6 +38,13 @@ function assertSafeBody(body) {
   assert.doesNotMatch(serialized, /ECONNREFUSED/);
   assert.doesNotMatch(serialized, /SELECT/i);
   assert.doesNotMatch(serialized, /node_modules/);
+}
+
+async function testLiveness() {
+  const live = buildLivenessResponse();
+  assert.equal(live.statusCode, 200);
+  assert.equal(live.body.status, "ok");
+  assert.equal("checks" in live.body, false);
 }
 
 async function testHealthy() {
@@ -72,6 +79,7 @@ async function testDatabaseFailure() {
 }
 
 async function main() {
+  await testLiveness();
   await testHealthy();
   await testDatabaseFailure();
   console.log("health tests passed");

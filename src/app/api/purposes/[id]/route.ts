@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -10,6 +11,7 @@ import {
   resolveLocalOrganization,
   resolveLocalUser,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { creationFailureMessage, isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 const VALID_STATUSES = ["active", "inactive"] as const;
@@ -26,7 +28,7 @@ const VALID_LEGAL_BASES = [
 const MAX_DATA_CATEGORIES = 20;
 const MAX_DATA_CATEGORY_LENGTH = 150;
 
-async function authorizePurposeOrg() {
+async function authorizePurposeOrg(options?: { operator?: boolean }) {
   const { isAuthenticated, userId, orgId } = await auth();
   if (!isAuthenticated || !userId) {
     return { error: NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 }) };
@@ -45,6 +47,10 @@ async function authorizePurposeOrg() {
   const membership = await resolveActiveMembership(organization.id, localUser.id);
   if (!membership) {
     return { error: NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 }) };
+  }
+  if (options?.operator) {
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return { error: operatorError };
   }
   return { organization };
 }
@@ -77,7 +83,7 @@ export async function GET(
     }
     return NextResponse.json({ success: true, purpose });
   } catch (error) {
-    console.error("Purpose load failed:", error);
+    logger.error("Purpose load failed", { error });
     return NextResponse.json({ success: false, message: "Failed to load purpose" }, { status: 500 });
   }
 }
@@ -87,7 +93,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const authz = await authorizePurposeOrg();
+    const authz = await authorizePurposeOrg({ operator: true });
     if ("error" in authz) return authz.error;
     const { id } = await params;
     const [existing] = await db
@@ -151,7 +157,7 @@ export async function PATCH(
 
     return NextResponse.json({ success: true, purpose });
   } catch (error) {
-    console.error("Purpose update failed:", error);
+    logger.error("Purpose update failed", { error });
     return NextResponse.json(
       { success: false, message: creationFailureMessage("purpose", error) },
       { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },

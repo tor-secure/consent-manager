@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -7,6 +8,7 @@ import { vendors } from "@/db/schema/vendors";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // ---------------------------------------------------------------------------
 // POST /api/vendors/[id]/purposes
@@ -39,6 +41,8 @@ export async function POST(
     if (!membership) {
       return NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 });
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     // Verify vendor belongs to this org.
     const [vendor] = await db
@@ -92,7 +96,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, vendorPurpose: link }, { status: 201 });
   } catch (error) {
-    console.error("Attach vendor purpose failed:", error);
+    logger.error("Attach vendor purpose failed", { error });
     return NextResponse.json({ success: false, message: "Failed to attach purpose" }, { status: 500 });
   }
 }

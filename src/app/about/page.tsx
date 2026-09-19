@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "About ConsentGuru",
   description:
     "Learn how ConsentGuru is helping organizations build transparent, responsible, and trusted digital relationships.",
+  alternates: { canonical: "/about" },
   ...socialMetadata({
     title: "About ConsentGuru — Powering the Future of Digital Trust",
     description:

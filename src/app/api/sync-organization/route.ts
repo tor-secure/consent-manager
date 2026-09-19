@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 
 import { syncActiveClerkOrganization } from "@/lib/sync-clerk-organization";
 
@@ -35,7 +36,7 @@ export async function POST() {
       organization,
     });
   } catch (error) {
-    console.error("Organization sync failed:", error);
+    logger.error("Organization sync failed", { error });
 
     return NextResponse.json(
       {

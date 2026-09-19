@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -94,7 +95,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, abTest: next });
   } catch (error) {
-    console.error("A/B test save failed:", error);
+    logger.error("A/B test save failed", { error });
     return NextResponse.json({ success: false, message: "Failed to save experiment" }, { status: 500 });
   }
 }

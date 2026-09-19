@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { and, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -101,7 +102,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-  const authz = await authorizeProcessingOrganization();
+  const authz = await authorizeProcessingOrganization({ operator: true });
   if ("error" in authz) return authz.error;
   const { id } = await params;
   const existing = await loadOwnedVendorRecord(authz.organization.id, id);
@@ -185,7 +186,7 @@ export async function PATCH(
 
   return NextResponse.json({ success: true, vendor: updated });
   } catch (error) {
-    console.error("Vendor update failed:", error);
+    logger.error("Vendor update failed", { error });
     if (isSchemaMismatchError(error)) {
       return NextResponse.json(
         {
@@ -203,7 +204,7 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authz = await authorizeProcessingOrganization();
+  const authz = await authorizeProcessingOrganization({ operator: true });
   if ("error" in authz) return authz.error;
   const { id } = await params;
   const existing = await loadOwnedVendorRecord(authz.organization.id, id);

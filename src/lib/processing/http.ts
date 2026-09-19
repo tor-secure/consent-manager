@@ -17,9 +17,10 @@ import {
   resolveLocalOrganization,
   resolveLocalUser,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 import { isUuid } from "@/lib/trackers/management";
 
-export async function authorizeProcessingOrganization() {
+export async function authorizeProcessingOrganization(options?: { operator?: boolean }) {
   const { isAuthenticated, userId, orgId } = await auth();
   if (!isAuthenticated || !userId) {
     return { error: NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 }) };
@@ -43,7 +44,11 @@ export async function authorizeProcessingOrganization() {
       error: NextResponse.json({ success: false, message: "You do not belong to this organization." }, { status: 403 }),
     };
   }
-  return { localUser, organization, orgId, userId };
+  if (options?.operator) {
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return { error: operatorError };
+  }
+  return { localUser, organization, orgId, userId, membership };
 }
 
 export async function loadOwnedVendorRecord(organizationId: string, vendorId: string) {

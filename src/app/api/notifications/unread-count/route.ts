@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -46,7 +47,7 @@ export async function GET() {
 
     return NextResponse.json({ count: result?.count ?? 0 });
   } catch (error) {
-    console.error("Unread count failed:", error);
+    logger.error("Unread count failed", { error });
     return NextResponse.json({ count: 0 });
   }
 }

@@ -10,20 +10,31 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { parseBannerConfig } from "@/lib/banner-config";
+import { logger } from "@/lib/logger";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
+import { isValidSiteKey } from "@/lib/sdk/public-http";
 
-// GET /api/consent/policy?websiteId=<id>
+// GET /api/consent/policy?siteKey=<key>
 // Public endpoint — returns the active policy configuration for a website,
 // including banner config, purposes, and vendors.
-// Authentication: verified by websiteId ownership (website must exist and be active).
+// Authentication: siteKey (capability token) plus Origin allowlist.
 export async function GET(request: Request) {
   try {
+    const limit = await consumeRateLimit({
+      key: `consent-policy:${getClientIp(request)}`,
+      limit: 60,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
+
     const { searchParams } = new URL(request.url);
+    const siteKey = searchParams.get("siteKey")?.trim() ?? "";
     const websiteId = searchParams.get("websiteId")?.trim();
 
-    if (!websiteId) {
+    if (!siteKey || !isValidSiteKey(siteKey)) {
       return NextResponse.json(
-        { success: false, message: "websiteId is required" },
+        { success: false, message: "siteKey is required" },
         { status: 400 },
       );
     }
@@ -38,8 +49,15 @@ export async function GET(request: Request) {
         verified: websites.verified,
       })
       .from(websites)
-      .where(eq(websites.id, websiteId))
+      .where(eq(websites.siteKey, siteKey))
       .limit(1);
+
+    if (websiteId && website && website.id !== websiteId) {
+      return NextResponse.json(
+        { success: false, message: "Website not found" },
+        { status: 404 },
+      );
+    }
 
     if (!website || website.status !== "active") {
       return NextResponse.json(
@@ -156,7 +174,10 @@ export async function GET(request: Request) {
       })),
     });
   } catch (error) {
-    console.error("Consent policy load failed:", error);
+    logger.error("Consent policy load failed", {
+      operation: "consent.policy.load",
+      error,
+    });
     return NextResponse.json(
       { success: false, message: "Failed to load consent policy" },
       { status: 500 },

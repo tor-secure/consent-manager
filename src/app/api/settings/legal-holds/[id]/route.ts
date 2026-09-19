@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -25,7 +26,7 @@ export async function GET(
     }
     return NextResponse.json({ success: true, hold });
   } catch (error) {
-    console.error("Legal hold GET failed:", error);
+    logger.error("Legal hold GET failed", { error });
     return NextResponse.json({ success: false, message: "Failed to load legal hold" }, { status: 500 });
   }
 }
@@ -80,7 +81,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, hold: updated });
   } catch (error) {
-    console.error("Legal hold release failed:", error);
+    logger.error("Legal hold release failed", { error });
     return NextResponse.json({ success: false, message: "Failed to release legal hold" }, { status: 500 });
   }
 }

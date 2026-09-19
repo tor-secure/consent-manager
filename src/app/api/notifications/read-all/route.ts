@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, sql } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -47,7 +48,7 @@ export async function POST() {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Mark all read failed:", error);
+    logger.error("Mark all read failed", { error });
     return NextResponse.json({ success: false, message: "Failed to mark all as read" }, { status: 500 });
   }
 }

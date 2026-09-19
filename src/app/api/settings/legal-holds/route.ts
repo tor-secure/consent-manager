@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -41,7 +42,7 @@ export async function GET() {
       })),
     });
   } catch (error) {
-    console.error("Legal holds GET failed:", error);
+    logger.error("Legal holds GET failed", { error });
     return NextResponse.json({ success: false, message: "Failed to load legal holds" }, { status: 500 });
   }
 }
@@ -102,7 +103,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, hold }, { status: 201 });
   } catch (error) {
-    console.error("Legal hold create failed:", error);
+    logger.error("Legal hold create failed", { error });
     return NextResponse.json({ success: false, message: "Failed to create legal hold" }, { status: 500 });
   }
 }

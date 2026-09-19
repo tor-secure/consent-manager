@@ -52,8 +52,16 @@ const previous = process.env.NODE_ENV;
 process.env.NODE_ENV = "production";
 assert.equal(
   isSdkOriginAllowed(requestFrom("https://sathwikkamath.vercel.app"), website),
+  false,
+  "production rejects an unverified registered host",
+);
+assert.equal(
+  isSdkOriginAllowed(requestFrom("https://sathwikkamath.vercel.app"), {
+    ...website,
+    verified: true,
+  }),
   true,
-  "production allows the registered host even when the domain is not verified",
+  "production allows the registered host after domain verification",
 );
 assert.equal(
   isSdkOriginAllowed(requestFrom("https://other-app.vercel.app"), website),

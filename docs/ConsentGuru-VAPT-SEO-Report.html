@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Consent Guru — VAPT and SEO Assessment</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Calibri, Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #111827;
+      margin: 0;
+    }
+    h1 {
+      font-size: 20pt;
+      letter-spacing: -0.02em;
+      margin: 0 0 6pt;
+      color: #0f172a;
+      border-bottom: 3px solid #2c4a7c;
+      padding-bottom: 8pt;
+    }
+    h2 {
+      font-size: 13pt;
+      margin: 18pt 0 8pt;
+      color: #1e3a5f;
+      page-break-after: avoid;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 4pt;
+    }
+    h3 {
+      font-size: 11pt;
+      margin: 12pt 0 6pt;
+      color: #1e293b;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 8pt; }
+    ol, ul { margin: 0 0 10pt; padding-left: 18pt; }
+    li { margin: 0 0 4pt; }
+    .meta { color: #64748b; font-size: 9.5pt; margin-bottom: 14pt; }
+    .hero {
+      display: flex;
+      gap: 12pt;
+      margin: 12pt 0 14pt;
+      page-break-inside: avoid;
+    }
+    .hero-card {
+      flex: 1;
+      border: 1px solid #d9e0ea;
+      background: #f8fafc;
+      padding: 10pt 12pt;
+    }
+    .hero-card .value {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f766e;
+      line-height: 1.15;
+    }
+    .hero-card.warn .value { color: #b45309; }
+    .hero-card.danger .value { color: #b91c1c; }
+    .hero-card .label {
+      font-size: 8.5pt;
+      color: #5b6b80;
+      margin-top: 3pt;
+    }
+    .callout {
+      border: 1px solid #fbbf24;
+      background: #fffbeb;
+      padding: 10pt 12pt;
+      margin: 0 0 14pt;
+      page-break-inside: avoid;
+    }
+    .callout strong { display: block; margin-bottom: 4pt; color: #92400e; }
+    .callout.neutral {
+      background: #f8fafc;
+      border-color: #d9e0ea;
+    }
+    .callout.neutral strong { color: #1e3a5f; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8pt 0 12pt;
+      font-size: 8.5pt;
+    }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    th, td {
+      border: 1px solid #d1d5db;
+      padding: 5pt 6pt;
+      vertical-align: top;
+    }
+    th {
+      background: #e8edf4;
+      font-weight: 600;
+      color: #0f172a;
+      text-align: left;
+    }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tfoot td { font-weight: 700; background: #f1f5f9; }
+    .sev-c { color: #b91c1c; font-weight: 700; }
+    .sev-h { color: #b45309; font-weight: 700; }
+    .sev-m { color: #a16207; font-weight: 600; }
+    .sev-l { color: #475569; }
+    .ok { color: #0f766e; font-weight: 600; }
+    .miss { color: #b91c1c; font-weight: 600; }
+    .bar-row { display: flex; align-items: center; gap: 8pt; margin: 3pt 0; page-break-inside: avoid; }
+    .bar-label { width: 130pt; flex-shrink: 0; font-size: 8.5pt; }
+    .bar-track { flex: 1; height: 10pt; background: #e8edf4; }
+    .bar-fill { height: 100%; background: #2c4a7c; }
+    .bar-fill.warn { background: #b45309; }
+    .bar-fill.bad { background: #b91c1c; }
+    .bar-score { width: 32pt; text-align: right; font-size: 8.5pt; font-variant-numeric: tabular-nums; }
+    .caption { color: #64748b; font-size: 8.5pt; margin: 0 0 12pt; }
+    code { font-family: Consolas, "Courier New", monospace; font-size: 8.5pt; }
+    footer {
+      margin-top: 18pt;
+      padding-top: 8pt;
+      border-top: 1px solid #e5e7eb;
+      color: #64748b;
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+  <h1>VAPT and SEO Assessment</h1>
+  <p class="meta">
+    Product: Consent Guru (consent-manager) · Target: consentguru.com · Date: 19 September 2026<br />
+    Method: static source-code review (Next.js App Router, Clerk, Drizzle/Postgres). No live exploit, payload, or attack procedure.
+  </p>
+
+  <div class="hero">
+    <div class="hero-card warn">
+      <div class="value">78 / 100</div>
+      <div class="label">VAPT score · rating B</div>
+    </div>
+    <div class="hero-card warn">
+      <div class="value">72 / 100</div>
+      <div class="label">SEO score · rating C+</div>
+    </div>
+    <div class="hero-card danger">
+      <div class="value">1</div>
+      <div class="label">Critical finding</div>
+    </div>
+    <div class="hero-card">
+      <div class="value">3</div>
+      <div class="label">High findings</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>How to read these scores</strong>
+    This is not a live pentest against a production URL. Findings are from repository review. Do not treat 78 as a substitute for an authorized external pen test after Clerk, HMAC, and webhook secrets are set. Diff-based change review had an empty tree, so this is a full-app baseline.
+  </div>
+
+  <h2>1. Executive summary</h2>
+  <p>Consent Guru has a solid security baseline: Clerk <code>auth.protect()</code> with a public allowlist, CSRF origin checks on dashboard APIs, security headers plus Clerk CSP, SSRF guards, parameterized SQL, and operator gates on API keys, webhooks, and policy publish.</p>
+  <p>The VAPT score is held at 78 by fail-open auth when Clerk is unset, process-local rate limits, Member-level config writes, DSAR tokens in JSON responses, and no Postgres RLS.</p>
+  <p>SEO is held at 72 by missing <code>robots.ts</code> / <code>sitemap.ts</code> and indexable dashboard/auth pages. Marketing metadata, Open Graph, and 31 blog posts are already strong.</p>
+
+  <h2>2. VAPT score model</h2>
+  <p>Each category is scored 0–100. Overall is the weighted sum, rounded to a whole number.</p>
+
+  <div class="bar-row"><div class="bar-label">Authentication</div><div class="bar-track"><div class="bar-fill warn" style="width:78%"></div></div><div class="bar-score">78</div></div>
+  <div class="bar-row"><div class="bar-label">Authorization / RBAC</div><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><div class="bar-score">80</div></div>
+  <div class="bar-row"><div class="bar-label">Multi-tenant isolation</div><div class="bar-track"><div class="bar-fill warn" style="width:76%"></div></div><div class="bar-score">76</div></div>
+  <div class="bar-row"><div class="bar-label">API security</div><div class="bar-track"><div class="bar-fill warn" style="width:74%"></div></div><div class="bar-score">74</div></div>
+  <div class="bar-row"><div class="bar-label">Data / database</div><div class="bar-track"><div class="bar-fill warn" style="width:78%"></div></div><div class="bar-score">78</div></div>
+  <div class="bar-row"><div class="bar-label">Injection / XSS</div><div class="bar-track"><div class="bar-fill" style="width:84%"></div></div><div class="bar-score">84</div></div>
+  <div class="bar-row"><div class="bar-label">Secrets / crypto</div><div class="bar-track"><div class="bar-fill" style="width:86%"></div></div><div class="bar-score">86</div></div>
+  <div class="bar-row"><div class="bar-label">SDK security</div><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><div class="bar-score">82</div></div>
+  <div class="bar-row"><div class="bar-label">Infrastructure</div><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><div class="bar-score">82</div></div>
+  <div class="bar-row"><div class="bar-label">Logging / monitoring</div><div class="bar-track"><div class="bar-fill warn" style="width:62%"></div></div><div class="bar-score">62</div></div>
+  <p class="caption">Source: static review of src/proxy.ts, API routes, SDK public HTTP, and security headers · 19 Sep 2026.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th class="num">Score</th>
+        <th class="num">Weight</th>
+        <th class="num">Weighted</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Authentication &amp; sessions</td><td class="num">78</td><td class="num">10%</td><td class="num">7.80</td></tr>
+      <tr><td>Authorization / RBAC</td><td class="num">80</td><td class="num">15%</td><td class="num">12.00</td></tr>
+      <tr><td>Multi-tenant isolation</td><td class="num">76</td><td class="num">15%</td><td class="num">11.40</td></tr>
+      <tr><td>API security</td><td class="num">74</td><td class="num">12%</td><td class="num">8.88</td></tr>
+      <tr><td>Data / database</td><td class="num">78</td><td class="num">10%</td><td class="num">7.80</td></tr>
+      <tr><td>Injection / XSS</td><td class="num">84</td><td class="num">10%</td><td class="num">8.40</td></tr>
+      <tr><td>Secrets / cryptography</td><td class="num">86</td><td class="num">8%</td><td class="num">6.88</td></tr>
+      <tr><td>SDK security</td><td class="num">82</td><td class="num">8%</td><td class="num">6.56</td></tr>
+      <tr><td>Infrastructure / configuration</td><td class="num">82</td><td class="num">6%</td><td class="num">4.92</td></tr>
+      <tr><td>Logging / monitoring</td><td class="num">62</td><td class="num">6%</td><td class="num">3.72</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Overall VAPT</td>
+        <td class="num">78 / 100</td>
+        <td class="num">100%</td>
+        <td class="num">78.36</td>
+      </tr>
+    </tfoot>
+  </table>
+  <p>Internal <code>SECURITY_SCORE.md</code> (11 Sep 2026) rated 8.5 / 10 after P0/P1 remediations. This VAPT score is stricter: it includes fail-open Clerk, DSAR token return, and Member mutations.</p>
+
+  <h2>3. VAPT findings</h2>
+  <p>Finding counts: 1 Critical · 3 High · 8 Medium · 6 Low / informational (18 total). Table below lists the primary items used in scoring.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Severity</th>
+        <th>Finding</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>S-C1</td>
+        <td class="sev-c">Critical</td>
+        <td>If Clerk keys are unset, the proxy skips <code>auth.protect()</code> and still serves the app.</td>
+        <td><code>src/proxy.ts:97-108</code></td>
+      </tr>
+      <tr>
+        <td>S-H1</td>
+        <td class="sev-h">High</td>
+        <td>Rate limits are process-local Maps and will not hold across serverless isolates.</td>
+        <td><code>src/lib/rate-limit.ts:18-65</code></td>
+      </tr>
+      <tr>
+        <td>S-H2</td>
+        <td class="sev-h">High</td>
+        <td>Public SDK config GET has Origin checks and ETag cache, but no rate limit.</td>
+        <td><code>src/app/api/sdk/[siteKey]/config/route.ts</code></td>
+      </tr>
+      <tr>
+        <td>S-H3</td>
+        <td class="sev-h">High</td>
+        <td><code>siteKey</code> is a long-lived public capability token with CORS *.</td>
+        <td><code>src/lib/sdk/public-http.ts</code></td>
+      </tr>
+      <tr>
+        <td>S-M1</td>
+        <td class="sev-m">Medium</td>
+        <td>Many CRUD APIs allow any active Member (no <code>requireOperatorRole</code>).</td>
+        <td><code>src/app/api/purposes/route.ts:75-81</code></td>
+      </tr>
+      <tr>
+        <td>S-M2</td>
+        <td class="sev-m">Medium</td>
+        <td>Consent policy public GET is websiteId + Origin only — no siteKey.</td>
+        <td><code>src/app/api/consent/policy/route.ts:19-51</code></td>
+      </tr>
+      <tr>
+        <td>S-M3</td>
+        <td class="sev-m">Medium</td>
+        <td>Domain <code>verified</code> flag is unused when allowing SDK Origin.</td>
+        <td><code>src/lib/sdk/origin-allowlist.ts:62-65</code></td>
+      </tr>
+      <tr>
+        <td>S-M4</td>
+        <td class="sev-m">Medium</td>
+        <td>Widespread <code>console.error</code> of raw errors (stacks / incidental PII in log drains).</td>
+        <td><code>src/app/api/**</code></td>
+      </tr>
+      <tr>
+        <td>S-M5</td>
+        <td class="sev-m">Medium</td>
+        <td>CSRF treats <code>Sec-Fetch-Site: none</code> as trusted.</td>
+        <td><code>src/lib/security-headers.ts:118-120</code></td>
+      </tr>
+      <tr>
+        <td>S-M6</td>
+        <td class="sev-m">Medium</td>
+        <td>No Postgres RLS — tenant isolation is application queries only.</td>
+        <td>Drizzle / schema</td>
+      </tr>
+      <tr>
+        <td>S-M7</td>
+        <td class="sev-m">Medium</td>
+        <td>Public DSAR intake returns plaintext verification and status tokens in JSON.</td>
+        <td><code>src/app/api/rights-request/route.ts:99-100</code></td>
+      </tr>
+      <tr>
+        <td>S-M8</td>
+        <td class="sev-m">Medium</td>
+        <td>SDK config exposes org DPO / grievance emails (often legally required on notices).</td>
+        <td><code>src/app/api/sdk/[siteKey]/config/route.ts</code></td>
+      </tr>
+      <tr>
+        <td>S-L1</td>
+        <td class="sev-l">Low</td>
+        <td>Unauthenticated <code>/api/health</code> reports database health.</td>
+        <td><code>src/app/api/health/route.ts:9-15</code></td>
+      </tr>
+      <tr>
+        <td>S-L2</td>
+        <td class="sev-l">Low</td>
+        <td>CSP <code>frame-src</code> allows any https origin (banner studio previews).</td>
+        <td><code>src/lib/security-headers.ts:52-53</code></td>
+      </tr>
+      <tr>
+        <td>S-I1</td>
+        <td class="sev-l">Info</td>
+        <td>Session cookie flags are Clerk-managed. Confirm MFA in the Clerk Dashboard.</td>
+        <td>Clerk configuration</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Remediation (priority order)</h3>
+  <ol>
+    <li>Fail closed in production when Clerk is not configured (refuse start or 503). Never skip <code>auth.protect</code> for dashboard and private APIs.</li>
+    <li>Move rate-limit buckets to Redis/Upstash keyed by IP + siteKey/org. Add a limiter on SDK config GET.</li>
+    <li>Restrict purpose/website/vendor mutations to Owner/Admin. Keep Members read-only unless the product requires otherwise.</li>
+    <li>Require siteKey on <code>/api/consent/policy</code>. Treat websiteId as insufficient.</li>
+    <li>Do not return DSAR <code>verificationToken</code> / <code>statusToken</code> in the JSON body; deliver via email and return an opaque reference.</li>
+    <li>Add Postgres RLS on <code>organization_id</code>. Route errors through <code>logger.error</code> only.</li>
+  </ol>
+
+  <h3>What is already strong</h3>
+  <p><strong>Auth and CSRF.</strong> Public route matcher plus <code>auth.protect()</code>. Dashboard state-changing APIs origin-checked. Bearer API keys scoped (<code>consent:evaluate</code>). Cron/webhooks use timing-safe secret compare when configured.</p>
+  <p><strong>Headers and CSP.</strong> nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, COOP, HSTS in production. Clerk CSP strict plus extra directives.</p>
+  <p><strong>SSRF and input.</strong> Scanner, webhooks, and domain verify go through <code>ssrf-guard</code>. Public JSON size limits and siteKey regex. Banner URL/CSS sanitization.</p>
+  <p><strong>Data access.</strong> Drizzle bound parameters. High-risk ops (API keys, webhooks, policy publish) use <code>requireOperatorRole</code>. Evidence reads are org-scoped.</p>
+
+  <h2>4. SEO score model</h2>
+  <p>Weighted: Technical 30% · On-page 20% · Content 20% · Performance 15% · Social 15%.</p>
+
+  <div class="bar-row"><div class="bar-label">Technical</div><div class="bar-track"><div class="bar-fill bad" style="width:55%"></div></div><div class="bar-score">55</div></div>
+  <div class="bar-row"><div class="bar-label">On-page</div><div class="bar-track"><div class="bar-fill" style="width:78%"></div></div><div class="bar-score">78</div></div>
+  <div class="bar-row"><div class="bar-label">Content</div><div class="bar-track"><div class="bar-fill" style="width:82%"></div></div><div class="bar-score">82</div></div>
+  <div class="bar-row"><div class="bar-label">Performance</div><div class="bar-track"><div class="bar-fill warn" style="width:72%"></div></div><div class="bar-score">72</div></div>
+  <div class="bar-row"><div class="bar-label">Social</div><div class="bar-track"><div class="bar-fill" style="width:80%"></div></div><div class="bar-score">80</div></div>
+  <p class="caption">Y-axis: score 0–100 · Overall 72 · Source: App Router metadata and public pages · 19 Sep 2026.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th class="num">Score</th>
+        <th class="num">Weight</th>
+        <th class="num">Weighted</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Technical</td><td class="num">55</td><td class="num">30%</td><td class="num">16.50</td></tr>
+      <tr><td>On-page</td><td class="num">78</td><td class="num">20%</td><td class="num">15.60</td></tr>
+      <tr><td>Content</td><td class="num">82</td><td class="num">20%</td><td class="num">16.40</td></tr>
+      <tr><td>Performance</td><td class="num">72</td><td class="num">15%</td><td class="num">10.80</td></tr>
+      <tr><td>Social</td><td class="num">80</td><td class="num">15%</td><td class="num">12.00</td></tr>
+    </tbody>
+    <tfoot>
+      <tr>
+        <td>Overall SEO</td>
+        <td class="num">72 / 100</td>
+        <td class="num">100%</td>
+        <td class="num">71.80</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="callout">
+    <strong>Highest-ROI SEO gaps</strong>
+    No <code>robots.ts</code> or <code>sitemap.ts</code>. Dashboard, sign-in, and sign-up inherit indexable root metadata. About is missing a canonical. Utility pages (sdk-demo, privacy-request, guardian-consent) have no page-level metadata.
+  </div>
+
+  <h2>5. SEO checklist</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Area</th>
+        <th>Status</th>
+        <th>Where</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Root title, description, keywords, metadataBase</td><td class="ok">Present</td><td><code>src/app/layout.tsx:29-62</code></td></tr>
+      <tr><td>Open Graph + Twitter large image</td><td class="ok">Present</td><td><code>src/lib/site-metadata.ts:20-65</code></td></tr>
+      <tr><td>Canonical on home, blogs, posts, e-learning</td><td class="ok">Present</td><td>layout, blogs, e-learning pages</td></tr>
+      <tr><td>SoftwareApplication JSON-LD</td><td class="ok">Present</td><td><code>src/app/layout.tsx:81-96</code></td></tr>
+      <tr><td>31 blog posts with article OG publishedTime</td><td class="ok">Present</td><td><code>src/content/blogs.ts</code></td></tr>
+      <tr><td>robots.txt / robots.ts</td><td class="miss">Missing</td><td>not in repo</td></tr>
+      <tr><td>sitemap.xml / sitemap.ts</td><td class="miss">Missing</td><td>not in repo</td></tr>
+      <tr><td>Dashboard robots noindex</td><td class="miss">Missing</td><td><code>src/app/dashboard/layout.tsx</code></td></tr>
+      <tr><td>About canonical</td><td class="miss">Missing</td><td><code>src/app/about/page.tsx:10-19</code></td></tr>
+      <tr><td>BlogPosting JSON-LD</td><td class="miss">Missing</td><td><code>src/app/blogs/[slug]/page.tsx</code></td></tr>
+      <tr><td>privacy-request / sdk-demo metadata</td><td class="miss">Missing</td><td>client pages inherit root title</td></tr>
+      <tr><td>Blog covers via next/image</td><td>Partial</td><td><code>blog-cover.tsx</code> uses raw <code>img</code></td></tr>
+      <tr><td>hreflang / i18n routes</td><td>None</td><td><code>html lang=en</code> vs OG locale <code>en_IN</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Index vs noindex</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Surface</th>
+        <th>Today</th>
+        <th>Should be</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>/, /about, /blogs/*, /e-learning</td><td>Indexable</td><td>Index — add to sitemap</td></tr>
+      <tr><td>/dashboard/**</td><td>No robots override</td><td>noindex, nofollow</td></tr>
+      <tr><td>/sign-in, /sign-up, /create-organization</td><td>Inherits root</td><td>noindex, nofollow</td></tr>
+      <tr><td>/sdk-demo, /privacy-request, /guardian-consent</td><td>Inherits root</td><td>noindex (unless DSAR SEO is intended)</td></tr>
+      <tr><td>public/e2e-customer-*.html</td><td>Crawlable static files</td><td>Disallow in robots or omit from production</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Highest-ROI SEO fixes</h3>
+  <ol>
+    <li>Add <code>src/app/robots.ts</code> and <code>src/app/sitemap.ts</code> (home, about, e-learning, blogs from <code>getAllBlogs()</code>).</li>
+    <li>Set <code>robots: { index: false }</code> on dashboard and auth layouts.</li>
+    <li>Add <code>alternates.canonical</code> on /about; unique metadata on utility pages.</li>
+    <li>Emit BlogPosting JSON-LD on blog posts.</li>
+    <li>Switch BlogCover to <code>next/image</code> with sizes.</li>
+  </ol>
+  <p>Closing robots, sitemap, and noindex on app routes would likely lift Technical into the 80s and overall SEO into the high 70s without new content.</p>
+
+  <h2>6. Out of scope</h2>
+  <p>Live network scanning, dependency CVE dump, Clerk Dashboard MFA verification, and production header observation. Those need a deployed environment with secrets configured.</p>
+
+  <footer>
+    Consent Guru VAPT and SEO Assessment · 19 September 2026 · Evidence-based source-code review · Scores improve only after verified remediation.
+  </footer>
+</body>
+</html>

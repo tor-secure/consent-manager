@@ -57,6 +57,7 @@ assert.equal(isPublicCrossOriginApiPath("/api/consent/withdraw"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/consent/policy"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/rights-request"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/health"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/health/ready"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/cron/scans"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/websites"), false);
 assert.equal(isPublicCrossOriginApiPath("/api/rights-request/verify"), true);
@@ -126,6 +127,28 @@ assert.equal(
   "non-browser clients without Origin must not use cookie CSRF bypass",
 );
 
+assert.equal(
+  isTrustedDashboardMutation({
+    origin: null,
+    referer: null,
+    secFetchSite: "none",
+    requestOrigin,
+  }),
+  false,
+  "Sec-Fetch-Site none without Origin must be rejected",
+);
+
+assert.equal(
+  isTrustedDashboardMutation({
+    origin: requestOrigin,
+    referer: null,
+    secFetchSite: "none",
+    requestOrigin,
+  }),
+  true,
+  "Sec-Fetch-Site none with matching Origin is allowed",
+);
+
 assert.equal(originIsAllowed(requestOrigin, requestOrigin), true);
 assert.equal(originIsAllowed("https://evil.example", requestOrigin), false);
 
@@ -157,6 +180,8 @@ assert.match(proxy, /clerkMiddleware/);
 assert.match(proxy, /contentSecurityPolicy:\s*\{[\s\S]*strict:\s*true/);
 assert.match(proxy, /CLERK_CSP_EXTRA_DIRECTIVES/);
 assert.match(proxy, /auth\.protect/);
+assert.match(proxy, /Authentication is not configured/);
+assert.match(proxy, /productionUnconfiguredProxy/);
 assert.match(proxy, /hasMachineBearerAuth/);
 assert.match(proxy, /isPublicCrossOriginApiPath/);
 assert.match(proxy, /OPTIONS/);

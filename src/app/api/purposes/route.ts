@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -11,6 +12,7 @@ import {
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -79,6 +81,8 @@ export async function POST(request: Request) {
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     const body = await request.json();
 
@@ -188,7 +192,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, purpose }, { status: 201 });
   } catch (error) {
-    console.error("Purpose creation failed:", error);
+    logger.error("Purpose creation failed", { error });
     return NextResponse.json(
       { success: false, message: creationFailureMessage("purpose", error) },
       { status: isSchemaMismatchError(error) || isDatabaseUnreachableError(error) ? 503 : 500 },

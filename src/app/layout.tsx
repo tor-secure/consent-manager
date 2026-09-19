@@ -66,7 +66,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
   return (
     <html
-      lang="en"
+      lang="en-IN"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
@@ -84,14 +84,24 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "SoftwareApplication",
-              name: SITE_NAME,
-              url: SITE_URL,
-              applicationCategory: "BusinessApplication",
-              description: DEFAULT_DESCRIPTION,
-              logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
-              image: `${SITE_URL}/og/consent-guru-share.png`,
-              sameAs: [SITE_URL],
+              "@graph": [
+                {
+                  "@type": "SoftwareApplication",
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  applicationCategory: "BusinessApplication",
+                  description: DEFAULT_DESCRIPTION,
+                  logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
+                  image: `${SITE_URL}/og/consent-guru-share.png`,
+                  sameAs: [SITE_URL],
+                },
+                {
+                  "@type": "WebSite",
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  inLanguage: "en-IN",
+                },
+              ],
             }),
           }}
         />

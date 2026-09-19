@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -99,7 +100,7 @@ export async function GET(
       results,
     });
   } catch (error) {
-    console.error("Scan fetch failed:", error);
+    logger.error("Scan fetch failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to fetch scan" },
       { status: 500 },

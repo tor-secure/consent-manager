@@ -18,6 +18,17 @@ export type HealthResult = {
   body: HealthBody;
 };
 
+export type LivenessBody = {
+  status: "ok";
+};
+
+export function buildLivenessResponse(): { statusCode: 200; body: LivenessBody } {
+  return {
+    statusCode: 200,
+    body: { status: "ok" },
+  };
+}
+
 export function buildHealthResponse(databaseOk: boolean): HealthResult {
   if (databaseOk) {
     return {
@@ -56,7 +67,7 @@ export async function runHealthCheck(
     return buildHealthResponse(true);
   } catch (error) {
     logger.error("Health check failed", {
-      route: "GET /api/health",
+      route: "health.check",
       operation: "health.check",
       duration: Date.now() - started,
       error,

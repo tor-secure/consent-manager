@@ -42,6 +42,7 @@ import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
 import { californiaRuntimeApplies } from "@/lib/ccpa/types";
 import { resolveTrackerCcpaClassification } from "@/lib/ccpa/enforcement";
 import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
 // GET /api/sdk/[siteKey]/config
 // Public, CORS-enabled endpoint.
@@ -63,6 +64,13 @@ export async function GET(
     };
 
     const trimmedKey = siteKey?.trim() ?? "";
+    const configLimit = await consumeRateLimit({
+      key: `sdk-config:${getClientIp(request)}:${trimmedKey || "invalid"}`,
+      limit: 120,
+      windowMs: 60_000,
+    });
+    if (!configLimit.allowed) return rateLimitResponse(configLimit, corsHeaders);
+
     if (!trimmedKey) {
       return NextResponse.json(
         { success: false, message: "siteKey is required" },

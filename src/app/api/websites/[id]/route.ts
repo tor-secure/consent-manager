@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -9,6 +10,7 @@ import {
   resolveLocalUser,
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
+import { requireOperatorRole } from "@/lib/org-roles";
 
 // Allowed environment values — validated server-side, never trusted from body.
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
@@ -63,6 +65,8 @@ export async function PUT(
         { status: 403 },
       );
     }
+    const operatorError = requireOperatorRole(membership.roleName);
+    if (operatorError) return operatorError;
 
     // Verify the website exists AND belongs to this org — tenant isolation.
     const [existing] = await db
@@ -150,7 +154,7 @@ export async function PUT(
 
     return NextResponse.json({ success: true, website: updated });
   } catch (error) {
-    console.error("Website update failed:", error);
+    logger.error("Website update failed", { error });
     return NextResponse.json(
       { success: false, message: "Failed to update website" },
       { status: 500 },

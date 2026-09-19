@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
 import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -134,7 +135,7 @@ export async function POST(
 
     return NextResponse.json({ success: true, policyPurpose: link }, { status: 201 });
   } catch (error) {
-    console.error("Attach purpose failed:", error);
+    logger.error("Attach purpose failed", { error });
     return NextResponse.json({ success: false, message: "Failed to attach purpose" }, { status: 500 });
   }
 }
