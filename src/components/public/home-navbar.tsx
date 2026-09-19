@@ -17,6 +17,7 @@ const navItems: Array<{
   { label: "How it works", href: "/#how-it-works", hash: "#how-it-works" },
   { label: "Solutions", href: "/#solutions", hash: "#solutions" },
   { label: "Why us", href: "/#comparison", hash: "#comparison" },
+  { label: "About us", href: "/about" },
   { label: "Blogs", href: "/blogs" },
   { label: "E learning", href: "/e-learning" },
   { label: "Pricing", href: "/#pricing", hash: "#pricing" },
@@ -125,13 +126,15 @@ export function HomeNavbar() {
               onClick={() => setMobileOpen(false)}
               className={`inline-flex items-center rounded-lg px-3 py-2 text-[14px] font-medium transition hover:bg-[#F3F4F6] hover:text-[#111827] ${
                 (item.href === "/blogs" && pathname.startsWith("/blogs")) ||
-                (item.href === "/e-learning" && pathname.startsWith("/e-learning"))
+                (item.href === "/e-learning" && pathname.startsWith("/e-learning")) ||
+                (item.href === "/about" && pathname.startsWith("/about"))
                   ? "bg-[#F3F4F6] text-[#111827]"
                   : "text-[#374151]"
               }`}
               aria-current={
                 (item.href === "/blogs" && pathname.startsWith("/blogs")) ||
-                (item.href === "/e-learning" && pathname.startsWith("/e-learning"))
+                (item.href === "/e-learning" && pathname.startsWith("/e-learning")) ||
+                (item.href === "/about" && pathname.startsWith("/about"))
                   ? "page"
                   : undefined
               }
