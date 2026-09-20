@@ -5,7 +5,7 @@ import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { DpdpCourse } from "@/components/e-learning/dpdp-course";
 
-import { socialMetadata } from "@/lib/site-metadata";
+import { socialMetadata, INDEXABLE_ROBOTS, pageAlternates } from "@/lib/site-metadata";
 
 const elearningTitle = "E-learning — DPDP Act";
 const elearningDescription =
@@ -14,7 +14,8 @@ const elearningDescription =
 export const metadata: Metadata = {
   title: elearningTitle,
   description: elearningDescription,
-  alternates: { canonical: "/e-learning" },
+  robots: INDEXABLE_ROBOTS,
+  alternates: pageAlternates("/e-learning"),
   ...socialMetadata({
     title: `${elearningTitle} — Consent Guru`,
     description: elearningDescription,

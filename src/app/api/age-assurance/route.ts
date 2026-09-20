@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { startAgeAssertion } from "@/lib/children/service";
 import { verifyAgeContext } from "@/lib/children/context";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
 
 const CORS = publicCorsHeaders("POST, OPTIONS");
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   if (assertion !== "over" && assertion !== "under") {
     return NextResponse.json({ success: false, message: "assertion must be over or under" }, { status: 400, headers: CORS });
   }
-  const limit = rateLimit({
+  const limit = await consumeRateLimit({
     key: `age-assurance:${websiteId}:${getClientIp(request)}`,
     limit: 20,
     windowMs: 60_000,

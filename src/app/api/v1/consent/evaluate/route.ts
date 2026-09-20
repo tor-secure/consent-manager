@@ -8,7 +8,7 @@ import {
 } from "@/lib/consent-evaluation";
 import { parseConsentEvaluationBody } from "@/lib/consent-evaluation-http";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp } from "@/lib/rate-limit-store";
 import { readPublicJsonObject } from "@/lib/sdk/public-http";
 
 const RESPONSE_HEADERS = {
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
   const requestId = resolveRequestId(request);
   try {
     const ip = getClientIp(request);
-    const unauthenticatedLimit = rateLimit({
+    const unauthenticatedLimit = await consumeRateLimit({
       key: `consent-evaluate-ip:${ip}`,
       limit: 120,
       windowMs: 60_000,
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const keyLimit = rateLimit({
+    const keyLimit = await consumeRateLimit({
       key: `consent-evaluate-key:${authentication.context.apiKeyId}:${ip}`,
       limit: 600,
       windowMs: 60_000,

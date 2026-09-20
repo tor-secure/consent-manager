@@ -6,7 +6,7 @@ import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { BlogCover } from "@/components/public/blog-cover";
 import { formatBlogDate, getAllBlogs } from "@/content/blogs";
-import { socialMetadata } from "@/lib/site-metadata";
+import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
 const blogsTitle = "Blogs";
 const blogsDescription = "Stay relevant with news of the DPDP Act and related privacy topics.";
@@ -14,7 +14,8 @@ const blogsDescription = "Stay relevant with news of the DPDP Act and related pr
 export const metadata: Metadata = {
   title: blogsTitle,
   description: blogsDescription,
-  alternates: { canonical: "/blogs" },
+  robots: INDEXABLE_ROBOTS,
+  alternates: pageAlternates("/blogs"),
   ...socialMetadata({
     title: `${blogsTitle} — Consent Guru`,
     description: blogsDescription,

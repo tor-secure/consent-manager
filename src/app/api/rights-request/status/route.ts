@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 import { publicStatusPayload } from "@/lib/privacy-rights/public-status";
 import { lookupStatusToken } from "@/lib/privacy-rights/service";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
 export async function GET(request: Request) {
-  const limit = rateLimit({
+  const limit = await consumeRateLimit({
     key: `rights-status:${getClientIp(request)}`,
     limit: 30,
     windowMs: 15 * 60_000,

@@ -43,6 +43,9 @@ assert.equal(BASELINE_SECURITY_HEADERS["Referrer-Policy"], "strict-origin-when-c
 assert.equal(BASELINE_SECURITY_HEADERS["X-Frame-Options"], "SAMEORIGIN");
 assert.match(BASELINE_SECURITY_HEADERS["Permissions-Policy"], /camera=\(\)/);
 assert.match(BASELINE_SECURITY_HEADERS["Permissions-Policy"], /geolocation=\(\)/);
+assert.equal(BASELINE_SECURITY_HEADERS["X-Permitted-Cross-Domain-Policies"], "none");
+assert.equal(BASELINE_SECURITY_HEADERS["X-XSS-Protection"], "0");
+assert.equal(BASELINE_SECURITY_HEADERS["Origin-Agent-Cluster"], "?1");
 assert.equal(HSTS_HEADER_VALUE.includes("max-age="), true);
 
 assert.deepEqual(CLERK_CSP_EXTRA_DIRECTIVES["frame-ancestors"], ["self"]);
@@ -180,7 +183,9 @@ assert.match(proxy, /clerkMiddleware/);
 assert.match(proxy, /contentSecurityPolicy:\s*\{[\s\S]*strict:\s*true/);
 assert.match(proxy, /CLERK_CSP_EXTRA_DIRECTIVES/);
 assert.match(proxy, /auth\.protect/);
-assert.match(proxy, /Authentication is not configured/);
+assert.match(proxy, /robots\.txt/);
+assert.match(proxy, /sitemap\.xml/);
+assert.match(proxy, /\/\.well-known/);
 assert.match(proxy, /productionUnconfiguredProxy/);
 assert.match(proxy, /hasMachineBearerAuth/);
 assert.match(proxy, /isPublicCrossOriginApiPath/);
@@ -199,8 +204,8 @@ assert.match(layout, /x-nonce/);
 assert.match(layout, /nonce=\{nonce\}/);
 
 const nextConfig = read("next.config.ts");
-assert.match(nextConfig, /BASELINE_SECURITY_HEADERS/);
-assert.match(nextConfig, /X-Content-Type-Options|BASELINE_SECURITY_HEADERS/);
+assert.match(nextConfig, /poweredByHeader: false/);
+assert.match(nextConfig, /HSTS_HEADER_VALUE/);
 
 const clerkCsp = read("node_modules/@clerk/nextjs/dist/esm/server/content-security-policy.js");
 assert.match(clerkCsp, /strict-dynamic/);

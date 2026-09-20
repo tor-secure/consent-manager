@@ -13,7 +13,7 @@ import {
   getBlogBySlug,
   getRelatedBlogs,
 } from "@/content/blogs";
-import { socialMetadata, SITE_NAME, SITE_URL } from "@/lib/site-metadata";
+import { socialMetadata, SITE_NAME, SITE_URL, INDEXABLE_ROBOTS, pageAlternates } from "@/lib/site-metadata";
 
 export const dynamicParams = false;
 
@@ -34,7 +34,8 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.excerpt,
-    alternates: { canonical: `/blogs/${post.slug}` },
+    robots: INDEXABLE_ROBOTS,
+    alternates: pageAlternates(`/blogs/${post.slug}`),
     ...socialMetadata({
       title: `${post.title} — Consent Guru`,
       description: post.excerpt,
@@ -68,8 +69,22 @@ export default async function BlogArticlePage({
     image: post.cover.startsWith("http") ? post.cover : `${SITE_URL}${post.cover}`,
     datePublished: `${post.publishedAt}T00:00:00+05:30`,
     author: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
-    publisher: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+    publisher: {
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/brand/consent-guru-logo.svg` },
+    },
     mainEntityOfPage: `${SITE_URL}/blogs/${post.slug}`,
+  };
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
+      { "@type": "ListItem", position: 2, name: "Blogs", item: `${SITE_URL}/blogs` },
+      { "@type": "ListItem", position: 3, name: post.title, item: `${SITE_URL}/blogs/${post.slug}` },
+    ],
   };
 
   return (
@@ -81,6 +96,11 @@ export default async function BlogArticlePage({
         type="application/ld+json"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        nonce={nonce}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
       />
       <main id="main-content">
         <article>
@@ -114,7 +134,7 @@ export default async function BlogArticlePage({
           <div className="bg-white">
             <div className="mx-auto max-w-[800px] px-5 sm:px-8">
               <div className="-mt-2 overflow-hidden rounded-2xl border border-[#E5E7EB] shadow-sm sm:-mt-6">
-                <BlogCover post={post} />
+                <BlogCover post={post} priority />
               </div>
 
               <div className="py-10 sm:py-12">

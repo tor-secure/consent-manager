@@ -8,26 +8,32 @@
 
 export const PERMISSIONS_POLICY = [
   "accelerometer=()",
+  "attribution-reporting=()",
   "autoplay=()",
   "bluetooth=()",
   "camera=()",
+  "compute-pressure=()",
   "display-capture=()",
   "encrypted-media=()",
   "fullscreen=(self)",
   "geolocation=()",
   "gyroscope=()",
   "hid=()",
+  "identity-credentials-get=()",
   "idle-detection=()",
   "interest-cohort=()",
   "magnetometer=()",
   "microphone=()",
   "midi=()",
+  "otp-credentials=()",
   "payment=()",
   "picture-in-picture=()",
   "publickey-credentials-get=()",
   "screen-wake-lock=()",
   "serial=()",
+  "storage-access=()",
   "usb=()",
+  "window-management=()",
   "xr-spatial-tracking=()",
 ].join(", ");
 
@@ -37,6 +43,9 @@ export const BASELINE_SECURITY_HEADERS: Record<string, string> = {
   "X-Frame-Options": "SAMEORIGIN",
   "Permissions-Policy": PERMISSIONS_POLICY,
   "Cross-Origin-Opener-Policy": "same-origin",
+  "X-Permitted-Cross-Domain-Policies": "none",
+  "X-XSS-Protection": "0",
+  "Origin-Agent-Cluster": "?1",
 };
 
 export const HSTS_HEADER_VALUE = "max-age=63072000; includeSubDomains; preload";
@@ -47,7 +56,7 @@ export const CLERK_CSP_EXTRA_DIRECTIVES: Record<string, string[]> = {
   "object-src": ["none"],
   "font-src": ["self", "data:"],
   "media-src": ["self"],
-  "img-src": ["data:", "blob:"],
+  "img-src": ["self", "data:", "blob:", "https:"],
   "frame-ancestors": ["self"],
   // Banner studio previews customer sites in an iframe (any http(s) origin).
   "frame-src": ["https:"],

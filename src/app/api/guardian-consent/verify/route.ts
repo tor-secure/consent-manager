@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { verifyGuardianToken } from "@/lib/children/service";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
 
 const CORS = publicCorsHeaders("POST, OPTIONS");
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   if (!token) {
     return NextResponse.json({ success: false, message: "token is required" }, { status: 400, headers: CORS });
   }
-  const limit = rateLimit({
+  const limit = await consumeRateLimit({
     key: `guardian-verify:${getClientIp(request)}`,
     limit: 10,
     windowMs: 60_000,

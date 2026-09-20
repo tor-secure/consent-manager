@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { verifyRightsToken } from "@/lib/privacy-rights/service";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
 export async function POST(request: Request) {
-  const limit = rateLimit({
+  const limit = await consumeRateLimit({
     key: `rights-verify:${getClientIp(request)}`,
     limit: 8,
     windowMs: 15 * 60_000,

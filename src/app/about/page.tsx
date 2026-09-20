@@ -5,13 +5,14 @@ import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { SkipLink } from "@/components/ui/skip-link";
 import { ArrowButton } from "@/components/ui/arrow-button";
-import { socialMetadata } from "@/lib/site-metadata";
+import { pageAlternates, socialMetadata, INDEXABLE_ROBOTS } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "About ConsentGuru",
   description:
     "Learn how ConsentGuru is helping organizations build transparent, responsible, and trusted digital relationships.",
-  alternates: { canonical: "/about" },
+  robots: INDEXABLE_ROBOTS,
+  alternates: pageAlternates("/about"),
   ...socialMetadata({
     title: "About ConsentGuru — Powering the Future of Digital Trust",
     description:

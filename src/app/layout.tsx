@@ -10,8 +10,10 @@ import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
+  INDEXABLE_ROBOTS,
   SITE_NAME,
   SITE_URL,
+  pageAlternates,
   socialMetadata,
 } from "@/lib/site-metadata";
 import "./globals.css";
@@ -46,7 +48,11 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_NAME, url: SITE_URL }],
   creator: SITE_NAME,
   publisher: SITE_NAME,
-  alternates: { canonical: "/" },
+  category: "technology",
+  classification: "Consent Management Platform",
+  robots: INDEXABLE_ROBOTS,
+  formatDetection: { email: false, address: false, telephone: false },
+  alternates: pageAlternates("/"),
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -90,10 +96,18 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
                   name: SITE_NAME,
                   url: SITE_URL,
                   applicationCategory: "BusinessApplication",
+                  operatingSystem: "Web",
+                  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
                   description: DEFAULT_DESCRIPTION,
                   logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
                   image: `${SITE_URL}/og/consent-guru-share.png`,
                   sameAs: [SITE_URL],
+                },
+                {
+                  "@type": "Organization",
+                  name: SITE_NAME,
+                  url: SITE_URL,
+                  logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
                 },
                 {
                   "@type": "WebSite",

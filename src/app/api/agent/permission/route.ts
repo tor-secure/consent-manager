@@ -14,7 +14,7 @@ import {
 } from "@/lib/consent-evaluation";
 import { parseConsentEvaluationBody } from "@/lib/consent-evaluation-http";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { readPublicJsonObject } from "@/lib/sdk/public-http";
 import { redactValue, validateRedactionPolicy } from "@/lib/redaction-core";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `agent-permission:${identity.organizationId}:${getClientIp(request)}`,
       limit: 300,
       windowMs: 60_000,

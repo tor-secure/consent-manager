@@ -6,7 +6,7 @@ import { auditLogs } from "@/db/schema/audit-logs";
 import { authenticateApiKey } from "@/lib/api-key-auth";
 import { evaluateConsentForTenant, logConsentEvaluation } from "@/lib/consent-evaluation";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp } from "@/lib/rate-limit-store";
 import { redactValue, validateRedactionPolicy } from "@/lib/redaction-core";
 import { isValidConsentId, isValidWebsiteId, readPublicJsonObject } from "@/lib/sdk/public-http";
 
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (!authentication.ok) {
       return response(authentication.reason === "insufficient_scope" ? 403 : 401, requestId, "API key is invalid or lacks data:redact");
     }
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `redact:${authentication.context.apiKeyId}:${getClientIp(request)}`,
       limit: 300,
       windowMs: 60_000,

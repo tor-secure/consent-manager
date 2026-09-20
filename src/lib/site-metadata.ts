@@ -49,6 +49,7 @@ export function socialMetadata({
     openGraph: {
       type,
       locale: "en_IN",
+      alternateLocale: ["en"],
       url,
       siteName: SITE_NAME,
       title,
@@ -61,11 +62,40 @@ export function socialMetadata({
       title,
       description,
       images: [image],
+      creator: SITE_NAME,
     },
   };
 }
 
-export const NOINDEX_ROBOTS = { index: false, follow: false } as const;
+export const INDEXABLE_ROBOTS = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    "max-image-preview": "large" as const,
+    "max-snippet": -1,
+    "max-video-preview": -1,
+  },
+};
+
+export function pageAlternates(path = "/"): NonNullable<Metadata["alternates"]> {
+  const canonical = path === "/" ? "/" : path.startsWith("/") ? path : `/${path}`;
+  return {
+    canonical,
+    languages: {
+      "en-IN": canonical,
+      "x-default": canonical,
+    },
+  };
+}
+
+export const NOINDEX_ROBOTS = {
+  index: false,
+  follow: false,
+  nocache: true,
+  googleBot: { index: false, follow: false, noimageindex: true },
+} as const;
 
 export function unlistedPageMetadata(title: string, description: string): Metadata {
   return {

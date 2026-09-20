@@ -7,7 +7,7 @@ import { negotiationConfigurations, negotiationOutcomes } from "@/db/schema/inte
 import { purposes } from "@/db/schema/purposes";
 import { websites } from "@/db/schema/websites";
 import { negotiationOfferSchema, publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { isValidSiteKey, publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
@@ -26,7 +26,7 @@ export async function POST(
   if (!isValidSiteKey(siteKey)) {
     return NextResponse.json({ success: false, message: "Invalid site key" }, { status: 400, headers });
   }
-  const limit = rateLimit({
+  const limit = await consumeRateLimit({
     key: `negotiation-outcome:${siteKey}:${getClientIp(request)}`,
     limit: 60,
     windowMs: 60 * 60_000,

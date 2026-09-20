@@ -10,7 +10,7 @@ import { loadCaliforniaOptOut, upsertCaliforniaOptOut } from "@/lib/ccpa/service
 import { californiaRuntimeApplies } from "@/lib/ccpa/types";
 import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { logger } from "@/lib/logger";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
 import { isValidConsentId,
   isValidSiteKey,
@@ -149,7 +149,7 @@ export async function POST(
     }
     const originError = sdkOriginGuard(request, website, CORS_HEADERS);
     if (originError) return originError;
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `ccpa-opt-out:${website.id}:${getClientIp(request)}`,
       limit: 60,
       windowMs: 60_000,
