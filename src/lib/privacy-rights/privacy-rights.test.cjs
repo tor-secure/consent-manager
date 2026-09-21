@@ -11,6 +11,7 @@ const {
 const { classifyDeadline, computeRightsDeadlines } = require(path.join(compiledDir, "deadlines.js"));
 const { canAdminTransition, requesterCannotSetStatus, statusAfterVerification, verificationAllowedForRequest } = require(path.join(compiledDir, "lifecycle.js"));
 const {
+  generateRequesterReference,
   generateRightsToken,
   hashRightsToken,
   tokenReusable,
@@ -74,6 +75,8 @@ function testLifecycle() {
 }
 
 function testTokens() {
+  const reference = generateRequesterReference();
+  assert.match(reference, /^DPR-[A-F0-9]{8}$/);
   const token = generateRightsToken();
   assert.equal(token.length, 64);
   const hash = hashRightsToken(token);

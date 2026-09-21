@@ -2273,6 +2273,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       cl.style.cssText = 'color:#2563EB;text-decoration:none;';
       links.appendChild(cl);
     }
+    appendDataPrincipalRightsControl(links, 'color:#2563EB;text-decoration:none;font-weight:600;');
     if (links.childNodes.length) panel.appendChild(links);
 
     var dpoEmail = String(g.dpoEmail || g.grievanceOfficerEmail || '').trim();
@@ -2422,6 +2423,25 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     a.style.cssText = 'color:#2563EB;font-weight:600;text-decoration:underline;';
     parent.appendChild(a);
     return true;
+  }
+
+  function dataPrincipalRightsHref() {
+    var g = (_config && _config.grievance) || {};
+    var configured = safeHttpUrl(g.grievancePortalUrl || '');
+    if (configured) return configured;
+    return String(API_BASE || '').replace(/\/$/, '') + '/privacy-center/data-principal-request?siteKey=' + encodeURIComponent(SITE_KEY);
+  }
+
+  function appendDataPrincipalRightsControl(parent, style) {
+    if (!parent) return null;
+    var a = document.createElement('a');
+    a.href = dataPrincipalRightsHref();
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = 'Data Principal Rights';
+    a.style.cssText = style || 'font-weight:600;color:inherit;text-decoration:none;padding:8px;font-size:13px;white-space:normal;';
+    parent.appendChild(a);
+    return a;
   }
 
   function confirmUnder18() {
@@ -2741,11 +2761,18 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
     if (hasPrivacy) banner.appendChild(policyRow);
 
-    var btns = document.createElement('div');
-    btns.style.display = 'flex';
-    btns.style.gap = '8px';
-    btns.style.flexWrap = 'wrap';
-    btns.style.alignItems = 'center';
+    var actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = layout === 'bar' ? '8px' : '12px';
+    actions.style.flexWrap = 'wrap';
+    actions.style.alignItems = 'center';
+    actions.style.width = '100%';
+    if (layout !== 'bar') actions.style.justifyContent = 'space-between';
+
+    var leftBtns = document.createElement('div');
+    leftBtns.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:8px;';
+    var rightBtns = document.createElement('div');
+    rightBtns.style.cssText = 'display:flex;flex-wrap:wrap;align-items:center;gap:8px;' + (layout === 'bar' ? '' : 'margin-inline-start:auto;');
 
     function btn(label, variant, onclick) {
       var b = document.createElement('button');
@@ -2767,27 +2794,49 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return b;
     }
 
-    if (cfg.showAcceptAll) {
-      btns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
-        if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
-          holdChoiceUi();
-        }
-      }));
-    }
-    if (cfg.showRejectAll) {
-      btns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
-        if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
-          holdChoiceUi();
-        }
-      }));
-    }
     if (cfg.showCustomize) {
-      btns.appendChild(btn(cfg.customizeLabel || 'Customize', layout === 'bar' ? 'ghost' : 'ghost', function() {
+      leftBtns.appendChild(btn(cfg.customizeLabel || 'Customize', layout === 'bar' ? 'ghost' : 'ghost', function() {
         _hostScroll.beginTransition();
         removeBanner();
         window.CMP.openPreferenceCenter();
         _hostScroll.endTransition();
       }));
+    }
+    appendDataPrincipalRightsControl(
+      leftBtns,
+      'font-weight:600;color:' + (cfg.textColor || '#171717') + ';text-decoration:none;padding:8px;font-size:13px;white-space:normal;max-width:100%;'
+    );
+
+    if (layout === 'bar') {
+      if (cfg.showAcceptAll) {
+        rightBtns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
+          if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
+            holdChoiceUi();
+          }
+        }));
+      }
+      if (cfg.showRejectAll) {
+        rightBtns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
+          if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
+            holdChoiceUi();
+          }
+        }));
+      }
+    } else {
+      if (cfg.showRejectAll) {
+        rightBtns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
+          if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
+            holdChoiceUi();
+          }
+        }));
+      }
+      if (cfg.showAcceptAll) {
+        rightBtns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
+          if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
+            holdChoiceUi();
+          }
+        }));
+      }
     }
 
     var locales = availableLocales();
@@ -2805,10 +2854,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       langSelect.addEventListener('change', function() {
         window.CMP.setLanguage(langSelect.value);
       });
-      btns.appendChild(langSelect);
+      leftBtns.appendChild(langSelect);
     }
 
-    banner.appendChild(btns);
+    actions.appendChild(leftBtns);
+    actions.appendChild(rightBtns);
+    banner.appendChild(actions);
     var submitStatus = document.createElement('div');
     submitStatus.id = '__cmp_banner_status__';
     submitStatus.setAttribute('role', 'status');
@@ -3340,6 +3391,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       cl.setAttribute('style', pcLinkStyle);
       pcLinks.appendChild(cl);
     }
+    appendDataPrincipalRightsControl(pcLinks, pcLinkStyle);
     footer.appendChild(pcLinks);
 
     var actionRow = document.createElement('div');
@@ -3860,7 +3912,36 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     });
   }
 
+  function bannerVisualKey(cfg) {
+    var b = cfg && cfg.bannerConfig;
+    if (!b) return '';
+    return [
+      b.layout || '',
+      b.position || '',
+      b.title || '',
+      b.description || '',
+      b.acceptAllLabel || '',
+      b.rejectAllLabel || '',
+      b.customizeLabel || '',
+      b.showAcceptAll ? '1' : '0',
+      b.showRejectAll ? '1' : '0',
+      b.showCustomize ? '1' : '0',
+      b.showPoweredBy ? '1' : '0',
+      b.showCloseButton ? '1' : '0',
+      b.primaryColor || '',
+      b.backgroundColor || '',
+      b.textColor || '',
+      String(b.borderRadius == null ? '' : b.borderRadius),
+      b.overlayEnabled ? '1' : '0',
+      b.blockPageUntilConsent ? '1' : '0',
+      b.privacyPolicyUrl || '',
+      b.cookiePolicyUrl || ''
+    ].join('\x1f');
+  }
+
   function applyLoadedConfig(data) {
+    var previousVisualKey = bannerVisualKey(_config);
+    var bannerWasOpen = !!document.getElementById('__cmp_banner__');
     _config = applyAssignedAbTest(data);
     rememberPolicyContext(presentedPolicyContext(data));
     _configRevision = configRevision(_config);
@@ -3938,7 +4019,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
               : ''
           )
     );
-    showBannerWhenReady();
+    var sameVisual = bannerWasOpen && previousVisualKey && previousVisualKey === bannerVisualKey(_config);
+    if (!sameVisual || _reconsentNotice) {
+      showBannerWhenReady();
+    }
     if (stored && (stored.status === 'pending' || stored.status === 'failed')) {
       renderSubmissionState(
         stored.status === 'pending'
@@ -3956,35 +4040,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   pauseTaggedScripts();
 
   // ── Instant paint ────────────────────────────────────────────────────────
-  // First paint must not wait on the network. Use a still-valid cached config
-  // when we can submit from it; otherwise paint the last known (or default)
-  // notice immediately and attach a fresh policy context when config arrives.
+  // First paint must not wait on the network when we already know this site's
+  // published banner. Use a still-valid cached config when we can submit from
+  // it; otherwise paint the last cached design and attach a fresh policy
+  // context when config arrives. Never paint a generic default notice — that
+  // flashes the wrong layout before the chosen design loads.
   var CONFIG_CACHE_KEY = '__cmp_cfg_' + SITE_KEY;
   var CONFIG_CACHE_MIN_CONTEXT_MS = 2 * 60 * 1000;
   var CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
-
-  function defaultVisualBannerConfig() {
-    return {
-      title: 'We value your privacy',
-      description: 'We use cookies and similar technologies to enhance your browsing experience, serve personalized content, and analyze traffic. By clicking "Accept all", you consent to our use of cookies.',
-      acceptAllLabel: 'Accept all',
-      rejectAllLabel: 'Reject all',
-      customizeLabel: 'Customize',
-      showAcceptAll: true,
-      showRejectAll: true,
-      showCustomize: false,
-      showPoweredBy: false,
-      showCloseButton: false,
-      layout: 'bar',
-      position: 'bottom',
-      primaryColor: '#171717',
-      backgroundColor: '#ffffff',
-      textColor: '#171717',
-      borderRadius: 8,
-      overlayEnabled: false,
-      blockPageUntilConsent: false
-    };
-  }
 
   function cachedConfigHasBanner(cfg) {
     return !!(cfg && cfg.success && cfg.bannerConfig);
@@ -4063,8 +4126,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     try {
       if (cachedCfg && cachedCfg.bannerConfig) {
         paintVisualBanner(cachedCfg.bannerConfig, cachedCfg);
-      } else {
-        paintVisualBanner(defaultVisualBannerConfig(), {});
       }
     } catch (eVisual) {}
   }

@@ -428,6 +428,13 @@ export function PreferenceCenter({
           </button>
         )}
 
+        <a
+          href="/privacy-center/data-principal-request"
+          className="text-sm font-semibold text-[var(--foreground)] hover:underline"
+        >
+          Data Principal Rights
+        </a>
+
         {/* Withdraw — only in update mode */}
         {savedConsentId && (
           <button

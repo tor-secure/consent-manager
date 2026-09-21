@@ -218,7 +218,7 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "You may contact support@consentguru.com or our Data Protection Officer, Shijas Ahmed, at shijas@consentguru.com. We may request reasonable information necessary to verify your identity and protect against unauthorised requests. We will respond within the period required by applicable law.",
+        text: "You may submit a Data Principal request through the ConsentGuru Data Principal Rights portal, or contact support@consentguru.com or our Data Protection Officer, Shijas Ahmed, at shijas@consentguru.com. We may request reasonable information necessary to verify your identity and protect against unauthorised requests. We will respond within the period required by applicable law.",
       },
     ],
   },
@@ -852,5 +852,12 @@ export const PRIVACY_CENTRE_PARTS = [
     title: "Data Processing Agreement",
     description:
       "Responsibilities and safeguards when ConsentGuru processes Personal Data on behalf of a Customer, including DPDP, GDPR and CCPA/CPRA.",
+  },
+  {
+    part: "Part IV",
+    href: "/privacy-center/data-principal-request",
+    title: "Data Principal Rights",
+    description:
+      "Submit and track access, correction, erasure, nomination, and grievance requests under the Digital Personal Data Protection Act, 2023.",
   },
 ] as const;

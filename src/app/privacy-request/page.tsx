@@ -45,6 +45,11 @@ export default function PublicPrivacyRequestPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Privacy request status</h1>
         <p className="mt-2 text-sm text-slate-600">
           Enter the token issued when the request was submitted. This page does not reveal whether another person&apos;s request exists.
+          To submit a new request or track by ticket ID, use the{" "}
+          <Link href="/privacy-center/data-principal-request" className="font-medium text-slate-900 underline">
+            Data Principal Rights portal
+          </Link>
+          .
         </p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <div className="flex gap-2" role="group" aria-label="Request action">

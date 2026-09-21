@@ -146,6 +146,9 @@ function BannerPreview({ config, locale }: { config: BannerConfiguration; locale
                 {preview.customizeLabel || "Customize"}
               </span>
             )}
+            <span style={{ color: config.textColor, fontSize: "8px", fontWeight: 600, whiteSpace: "normal" }}>
+              Data Principal Rights
+            </span>
           </div>
         </div>
       </div>

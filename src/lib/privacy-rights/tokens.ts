@@ -7,7 +7,7 @@ export function generateRightsToken(): string {
 }
 
 export function generateRequesterReference(): string {
-  return `RR${randomBytes(6).toString("hex").slice(0, 10).toUpperCase()}`;
+  return `DPR-${randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
 export function hashRightsToken(token: string): string {

@@ -390,23 +390,71 @@ export function BannerRenderer({
       .join(" "),
   };
 
+  const rightsLinkStyle: React.CSSProperties = {
+    ...btnGhost,
+    textDecoration: "none",
+    fontWeight: 600,
+    color: config.textColor,
+  };
+
   const actionButtons = (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-      {config.showAcceptAll && (
-        <button type="button" style={btnPrimary} onClick={onAccept}>
-          {config.acceptAllLabel || "Accept all"}
-        </button>
-      )}
-      {config.showRejectAll && (
-        <button type="button" style={btnOutline} onClick={onReject}>
-          {config.rejectAllLabel || "Reject all"}
-        </button>
-      )}
-      {config.showCustomize && (
-        <button type="button" style={btnGhost} onClick={onCustomize}>
-          {config.customizeLabel || "Customize"}
-        </button>
-      )}
+    <div
+      style={{
+        display: "flex",
+        gap: isBar ? 8 : 12,
+        flexWrap: "wrap",
+        alignItems: "center",
+        width: "100%",
+        justifyContent: isBar ? "flex-start" : "space-between",
+      }}
+    >
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        {config.showCustomize && (
+          <button type="button" style={btnGhost} onClick={onCustomize}>
+            {config.customizeLabel || "Customize"}
+          </button>
+        )}
+        <a href="/privacy-center/data-principal-request" style={rightsLinkStyle}>
+          Data Principal Rights
+        </a>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          flexWrap: "wrap",
+          alignItems: "center",
+          marginInlineStart: isBar ? undefined : "auto",
+        }}
+      >
+        {isBar ? (
+          <>
+            {config.showAcceptAll && (
+              <button type="button" style={btnPrimary} onClick={onAccept}>
+                {config.acceptAllLabel || "Accept all"}
+              </button>
+            )}
+            {config.showRejectAll && (
+              <button type="button" style={btnOutline} onClick={onReject}>
+                {config.rejectAllLabel || "Reject all"}
+              </button>
+            )}
+          </>
+        ) : (
+          <>
+            {config.showRejectAll && (
+              <button type="button" style={btnOutline} onClick={onReject}>
+                {config.rejectAllLabel || "Reject all"}
+              </button>
+            )}
+            {config.showAcceptAll && (
+              <button type="button" style={btnPrimary} onClick={onAccept}>
+                {config.acceptAllLabel || "Accept all"}
+              </button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 
@@ -718,6 +766,20 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
           >
             {config.savePreferencesLabel || "Save preferences"}
           </span>
+          <a
+            href="/privacy-center/data-principal-request"
+            style={{
+              fontSize: 12.5,
+              fontWeight: 500,
+              color: "inherit",
+              opacity: 0.7,
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+              marginLeft: "auto",
+            }}
+          >
+            Data Principal Rights
+          </a>
         </div>
       </div>
     </div>

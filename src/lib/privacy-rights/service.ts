@@ -53,6 +53,7 @@ import {
   type RightsRequestType,
   type RequesterKind,
 } from "./types";
+import { domainLookupCandidates, normalizeTicketId } from "./intake-fields";
 
 const ERASED_EVENT_DATA = {
   redacted: true,
@@ -296,6 +297,21 @@ export async function lookupStatusToken(token: string) {
     )
     .limit(1);
   return request ?? null;
+}
+
+export async function lookupStatusByTicket(ticket: string, email: string) {
+  const reference = normalizeTicketId(ticket);
+  const requesterEmail = email.trim().toLowerCase();
+  if (!reference || !requesterEmail) return null;
+
+  const [request] = await db
+    .select()
+    .from(dataPrincipalRequests)
+    .where(eq(dataPrincipalRequests.requesterReference, reference))
+    .limit(1);
+  if (!request) return null;
+  if (request.requesterEmail.trim().toLowerCase() !== requesterEmail) return null;
+  return request;
 }
 
 export async function loadActiveHolds(organizationId: string) {
@@ -885,23 +901,58 @@ export async function invokeExistingWithdrawal(input: {
   return { ok: true as const, alreadyWithdrawn: false, stateVersion: nextVersion };
 }
 
+const INTAKE_WEBSITE_COLUMNS = {
+  id: websites.id,
+  organizationId: websites.organizationId,
+  status: websites.status,
+  defaultRegulationKey: websites.defaultRegulationKey,
+} as const;
+
+async function loadActiveIntakeOrg(organizationId: string) {
+  const [org] = await db
+    .select({ id: organizations.id, status: organizations.status })
+    .from(organizations)
+    .where(eq(organizations.id, organizationId))
+    .limit(1);
+  if (!org || org.status !== "active") return null;
+  return org;
+}
+
 export async function resolveIntakeWebsite(websiteId: string) {
   const [website] = await db
-    .select({
-      id: websites.id,
-      organizationId: websites.organizationId,
-      status: websites.status,
-      defaultRegulationKey: websites.defaultRegulationKey,
-    })
+    .select(INTAKE_WEBSITE_COLUMNS)
     .from(websites)
     .where(eq(websites.id, websiteId))
     .limit(1);
   if (!website || website.status !== "active") return null;
-  const [org] = await db
-    .select({ id: organizations.id, status: organizations.status })
-    .from(organizations)
-    .where(eq(organizations.id, website.organizationId))
+  const organization = await loadActiveIntakeOrg(website.organizationId);
+  if (!organization) return null;
+  return { website, organization };
+}
+
+export async function resolveIntakeWebsiteBySiteKey(siteKey: string) {
+  const [website] = await db
+    .select(INTAKE_WEBSITE_COLUMNS)
+    .from(websites)
+    .where(and(eq(websites.siteKey, siteKey), eq(websites.status, "active")))
     .limit(1);
-  if (!org || org.status !== "active") return null;
-  return { website, organization: org };
+  if (!website) return null;
+  const organization = await loadActiveIntakeOrg(website.organizationId);
+  if (!organization) return null;
+  return { website, organization };
+}
+
+export async function resolveIntakeWebsiteByHost(host: string) {
+  const candidates = domainLookupCandidates(host);
+  if (candidates.length === 0) return null;
+  const [website] = await db
+    .select(INTAKE_WEBSITE_COLUMNS)
+    .from(websites)
+    .where(and(eq(websites.status, "active"), inArray(websites.domain, candidates)))
+    .orderBy(desc(websites.createdAt))
+    .limit(1);
+  if (!website) return null;
+  const organization = await loadActiveIntakeOrg(website.organizationId);
+  if (!organization) return null;
+  return { website, organization };
 }

@@ -87,6 +87,7 @@ const footerColumns = [
       { label: "Privacy Policy", href: "/privacy-center/privacy-policy" },
       { label: "Cookie Policy", href: "/privacy-center/cookie-policy" },
       { label: "Data Processing Agreement", href: "/privacy-center/data-processing-agreement" },
+      { label: "Data Principal Rights", href: "/privacy-center/data-principal-request" },
       { label: "Disclaimer", href: "/disclaimer" },
     ],
   },

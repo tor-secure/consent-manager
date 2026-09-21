@@ -137,9 +137,10 @@ export default async function RightsRequestsPage() {
             <div>
               <p className="text-sm font-semibold text-[var(--foreground)]">Public intake endpoint</p>
               <p className="mt-1 text-xs text-[var(--muted-foreground)]">
-                Data Principals submit requests to this endpoint from your website or privacy portal.
+                Data Principals submit requests to this endpoint from your website or the Data Principal Rights portal.
                 No authentication is required. Supply the <code className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted-foreground)]">websiteId</code>{" "}
-                of the website they are requesting about.
+                or <code className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted-foreground)]">siteKey</code>{" "}
+                of the website they are requesting about. Requesters can track with ticket ID (DPR-XXXXXXXX) and email.
               </p>
             </div>
             <div className="shrink-0">
@@ -150,7 +151,7 @@ export default async function RightsRequestsPage() {
                 POST /api/rights-request/verify
               </code>
               <code className="mt-1 block rounded-xl border border-[var(--border)] bg-[var(--muted)] px-3 py-2 font-mono text-xs text-[var(--foreground)]">
-                GET  /api/rights-request/status?token=
+                GET  /api/rights-request/status?ticket=&email=
               </code>
             </div>
           </div>
