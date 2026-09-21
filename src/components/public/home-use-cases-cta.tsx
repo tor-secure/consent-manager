@@ -185,7 +185,7 @@ export function HomeUseCasesCta() {
         backgroundSize: "26px 26px",
       }}
     >
-      <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 sm:py-20">
+      <div className="mx-auto max-w-[1200px] px-5 pt-16 sm:px-8 sm:pt-20">
         <div className="text-center">
           <span className="home-fade-item inline-flex rounded-full bg-[#E6F9F5] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#0B2C4A]">
             Use Cases
@@ -197,47 +197,59 @@ export function HomeUseCasesCta() {
             Whether you&apos;re a startup or an enterprise, Consent Guru adapts to your needs.
           </p>
         </div>
+      </div>
 
-        <div className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {useCases.map((item) => (
-            <article
-              key={item.title}
-              className="flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 text-left shadow-[0_6px_18px_-12px_rgba(15,23,42,0.28)] sm:px-5"
-            >
-              <div
-                className={`flex h-9 w-9 items-center justify-center rounded-full ${item.iconBg} ${item.iconColor}`}
-              >
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  aria-hidden="true"
-                  stroke="currentColor"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+      <div
+        id="industries"
+        className="industry-marquee mt-10 scroll-mt-24"
+        aria-label="Industries Consent Guru supports"
+      >
+          <div className="industry-marquee-track">
+            {[...useCases, ...useCases].map((item, index) => {
+              const duplicate = index >= useCases.length;
+              return (
+                <article
+                  key={`${item.title}-${index}`}
+                  className="industry-card flex flex-col rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 text-left shadow-[0_6px_18px_-12px_rgba(15,23,42,0.28)] sm:px-5"
+                  aria-hidden={duplicate}
                 >
-                  {item.icon}
-                </svg>
-              </div>
-              <h3 className="mt-2.5 text-[15px] font-bold tracking-tight text-[#0F172A]">
-                {item.title}
-              </h3>
-              <p className="mt-1.5 text-[13px] leading-5 text-[#6B7280]">
-                {item.description}
-              </p>
-              <span className={`mt-2.5 h-0.5 w-7 rounded-full ${item.accent}`} aria-hidden="true" />
-            </article>
-          ))}
-        </div>
+                  <div
+                    className={`flex h-9 w-9 items-center justify-center rounded-full ${item.iconBg} ${item.iconColor}`}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      aria-hidden="true"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {item.icon}
+                    </svg>
+                  </div>
+                  <h3 className="mt-2.5 text-[15px] font-bold tracking-tight text-[#0F172A]">
+                    {item.title}
+                  </h3>
+                  <p className="mt-1.5 text-justify text-[13px] leading-5 text-[#6B7280]">
+                    {item.description}
+                  </p>
+                  <span className={`mt-2.5 h-0.5 w-7 rounded-full ${item.accent}`} aria-hidden="true" />
+                </article>
+              );
+            })}
+          </div>
+      </div>
 
-        <div className="mt-14">
+      <div className="mx-auto max-w-[1200px] px-5 pb-16 sm:px-8 sm:pb-20">
+        <div id="use-cases" className="mt-14 scroll-mt-24">
           <h3 className="text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
             What you actually run in the workspace
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6B7280] sm:text-[15px]">
-            Same product surfaces your team already uses after sign-up — not a separate marketing
+            Same product surfaces your team already uses after sign-up, not a separate marketing
             stack.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -247,7 +259,7 @@ export function HomeUseCasesCta() {
                 className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-sm"
               >
                 <h4 className="text-sm font-bold text-[#0F172A]">{item.title}</h4>
-                <p className="mt-1.5 text-sm leading-6 text-[#6B7280]">{item.description}</p>
+                <p className="mt-1.5 text-justify text-sm leading-6 text-[#6B7280]">{item.description}</p>
               </article>
             ))}
           </div>

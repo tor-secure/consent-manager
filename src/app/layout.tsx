@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
@@ -76,15 +77,15 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        <script
+      <body className="min-h-full flex flex-col bg-background text-foreground">
+        <Script
           id="cmp-theme-bootstrap"
+          strategy="beforeInteractive"
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
-      </head>
-      <body className="min-h-full flex flex-col bg-background text-foreground">
-        <script
+        <Script
+          id="cmp-jsonld"
           type="application/ld+json"
           nonce={nonce}
           dangerouslySetInnerHTML={{

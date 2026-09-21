@@ -80,7 +80,7 @@ export function HomeTrustedFeatures() {
       <div className="py-14 sm:py-16 lg:py-20">
         <div className="mx-auto max-w-[1200px] px-5 text-center sm:px-8">
           <p className="home-fade-item text-[15px] font-medium text-[#4B5563]">
-            Built for GDPR, CCPA, LGPD, and DPDP workflows — not a customer logo wall.
+            Built for GDPR, CCPA, LGPD, and DPDP workflows, not a customer logo wall.
           </p>
         </div>
 
@@ -123,7 +123,7 @@ export function HomeTrustedFeatures() {
               <h3 className="mt-5 text-[17px] font-bold tracking-tight text-[#0F172A]">
                 {card.title}
               </h3>
-              <p className="mt-2 text-sm leading-6 text-[#6B7280]">{card.description}</p>
+              <p className="mt-2 text-justify text-sm leading-6 text-[#6B7280]">{card.description}</p>
               <Link
                 href={card.href}
                 className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#0B2C4A] transition hover:text-[#00C4A7]"

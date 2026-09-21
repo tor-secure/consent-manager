@@ -378,6 +378,8 @@ export function BannerConfigForm({
                 <Field label="Save preferences"><input value={config.savePreferencesLabel} onChange={(e) => update("savePreferencesLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
                 <Field label="Privacy policy link text"><input value={config.privacyPolicyText} onChange={(e) => update("privacyPolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
                 <Field label="Privacy policy URL"><input type="url" value={config.privacyPolicyUrl} onChange={(e) => update("privacyPolicyUrl", e.target.value)} placeholder="https://example.com/privacy" className={inputCls} /></Field>
+                <Field label="Cookie policy link text"><input value={config.cookiePolicyText ?? ""} onChange={(e) => update("cookiePolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
+                <Field label="Cookie policy URL"><input type="url" value={config.cookiePolicyUrl ?? ""} onChange={(e) => update("cookiePolicyUrl", e.target.value)} placeholder="https://example.com/cookies" className={inputCls} /></Field>
                 <Field label="Close"><input value={config.closeLabel} onChange={(e) => update("closeLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
                 <Field label="Preference center title"><input value={config.preferenceCenterTitle} onChange={(e) => update("preferenceCenterTitle", e.target.value)} maxLength={255} className={inputCls} /></Field>
                 <Field label="Purposes heading"><input value={config.purposesHeading} onChange={(e) => update("purposesHeading", e.target.value)} maxLength={100} className={inputCls} /></Field>

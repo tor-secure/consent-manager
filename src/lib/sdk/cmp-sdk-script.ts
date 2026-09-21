@@ -257,7 +257,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       button.style.opacity = _consentState === 'PENDING' ? '0.55' : '';
       button.style.cursor = _consentState === 'PENDING' ? 'wait' : 'pointer';
     }
-    var ids = ['__cmp_banner_status__', '__cmp_pc_status__'];
+    var ids = ['__cmp_banner_status__', '__cmp_pc_status__', '__cmp_prefs_status__'];
     for (var j = 0; j < ids.length; j++) {
       var status = document.getElementById(ids[j]);
       if (!status) continue;
@@ -1710,6 +1710,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         consentId: consentId,
         submissionId: submissionId || '',
         revision: revision,
+        consentedAt: confirmedAt || new Date().toISOString(),
+        expiresAt: expiresAt || null,
         stateVersion: incomingStateVersion,
         decisions: decisionsArray,
         choice: choice || '',
@@ -1729,7 +1731,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       publishExternalSignals();
       fireIabEvents('useractioncomplete');
       _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
-      syncPreferenceWidget();
+      if (document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
+      else syncPreferenceWidget();
       renderSubmissionState('Consent confirmed');
       return true;
     } catch(e) {
@@ -1965,7 +1968,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
     if (cfg.showPreferenceWidget === false) return;
-    if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__')) return;
+    if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__') || document.getElementById('__cmp_prefs__')) return;
     if (!_consentId) return;
 
     var btn = document.createElement('button');
@@ -1983,9 +1986,302 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><circle cx="8" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="12" cy="15" r="1.1" fill="currentColor"/></svg>';
     btn.addEventListener('click', function() {
-      if (window.CMP && window.CMP.openPreferenceCenter) window.CMP.openPreferenceCenter();
+      renderCookiePreferencesPanel();
     });
     if (document.body) document.body.appendChild(btn);
+  }
+
+  function removeCookiePreferencesPanel() {
+    var el = document.getElementById('__cmp_prefs__');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function formatReceiptDate(value) {
+    if (!value) return 'N/A';
+    var d = value instanceof Date ? value : new Date(value);
+    if (isNaN(d.getTime())) {
+      var n = parseInt(value, 10);
+      if (!n) return 'N/A';
+      d = new Date(n);
+    }
+    if (isNaN(d.getTime())) return 'N/A';
+    return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
+  }
+
+  function languageDisplayName(code) {
+    var raw = String(code || 'en');
+    try {
+      if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+        return new Intl.DisplayNames(['en'], { type: 'language' }).of(raw.split('-')[0]) || raw;
+      }
+    } catch (eLang) {}
+    return raw === 'en' ? 'English' : raw;
+  }
+
+  function currentReceiptStatusLabel() {
+    var child = childProtectionState();
+    if (child && (child.ageStatus === 'under' || child.ageStatus === 'minor' || child.ageStatus === 'child' || child.ageStatus === 'age_restricted')) {
+      return 'Essential only';
+    }
+    var purposes = (_config && _config.purposes) || [];
+    var optional = 0;
+    var grantedOpt = 0;
+    for (var i = 0; i < purposes.length; i++) {
+      if (purposes[i].isRequired) continue;
+      optional += 1;
+      if (currentPurposeGranted(purposes[i].id)) grantedOpt += 1;
+    }
+    if (!optional || grantedOpt === 0) return 'Essential only';
+    if (grantedOpt === optional) return 'Full consent';
+    return 'Custom';
+  }
+
+  function storedConsentMeta() {
+    var stored = loadStoredConsent() || {};
+    var expiryRaw = null;
+    try { expiryRaw = localStorage.getItem(EXPIRY_KEY); } catch (eExp) {}
+    return {
+      consentId: _consentId || stored.consentId || '',
+      consentedAt: stored.consentedAt || stored.revision || null,
+      expiresAt: stored.expiresAt || (expiryRaw ? parseInt(expiryRaw, 10) : null)
+    };
+  }
+
+  function downloadConsentReceipt() {
+    if (!_consentId || !_config) return;
+    var query = 'consentId=' + encodeURIComponent(_consentId)
+      + '&websiteId=' + encodeURIComponent(_config.websiteId || '')
+      + '&siteKey=' + encodeURIComponent(SITE_KEY)
+      + '&download=1';
+    fetch(API_BASE + '/api/consent/receipt?' + query, { cache: 'no-store' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Receipt download failed');
+        return r.blob();
+      })
+      .then(function(blob) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'consent-receipt-' + _consentId + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        if (a.parentNode) a.parentNode.removeChild(a);
+        setTimeout(function() { try { URL.revokeObjectURL(a.href); } catch (eRev) {} }, 1000);
+      })
+      .catch(function() {
+        renderSubmissionState('Receipt could not be downloaded. Please retry.');
+      });
+  }
+
+  function saveCookiePreferenceToggles() {
+    if (!_config || !_consentId) return;
+    var purposeDecisions = ((_config.purposes) || []).map(function(p) {
+      return { purposeId: p.id, granted: !!(p.isRequired || currentPurposeGranted(p.id)) };
+    });
+    var vendorDecisions = ((_config.vendors) || []).map(function(v) {
+      return { vendorId: v.id, granted: currentVendorGranted(v.id) };
+    });
+    submitConsent('granular', purposeDecisions, vendorDecisions, function(err) {
+      _choiceUiHeld = false;
+      if (err) {
+        renderCookiePreferencesPanel();
+        renderSubmissionState('Preferences could not be saved. Please retry.');
+      }
+    });
+  }
+
+  function renderToggle(on, locked, onChange) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.setAttribute('role', 'switch');
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    if (locked) btn.disabled = true;
+    btn.style.cssText = 'flex-shrink:0;width:42px;height:24px;border-radius:999px;border:none;padding:2px;cursor:'
+      + (locked ? 'not-allowed' : 'pointer') + ';background:' + (on ? '#2563EB' : '#CBD5E1') + ';';
+    var knob = document.createElement('span');
+    knob.style.cssText = 'display:block;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,0.2);margin-'
+      + (on ? 'left:auto' : 'right:auto') + ';';
+    btn.appendChild(knob);
+    if (!locked) {
+      btn.addEventListener('click', function() {
+        onChange(!on);
+      });
+    }
+    return btn;
+  }
+
+  function renderCookiePreferencesPanel() {
+    if (!_config || !_consentId) return;
+    removeCookiePreferencesPanel();
+    removePreferenceWidget();
+    _submitButtons = [];
+    var cfg = _config.bannerConfig || {};
+    var g = _config.grievance || {};
+    var meta = storedConsentMeta();
+    var corner = cfg.preferenceWidgetPosition === 'bottom-right'
+      ? 'right:16px;left:auto;'
+      : 'left:16px;right:auto;';
+
+    var panel = document.createElement('div');
+    panel.id = '__cmp_prefs__';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Cookie Preferences');
+    panel.setAttribute('dir', noticeDirection());
+    panel.style.cssText = 'position:fixed;bottom:16px;' + corner
+      + 'z-index:2147483646;width:min(360px,calc(100vw - 24px));background:#fff;color:#0F172A;'
+      + 'border-radius:18px;box-shadow:0 18px 50px rgba(15,23,42,0.22);padding:16px 16px 14px;'
+      + 'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;';
+
+    var header = document.createElement('div');
+    header.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+    var title = document.createElement('div');
+    title.style.cssText = 'display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#0B2C4A;flex:1;min-width:0;';
+    title.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B2C4A" stroke-width="2" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6z"/></svg>';
+    var titleText = document.createElement('span');
+    titleText.textContent = 'Cookie Preferences';
+    title.appendChild(titleText);
+
+    var locales = availableLocales();
+    if (locales.length) {
+      var langWrap = document.createElement('label');
+      langWrap.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12px;color:#475569;';
+      langWrap.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>';
+      var langSelect = document.createElement('select');
+      langSelect.setAttribute('aria-label', 'Language');
+      langSelect.style.cssText = 'border:none;background:transparent;font:inherit;color:inherit;max-width:7rem;';
+      locales.forEach(function(code) {
+        var opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = languageDisplayName(code);
+        if (code === (_config.resolvedLanguage || 'en')) opt.selected = true;
+        langSelect.appendChild(opt);
+      });
+      langSelect.addEventListener('change', function() {
+        window.CMP.setLanguage(langSelect.value);
+      });
+      langWrap.appendChild(langSelect);
+      header.appendChild(title);
+      header.appendChild(langWrap);
+    } else {
+      header.appendChild(title);
+    }
+
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close');
+    close.textContent = '×';
+    close.style.cssText = 'border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:#64748B;padding:0 2px;';
+    close.addEventListener('click', function() {
+      removeCookiePreferencesPanel();
+      syncPreferenceWidget();
+    });
+    header.appendChild(close);
+    panel.appendChild(header);
+
+    var metaBox = document.createElement('div');
+    metaBox.style.cssText = 'font-size:12px;line-height:1.55;color:#475569;margin-bottom:10px;';
+    function metaLine(label, value) {
+      var p = document.createElement('div');
+      var k = document.createElement('span');
+      k.textContent = label + ' ';
+      var v = document.createElement('span');
+      v.textContent = value;
+      if (label.indexOf('Key') === 0) v.style.cssText = 'word-break:break-all;font-family:ui-monospace,Menlo,monospace;';
+      p.appendChild(k);
+      p.appendChild(v);
+      metaBox.appendChild(p);
+    }
+    metaLine('Status:', currentReceiptStatusLabel());
+    metaLine('Consent given:', formatReceiptDate(meta.consentedAt));
+    metaLine('Expires:', formatReceiptDate(meta.expiresAt));
+    metaLine('Key:', meta.consentId);
+    panel.appendChild(metaBox);
+
+    var catLabel = document.createElement('div');
+    catLabel.textContent = 'Active categories:';
+    catLabel.style.cssText = 'font-size:12px;color:#475569;margin:4px 0 6px;';
+    panel.appendChild(catLabel);
+
+    var list = document.createElement('div');
+    list.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:12px;';
+    ((_config.purposes) || []).forEach(function(purpose) {
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:#0F172A;';
+      var name = document.createElement('span');
+      name.textContent = purpose.name || purpose.key || 'Purpose';
+      var granted = !!(purpose.isRequired || currentPurposeGranted(purpose.id));
+      var locked = !!purpose.isRequired || !!(childProtectionState() && childProtectionState().ageStatus === 'under');
+      if (purpose.isRequired) locked = true;
+      var toggle = renderToggle(granted, locked, function(next) {
+        if (!_decisions.purposes) _decisions.purposes = {};
+        _decisions.purposes[purpose.id] = next;
+        saveCookiePreferenceToggles();
+      });
+      if (!locked) _submitButtons.push(toggle);
+      row.appendChild(name);
+      row.appendChild(toggle);
+      list.appendChild(row);
+    });
+    panel.appendChild(list);
+
+    var download = document.createElement('button');
+    download.type = 'button';
+    download.textContent = 'Download Receipt';
+    download.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E2E8F0;background:#fff;color:#0F172A;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;';
+    download.addEventListener('click', downloadConsentReceipt);
+    _submitButtons.push(download);
+    panel.appendChild(download);
+
+    var revoke = document.createElement('button');
+    revoke.type = 'button';
+    revoke.textContent = 'Revoke Consent (DPDP Section 6(4))';
+    revoke.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#EF4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
+    revoke.addEventListener('click', function() {
+      revoke.disabled = true;
+      window.CMP.withdrawConsent().then(function() {
+        removeCookiePreferencesPanel();
+      }).catch(function() {
+        revoke.disabled = false;
+        renderSubmissionState('Withdrawal could not be confirmed. Please retry.');
+      });
+    });
+    _submitButtons.push(revoke);
+    panel.appendChild(revoke);
+
+    var status = document.createElement('div');
+    status.id = '__cmp_prefs_status__';
+    status.setAttribute('role', 'status');
+    status.style.cssText = 'display:none;margin-top:8px;font-size:12px;font-weight:600;';
+    panel.appendChild(status);
+
+    var links = document.createElement('div');
+    links.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;font-size:12px;';
+    if (cfg.privacyPolicyUrl) {
+      var pl = document.createElement('a');
+      pl.href = safeHttpUrl(cfg.privacyPolicyUrl);
+      pl.target = '_blank';
+      pl.rel = 'noopener noreferrer';
+      pl.textContent = (cfg.privacyPolicyText || 'Privacy Policy') + ' ↗';
+      pl.style.cssText = 'color:#2563EB;text-decoration:none;';
+      links.appendChild(pl);
+    }
+    if (cfg.cookiePolicyUrl) {
+      var cl = document.createElement('a');
+      cl.href = safeHttpUrl(cfg.cookiePolicyUrl);
+      cl.target = '_blank';
+      cl.rel = 'noopener noreferrer';
+      cl.textContent = (cfg.cookiePolicyText || 'Cookie Policy') + ' ↗';
+      cl.style.cssText = 'color:#2563EB;text-decoration:none;';
+      links.appendChild(cl);
+    }
+    if (links.childNodes.length) panel.appendChild(links);
+
+    var dpoEmail = String(g.dpoEmail || g.grievanceOfficerEmail || '').trim();
+    var dpo = document.createElement('div');
+    dpo.style.cssText = 'margin-top:8px;font-size:11px;color:#64748B;';
+    dpo.textContent = (dpoEmail ? ('DPO: ' + dpoEmail + ' · ') : '') + 'DPDP Act, 2023';
+    panel.appendChild(dpo);
+
+    (document.body || document.documentElement).appendChild(panel);
   }
 
   function dntRequested() {
@@ -2049,6 +2345,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var child = childProtectionState();
     if (!child.enabled || !child.ageAssuranceRequired) return;
     if (child.ageStatus && child.ageStatus !== 'unknown' && child.ageStatus !== 'expired') return;
+    if (parent && parent.querySelector && parent.querySelector('[data-cmp-dpdp-age]')) return;
     var wrap = document.createElement('div');
     wrap.setAttribute('data-cmp-age-gate', 'true');
     wrap.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
@@ -2080,6 +2377,170 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     wrap.appendChild(hint);
     wrap.appendChild(row);
     parent.appendChild(wrap);
+  }
+
+  function appendDpdpAgeNotice(parent) {
+    if (!parent) return;
+    var child = childProtectionState();
+    if (child.ageStatus === 'under') return;
+    var box = document.createElement('p');
+    box.setAttribute('data-cmp-dpdp-age', 'true');
+    box.style.cssText = 'margin:0;padding:10px 12px;border-radius:10px;border:1px solid #F59E0B;background:rgba(245,158,11,0.08);color:#B45309;font-size:13px;line-height:1.5;';
+    box.appendChild(document.createTextNode('By choosing Accept or Reject below, you confirm you are '));
+    var strong = document.createElement('strong');
+    strong.textContent = '18 years or older';
+    box.appendChild(strong);
+    box.appendChild(document.createTextNode(' per DPDP Act, Section 9. '));
+    var link = document.createElement('button');
+    link.type = 'button';
+    link.textContent = 'I am under 18';
+    link.style.cssText = 'display:inline;background:none;border:none;padding:0;margin:0;font:inherit;color:#B45309;text-decoration:underline;cursor:pointer;font-weight:600;';
+    link.addEventListener('click', function() {
+      showParentalConsentDialog();
+    });
+    box.appendChild(link);
+    parent.appendChild(box);
+  }
+
+  function removeParentalConsentDialog() {
+    var el = document.getElementById('__cmp_parental__');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function appendPolicyAnchor(parent, href, label) {
+    var url = safeHttpUrl(href);
+    if (!url || !label) return false;
+    var a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = label;
+    a.style.cssText = 'color:#2563EB;font-weight:600;text-decoration:underline;';
+    parent.appendChild(a);
+    return true;
+  }
+
+  function confirmUnder18() {
+    removeParentalConsentDialog();
+    _config.childProtection = Object.assign({}, childProtectionState(), {
+      enabled: true,
+      ageStatus: 'under',
+      restrictedProcessingAllowed: false
+    });
+    applyChildRestrictions();
+    submitAgeAssertion('under');
+    if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
+      holdChoiceUi();
+    }
+  }
+
+  function showParentalConsentDialog() {
+    removeParentalConsentDialog();
+    var cfg = (_config && _config.bannerConfig) || {};
+    var g = (_config && _config.grievance) || {};
+    var dpoEmail = String(g.dpoEmail || g.grievanceOfficerEmail || '').trim();
+
+    var wrap = document.createElement('div');
+    wrap.id = '__cmp_parental__';
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.setAttribute('aria-labelledby', '__cmp_parental_title__');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);';
+
+    var card = document.createElement('div');
+    card.style.cssText = 'width:min(560px,100%);background:#F8FBFF;border:1px solid #BFDBFE;border-radius:16px;padding:20px 20px 16px;box-shadow:0 20px 50px rgba(15,23,42,0.18);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#334155;';
+
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:12px;align-items:flex-start;';
+
+    var icon = document.createElement('div');
+    icon.setAttribute('aria-hidden', 'true');
+    icon.style.cssText = 'flex-shrink:0;width:40px;height:40px;border-radius:12px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;color:#2563EB;';
+    icon.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="7" r="2.2"/><path d="M4.5 17.5c.4-2.6 2.3-4 4.5-4s4.1 1.4 4.5 4"/><circle cx="16.5" cy="8" r="2"/><path d="M13.2 17.5c.3-2 1.8-3.2 3.3-3.2 1.6 0 3.1 1.2 3.4 3.2"/></svg>';
+
+    var copy = document.createElement('div');
+    copy.style.minWidth = '0';
+
+    var title = document.createElement('h2');
+    title.id = '__cmp_parental_title__';
+    title.textContent = 'Parental Consent Required';
+    title.style.cssText = 'margin:0 0 8px;font-size:16px;font-weight:700;color:#0F172A;';
+
+    var p1 = document.createElement('p');
+    p1.textContent = 'Under DPDP Act Section 9, processing personal data of individuals under 18 requires verifiable parental or guardian consent. We have automatically limited data collection to only essential cookies required for the website to function.';
+    p1.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;color:#64748B;';
+
+    var p2 = document.createElement('p');
+    p2.textContent = 'No analytics, marketing, or behavioral tracking data will be collected. If your parent or guardian wishes to provide consent on your behalf, please contact our Data Protection Officer.';
+    p2.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;color:#64748B;';
+
+    copy.appendChild(title);
+    copy.appendChild(p1);
+    copy.appendChild(p2);
+
+    var privacyUrl = safeHttpUrl(cfg.privacyPolicyUrl);
+    var cookieUrl = safeHttpUrl(cfg.cookiePolicyUrl);
+    if (privacyUrl || cookieUrl) {
+      var links = document.createElement('p');
+      links.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;';
+      var addedPrivacy = appendPolicyAnchor(links, privacyUrl, cfg.privacyPolicyText || 'Privacy Policy');
+      if (addedPrivacy && cookieUrl) {
+        var sep = document.createElement('span');
+        sep.textContent = ' · ';
+        sep.style.color = '#94A3B8';
+        links.appendChild(sep);
+      }
+      appendPolicyAnchor(links, cookieUrl, cfg.cookiePolicyText || 'Cookie Policy');
+      copy.appendChild(links);
+    }
+
+    var dpo = document.createElement('p');
+    dpo.style.cssText = 'margin:0;font-size:12px;color:#64748B;';
+    if (dpoEmail) {
+      dpo.appendChild(document.createTextNode('DPO Contact: '));
+      var mail = document.createElement('a');
+      mail.href = 'mailto:' + encodeURIComponent(dpoEmail);
+      mail.textContent = dpoEmail;
+      mail.style.cssText = 'color:#334155;font-weight:600;text-decoration:none;';
+      dpo.appendChild(mail);
+      dpo.appendChild(document.createTextNode(' · Governed by DPDP Act, 2023'));
+    } else {
+      dpo.textContent = 'Governed by DPDP Act, 2023';
+    }
+    copy.appendChild(dpo);
+
+    row.appendChild(icon);
+    row.appendChild(copy);
+    card.appendChild(row);
+
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;justify-content:space-between;gap:12px;margin-top:18px;';
+
+    var back = document.createElement('button');
+    back.type = 'button';
+    back.textContent = 'Go Back';
+    back.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;';
+    back.addEventListener('click', function() {
+      removeParentalConsentDialog();
+    });
+
+    var ok = document.createElement('button');
+    ok.type = 'button';
+    ok.textContent = 'I Understand';
+    ok.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;';
+    ok.addEventListener('click', function() {
+      confirmUnder18();
+    });
+
+    actions.appendChild(back);
+    actions.appendChild(ok);
+    card.appendChild(actions);
+    wrap.appendChild(card);
+    wrap.addEventListener('click', function(e) {
+      if (e.target === wrap) removeParentalConsentDialog();
+    });
+    (document.body || document.documentElement).appendChild(wrap);
+    try { ok.focus(); } catch (eFocus) {}
   }
 
   function hexToRgbList(hex) {
@@ -2231,17 +2692,33 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     appendDoNotTrackNotice(banner);
     appendChildProtectionNotice(banner);
+    appendDpdpAgeNotice(banner);
     appendAgeAssuranceGate(banner);
 
+    var policyRow = document.createElement('div');
+    policyRow.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;font-size:12px;';
+    var hasPrivacy = false;
     if (cfg.privacyPolicyUrl && cfg.privacyPolicyText) {
       var pol = document.createElement('a');
       pol.href = safeHttpUrl(cfg.privacyPolicyUrl);
       pol.target = '_blank';
       pol.rel = 'noopener noreferrer';
       pol.textContent = cfg.privacyPolicyText;
-      pol.style.cssText = 'display:block;font-size:12px;text-decoration:underline;color:' + (cfg.primaryColor || '#171717') + ';';
-      banner.appendChild(pol);
+      pol.style.cssText = 'text-decoration:underline;color:' + (cfg.primaryColor || '#171717') + ';';
+      policyRow.appendChild(pol);
+      hasPrivacy = true;
     }
+    if (cfg.cookiePolicyUrl) {
+      var cook = document.createElement('a');
+      cook.href = safeHttpUrl(cfg.cookiePolicyUrl);
+      cook.target = '_blank';
+      cook.rel = 'noopener noreferrer';
+      cook.textContent = cfg.cookiePolicyText || 'Cookie Policy';
+      cook.style.cssText = 'text-decoration:underline;color:' + (cfg.primaryColor || '#171717') + ';';
+      policyRow.appendChild(cook);
+      hasPrivacy = true;
+    }
+    if (hasPrivacy) banner.appendChild(policyRow);
 
     var btns = document.createElement('div');
     btns.style.display = 'flex';
@@ -2334,6 +2811,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (el && el.parentNode) el.parentNode.removeChild(el);
     var overlay = document.getElementById('__cmp_banner_overlay__');
     if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    removeParentalConsentDialog();
     _hostScroll.sync();
     syncPreferenceWidget();
   }
@@ -2820,20 +3298,28 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       + 'flex-wrap:wrap;'
     );
 
+    var pcLinks = document.createElement('div');
+    pcLinks.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;align-items:center;';
+    var pcLinkStyle = 'font-size:12.5px;font-weight:500;color:inherit;opacity:0.7;text-decoration:underline;text-underline-offset:2px;';
     if (cfg.privacyPolicyText && cfg.privacyPolicyUrl) {
       var pl = document.createElement('a');
       pl.href = safeHttpUrl(cfg.privacyPolicyUrl);
       pl.target = '_blank';
       pl.rel = 'noopener noreferrer';
       pl.textContent = cfg.privacyPolicyText;
-      pl.setAttribute('style',
-        'font-size:12.5px;font-weight:500;color:inherit;opacity:0.7;text-decoration:underline;text-underline-offset:2px;'
-      );
-      footer.appendChild(pl);
-    } else {
-      var sp = document.createElement('span');
-      footer.appendChild(sp);
+      pl.setAttribute('style', pcLinkStyle);
+      pcLinks.appendChild(pl);
     }
+    if (cfg.cookiePolicyUrl) {
+      var cl = document.createElement('a');
+      cl.href = safeHttpUrl(cfg.cookiePolicyUrl);
+      cl.target = '_blank';
+      cl.rel = 'noopener noreferrer';
+      cl.textContent = cfg.cookiePolicyText || 'Cookie Policy';
+      cl.setAttribute('style', pcLinkStyle);
+      pcLinks.appendChild(cl);
+    }
+    footer.appendChild(pcLinks);
 
     var actionRow = document.createElement('div');
     actionRow.style.display = 'flex';
@@ -2956,6 +3442,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }
       renderPreferenceCenter();
     },
+    downloadReceipt: function() {
+      downloadConsentReceipt();
+    },
     acceptAll: function() {
       return new Promise(function(resolve, reject) {
         var queued = submitConsent('accept-all', [], [], function(err, consentId) {
@@ -3065,6 +3554,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _explicitLang = String(lang || '').slice(0, 35);
       var bannerOpen = !!document.getElementById('__cmp_banner__');
       var pcOpen = !!document.getElementById('__cmp_pc__');
+      var prefsOpen = !!document.getElementById('__cmp_prefs__');
       fetch(configRequestUrl(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -3077,6 +3567,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           _hostScroll.beginTransition();
           if (bannerOpen) { removeBanner(); renderBanner(); }
           if (pcOpen) renderPreferenceCenter();
+          if (prefsOpen) renderCookiePreferencesPanel();
           _hostScroll.endTransition();
           if (callback) callback(null, data.resolvedLanguage);
         })
@@ -3148,6 +3639,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           blockOptionalProcessing('DENIED', 'Consent withdrawn');
           fireIabEvents('useractioncomplete');
           _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
+          removeCookiePreferencesPanel();
           renderBanner();
           _withdrawBusy = false;
           resolve(result.data);

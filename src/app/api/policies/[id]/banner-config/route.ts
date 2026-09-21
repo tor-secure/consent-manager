@@ -205,6 +205,8 @@ export async function PUT(
       savePreferencesLabel: String(raw.savePreferencesLabel).trim().slice(0, 100),
       privacyPolicyText: String(raw.privacyPolicyText).trim().slice(0, 100),
       privacyPolicyUrl: String(raw.privacyPolicyUrl).trim().slice(0, 500),
+      cookiePolicyText: String(raw.cookiePolicyText ?? "Cookie Policy").trim().slice(0, 100),
+      cookiePolicyUrl: String(raw.cookiePolicyUrl ?? "").trim().slice(0, 500),
       poweredByText: String(raw.poweredByText).trim().slice(0, 100),
       closeLabel: String(raw.closeLabel ?? "").trim().slice(0, 100),
       preferenceCenterTitle: String(raw.preferenceCenterTitle ?? "").trim().slice(0, 255),

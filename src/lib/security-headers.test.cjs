@@ -58,6 +58,7 @@ assert.equal(isPublicCrossOriginApiPath("/api/sdk/abc/config"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/consent/record"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/consent/withdraw"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/consent/policy"), true);
+assert.equal(isPublicCrossOriginApiPath("/api/consent/receipt"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/rights-request"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/health"), true);
 assert.equal(isPublicCrossOriginApiPath("/api/health/ready"), true);

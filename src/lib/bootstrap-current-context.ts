@@ -16,6 +16,7 @@ import {
 } from "@/lib/schema-selects";
 import { ensureMembershipForClerkRole, ensureNamedRole } from "@/lib/local-membership";
 import { OWNER_ROLE } from "@/lib/org-roles";
+import { isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
 
 export type BootstrapContext = {
   user: typeof users.$inferSelect;
@@ -32,6 +33,22 @@ export type BootstrapContextNoOrg = {
 export type BootstrapResult = BootstrapContext | BootstrapContextNoOrg;
 
 const LOGIN_TOUCH_MS = 60 * 60 * 1000;
+
+function rethrowBootstrapDbError(error: unknown): never {
+  if (isDatabaseUnreachableError(error)) {
+    throw new Error(
+      "Cannot reach the database. Neon hostname lookup failed. Set Windows DNS to 8.8.8.8 and 1.1.1.1, run ipconfig /flushdns, then retry.",
+      { cause: error },
+    );
+  }
+  if (isSchemaMismatchError(error)) {
+    throw new Error(
+      "Database schema is missing required user or organization columns. Run npm run db:ensure-schema, then retry.",
+      { cause: error },
+    );
+  }
+  throw error;
+}
 
 function buildOrgSlug(name: string, clerkId: string): string {
   const base = name
@@ -60,6 +77,14 @@ function clerkRoleForOrg(
  * without Clerk organization fetches or a lastLoginAt write.
  */
 export const bootstrapCurrentContext = cache(async function bootstrapCurrentContext(): Promise<BootstrapResult> {
+  try {
+    return await bootstrapCurrentContextUncached();
+  } catch (error) {
+    rethrowBootstrapDbError(error);
+  }
+});
+
+async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
   const { isAuthenticated, userId, orgId } = await auth();
 
   if (!isAuthenticated || !userId) {
@@ -336,7 +361,7 @@ export const bootstrapCurrentContext = cache(async function bootstrapCurrentCont
     organization: toOrganizationRow(organization),
     membership,
   };
-});
+}
 
 export async function requireDashboardContext(): Promise<BootstrapContext> {
   const context = await bootstrapCurrentContext();

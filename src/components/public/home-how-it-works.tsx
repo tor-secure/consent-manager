@@ -63,7 +63,7 @@ function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; pla
       {scene === "policy" ? (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Policy</p>
-          {["DPDP 2023 template", "Analytics — optional", "Advertising — optional"].map((line, i) => (
+          {["DPDP 2023 template", "Analytics (optional)", "Advertising (optional)"].map((line, i) => (
             <div
               key={line}
               className="flex items-center justify-between rounded-lg bg-white/8 px-3 py-2 text-sm text-white"
@@ -132,7 +132,7 @@ export function HomeHowItWorks() {
           Live in five steps
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4B5563] sm:text-base">
-          Watch the path you follow in the dashboard — website, policy, banner, publish, then install.
+          Watch the path you follow in the dashboard: website, policy, banner, publish, then install.
         </p>
 
         <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
@@ -162,7 +162,7 @@ export function HomeHowItWorks() {
                     </span>
                     <span>
                       <span className="block text-sm font-semibold text-[#111827]">{item.title}</span>
-                      <span className="mt-0.5 block text-[13px] leading-5 text-[#6B7280]">{item.body}</span>
+                      <span className="mt-0.5 block text-justify text-[13px] leading-5 text-[#6B7280]">{item.body}</span>
                     </span>
                   </button>
                 </li>

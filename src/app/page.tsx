@@ -6,7 +6,6 @@ import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
 import { HomeHowItWorks } from "@/components/public/home-how-it-works";
-import { HomePricing } from "@/components/public/home-pricing";
 import { HomeComparison } from "@/components/public/home-comparison";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { PenaltyCallout } from "@/components/public/penalty-callout";
@@ -14,7 +13,7 @@ import Link from "next/link";
 
 const trustItems = [
   {
-    label: "Free workspace — billing not enabled",
+    label: "Free workspace. Billing is not enabled",
     icon: (
       <path d="M3.75 8.25h16.5M5.25 5.25h13.5A1.5 1.5 0 0 1 20.25 6.75v10.5a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5V6.75a1.5 1.5 0 0 1 1.5-1.5Z" />
     ),
@@ -39,7 +38,7 @@ export default function Home() {
       <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
-      <main id="main-content">
+      <main id="main-content" className="home-copy">
         <section
           className="home-section relative overflow-hidden"
           style={{
@@ -74,8 +73,8 @@ export default function Home() {
               </h1>
 
               <p className="mt-5 max-w-lg text-[15px] leading-7 text-[#4B5563] sm:text-base">
-                Consent Guru helps you manage user consent transparently across web, mobile and apps
-                — all in one powerful platform.
+                Consent Guru helps you manage user consent transparently across web, mobile and apps,
+                all in one powerful platform.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -123,7 +122,6 @@ export default function Home() {
         <HomeComparison />
         <HomeHowItWorks />
         <HomeUseCasesCta />
-        <HomePricing />
       </main>
 
       <HomeFooter />

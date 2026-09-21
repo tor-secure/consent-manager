@@ -6,3 +6,7 @@ export const metadata: Metadata = unlistedPageMetadata(
   "Sign in",
   "Sign in to Consent Guru to manage consent policies, banners, and privacy requests.",
 );
+
+export default function SignInLayout({ children }: LayoutProps<"/sign-in">) {
+  return children;
+}

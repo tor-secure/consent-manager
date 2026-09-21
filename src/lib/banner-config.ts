@@ -36,6 +36,8 @@ export type BannerConfiguration = {
   savePreferencesLabel: string;
   privacyPolicyText: string;
   privacyPolicyUrl: string;
+  cookiePolicyText: string;
+  cookiePolicyUrl: string;
   poweredByText: string;
   closeLabel: string;
   preferenceCenterTitle: string;
@@ -93,6 +95,8 @@ export function defaultBannerConfig(): BannerConfiguration {
     savePreferencesLabel: DEFAULT_NOTICE_STRINGS.savePreferencesLabel,
     privacyPolicyText: DEFAULT_NOTICE_STRINGS.privacyPolicyText,
     privacyPolicyUrl: "",
+    cookiePolicyText: "Cookie Policy",
+    cookiePolicyUrl: "",
     poweredByText: "Powered by CMP",
     closeLabel: DEFAULT_NOTICE_STRINGS.closeLabel,
     preferenceCenterTitle: DEFAULT_NOTICE_STRINGS.preferenceCenterTitle,
@@ -172,6 +176,10 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   merged.gpcHonored = merged.gpcHonored !== false;
   merged.limitSensitivePiEnabled = merged.limitSensitivePiEnabled === true;
   merged.privacyPolicyUrl = sanitizeHttpUrl(merged.privacyPolicyUrl);
+  merged.cookiePolicyUrl = sanitizeHttpUrl(merged.cookiePolicyUrl ?? "");
+  if (typeof merged.cookiePolicyText !== "string" || !merged.cookiePolicyText.trim()) {
+    merged.cookiePolicyText = defaults.cookiePolicyText;
+  }
   merged.primaryColor = sanitizeCssColor(merged.primaryColor) || defaults.primaryColor;
   merged.backgroundColor = sanitizeCssColor(merged.backgroundColor) || defaults.backgroundColor;
   merged.textColor = sanitizeCssColor(merged.textColor) || defaults.textColor;

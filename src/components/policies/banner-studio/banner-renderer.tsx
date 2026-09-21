@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { BannerConfiguration, BannerPosition } from "@/lib/banner-config";
 import { bannerUsesOverlay } from "@/lib/banner-config";
 
@@ -127,6 +128,166 @@ export function BannerOverlay({ config }: { config: BannerConfiguration }) {
   );
 }
 
+function DpdpAgeNotice({ onUnder18 }: { onUnder18: () => void }) {
+  return (
+    <p
+      data-cmp-dpdp-age=""
+      style={{
+        margin: 0,
+        padding: "10px 12px",
+        borderRadius: 10,
+        border: "1px solid #F59E0B",
+        background: "rgba(245,158,11,0.08)",
+        color: "#B45309",
+        fontSize: 13,
+        lineHeight: 1.5,
+        width: "100%",
+        boxSizing: "border-box",
+      }}
+    >
+      By choosing Accept or Reject below, you confirm you are{" "}
+      <strong>18 years or older</strong> per DPDP Act, Section 9.{" "}
+      <button
+        type="button"
+        onClick={onUnder18}
+        style={{
+          display: "inline",
+          background: "none",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          font: "inherit",
+          color: "#B45309",
+          textDecoration: "underline",
+          cursor: "pointer",
+          fontWeight: 600,
+        }}
+      >
+        I am under 18
+      </button>
+    </p>
+  );
+}
+
+function ParentalConsentDialog({
+  config,
+  onBack,
+  onUnderstand,
+}: {
+  config: BannerConfiguration;
+  onBack: () => void;
+  onUnderstand: () => void;
+}) {
+  const privacyUrl = config.privacyPolicyUrl?.trim();
+  const cookieUrl = config.cookiePolicyUrl?.trim();
+  const outline: React.CSSProperties = {
+    padding: "8px 16px",
+    borderRadius: 10,
+    border: "1px solid #CBD5E1",
+    background: "#fff",
+    color: "#334155",
+    cursor: "pointer",
+    fontSize: 13,
+    fontWeight: 500,
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cmp-parental-title"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onBack();
+      }}
+      style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 10000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 16,
+        background: "rgba(15,23,42,0.45)",
+      }}
+    >
+      <div
+        style={{
+          width: "min(560px, 100%)",
+          background: "#F8FBFF",
+          border: "1px solid #BFDBFE",
+          borderRadius: 16,
+          padding: "20px 20px 16px",
+          boxShadow: "0 20px 50px rgba(15,23,42,0.18)",
+          fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+          color: "#334155",
+        }}
+      >
+        <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div
+            aria-hidden="true"
+            style={{
+              flexShrink: 0,
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: "#DBEAFE",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#2563EB",
+            }}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="9" cy="7" r="2.2" />
+              <path d="M4.5 17.5c.4-2.6 2.3-4 4.5-4s4.1 1.4 4.5 4" />
+              <circle cx="16.5" cy="8" r="2" />
+              <path d="M13.2 17.5c.3-2 1.8-3.2 3.3-3.2 1.6 0 3.1 1.2 3.4 3.2" />
+            </svg>
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h2 id="cmp-parental-title" style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#0F172A" }}>
+              Parental Consent Required
+            </h2>
+            <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55, color: "#64748B" }}>
+              Under DPDP Act Section 9, processing personal data of individuals under 18 requires verifiable parental
+              or guardian consent. We have automatically limited data collection to only essential cookies required for
+              the website to function.
+            </p>
+            <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55, color: "#64748B" }}>
+              No analytics, marketing, or behavioral tracking data will be collected. If your parent or guardian wishes
+              to provide consent on your behalf, please contact our Data Protection Officer.
+            </p>
+            {(privacyUrl || cookieUrl) && (
+              <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55 }}>
+                {privacyUrl && (
+                  <a href={privacyUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "underline" }}>
+                    {config.privacyPolicyText || "Privacy Policy"}
+                  </a>
+                )}
+                {privacyUrl && cookieUrl && <span style={{ color: "#94A3B8" }}> · </span>}
+                {cookieUrl && (
+                  <a href={cookieUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "underline" }}>
+                    {config.cookiePolicyText || "Cookie Policy"}
+                  </a>
+                )}
+              </p>
+            )}
+            <p style={{ margin: 0, fontSize: 12, color: "#64748B" }}>Governed by DPDP Act, 2023</p>
+          </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 18 }}>
+          <button type="button" onClick={onBack} style={outline}>
+            Go Back
+          </button>
+          <button type="button" onClick={onUnderstand} style={outline}>
+            I Understand
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BannerRenderer({
   config,
   scale = 1,
@@ -134,6 +295,7 @@ export function BannerRenderer({
   onReject,
   onCustomize,
 }: BannerRendererProps) {
+  const [parentalOpen, setParentalOpen] = useState(false);
   const isBar = config.layout === "bar";
   const isDialog = config.layout === "dialog";
   const posStyle = resolvedPositionStyle(config);
@@ -234,8 +396,9 @@ export function BannerRenderer({
   );
 
   return (
-    <div style={scaledWrapper} aria-label="Consent banner preview">
-      <div style={bannerStyle}>
+    <>
+      <div style={scaledWrapper} aria-label="Consent banner preview">
+        <div style={bannerStyle}>
         {config.showCloseButton && (
           <button
             type="button"
@@ -298,20 +461,37 @@ export function BannerRenderer({
           </div>
         )}
 
-        {config.privacyPolicyUrl && config.privacyPolicyText && (
-          <a
-            href={config.privacyPolicyUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "block",
-              color: config.primaryColor,
-              fontSize: 12,
-              textDecoration: "underline",
-            }}
-          >
-            {config.privacyPolicyText}
-          </a>
+        <DpdpAgeNotice onUnder18={() => setParentalOpen(true)} />
+
+        {(config.privacyPolicyUrl || config.cookiePolicyUrl) && (
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 12 }}>
+            {config.privacyPolicyUrl && config.privacyPolicyText && (
+              <a
+                href={config.privacyPolicyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: config.primaryColor,
+                  textDecoration: "underline",
+                }}
+              >
+                {config.privacyPolicyText}
+              </a>
+            )}
+            {config.cookiePolicyUrl && (
+              <a
+                href={config.cookiePolicyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: config.primaryColor,
+                  textDecoration: "underline",
+                }}
+              >
+                {config.cookiePolicyText || "Cookie Policy"}
+              </a>
+            )}
+          </div>
         )}
 
         {actionButtons}
@@ -329,7 +509,15 @@ export function BannerRenderer({
           </div>
         )}
       </div>
-    </div>
+      </div>
+      {parentalOpen && (
+        <ParentalConsentDialog
+          config={config}
+          onBack={() => setParentalOpen(false)}
+          onUnderstand={() => setParentalOpen(false)}
+        />
+      )}
+    </>
   );
 }
 

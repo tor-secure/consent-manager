@@ -38,7 +38,7 @@ export const clerkAuthAppearance = {
     formFieldInput:
       "!bg-white !text-[#111827] !border-[#D1D5DB] h-11 rounded-xl border border-solid text-sm placeholder:!text-[#9CA3AF] focus:!border-[#0B2C4A] focus:!ring-[#0B2C4A]",
     formButtonPrimary:
-      "arrow-btn !w-full justify-center !bg-[#0B2C4A] !text-white hover:!bg-[#00C4A7] shadow-none",
+      "!w-full justify-center !bg-[#0B2C4A] !text-white hover:!bg-[#00C4A7] shadow-none",
     footerAction: "hidden",
     footerActionText: "hidden",
     footerActionLink: "hidden",

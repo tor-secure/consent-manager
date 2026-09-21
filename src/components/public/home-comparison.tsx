@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ArrowButton } from "@/components/ui/arrow-button";
 import {
   FEATURE_COUNT,
@@ -50,7 +52,7 @@ function FeatureMatrix({
   );
 
   return (
-    <div className="rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
       <div className="grid gap-6 border-b border-[#E5E7EB] px-5 py-5 sm:px-6 lg:grid-cols-[1.4fr_0.8fr]">
         <div>
           <h3 className="text-lg font-bold text-[#0F172A]">{title}</h3>
@@ -142,7 +144,7 @@ export function HomeComparison() {
           </p>
           <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#4B5563]">
             Other platforms cover cookies, banners, or enterprise GRC. Consent Guru is the
-            all-in-one consent intelligence layer — DPDP, GDPR, CCPA, LGPD, and {FEATURE_COUNT} core
+            all-in-one consent intelligence layer for DPDP, GDPR, CCPA, LGPD, and {FEATURE_COUNT} core
             capabilities competitors still miss.
           </p>
         </div>
@@ -164,34 +166,70 @@ export function HomeComparison() {
           ))}
         </ul>
 
-        <div className="mt-12">
-          <FeatureMatrix
-            title="Feature comparison — Indian consent managers"
-            subtitle="All the top features you need. In one platform. Everything the market offers — and much more."
-            highlight="The most complete consent manager for India"
-            highlightSub={`All ${FEATURE_COUNT} features. One platform. Zero compromises.`}
-            competitors={INDIA_COMPETITORS}
-            rows={indiaFeatureRows}
-          />
+        <div className="comparison-switch mt-12">
+          <div
+            className="comparison-tabs"
+            role="radiogroup"
+            aria-label="Comparison market"
+          >
+            <span className="comparison-tab-thumb" aria-hidden="true" />
+            <label className="comparison-tab comparison-tab-india">
+              <input
+                type="radio"
+                name="comparison-market"
+                value="india"
+                defaultChecked
+              />
+              India
+            </label>
+            <label className="comparison-tab comparison-tab-international">
+              <input
+                type="radio"
+                name="comparison-market"
+                value="international"
+              />
+              International
+            </label>
+          </div>
+
+          <div className="comparison-panels mt-6">
+            <div className="comparison-panel comparison-panel-india">
+              <FeatureMatrix
+                title="Feature comparison: Indian consent managers"
+                subtitle="All the top features you need. In one platform. Everything the market offers, and much more."
+                highlight="The most complete consent manager for India"
+                highlightSub={`All ${FEATURE_COUNT} features. One platform. Zero compromises.`}
+                competitors={INDIA_COMPETITORS}
+                rows={indiaFeatureRows}
+              />
+            </div>
+            <div className="comparison-panel comparison-panel-international">
+              <FeatureMatrix
+                title="International consent managers compared with us"
+                subtitle="OneTrust, Usercentrics, Didomi, Cookiebot, and Osano on the same 30 capabilities. Consent Guru still covers every row."
+                highlight="Global CMPs plus India-first DPDP"
+                highlightSub={`All ${FEATURE_COUNT} features. One platform. Zero compromises.`}
+                competitors={GLOBAL_COMPETITORS}
+                rows={globalFeatureRows}
+              />
+            </div>
+          </div>
         </div>
 
-        <div className="mt-8">
-          <FeatureMatrix
-            title="International consent managers — compared with us"
-            subtitle="OneTrust, Usercentrics, Didomi, Cookiebot, and Osano on the same 30 capabilities. Consent Guru still covers every row."
-            highlight="Global CMPs plus India-first DPDP"
-            highlightSub={`All ${FEATURE_COUNT} features. One platform. Zero compromises.`}
-            competitors={GLOBAL_COMPETITORS}
-            rows={globalFeatureRows}
-          />
-        </div>
+        <p className="mt-5 text-sm leading-6 text-[#6B7280]">
+          Feature tables are for general information only.{" "}
+          <Link href="/disclaimer" className="font-medium text-[#0B2C4A] underline decoration-[#00C4A7]/50 underline-offset-2 hover:text-[#00A88F]">
+            Read the full disclaimer
+          </Link>
+          .
+        </p>
 
         <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#0B2C4A] px-6 py-6 text-white sm:flex-row sm:items-center">
           <div>
             <p className="text-lg font-bold">From compliance to competitive advantage</p>
-            <p className="mt-1 text-sm text-white/75">
-              More than a CMP — a complete consent intelligence platform for the AI era.
-            </p>
+          <p className="mt-1 text-sm text-white/75">
+            More than a CMP, a complete consent intelligence platform for the AI era.
+          </p>
           </div>
           <ArrowButton href="/sign-up" tone="inverse">
             Sign up

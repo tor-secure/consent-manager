@@ -421,9 +421,11 @@ export function StudioControls({
                 <Field label="Save prefs"><input value={config.savePreferencesLabel} onChange={(e) => onChange("savePreferencesLabel", e.target.value)} maxLength={100} className={inputCls} /></Field>
               </div>
 
-              <SectionLabel>Privacy policy</SectionLabel>
-              <Field label="Link text"><input value={config.privacyPolicyText} onChange={(e) => onChange("privacyPolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
-              <Field label="URL"><input type="url" value={config.privacyPolicyUrl} onChange={(e) => onChange("privacyPolicyUrl", e.target.value)} placeholder="https://example.com/privacy" className={inputCls} /></Field>
+              <SectionLabel>Policies</SectionLabel>
+              <Field label="Privacy policy link text"><input value={config.privacyPolicyText} onChange={(e) => onChange("privacyPolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
+              <Field label="Privacy policy URL"><input type="url" value={config.privacyPolicyUrl} onChange={(e) => onChange("privacyPolicyUrl", e.target.value)} placeholder="https://example.com/privacy" className={inputCls} /></Field>
+              <Field label="Cookie policy link text"><input value={config.cookiePolicyText ?? ""} onChange={(e) => onChange("cookiePolicyText", e.target.value)} maxLength={100} className={inputCls} /></Field>
+              <Field label="Cookie policy URL"><input type="url" value={config.cookiePolicyUrl ?? ""} onChange={(e) => onChange("cookiePolicyUrl", e.target.value)} placeholder="https://example.com/cookies" className={inputCls} /></Field>
             </div>
           )}
 

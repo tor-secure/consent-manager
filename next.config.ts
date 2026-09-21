@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
         headers: [documentCorpHeader],
       },
       {
-        source: "/e2e-customer-:file*.html",
+        source: "/e2e-customer-:file.html",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];

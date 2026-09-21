@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { headers } from "next/headers";
+import Script from "next/script";
 import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
@@ -92,12 +93,14 @@ export default async function BlogArticlePage({
       <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
-      <script
+      <Script
+        id="blog-article-jsonld"
         type="application/ld+json"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
-      <script
+      <Script
+        id="blog-breadcrumb-jsonld"
         type="application/ld+json"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}

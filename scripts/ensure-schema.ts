@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { setServers } from "node:dns";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -9,6 +10,13 @@ import { hashForPublishedVersion } from "../src/lib/policy/lifecycle-core";
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error("DATABASE_URL is required");
+  }
+
+  if (
+    process.env.DATABASE_USE_SYSTEM_DNS !== "1" &&
+    process.env.DATABASE_URL.includes("neon.tech")
+  ) {
+    setServers(["8.8.8.8", "1.1.1.1"]);
   }
 
   const sql = postgres(process.env.DATABASE_URL, { max: 1 });
