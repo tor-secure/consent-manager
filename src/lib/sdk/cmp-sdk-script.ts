@@ -2429,7 +2429,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var g = (_config && _config.grievance) || {};
     var configured = safeHttpUrl(g.grievancePortalUrl || '');
     if (configured) return configured;
-    return String(API_BASE || '').replace(/\/$/, '') + '/privacy-center/data-principal-request?siteKey=' + encodeURIComponent(SITE_KEY);
+    return String(API_BASE || '').replace(/[/]$/, '') + '/privacy-center/data-principal-request?siteKey=' + encodeURIComponent(SITE_KEY);
   }
 
   function appendDataPrincipalRightsControl(parent, style) {
