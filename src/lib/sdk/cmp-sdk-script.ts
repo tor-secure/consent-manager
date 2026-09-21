@@ -48,6 +48,13 @@ import {
   INDIAN_NOTICE_PACKS,
   INDIAN_UI_STRINGS,
 } from "@/lib/i18n/indian-notice-translations";
+import {
+  DEFAULT_EXTRA_UI,
+  EXTRA_UI,
+  LEGAL_BASIS,
+  NOTICE_TEXT_CATALOG,
+  PURPOSE_PACKS,
+} from "@/lib/i18n/indian-entity-translations";
 
 export function buildCmpSdkScript(options: {
   siteKey: string;
@@ -156,6 +163,10 @@ ${apiBaseLine}
   var INDIAN_NOTICE_PACKS = ${JSON.stringify(INDIAN_NOTICE_PACKS)};
   var INDIAN_UI_STRINGS = ${JSON.stringify(INDIAN_UI_STRINGS)};
   var INDIAN_LOCALE_NATIVE_LABELS = ${JSON.stringify(INDIAN_LOCALE_NATIVE_LABELS)};
+  var NOTICE_TEXT_CATALOG = ${JSON.stringify(NOTICE_TEXT_CATALOG)};
+  var PURPOSE_PACKS = ${JSON.stringify(PURPOSE_PACKS)};
+  var EXTRA_UI_PACKS = ${JSON.stringify({ en: DEFAULT_EXTRA_UI, ...EXTRA_UI })};
+  var LEGAL_BASIS_PACKS = ${JSON.stringify(LEGAL_BASIS)};
 
   var _config      = null;
   var _policyContext = null;
@@ -189,6 +200,7 @@ ${apiBaseLine}
   var _configHash = '';
   var _california = null;
   var _noticeRoot = null;
+  var _purposeRoot = null;
   var _quarantinedNodes = [];
   var _enforcementObserver = null;
   var _enforcementMutating = false;
@@ -519,6 +531,29 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     return INDIAN_UI_STRINGS[base] || DEFAULT_BANNER_UI_STRINGS;
   }
 
+  function extraUiFor(lang) {
+    var base = localeBase(lang || (_config && _config.resolvedLanguage) || 'en');
+    return EXTRA_UI_PACKS[base] || EXTRA_UI_PACKS.en || {};
+  }
+
+  function catalogLookup(english, lang) {
+    var text = String(english || '').trim();
+    if (!text) return '';
+    var base = localeBase(lang);
+    if (!base || base === 'en') return '';
+    var row = NOTICE_TEXT_CATALOG[text];
+    if (!row) return '';
+    return row[lang] || row[base] || '';
+  }
+
+  function knownPurposeFamily(purpose) {
+    var key = String((purpose && purpose.key) || '').trim().toLowerCase();
+    if (PURPOSE_KEY_FAMILIES[key]) return PURPOSE_KEY_FAMILIES[key];
+    var name = String((purpose && purpose.name) || '').trim().toLowerCase();
+    if (PURPOSE_KEY_FAMILIES[name]) return PURPOSE_KEY_FAMILIES[name];
+    return '';
+  }
+
   function applyLocalNotice(lang) {
     if (!_config || !_config.bannerConfig) return;
     var cfg = _config.bannerConfig;
@@ -538,12 +573,32 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         return;
       }
       var rootVal = root[field] || DEFAULT_NOTICE_STRINGS[field];
+      var fromCatalog = catalogLookup(rootVal, lang);
+      if (fromCatalog) {
+        cfg[field] = fromCatalog;
+        return;
+      }
       if (builtin[field] && (!rootVal || rootVal === DEFAULT_NOTICE_STRINGS[field])) {
         cfg[field] = builtin[field];
         return;
       }
       cfg[field] = rootVal || DEFAULT_NOTICE_STRINGS[field];
     });
+    if (_config.purposes && _config.purposes.length) {
+      var roots = _purposeRoot || [];
+      _config.purposes.forEach(function(p) {
+        var rootP = null;
+        for (var i = 0; i < roots.length; i++) {
+          if (roots[i].id === p.id || roots[i].key === p.key) { rootP = roots[i]; break; }
+        }
+        var source = rootP || { key: p.key, name: p.name, description: p.description };
+        var opPurpose = (operator.purposes && (operator.purposes[p.key] || operator.purposes[p.id])) || {};
+        var family = knownPurposeFamily(source);
+        var familyCopy = (PURPOSE_PACKS[base] || {})[family];
+        p.name = opPurpose.name || catalogLookup(source.name, lang) || (familyCopy && PURPOSE_KEY_FAMILIES[String(source.name || '').trim().toLowerCase()] ? familyCopy.name : '') || source.name;
+        p.description = opPurpose.description || catalogLookup(source.description, lang) || source.description || '';
+      });
+    }
     _config.resolvedLanguage = lang || base;
     if (_config.locale) {
       _config.locale.resolved = _config.resolvedLanguage;
@@ -1663,7 +1718,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function appendNewTag(parent) {
     var tag = document.createElement('span');
-    tag.textContent = 'New';
+    tag.textContent = extraUiFor(_config && _config.resolvedLanguage).newTag || 'New';
     tag.setAttribute('style',
       'font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;'
       + 'background:rgba(245,158,11,0.18);color:#b45309;'
@@ -2082,9 +2137,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function currentReceiptStatusLabel() {
+    var extra = extraUiFor(_config && _config.resolvedLanguage);
     var child = childProtectionState();
     if (child && (child.ageStatus === 'under' || child.ageStatus === 'minor' || child.ageStatus === 'child' || child.ageStatus === 'age_restricted')) {
-      return 'Essential only';
+      return extra.essentialOnly || 'Essential only';
     }
     var purposes = (_config && _config.purposes) || [];
     var optional = 0;
@@ -2094,9 +2150,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       optional += 1;
       if (currentPurposeGranted(purposes[i].id)) grantedOpt += 1;
     }
-    if (!optional || grantedOpt === 0) return 'Essential only';
-    if (grantedOpt === optional) return 'Full consent';
-    return 'Custom';
+    if (!optional || grantedOpt === 0) return extra.essentialOnly || 'Essential only';
+    if (grantedOpt === optional) return extra.fullConsent || 'Full consent';
+    return extra.customConsent || 'Custom';
   }
 
   function storedConsentMeta() {
@@ -2184,10 +2240,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       ? 'right:16px;left:auto;'
       : 'left:16px;right:auto;';
 
+    var extra = extraUiFor(_config.resolvedLanguage);
     var panel = document.createElement('div');
     panel.id = '__cmp_prefs__';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', 'Cookie Preferences');
+    panel.setAttribute('aria-label', extra.cookiePreferences || 'Cookie Preferences');
     panel.setAttribute('dir', noticeDirection());
     panel.style.cssText = 'position:fixed;bottom:16px;' + corner
       + 'z-index:2147483646;width:min(360px,calc(100vw - 24px));background:#fff;color:#0F172A;'
@@ -2200,7 +2257,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     title.style.cssText = 'display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#0B2C4A;flex:1;min-width:0;';
     title.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B2C4A" stroke-width="2" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6z"/></svg>';
     var titleText = document.createElement('span');
-    titleText.textContent = 'Cookie Preferences';
+    titleText.textContent = extra.cookiePreferences || 'Cookie Preferences';
     title.appendChild(titleText);
 
     var locales = availableLocales();
@@ -2253,14 +2310,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       p.appendChild(v);
       metaBox.appendChild(p);
     }
-    metaLine('Status:', currentReceiptStatusLabel());
-    metaLine('Consent given:', formatReceiptDate(meta.consentedAt));
-    metaLine('Expires:', formatReceiptDate(meta.expiresAt));
-    metaLine('Key:', meta.consentId);
+    metaLine(extra.status || 'Status:', currentReceiptStatusLabel());
+    metaLine(extra.consentGiven || 'Consent given:', formatReceiptDate(meta.consentedAt));
+    metaLine(extra.expires || 'Expires:', formatReceiptDate(meta.expiresAt));
+    metaLine(extra.consentKey || 'Key:', meta.consentId);
     panel.appendChild(metaBox);
 
     var catLabel = document.createElement('div');
-    catLabel.textContent = 'Active categories:';
+    catLabel.textContent = extra.activeCategories || 'Active categories:';
     catLabel.style.cssText = 'font-size:12px;color:#475569;margin:4px 0 6px;';
     panel.appendChild(catLabel);
 
@@ -2288,7 +2345,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     var download = document.createElement('button');
     download.type = 'button';
-    download.textContent = 'Download Receipt';
+    download.textContent = extra.downloadReceipt || 'Download Receipt';
     download.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E2E8F0;background:#fff;color:#0F172A;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;';
     download.addEventListener('click', downloadConsentReceipt);
     _submitButtons.push(download);
@@ -2296,7 +2353,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     var revoke = document.createElement('button');
     revoke.type = 'button';
-    revoke.textContent = 'Revoke Consent (DPDP Section 6(4))';
+    revoke.textContent = extra.revokeConsent || 'Revoke Consent (DPDP Section 6(4))';
     revoke.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#EF4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
     revoke.addEventListener('click', function() {
       revoke.disabled = true;
@@ -2364,7 +2421,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!parent || !visitorRequestedDoNotTrack() || consentIsServerConfirmed()) return;
     var p = document.createElement('p');
     p.setAttribute('data-cmp-dnt-notice', 'true');
-    p.textContent = 'Your browser sent a Do Not Track request. Optional cookies stay off unless you accept.';
+    p.textContent = extraUiFor(_config && _config.resolvedLanguage).doNotTrack || 'Your browser sent a Do Not Track request. Optional cookies stay off unless you accept.';
     p.style.cssText = 'margin:0;font-size:12px;line-height:1.5;opacity:0.8;';
     parent.appendChild(p);
   }
@@ -2562,7 +2619,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     p1.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;color:#64748B;';
 
     var p2 = document.createElement('p');
-    p2.textContent = 'No analytics, marketing, or behavioral tracking data will be collected. If your parent or guardian wishes to provide consent on your behalf, please contact our Data Protection Officer.';
+    p2.textContent = extraUiFor(_config && _config.resolvedLanguage).parentalBody2 || 'No analytics, marketing, or behavioral tracking data will be collected. If your parent or guardian wishes to provide consent on your behalf, please contact our Data Protection Officer.';
     p2.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;color:#64748B;';
 
     copy.appendChild(title);
@@ -3242,7 +3299,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         }
         if (purposeIsChildRestricted(p) && !childRestrictedProcessingAllowed()) {
           var childTag = document.createElement('span');
-          childTag.textContent = 'Age-restricted';
+          childTag.textContent = extraUiFor(_config && _config.resolvedLanguage).ageRestricted || 'Age-restricted';
           childTag.setAttribute('style',
             'font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;'
             + 'background:rgba(180,83,9,0.12);color:#9a3412;'
@@ -3267,7 +3324,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           lb.style.marginTop = '4px';
           lb.style.fontSize = '11px';
           lb.style.opacity = '0.55';
-          lb.textContent = p.legalBasis;
+          var lbPack = LEGAL_BASIS_PACKS[localeBase(_config && _config.resolvedLanguage)] || {};
+          lb.textContent = lbPack[p.legalBasis] || String(p.legalBasis).replace(/_/g, ' ');
           meta.appendChild(lb);
         }
 
@@ -3727,6 +3785,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           }
           _config = applyAssignedAbTest(data);
           if (data.noticeRoot) _noticeRoot = data.noticeRoot;
+          if (data.purposeRoot) _purposeRoot = data.purposeRoot;
           rememberPolicyContext(presentedPolicyContext(data));
           applyLocalNotice(_explicitLang);
           _hostScroll.beginTransition();
@@ -4035,6 +4094,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var previousVisualKey = bannerVisualKey(_config);
     var bannerWasOpen = !!document.getElementById('__cmp_banner__');
     if (data.noticeRoot) _noticeRoot = data.noticeRoot;
+    if (data.purposeRoot) _purposeRoot = data.purposeRoot;
     _config = applyAssignedAbTest(data);
     if (_explicitLang) applyLocalNotice(_explicitLang);
     rememberPolicyContext(presentedPolicyContext(data));

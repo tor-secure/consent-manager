@@ -8,7 +8,10 @@
     "strict": true,
     "noEmit": false,
     "rootDir": "src",
-    "outDir": ".tmp/test-libs"
+    "outDir": ".tmp/test-libs",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "files": [
     "src/lib/scanner/scan-schedule.ts",
@@ -18,6 +21,8 @@
     "src/lib/i18n/locale-registry.ts",
     "src/lib/i18n/resolve-notice.ts",
     "src/lib/i18n/indian-notice-translations.ts",
+    "src/lib/i18n/indian-entity-translations.ts",
+    "src/lib/sdk/purpose-aliases.ts",
     "src/lib/sdk/scroll-lock.ts"
   ]
 }

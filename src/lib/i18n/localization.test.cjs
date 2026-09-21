@@ -108,6 +108,60 @@ assert.equal(
 );
 assert.equal(EIGHTH_SCHEDULE_LOCALES.length, 22);
 
+const {
+  localizePurposeCopy,
+  translateCatalogString,
+} = compiled("lib/i18n/indian-entity-translations.js");
+
+assert.equal(
+  resolveNotice({
+    requestedLocale: "hi",
+    defaultLocale: "en",
+    root: {
+      ...DEFAULT_NOTICE_STRINGS,
+      title: "Your privacy choices",
+      description:
+        "We process personal data for the purposes described here. Necessary processing keeps the site working. Other purposes require your consent, which you can withdraw later.",
+    },
+    translations: {},
+  }).title,
+  "आपकी गोपनीयता संबंधी पसंद",
+);
+assert.equal(
+  resolveNotice({
+    requestedLocale: "hi",
+    defaultLocale: "en",
+    root: {
+      ...DEFAULT_NOTICE_STRINGS,
+      title: "Your privacy choices",
+      description:
+        "We process personal data for the purposes described here. Necessary processing keeps the site working. Other purposes require your consent, which you can withdraw later.",
+    },
+    translations: {},
+  }).description.includes("व्यक्तिगत डेटा"),
+  true,
+);
+assert.equal(translateCatalogString("We use cookies", "ta"), "நாங்கள் குக்கீகளைப் பயன்படுத்துகிறோம்");
+assert.equal(
+  localizePurposeCopy(
+    {
+      key: "necessary",
+      name: "Necessary",
+      description:
+        "These cookies are required for the website to work. They keep the site secure, remember your consent choice, and support essential features such as login.",
+    },
+    "hi",
+  ).name,
+  "आवश्यक",
+);
+assert.equal(
+  localizePurposeCopy(
+    { key: "necessary", name: "Checkout security", description: "Keeps the cart and login session working." },
+    "hi",
+  ).name,
+  "Checkout security",
+);
+
 assert.equal(pickTranslationKey("fr-CA", ["fr-FR"], "en"), null);
 assert.equal(pickTranslationKey("fr-CA", ["fr"], "en"), "fr");
 assert.equal(pickTranslationKey("pt-BR", ["pt"], "en"), "pt");

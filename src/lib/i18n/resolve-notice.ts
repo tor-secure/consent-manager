@@ -5,6 +5,7 @@ import {
   type TextDirection,
 } from "./locale-registry";
 import { builtinNoticeForLocale } from "./indian-notice-translations";
+import { translateCatalogString } from "./indian-entity-translations";
 
 export const BANNER_TEXT_FIELDS = [
   "title",
@@ -161,9 +162,10 @@ export function resolveNotice(input: {
     const localized = pack ? nonEmpty(pack[field]) : undefined;
     const rootVal = nonEmpty(root[field]) ?? DEFAULT_NOTICE_STRINGS[field];
     const rootIsDefault = rootVal === DEFAULT_NOTICE_STRINGS[field];
+    const catalogVal = translateCatalogString(rootVal, requested);
     const builtinVal = builtin && rootIsDefault ? nonEmpty(builtin[field]) : undefined;
     const fallback = nonEmpty(merged[field]) ?? DEFAULT_NOTICE_STRINGS[field];
-    merged[field] = localized ?? builtinVal ?? fallback;
+    merged[field] = localized ?? catalogVal ?? builtinVal ?? fallback;
   }
 
   const resolvedLocale = presentedLocale(

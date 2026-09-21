@@ -5,6 +5,7 @@ import type { BannerConfiguration, BannerPosition } from "@/lib/banner-config";
 import { applyResolvedNotice, bannerUsesOverlay, resolveTranslation } from "@/lib/banner-config";
 import { DEFAULT_BANNER_LOCALES } from "@/lib/i18n/locale-registry";
 import { builtinUiStringsForLocale, nativeLocaleLabel } from "@/lib/i18n/indian-notice-translations";
+import { extraUiStringsForLocale, localizePurposeCopy } from "@/lib/i18n/indian-entity-translations";
 
 interface BannerRendererProps {
   config: BannerConfiguration;
@@ -181,15 +182,19 @@ function DpdpAgeNotice({
 
 function ParentalConsentDialog({
   config,
+  locale,
   onBack,
   onUnderstand,
 }: {
   config: BannerConfiguration;
+  locale: string;
   onBack: () => void;
   onUnderstand: () => void;
 }) {
   const privacyUrl = config.privacyPolicyUrl?.trim();
   const cookieUrl = config.cookiePolicyUrl?.trim();
+  const ui = builtinUiStringsForLocale(locale);
+  const extra = extraUiStringsForLocale(locale);
   const outline: React.CSSProperties = {
     padding: "8px 16px",
     borderRadius: 10,
@@ -257,16 +262,13 @@ function ParentalConsentDialog({
           </div>
           <div style={{ minWidth: 0 }}>
             <h2 id="cmp-parental-title" style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 700, color: "#0F172A" }}>
-              Parental Consent Required
+              {ui.parentalTitle}
             </h2>
             <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55, color: "#64748B" }}>
-              Under DPDP Act Section 9, processing personal data of individuals under 18 requires verifiable parental
-              or guardian consent. We have automatically limited data collection to only essential cookies required for
-              the website to function.
+              {ui.parentalBody}
             </p>
             <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55, color: "#64748B" }}>
-              No analytics, marketing, or behavioral tracking data will be collected. If your parent or guardian wishes
-              to provide consent on your behalf, please contact our Data Protection Officer.
+              {extra.parentalBody2}
             </p>
             {(privacyUrl || cookieUrl) && (
               <p style={{ margin: "0 0 10px", fontSize: 13, lineHeight: 1.55 }}>
@@ -613,7 +615,8 @@ export function BannerRenderer({
       </div>
       {parentalOpen && (
         <ParentalConsentDialog
-          config={config}
+          config={text}
+          locale={lang}
           onBack={() => setParentalOpen(false)}
           onUnderstand={() => setParentalOpen(false)}
         />
@@ -623,15 +626,22 @@ export function BannerRenderer({
 }
 
 const PREVIEW_PURPOSES = [
-  { name: "Necessary", required: true, description: "Required for security, login, and storing this consent choice." },
-  { name: "Functional", required: false, description: "Remembers language, region, and other site preferences." },
-  { name: "Analytics", required: false, description: "Helps us understand how visitors use the site so we can improve it." },
-  { name: "Advertising", required: false, description: "Used to show relevant ads and measure campaigns." },
-  { name: "Personalization", required: false, description: "Shows more relevant content and recommendations." },
+  { key: "necessary", name: "Necessary", required: true, description: "Required for security, login, and storing this consent choice." },
+  { key: "functional", name: "Functional", required: false, description: "Remembers language, region, and other site preferences." },
+  { key: "analytics", name: "Analytics", required: false, description: "Helps us understand how visitors use the site so we can improve it." },
+  { key: "advertising", name: "Advertising", required: false, description: "Used to show relevant ads and measure campaigns." },
+  { key: "personalization", name: "Personalization", required: false, description: "Shows more relevant content and recommendations." },
 ];
 
 export function PreferenceCenterPreview({ config }: { config: BannerConfiguration }) {
-  const ui = builtinUiStringsForLocale(config.language || "en");
+  const locale = config.language || "en";
+  const text = applyResolvedNotice(config, resolveTranslation(config, locale));
+  const ui = builtinUiStringsForLocale(locale);
+  const extra = extraUiStringsForLocale(locale);
+  const purposes = PREVIEW_PURPOSES.map((purpose) => ({
+    ...purpose,
+    ...localizePurposeCopy(purpose, locale),
+  }));
   return (
     <div className="absolute inset-0 z-20" aria-label="Preference center preview">
       <div className="absolute inset-0" style={{ background: "rgba(15,23,42,0.45)" }} />
@@ -668,10 +678,10 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
         >
           <div style={{ minWidth: 0 }}>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: "-0.01em" }}>
-              {config.preferenceCenterTitle || "Manage your preferences"}
+              {text.preferenceCenterTitle || "Manage your preferences"}
             </h2>
             <p style={{ margin: "6px 0 0 0", fontSize: 13, opacity: 0.7, lineHeight: 1.5 }}>
-              {config.preferenceCenterDescription ||
+              {text.preferenceCenterDescription ||
                 "Customize which purposes and vendors you allow. You can change your choices at any time."}
             </p>
           </div>
@@ -715,10 +725,10 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
               opacity: 0.6,
             }}
           >
-            {config.purposesHeading || "Purposes"}
+            {text.purposesHeading || "Purposes"}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {PREVIEW_PURPOSES.map((purpose) => (
+            {purposes.map((purpose) => (
               <div
                 key={purpose.name}
                 style={{
@@ -744,7 +754,7 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
                           background: "rgba(15,23,42,0.08)",
                         }}
                       >
-                        {config.requiredLabel || "Required"}
+                        {text.requiredLabel || extra.required}
                       </span>
                     )}
                   </div>
@@ -790,7 +800,7 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
                 color: config.primaryColor,
               }}
             >
-              {config.rejectAllLabel || "Reject all"}
+              {text.rejectAllLabel || "Reject all"}
             </span>
           )}
           <span
@@ -803,7 +813,7 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
               color: "#fff",
             }}
           >
-            {config.savePreferencesLabel || "Save preferences"}
+            {text.savePreferencesLabel || "Save preferences"}
           </span>
           <a
             href="/privacy-center/data-principal-request"

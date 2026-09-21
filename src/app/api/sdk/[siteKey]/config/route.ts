@@ -11,6 +11,7 @@ import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
 import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText, noticeRootFromConfig } from "@/lib/banner-config";
+import { localizePurposeCopy } from "@/lib/i18n/indian-entity-translations";
 import { applyAbOverrides, parseBannerAbTest } from "@/lib/intelligence/ab-test";
 import { DEFAULT_BANNER_LOCALES, resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
@@ -456,10 +457,18 @@ export async function GET(
       offers: negotiation?.offers ?? [],
       requiredPurposeKeys: versionPurposes.filter((purpose) => purpose.isRequired).map((purpose) => purpose.key),
     });
+    const purposeRoot = versionPurposes.map((purpose) => ({
+      id: purpose.id,
+      key: purpose.key,
+      name: purpose.name,
+      description: purpose.description,
+      legalBasis: purpose.legalBasis,
+    }));
     const publicPurposes = versionPurposes.map((purpose) => {
-      const overlay = overlayEntityText(
+      const localized = localizePurposeCopy(
         { key: purpose.key, name: purpose.name, description: purpose.description },
-        resolvedNotice.purposes,
+        resolvedNotice.resolvedLocale,
+        resolvedNotice.purposes[purpose.key],
       );
       return {
         ...purpose,
@@ -467,8 +476,8 @@ export async function GET(
           purpose.iabTcfPurposeId ??
           integrations.iabTcf.purposeMappings[purpose.id] ??
           null,
-        name: overlay.name,
-        description: overlay.description,
+        name: localized.name,
+        description: localized.description,
       };
     });
     const publicVendors = resolvedVendors.map((vendor) => {
@@ -577,6 +586,7 @@ export async function GET(
         policyContext,
         policyContexts,
         purposes: publicPurposes,
+        purposeRoot,
         vendors: publicVendors,
         trackerRules,
         trackerEnforcement: integrations.trackerEnforcement,
