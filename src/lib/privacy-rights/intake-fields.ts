@@ -62,7 +62,9 @@ export function sanitizePreferredLanguage(value: unknown): PreferredLanguageValu
 }
 
 export function dataCategoryLabels(values: string[]): string[] {
-  const map = new Map(DATA_CATEGORY_OPTIONS.map((option) => [option.value, option.label]));
+  const map = new Map<string, string>(
+    DATA_CATEGORY_OPTIONS.map((option) => [option.value, option.label]),
+  );
   return values.map((value) => map.get(value) ?? value);
 }
 
