@@ -200,9 +200,10 @@ function ParentalConsentDialog({
         if (e.target === e.currentTarget) onBack();
       }}
       style={{
-        position: "absolute",
+        position: "fixed",
         inset: 0,
-        zIndex: 10000,
+        zIndex: 2147483647,
+        pointerEvents: "auto",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -276,10 +277,24 @@ function ParentalConsentDialog({
           </div>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 18 }}>
-          <button type="button" onClick={onBack} style={outline}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBack();
+            }}
+            style={outline}
+          >
             Go Back
           </button>
-          <button type="button" onClick={onUnderstand} style={outline}>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onUnderstand();
+            }}
+            style={outline}
+          >
             I Understand
           </button>
         </div>

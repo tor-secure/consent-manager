@@ -2395,7 +2395,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     link.type = 'button';
     link.textContent = 'I am under 18';
     link.style.cssText = 'display:inline;background:none;border:none;padding:0;margin:0;font:inherit;color:#B45309;text-decoration:underline;cursor:pointer;font-weight:600;';
-    link.addEventListener('click', function() {
+    link.addEventListener('click', function(e) {
+      if (e && e.preventDefault) e.preventDefault();
+      if (e && e.stopPropagation) e.stopPropagation();
       showParentalConsentDialog();
     });
     box.appendChild(link);
@@ -2405,6 +2407,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function removeParentalConsentDialog() {
     var el = document.getElementById('__cmp_parental__');
     if (el && el.parentNode) el.parentNode.removeChild(el);
+    var overlay = document.getElementById('__cmp_banner_overlay__');
+    if (overlay) overlay.style.pointerEvents = 'auto';
   }
 
   function appendPolicyAnchor(parent, href, label) {
@@ -2445,10 +2449,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     wrap.setAttribute('role', 'dialog');
     wrap.setAttribute('aria-modal', 'true');
     wrap.setAttribute('aria-labelledby', '__cmp_parental_title__');
-    wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);';
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,0.45);pointer-events:auto !important;touch-action:auto;';
+    var bannerOverlay = document.getElementById('__cmp_banner_overlay__');
+    if (bannerOverlay) bannerOverlay.style.pointerEvents = 'none';
 
     var card = document.createElement('div');
-    card.style.cssText = 'width:min(560px,100%);background:#F8FBFF;border:1px solid #BFDBFE;border-radius:16px;padding:20px 20px 16px;box-shadow:0 20px 50px rgba(15,23,42,0.18);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#334155;';
+    card.style.cssText = 'position:relative;z-index:1;pointer-events:auto;width:min(560px,100%);background:#F8FBFF;border:1px solid #BFDBFE;border-radius:16px;padding:20px 20px 16px;box-shadow:0 20px 50px rgba(15,23,42,0.18);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#334155;';
 
     var row = document.createElement('div');
     row.style.cssText = 'display:flex;gap:12px;align-items:flex-start;';
@@ -2514,21 +2520,36 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     card.appendChild(row);
 
     var actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;justify-content:space-between;gap:12px;margin-top:18px;';
+    actions.style.cssText = 'display:flex;justify-content:space-between;gap:12px;margin-top:18px;pointer-events:auto;position:relative;z-index:2;';
+
+    function bindParentalAction(el, fn) {
+      var done = false;
+      function run(e) {
+        if (done) return;
+        done = true;
+        if (e) {
+          if (e.preventDefault) e.preventDefault();
+          if (e.stopPropagation) e.stopPropagation();
+        }
+        fn();
+      }
+      el.addEventListener('pointerup', run);
+      el.addEventListener('click', run);
+    }
 
     var back = document.createElement('button');
     back.type = 'button';
     back.textContent = 'Go Back';
-    back.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;';
-    back.addEventListener('click', function() {
+    back.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;pointer-events:auto;';
+    bindParentalAction(back, function() {
       removeParentalConsentDialog();
     });
 
     var ok = document.createElement('button');
     ok.type = 'button';
     ok.textContent = 'I Understand';
-    ok.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;';
-    ok.addEventListener('click', function() {
+    ok.style.cssText = 'padding:8px 16px;border-radius:10px;border:1px solid #CBD5E1;background:#fff;color:#334155;cursor:pointer;font-size:13px;font-weight:500;pointer-events:auto;';
+    bindParentalAction(ok, function() {
       confirmUnder18();
     });
 
@@ -2539,7 +2560,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     wrap.addEventListener('click', function(e) {
       if (e.target === wrap) removeParentalConsentDialog();
     });
-    (document.body || document.documentElement).appendChild(wrap);
+    (document.documentElement || document.body).appendChild(wrap);
     try { ok.focus(); } catch (eFocus) {}
   }
 
@@ -2609,7 +2630,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       overlay.setAttribute(
         'style',
         'position:fixed;inset:0;background:' + (overlayTint ? 'rgba(15,23,42,0.45)' : 'transparent') + ';'
-        + 'z-index:2147483646;pointer-events:auto;'
+        + 'z-index:2147483644;pointer-events:auto;'
       );
       overlay.addEventListener('click', function() {
         if (cfg.closeOnOverlayClick && !cfg.blockPageUntilConsent) {
@@ -2636,7 +2657,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       + 'border-radius:' + radius + 'px;'
       + 'padding:' + pad + ';'
       + 'box-shadow:0 8px 32px rgba(15,23,42,0.18);'
-      + 'z-index:2147483647;'
+      + 'z-index:2147483645;'
       + 'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;'
       + 'text-align:start;box-sizing:border-box;'
       + (layout === 'bar'

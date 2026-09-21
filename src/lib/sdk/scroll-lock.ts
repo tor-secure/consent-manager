@@ -37,7 +37,7 @@ function createHostScrollLock(window, document) {
     var n = node;
     while (n && n !== document && n !== window) {
       var id = n.id || (n.getAttribute && n.getAttribute('id'));
-      if (id === '__cmp_banner__' || id === '__cmp_banner_overlay__' || id === '__cmp_pc__' || id === '__cmp_pc_overlay__') return true;
+      if (id === '__cmp_banner__' || id === '__cmp_banner_overlay__' || id === '__cmp_pc__' || id === '__cmp_pc_overlay__' || id === '__cmp_parental__' || id === '__cmp_prefs__') return true;
       n = n.parentNode || n.parentElement;
     }
     return false;
@@ -54,6 +54,8 @@ function createHostScrollLock(window, document) {
   function consentUiOpen() {
     return !!(
       (document.getElementById && document.getElementById('__cmp_pc__')) ||
+      (document.getElementById && document.getElementById('__cmp_parental__')) ||
+      (document.getElementById && document.getElementById('__cmp_prefs__')) ||
       (document.getElementById && document.getElementById('__cmp_banner_overlay__')) ||
       (document.getElementById && document.getElementById('__cmp_banner__'))
     );
@@ -102,7 +104,11 @@ function createHostScrollLock(window, document) {
       'html[' + ATTR + '] #__cmp_banner__,' +
       'html[' + ATTR + '] #__cmp_banner_overlay__,' +
       'html[' + ATTR + '] #__cmp_pc__,' +
-      'html[' + ATTR + '] #__cmp_pc_overlay__{pointer-events:auto !important;touch-action:auto;}';
+      'html[' + ATTR + '] #__cmp_pc_overlay__,' +
+      'html[' + ATTR + '] #__cmp_parental__,' +
+      'html[' + ATTR + '] #__cmp_parental__ *,' +
+      'html[' + ATTR + '] #__cmp_prefs__,' +
+      'html[' + ATTR + '] #__cmp_prefs__ *{pointer-events:auto !important;touch-action:auto;}';
     var head = document.head || htmlEl();
     if (head && head.appendChild) head.appendChild(style);
   }

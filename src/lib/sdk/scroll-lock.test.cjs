@@ -138,6 +138,11 @@ const pc = mount("__cmp_pc__", host);
 host.window.listeners.wheel[0]({ target: pc, cancelable: true, preventDefault() { prevented.push("pc"); } });
 assert.equal(prevented.includes("pc"), false);
 assert.ok(String(host.head.children[0].textContent).includes("#__cmp_pc__"));
+assert.ok(String(host.head.children[0].textContent).includes("#__cmp_parental__"));
+const parental = mount("__cmp_parental__", host);
+host.window.listeners.wheel[0]({ target: parental, cancelable: true, preventDefault() { prevented.push("parental"); } });
+assert.equal(prevented.includes("parental"), false);
+host.document.body.removeChild(parental);
 
 host.document.body.removeChild(pc);
 
