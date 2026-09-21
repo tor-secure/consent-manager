@@ -450,7 +450,7 @@ export function PreferenceCenter({
 
       {cfg.showPoweredBy && (
         <p className="px-6 pb-3 text-right text-xs opacity-30">
-          {cfg.poweredByText || "Powered by CMP"}
+          {cfg.poweredByText || "Powered by Consent Guru"}
         </p>
       )}
     </div>

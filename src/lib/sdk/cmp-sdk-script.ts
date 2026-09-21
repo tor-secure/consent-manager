@@ -40,6 +40,14 @@
 import { HOST_SCROLL_LOCK_RUNTIME } from "@/lib/sdk/scroll-lock";
 import { PURPOSE_KEY_FAMILIES } from "@/lib/sdk/purpose-aliases";
 import { BUILTIN_TRACKER_CATALOG } from "@/lib/sdk/tracker-catalog";
+import { DEFAULT_BANNER_LOCALES } from "@/lib/i18n/locale-registry";
+import { DEFAULT_NOTICE_STRINGS } from "@/lib/i18n/resolve-notice";
+import {
+  DEFAULT_BANNER_UI_STRINGS,
+  INDIAN_LOCALE_NATIVE_LABELS,
+  INDIAN_NOTICE_PACKS,
+  INDIAN_UI_STRINGS,
+} from "@/lib/i18n/indian-notice-translations";
 
 export function buildCmpSdkScript(options: {
   siteKey: string;
@@ -142,6 +150,12 @@ ${apiBaseLine}
   }
   var BUILTIN_TRACKER_CATALOG = ${JSON.stringify(BUILTIN_TRACKER_CATALOG)};
   var PURPOSE_KEY_FAMILIES = ${JSON.stringify(PURPOSE_KEY_FAMILIES)};
+  var DEFAULT_BANNER_LOCALES = ${JSON.stringify(DEFAULT_BANNER_LOCALES)};
+  var DEFAULT_NOTICE_STRINGS = ${JSON.stringify(DEFAULT_NOTICE_STRINGS)};
+  var DEFAULT_BANNER_UI_STRINGS = ${JSON.stringify(DEFAULT_BANNER_UI_STRINGS)};
+  var INDIAN_NOTICE_PACKS = ${JSON.stringify(INDIAN_NOTICE_PACKS)};
+  var INDIAN_UI_STRINGS = ${JSON.stringify(INDIAN_UI_STRINGS)};
+  var INDIAN_LOCALE_NATIVE_LABELS = ${JSON.stringify(INDIAN_LOCALE_NATIVE_LABELS)};
 
   var _config      = null;
   var _policyContext = null;
@@ -174,6 +188,7 @@ ${apiBaseLine}
   var _configRevision = '';
   var _configHash = '';
   var _california = null;
+  var _noticeRoot = null;
   var _quarantinedNodes = [];
   var _enforcementObserver = null;
   var _enforcementMutating = false;
@@ -467,15 +482,73 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (_config && _config.locale && _config.locale.direction) return _config.locale.direction;
     var lang = (_config && _config.resolvedLanguage) || '';
     var base = String(lang).split('-')[0].toLowerCase();
-    return (base === 'ar' || base === 'he' || base === 'fa' || base === 'ur') ? 'rtl' : 'ltr';
+    return (base === 'ar' || base === 'he' || base === 'fa' || base === 'ur' || base === 'ks' || base === 'sd') ? 'rtl' : 'ltr';
+  }
+
+  function localeBase(lang) {
+    var raw = String(lang || 'en').split('-')[0].toLowerCase();
+    return raw === 'bodo' ? 'brx' : raw;
   }
 
   function availableLocales() {
     var supported = (_config && _config.locale && _config.locale.supported) || [];
     var translations = (_config && _config.bannerConfig && _config.bannerConfig.translations) || {};
-    var codes = supported.length ? supported.slice() : Object.keys(translations);
+    var codes = supported.length ? supported.slice() : DEFAULT_BANNER_LOCALES.slice();
+    Object.keys(translations).forEach(function(code) {
+      if (codes.indexOf(code) === -1) codes.push(code);
+    });
     if (codes.indexOf('en') === -1) codes.unshift('en');
     return codes;
+  }
+
+  function languageDisplayName(code) {
+    var raw = String(code || 'en');
+    var base = localeBase(raw);
+    if (INDIAN_LOCALE_NATIVE_LABELS[raw]) return INDIAN_LOCALE_NATIVE_LABELS[raw];
+    if (INDIAN_LOCALE_NATIVE_LABELS[base]) return INDIAN_LOCALE_NATIVE_LABELS[base];
+    try {
+      if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+        return new Intl.DisplayNames(['en'], { type: 'language' }).of(base) || raw;
+      }
+    } catch (eLang) {}
+    return raw === 'en' ? 'English' : raw;
+  }
+
+  function uiStringsFor(lang) {
+    var base = localeBase(lang || (_config && _config.resolvedLanguage) || 'en');
+    return INDIAN_UI_STRINGS[base] || DEFAULT_BANNER_UI_STRINGS;
+  }
+
+  function applyLocalNotice(lang) {
+    if (!_config || !_config.bannerConfig) return;
+    var cfg = _config.bannerConfig;
+    var base = localeBase(lang);
+    var root = _noticeRoot || {};
+    var builtin = INDIAN_NOTICE_PACKS[base] || {};
+    var operatorPacks = cfg.translations || {};
+    var operator = operatorPacks[lang] || operatorPacks[base] || {};
+    var fields = [
+      'title', 'description', 'acceptAllLabel', 'rejectAllLabel', 'customizeLabel',
+      'savePreferencesLabel', 'privacyPolicyText', 'closeLabel', 'preferenceCenterTitle',
+      'preferenceCenterDescription', 'purposesHeading', 'vendorsHeading', 'requiredLabel'
+    ];
+    fields.forEach(function(field) {
+      if (operator[field]) {
+        cfg[field] = operator[field];
+        return;
+      }
+      var rootVal = root[field] || DEFAULT_NOTICE_STRINGS[field];
+      if (builtin[field] && (!rootVal || rootVal === DEFAULT_NOTICE_STRINGS[field])) {
+        cfg[field] = builtin[field];
+        return;
+      }
+      cfg[field] = rootVal || DEFAULT_NOTICE_STRINGS[field];
+    });
+    _config.resolvedLanguage = lang || base;
+    if (_config.locale) {
+      _config.locale.resolved = _config.resolvedLanguage;
+      _config.locale.direction = noticeDirection();
+    }
   }
 
   function googleDefaultState() {
@@ -2008,16 +2081,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     return (d.getMonth() + 1) + '/' + d.getDate() + '/' + d.getFullYear();
   }
 
-  function languageDisplayName(code) {
-    var raw = String(code || 'en');
-    try {
-      if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
-        return new Intl.DisplayNames(['en'], { type: 'language' }).of(raw.split('-')[0]) || raw;
-      }
-    } catch (eLang) {}
-    return raw === 'en' ? 'English' : raw;
-  }
-
   function currentReceiptStatusLabel() {
     var child = childProtectionState();
     if (child && (child.ageStatus === 'under' || child.ageStatus === 'minor' || child.ageStatus === 'child' || child.ageStatus === 'age_restricted')) {
@@ -2384,17 +2447,18 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!parent) return;
     var child = childProtectionState();
     if (child.ageStatus === 'under') return;
+    var ui = uiStringsFor(_config && _config.resolvedLanguage);
     var box = document.createElement('p');
     box.setAttribute('data-cmp-dpdp-age', 'true');
     box.style.cssText = 'margin:0;padding:10px 12px;border-radius:10px;border:1px solid #F59E0B;background:rgba(245,158,11,0.08);color:#B45309;font-size:13px;line-height:1.5;';
-    box.appendChild(document.createTextNode('By choosing Accept or Reject below, you confirm you are '));
+    box.appendChild(document.createTextNode(ui.ageConfirmStart));
     var strong = document.createElement('strong');
-    strong.textContent = '18 years or older';
+    strong.textContent = ui.ageConfirmStrong;
     box.appendChild(strong);
-    box.appendChild(document.createTextNode(' per DPDP Act, Section 9. '));
+    box.appendChild(document.createTextNode(ui.ageConfirmEnd));
     var link = document.createElement('button');
     link.type = 'button';
-    link.textContent = 'I am under 18';
+    link.textContent = ui.under18;
     link.style.cssText = 'display:inline;background:none;border:none;padding:0;margin:0;font:inherit;color:#B45309;text-decoration:underline;cursor:pointer;font-weight:600;';
     link.addEventListener('click', function(e) {
       if (e && e.preventDefault) e.preventDefault();
@@ -2438,7 +2502,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     a.href = dataPrincipalRightsHref();
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
-    a.textContent = 'Data Principal Rights';
+    a.textContent = uiStringsFor(_config && _config.resolvedLanguage).dataPrincipalRights;
     a.style.cssText = style || 'font-weight:600;color:inherit;text-decoration:none;padding:8px;font-size:13px;white-space:normal;';
     parent.appendChild(a);
     return a;
@@ -2487,13 +2551,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var copy = document.createElement('div');
     copy.style.minWidth = '0';
 
+    var ui = uiStringsFor(_config && _config.resolvedLanguage);
     var title = document.createElement('h2');
     title.id = '__cmp_parental_title__';
-    title.textContent = 'Parental Consent Required';
+    title.textContent = ui.parentalTitle;
     title.style.cssText = 'margin:0 0 8px;font-size:16px;font-weight:700;color:#0F172A;';
 
     var p1 = document.createElement('p');
-    p1.textContent = 'Under DPDP Act Section 9, processing personal data of individuals under 18 requires verifiable parental or guardian consent. We have automatically limited data collection to only essential cookies required for the website to function.';
+    p1.textContent = ui.parentalBody;
     p1.style.cssText = 'margin:0 0 10px;font-size:13px;line-height:1.55;color:#64748B;';
 
     var p2 = document.createElement('p');
@@ -2754,7 +2819,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       cook.href = safeHttpUrl(cfg.cookiePolicyUrl);
       cook.target = '_blank';
       cook.rel = 'noopener noreferrer';
-      cook.textContent = cfg.cookiePolicyText || 'Cookie Policy';
+      cook.textContent = cfg.cookiePolicyText || uiStringsFor(_config && _config.resolvedLanguage).cookiePolicy;
       cook.style.cssText = 'text-decoration:underline;color:' + (cfg.primaryColor || '#171717') + ';';
       policyRow.appendChild(cook);
       hasPrivacy = true;
@@ -2840,15 +2905,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
 
     var locales = availableLocales();
-    if (locales.length > 1) {
+    if (locales.length) {
       var langSelect = document.createElement('select');
-      langSelect.setAttribute('aria-label', 'Language');
-      langSelect.style.cssText = 'font-size:12px;padding:6px 8px;border-radius:8px;border:1px solid rgba(15,23,42,0.15);background:transparent;color:inherit;max-width:11rem;';
+      langSelect.setAttribute('aria-label', uiStringsFor(_config && _config.resolvedLanguage).language);
+      langSelect.style.cssText = 'font-size:12px;padding:6px 8px;border-radius:8px;border:1.5px solid rgba(15,23,42,0.18);background:transparent;color:inherit;max-width:14rem;';
       locales.forEach(function(code) {
         var opt = document.createElement('option');
         opt.value = code;
-        opt.textContent = code;
-        if (code === (_config.resolvedLanguage || '')) opt.selected = true;
+        opt.textContent = languageDisplayName(code);
+        if (code === (_config.resolvedLanguage || 'en') || localeBase(code) === localeBase(_config.resolvedLanguage || 'en')) opt.selected = true;
         langSelect.appendChild(opt);
       });
       langSelect.addEventListener('change', function() {
@@ -2869,7 +2934,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     if (cfg.showPoweredBy && cfg.poweredByText) {
       var powered = document.createElement('div');
-      powered.textContent = cfg.poweredByText;
+      var poweredLabel = String(cfg.poweredByText || '').trim();
+      if (!poweredLabel || /^powered by cmp$/i.test(poweredLabel)) poweredLabel = 'Powered by Consent Guru';
+      powered.textContent = poweredLabel;
       powered.style.cssText = 'font-size:11px;opacity:0.4;text-align:end;' + (layout === 'bar' ? 'width:100%;' : '');
       banner.appendChild(powered);
     }
@@ -3052,6 +3119,23 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     closeBtn.addEventListener('click', removePreferenceCenter);
 
     header.appendChild(titleBox);
+    var pcLocales = availableLocales();
+    if (pcLocales.length) {
+      var pcLang = document.createElement('select');
+      pcLang.setAttribute('aria-label', uiStringsFor(_config && _config.resolvedLanguage).language);
+      pcLang.style.cssText = 'font-size:12px;padding:6px 8px;border-radius:8px;border:1.5px solid rgba(15,23,42,0.18);background:transparent;color:inherit;max-width:12rem;margin-top:2px;';
+      pcLocales.forEach(function(code) {
+        var opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = languageDisplayName(code);
+        if (code === (_config.resolvedLanguage || 'en') || localeBase(code) === localeBase(_config.resolvedLanguage || 'en')) opt.selected = true;
+        pcLang.appendChild(opt);
+      });
+      pcLang.addEventListener('change', function() {
+        window.CMP.setLanguage(pcLang.value);
+      });
+      header.appendChild(pcLang);
+    }
     if (cfg.showCloseButton !== false) header.appendChild(closeBtn);
 
     // Body (scrollable)
@@ -3625,9 +3709,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     },
     setLanguage: function(lang, callback) {
       _explicitLang = String(lang || '').slice(0, 35);
+      applyLocalNotice(_explicitLang);
       var bannerOpen = !!document.getElementById('__cmp_banner__');
       var pcOpen = !!document.getElementById('__cmp_pc__');
       var prefsOpen = !!document.getElementById('__cmp_prefs__');
+      _hostScroll.beginTransition();
+      if (bannerOpen) { removeBanner(); renderBanner(); }
+      if (pcOpen) renderPreferenceCenter();
+      if (prefsOpen) renderCookiePreferencesPanel();
+      _hostScroll.endTransition();
       fetch(configRequestUrl(), { cache: 'no-store' })
         .then(function(r) { return r.json(); })
         .then(function(data) {
@@ -3636,11 +3726,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             return;
           }
           _config = applyAssignedAbTest(data);
+          if (data.noticeRoot) _noticeRoot = data.noticeRoot;
           rememberPolicyContext(presentedPolicyContext(data));
+          applyLocalNotice(_explicitLang);
           _hostScroll.beginTransition();
-          if (bannerOpen) { removeBanner(); renderBanner(); }
-          if (pcOpen) renderPreferenceCenter();
-          if (prefsOpen) renderCookiePreferencesPanel();
+          if (bannerOpen || document.getElementById('__cmp_banner__')) { removeBanner(); renderBanner(); }
+          if (pcOpen || document.getElementById('__cmp_pc__')) renderPreferenceCenter();
+          if (prefsOpen || document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
           _hostScroll.endTransition();
           if (callback) callback(null, data.resolvedLanguage);
         })
@@ -3942,7 +4034,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function applyLoadedConfig(data) {
     var previousVisualKey = bannerVisualKey(_config);
     var bannerWasOpen = !!document.getElementById('__cmp_banner__');
+    if (data.noticeRoot) _noticeRoot = data.noticeRoot;
     _config = applyAssignedAbTest(data);
+    if (_explicitLang) applyLocalNotice(_explicitLang);
     rememberPolicyContext(presentedPolicyContext(data));
     _configRevision = configRevision(_config);
     _configHash = (data.policy && data.policy.configHash) || '';

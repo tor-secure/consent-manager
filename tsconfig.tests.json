@@ -17,6 +17,7 @@
     "src/lib/analytics/client-hints.ts",
     "src/lib/i18n/locale-registry.ts",
     "src/lib/i18n/resolve-notice.ts",
+    "src/lib/i18n/indian-notice-translations.ts",
     "src/lib/sdk/scroll-lock.ts"
   ]
 }

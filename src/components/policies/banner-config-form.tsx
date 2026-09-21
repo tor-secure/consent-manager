@@ -508,7 +508,7 @@ export function BannerConfigForm({
                 </svg>
                 <div className="text-sm text-[var(--primary)]">
                   <strong className="font-semibold">DPDP Rules 2025 Rule 3 — multilingual notice.</strong>{" "}
-                  Add translations for visitor-facing banner and preference-center text. Leave a field blank to use fallback copy. Languages can be published partially. Locale selection does not change regulation or consent decisions.
+                  Add translations for visitor-facing banner and preference-center text. Leave a field blank to use the built-in Indian language pack or English fallback. The live popup includes a language switcher for English plus the 22 Eighth Schedule languages. Locale selection does not change regulation or consent decisions.
                 </div>
               </div>
 

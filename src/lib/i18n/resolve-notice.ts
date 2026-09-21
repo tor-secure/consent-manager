@@ -4,6 +4,7 @@ import {
   normalizeLocaleTag,
   type TextDirection,
 } from "./locale-registry";
+import { builtinNoticeForLocale } from "./indian-notice-translations";
 
 export const BANNER_TEXT_FIELDS = [
   "title",
@@ -152,23 +153,30 @@ export function resolveNotice(input: {
     input.defaultLocale,
   );
   const pack = translationKey ? input.translations[translationKey] : undefined;
+  const builtin = builtinNoticeForLocale(requested);
   const root = input.root;
   const merged: NoticeStrings = { ...DEFAULT_NOTICE_STRINGS, ...root };
 
   for (const field of [...BANNER_TEXT_FIELDS, ...PREFERENCE_TEXT_FIELDS]) {
     const localized = pack ? nonEmpty(pack[field]) : undefined;
+    const rootVal = nonEmpty(root[field]) ?? DEFAULT_NOTICE_STRINGS[field];
+    const rootIsDefault = rootVal === DEFAULT_NOTICE_STRINGS[field];
+    const builtinVal = builtin && rootIsDefault ? nonEmpty(builtin[field]) : undefined;
     const fallback = nonEmpty(merged[field]) ?? DEFAULT_NOTICE_STRINGS[field];
-    merged[field] = localized ?? fallback;
+    merged[field] = localized ?? builtinVal ?? fallback;
   }
 
-  const resolvedLocale = presentedLocale(requested, translationKey);
+  const resolvedLocale = presentedLocale(
+    requested,
+    translationKey ?? (builtin ? languageOf(requested) : null),
+  );
 
   return {
     ...merged,
     resolvedLocale,
     translationKey,
     direction: localeDirection(resolvedLocale),
-    status: translationStatus(pack),
+    status: translationStatus(pack) === "fallback" && builtin ? "translated" : translationStatus(pack),
     purposes: pack?.purposes ?? {},
     vendors: pack?.vendors ?? {},
   };

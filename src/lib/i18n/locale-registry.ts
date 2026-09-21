@@ -64,6 +64,7 @@ const BASE_LANGUAGE_LABELS: Record<string, string> = {
   doi: "Dogri (डोगरी)",
   sa: "Sanskrit (संस्कृतम्)",
   sat: "Santali (ᱥᱟᱱᱛᱟᱲᱤ)",
+  brx: "Bodo (बर')",
 };
 
 const REGIONAL_LABELS: Record<string, string> = {
@@ -91,7 +92,7 @@ const REGIONAL_LABELS: Record<string, string> = {
   "hi-IN": "Hindi (India)",
 };
 
-const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur"]);
+const RTL_LANGUAGES = new Set(["ar", "he", "fa", "ur", "ks", "sd"]);
 
 const REGISTERED = new Map<string, LocaleEntry>();
 
@@ -107,6 +108,35 @@ for (const [code, label] of Object.entries(BASE_LANGUAGE_LABELS)) {
 for (const [code, label] of Object.entries(REGIONAL_LABELS)) {
   register(code, label);
 }
+
+export const EIGHTH_SCHEDULE_LOCALES = [
+  "as",
+  "bn",
+  "brx",
+  "doi",
+  "gu",
+  "hi",
+  "kn",
+  "ks",
+  "kok",
+  "mai",
+  "ml",
+  "mni",
+  "mr",
+  "ne",
+  "or",
+  "pa",
+  "sa",
+  "sat",
+  "sd",
+  "ta",
+  "te",
+  "ur",
+] as const;
+
+export type EighthScheduleLocale = (typeof EIGHTH_SCHEDULE_LOCALES)[number];
+
+export const DEFAULT_BANNER_LOCALES: string[] = ["en", ...EIGHTH_SCHEDULE_LOCALES];
 
 export const REGISTERED_LOCALES: LocaleEntry[] = [...REGISTERED.values()];
 

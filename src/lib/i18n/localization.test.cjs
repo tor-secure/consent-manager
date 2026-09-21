@@ -20,6 +20,7 @@ const {
   localeDirection,
   isRtlLanguage,
   languageOf,
+  EIGHTH_SCHEDULE_LOCALES,
 } = compiled("lib/i18n/locale-registry.js");
 
 const {
@@ -92,6 +93,20 @@ assert.equal(notice("xx-YY", packs).title, DEFAULT_NOTICE_STRINGS.title);
 assert.equal(notice("de", packs, "hi").title, "Datenschutz");
 assert.equal(notice("nl", { hi: packs.hi }, "hi").title, "गोपनीयता");
 assert.equal(notice("nl", {}, "en").title, DEFAULT_NOTICE_STRINGS.title);
+assert.equal(notice("hi", {}).acceptAllLabel, "सभी स्वीकार करें");
+assert.equal(notice("ta", {}).title.includes("தனியுரிமை"), true);
+assert.equal(notice("ur", {}).direction, "rtl");
+assert.equal(notice("ks", {}).direction, "rtl");
+assert.equal(
+  resolveNotice({
+    requestedLocale: "hi",
+    defaultLocale: "en",
+    root: { ...DEFAULT_NOTICE_STRINGS, title: "Acme Privacy" },
+    translations: {},
+  }).title,
+  "Acme Privacy",
+);
+assert.equal(EIGHTH_SCHEDULE_LOCALES.length, 22);
 
 assert.equal(pickTranslationKey("fr-CA", ["fr-FR"], "en"), null);
 assert.equal(pickTranslationKey("fr-CA", ["fr"], "en"), "fr");

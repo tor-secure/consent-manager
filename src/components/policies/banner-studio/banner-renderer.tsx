@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { BannerConfiguration, BannerPosition } from "@/lib/banner-config";
-import { bannerUsesOverlay } from "@/lib/banner-config";
+import { applyResolvedNotice, bannerUsesOverlay, resolveTranslation } from "@/lib/banner-config";
+import { DEFAULT_BANNER_LOCALES } from "@/lib/i18n/locale-registry";
+import { builtinUiStringsForLocale, nativeLocaleLabel } from "@/lib/i18n/indian-notice-translations";
 
 interface BannerRendererProps {
   config: BannerConfiguration;
@@ -128,7 +130,14 @@ export function BannerOverlay({ config }: { config: BannerConfiguration }) {
   );
 }
 
-function DpdpAgeNotice({ onUnder18 }: { onUnder18: () => void }) {
+function DpdpAgeNotice({
+  onUnder18,
+  locale,
+}: {
+  onUnder18: () => void;
+  locale: string;
+}) {
+  const ui = builtinUiStringsForLocale(locale);
   return (
     <p
       data-cmp-dpdp-age=""
@@ -145,8 +154,9 @@ function DpdpAgeNotice({ onUnder18 }: { onUnder18: () => void }) {
         boxSizing: "border-box",
       }}
     >
-      By choosing Accept or Reject below, you confirm you are{" "}
-      <strong>18 years or older</strong> per DPDP Act, Section 9.{" "}
+      {ui.ageConfirmStart}
+      <strong>{ui.ageConfirmStrong}</strong>
+      {ui.ageConfirmEnd}
       <button
         type="button"
         onClick={onUnder18}
@@ -163,7 +173,7 @@ function DpdpAgeNotice({ onUnder18 }: { onUnder18: () => void }) {
           fontWeight: 600,
         }}
       >
-        I am under 18
+        {ui.under18}
       </button>
     </p>
   );
@@ -311,6 +321,12 @@ export function BannerRenderer({
   onCustomize,
 }: BannerRendererProps) {
   const [parentalOpen, setParentalOpen] = useState(false);
+  const [lang, setLang] = useState(config.language || "en");
+  const text = useMemo(
+    () => applyResolvedNotice(config, resolveTranslation(config, lang)),
+    [config, lang],
+  );
+  const ui = builtinUiStringsForLocale(lang);
   const isBar = config.layout === "bar";
   const isDialog = config.layout === "dialog";
   const posStyle = resolvedPositionStyle(config);
@@ -411,12 +427,34 @@ export function BannerRenderer({
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {config.showCustomize && (
           <button type="button" style={btnGhost} onClick={onCustomize}>
-            {config.customizeLabel || "Customize"}
+            {text.customizeLabel || "Customize"}
           </button>
         )}
         <a href="/privacy-center/data-principal-request" style={rightsLinkStyle}>
-          Data Principal Rights
+          {ui.dataPrincipalRights}
         </a>
+        <label style={{ display: "inline-flex", alignItems: "center" }}>
+          <select
+            aria-label={ui.language}
+            value={lang}
+            onChange={(event) => setLang(event.target.value)}
+            style={{
+              fontSize: 12,
+              padding: "6px 8px",
+              borderRadius: 8,
+              border: "1.5px solid rgba(15,23,42,0.18)",
+              background: "transparent",
+              color: "inherit",
+              maxWidth: "14rem",
+            }}
+          >
+            {DEFAULT_BANNER_LOCALES.map((code) => (
+              <option key={code} value={code}>
+                {nativeLocaleLabel(code)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div
         style={{
@@ -431,12 +469,12 @@ export function BannerRenderer({
           <>
             {config.showAcceptAll && (
               <button type="button" style={btnPrimary} onClick={onAccept}>
-                {config.acceptAllLabel || "Accept all"}
+                {text.acceptAllLabel || "Accept all"}
               </button>
             )}
             {config.showRejectAll && (
               <button type="button" style={btnOutline} onClick={onReject}>
-                {config.rejectAllLabel || "Reject all"}
+                {text.rejectAllLabel || "Reject all"}
               </button>
             )}
           </>
@@ -444,12 +482,12 @@ export function BannerRenderer({
           <>
             {config.showRejectAll && (
               <button type="button" style={btnOutline} onClick={onReject}>
-                {config.rejectAllLabel || "Reject all"}
+                {text.rejectAllLabel || "Reject all"}
               </button>
             )}
             {config.showAcceptAll && (
               <button type="button" style={btnPrimary} onClick={onAccept}>
-                {config.acceptAllLabel || "Accept all"}
+                {text.acceptAllLabel || "Accept all"}
               </button>
             )}
           </>
@@ -465,7 +503,7 @@ export function BannerRenderer({
         {config.showCloseButton && (
           <button
             type="button"
-            aria-label={config.closeLabel || "Close"}
+            aria-label={text.closeLabel || "Close"}
             style={{
               position: "absolute",
               top: 8,
@@ -484,7 +522,7 @@ export function BannerRenderer({
           </button>
         )}
 
-        {(config.title || config.description) && (
+        {(text.title || text.description) && (
           <div
             data-cmp-scroll={isBar ? undefined : ""}
             style={{
@@ -497,18 +535,18 @@ export function BannerRenderer({
               paddingRight: isBar ? undefined : 4,
             }}
           >
-            {config.title && (
+            {text.title && (
               isBar ? (
                 <strong style={{ display: "block", margin: "0 0 6px 0", fontWeight: 700, fontSize: 15 }}>
-                  {config.title}
+                  {text.title}
                 </strong>
               ) : (
                 <p style={{ fontWeight: 700, fontSize: isDialog ? 18 : 15, margin: "0 0 6px 0" }}>
-                  {config.title}
+                  {text.title}
                 </p>
               )
             )}
-            {config.description && (
+            {text.description && (
               <span
                 style={{
                   opacity: 0.75,
@@ -518,17 +556,17 @@ export function BannerRenderer({
                   overflowWrap: "anywhere",
                 }}
               >
-                {config.description}
+                {text.description}
               </span>
             )}
           </div>
         )}
 
-        <DpdpAgeNotice onUnder18={() => setParentalOpen(true)} />
+        <DpdpAgeNotice locale={lang} onUnder18={() => setParentalOpen(true)} />
 
         {(config.privacyPolicyUrl || config.cookiePolicyUrl) && (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 12 }}>
-            {config.privacyPolicyUrl && config.privacyPolicyText && (
+            {config.privacyPolicyUrl && text.privacyPolicyText && (
               <a
                 href={config.privacyPolicyUrl}
                 target="_blank"
@@ -538,7 +576,7 @@ export function BannerRenderer({
                   textDecoration: "underline",
                 }}
               >
-                {config.privacyPolicyText}
+                {text.privacyPolicyText}
               </a>
             )}
             {config.cookiePolicyUrl && (
@@ -551,7 +589,7 @@ export function BannerRenderer({
                   textDecoration: "underline",
                 }}
               >
-                {config.cookiePolicyText || "Cookie Policy"}
+                {text.cookiePolicyText || ui.cookiePolicy}
               </a>
             )}
           </div>
@@ -593,6 +631,7 @@ const PREVIEW_PURPOSES = [
 ];
 
 export function PreferenceCenterPreview({ config }: { config: BannerConfiguration }) {
+  const ui = builtinUiStringsForLocale(config.language || "en");
   return (
     <div className="absolute inset-0 z-20" aria-label="Preference center preview">
       <div className="absolute inset-0" style={{ background: "rgba(15,23,42,0.45)" }} />
@@ -778,7 +817,7 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
               marginLeft: "auto",
             }}
           >
-            Data Principal Rights
+            {ui.dataPrincipalRights}
           </a>
         </div>
       </div>

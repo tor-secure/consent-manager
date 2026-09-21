@@ -10,9 +10,9 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { trackers } from "@/db/schema/trackers";
-import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText } from "@/lib/banner-config";
+import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText, noticeRootFromConfig } from "@/lib/banner-config";
 import { applyAbOverrides, parseBannerAbTest } from "@/lib/intelligence/ab-test";
-import { resolveRequestedLocale } from "@/lib/i18n/locale-registry";
+import { DEFAULT_BANNER_LOCALES, resolveRequestedLocale } from "@/lib/i18n/locale-registry";
 import type { TrackerRule } from "@/lib/sdk/enforcement";
 import {
   isValidSiteKey,
@@ -301,6 +301,10 @@ export async function GET(
 
     const resolvedNotice = resolveTranslation(bannerConfig, requestedLang);
     const localizedConfig = applyResolvedNotice(bannerConfig, resolvedNotice);
+    const noticeRoot = noticeRootFromConfig(bannerConfig);
+    const supportedLocales = bannerConfig.supportedLocales?.length
+      ? bannerConfig.supportedLocales
+      : DEFAULT_BANNER_LOCALES;
 
     const integrations = parseConsentIntegrations(website.consentIntegrations);
 
@@ -576,11 +580,12 @@ export async function GET(
         vendors: publicVendors,
         trackerRules,
         trackerEnforcement: integrations.trackerEnforcement,
+        noticeRoot,
         locale: {
           resolved: resolvedNotice.resolvedLocale,
           direction: resolvedNotice.direction,
           default: bannerConfig.language || "en",
-          supported: bannerConfig.supportedLocales ?? [],
+          supported: supportedLocales,
           language: website.defaultLanguage,
           region: website.defaultRegion ?? "",
         },

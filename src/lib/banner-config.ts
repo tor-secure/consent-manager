@@ -97,7 +97,7 @@ export function defaultBannerConfig(): BannerConfiguration {
     privacyPolicyUrl: "",
     cookiePolicyText: "Cookie Policy",
     cookiePolicyUrl: "",
-    poweredByText: "Powered by CMP",
+    poweredByText: "Powered by Consent Guru",
     closeLabel: DEFAULT_NOTICE_STRINGS.closeLabel,
     preferenceCenterTitle: DEFAULT_NOTICE_STRINGS.preferenceCenterTitle,
     preferenceCenterDescription: DEFAULT_NOTICE_STRINGS.preferenceCenterDescription,
@@ -179,6 +179,13 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   merged.cookiePolicyUrl = sanitizeHttpUrl(merged.cookiePolicyUrl ?? "");
   if (typeof merged.cookiePolicyText !== "string" || !merged.cookiePolicyText.trim()) {
     merged.cookiePolicyText = defaults.cookiePolicyText;
+  }
+  if (
+    typeof merged.poweredByText !== "string" ||
+    !merged.poweredByText.trim() ||
+    /^powered by cmp$/i.test(merged.poweredByText.trim())
+  ) {
+    merged.poweredByText = defaults.poweredByText;
   }
   merged.primaryColor = sanitizeCssColor(merged.primaryColor) || defaults.primaryColor;
   merged.backgroundColor = sanitizeCssColor(merged.backgroundColor) || defaults.backgroundColor;
