@@ -187,6 +187,7 @@ ${apiBaseLine}
   var _withdrawBusy = false;
   var _queuedSubmit = null;
   var _choiceUiHeld = false;
+  var _choiceDismissed = false;
   var _retryJob = null;
   var _submitButtons = [];
   var _tcString = null;
@@ -348,10 +349,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function finishChoice(err, closeUi) {
     if (err) {
+      _choiceDismissed = false;
       restoreChoiceUi();
       return;
     }
     _choiceUiHeld = false;
+    _choiceDismissed = true;
+    _reconsentNotice = '';
+    removeBanner();
+    if (typeof removeParentalConsentDialog === 'function') removeParentalConsentDialog();
+    if (typeof removePreferenceCenter === 'function') removePreferenceCenter();
+    syncPreferenceWidget();
     if (closeUi) afterConfirmation(closeUi);
   }
 
@@ -1645,6 +1653,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function shouldReshowBanner(stored, cfg) {
+    if (_choiceDismissed && stored && stored.status === 'confirmed' && stored.serverConfirmed) {
+      return false;
+    }
     if (cfg && cfg.showOnEveryVisit) return true;
     // Reject All is a valid recorded decision. Do not reopen the banner
     // merely because optional purposes were denied.
@@ -1662,8 +1673,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function consentScopeChanged(stored, config) {
     if (!stored || !config) return false;
     var current = currentScopeSnapshot(config);
-    if (stored.policyVersionId && current.policyVersionId && stored.policyVersionId !== current.policyVersionId) {
-      return true;
+    if (stored.policyVersionId && current.policyVersionId) {
+      return stored.policyVersionId !== current.policyVersionId;
     }
     var storedPurposes = Array.isArray(stored.purposeIds) ? stored.purposeIds.slice() : [];
     if (!storedPurposes.length) {
@@ -1671,23 +1682,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if (d && d.purposeId) storedPurposes.push(d.purposeId);
       });
     }
+    if (!storedPurposes.length || !current.purposeIds.length) return false;
     var knownP = {};
     storedPurposes.forEach(function(id) { knownP[id] = true; });
     var i;
-    if (storedPurposes.length) {
-      for (i = 0; i < current.purposeIds.length; i++) {
-        if (!knownP[current.purposeIds[i]]) return true;
-      }
-    }
-    // Only compare vendors when this browser has a snapshot from a later SDK
-    // save. Older stored consent often has purpose decisions only, which would
-    // otherwise look like every vendor was newly added.
-    if (Array.isArray(stored.vendorIds)) {
-      var knownV = {};
-      stored.vendorIds.forEach(function(id) { knownV[id] = true; });
-      for (i = 0; i < current.vendorIds.length; i++) {
-        if (!knownV[current.vendorIds[i]]) return true;
-      }
+    for (i = 0; i < current.purposeIds.length; i++) {
+      if (!knownP[current.purposeIds[i]]) return true;
     }
     return false;
   }
@@ -1750,6 +1750,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function showBannerWhenReady() {
+    if (_choiceDismissed && !_reconsentNotice) {
+      syncPreferenceWidget();
+      return;
+    }
     function paint() {
       renderBanner();
     }
@@ -3645,6 +3649,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     },
     onConsentChange: function(fn) { _listeners.push(fn); },
     showBanner: function() {
+      _choiceDismissed = false;
       _hostScroll.beginTransition();
       removeBanner();
       renderBanner();
@@ -3864,6 +3869,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           fireIabEvents('useractioncomplete');
           _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
           removeCookiePreferencesPanel();
+          _choiceDismissed = false;
           renderBanner();
           _withdrawBusy = false;
           resolve(result.data);
@@ -3918,7 +3924,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           data.requiresReconsent ||
           !data.record ||
           data.record.status === 'withdrawn' ||
-          data.record.policyVersionId !== stored.policyVersionId ||
+          (stored.policyVersionId && data.record.policyVersionId !== stored.policyVersionId) ||
           !Array.isArray(data.decisions)
         ) {
           throw new Error('Stored consent is not active');
@@ -3998,6 +4004,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           return;
         }
         var stored = loadStoredConsent();
+        var bannerStillOpen = !!document.getElementById('__cmp_banner__');
         _config = nextConfig;
         rememberPolicyContext(presentedPolicyContext(data));
         _configRevision = nextRevision;
@@ -4005,10 +4012,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         applyTrackerEnforcement();
         publishExternalSignals();
 
-        if (stored && consentScopeChanged(stored, nextConfig)) {
+        if (stored && stored.status === 'confirmed' && stored.serverConfirmed && !consentScopeChanged(stored, nextConfig)) {
+          _choiceDismissed = true;
+          if (bannerStillOpen) removeBanner();
+          syncPreferenceWidget();
+        } else if (stored && consentScopeChanged(stored, nextConfig)) {
+          _choiceDismissed = false;
           _reconsentNotice = 'This consent policy has changed. Please review your choices.';
           showBannerWhenReady();
-        } else if (!stored || shouldReshowBanner(stored, nextConfig.bannerConfig) || bannerOpen) {
+        } else if (!stored || shouldReshowBanner(stored, nextConfig.bannerConfig)) {
           showBannerWhenReady();
         } else {
           syncPreferenceWidget();
@@ -4121,12 +4133,18 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       rememberAckedScope(stored);
       if (consentScopeChanged(stored, data)) {
         blockOptionalProcessing('FAILED', '');
+        _choiceDismissed = false;
         _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
         showBannerWhenReady();
-        showPreferenceCenterWhenReady();
       } else {
         verifyStoredConsent(stored, function(applied) {
-          if (!applied || shouldReshowBanner(stored, data.bannerConfig)) {
+          if (applied) {
+            _choiceDismissed = true;
+            removeBanner();
+            syncPreferenceWidget();
+            return;
+          }
+          if (shouldReshowBanner(stored, data.bannerConfig)) {
             showBannerWhenReady();
           } else {
             syncPreferenceWidget();
