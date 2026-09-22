@@ -171,6 +171,7 @@ ${apiBaseLine}
   var _config      = null;
   var _policyContext = null;
   var _decisions   = { purposes: {}, vendors: {} };
+  var _prefsDraft  = null;
   var _consentId   = null;
   var _consentState = 'UNKNOWN';
   var _confirmedRevision = 0;
@@ -1863,7 +1864,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       publishExternalSignals();
       fireIabEvents('useractioncomplete');
       _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
-      if (document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
+      if (document.getElementById('__cmp_prefs__')) {
+        _prefsDraft = null;
+        renderCookiePreferencesPanel();
+      }
       else syncPreferenceWidget();
       renderSubmissionState('Consent confirmed');
       return true;
@@ -2195,10 +2199,29 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       });
   }
 
+  function seedPrefsDraft() {
+    if (_prefsDraft) return _prefsDraft;
+    _prefsDraft = { purposes: {} };
+    ((_config && _config.purposes) || []).forEach(function(p) {
+      _prefsDraft.purposes[p.id] = !!(p.isRequired || currentPurposeGranted(p.id));
+    });
+    return _prefsDraft;
+  }
+
+  function prefsDraftGranted(purpose) {
+    if (!purpose) return false;
+    if (purpose.isRequired) return true;
+    if (_prefsDraft && _prefsDraft.purposes && Object.prototype.hasOwnProperty.call(_prefsDraft.purposes, purpose.id)) {
+      return !!_prefsDraft.purposes[purpose.id];
+    }
+    return currentPurposeGranted(purpose.id);
+  }
+
   function saveCookiePreferenceToggles() {
     if (!_config || !_consentId) return;
+    var draft = seedPrefsDraft();
     var purposeDecisions = ((_config.purposes) || []).map(function(p) {
-      return { purposeId: p.id, granted: !!(p.isRequired || currentPurposeGranted(p.id)) };
+      return { purposeId: p.id, granted: !!(p.isRequired || (draft.purposes && draft.purposes[p.id])) };
     });
     var vendorDecisions = ((_config.vendors) || []).map(function(v) {
       return { vendorId: v.id, granted: currentVendorGranted(v.id) };
@@ -2206,27 +2229,38 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     submitConsent('granular', purposeDecisions, vendorDecisions, function(err) {
       _choiceUiHeld = false;
       if (err) {
-        renderCookiePreferencesPanel();
         renderSubmissionState('Preferences could not be saved. Please retry.');
       }
     });
+  }
+
+  function applyToggleLook(btn, on) {
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    btn.style.background = on ? '#2563EB' : '#CBD5E1';
+    btn._cmpOn = on;
+    var knob = btn.firstChild;
+    if (knob && knob.style) {
+      knob.style.marginLeft = on ? 'auto' : '0';
+      knob.style.marginRight = on ? '0' : 'auto';
+    }
   }
 
   function renderToggle(on, locked, onChange) {
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.setAttribute('role', 'switch');
-    btn.setAttribute('aria-checked', on ? 'true' : 'false');
     if (locked) btn.disabled = true;
     btn.style.cssText = 'flex-shrink:0;width:42px;height:24px;border-radius:999px;border:none;padding:2px;cursor:'
-      + (locked ? 'not-allowed' : 'pointer') + ';background:' + (on ? '#2563EB' : '#CBD5E1') + ';';
+      + (locked ? 'not-allowed' : 'pointer') + ';';
     var knob = document.createElement('span');
-    knob.style.cssText = 'display:block;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,0.2);margin-'
-      + (on ? 'left:auto' : 'right:auto') + ';';
+    knob.style.cssText = 'display:block;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,0.2);';
     btn.appendChild(knob);
+    applyToggleLook(btn, on);
     if (!locked) {
       btn.addEventListener('click', function() {
-        onChange(!on);
+        var next = !btn._cmpOn;
+        applyToggleLook(btn, next);
+        onChange(next);
       });
     }
     return btn;
@@ -2295,6 +2329,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     close.textContent = '×';
     close.style.cssText = 'border:none;background:none;font-size:22px;line-height:1;cursor:pointer;color:#64748B;padding:0 2px;';
     close.addEventListener('click', function() {
+      _prefsDraft = null;
       removeCookiePreferencesPanel();
       syncPreferenceWidget();
     });
@@ -2327,25 +2362,34 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     var list = document.createElement('div');
     list.style.cssText = 'display:flex;flex-direction:column;gap:8px;margin-bottom:12px;';
+    var draft = seedPrefsDraft();
     ((_config.purposes) || []).forEach(function(purpose) {
       var row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;color:#0F172A;';
       var name = document.createElement('span');
       name.textContent = purpose.name || purpose.key || 'Purpose';
-      var granted = !!(purpose.isRequired || currentPurposeGranted(purpose.id));
+      var granted = prefsDraftGranted(purpose);
       var locked = !!purpose.isRequired || !!(childProtectionState() && childProtectionState().ageStatus === 'under');
       if (purpose.isRequired) locked = true;
       var toggle = renderToggle(granted, locked, function(next) {
-        if (!_decisions.purposes) _decisions.purposes = {};
-        _decisions.purposes[purpose.id] = next;
-        saveCookiePreferenceToggles();
+        if (!draft.purposes) draft.purposes = {};
+        draft.purposes[purpose.id] = next;
       });
-      if (!locked) _submitButtons.push(toggle);
       row.appendChild(name);
       row.appendChild(toggle);
       list.appendChild(row);
     });
     panel.appendChild(list);
+
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = extra.saveChanges || (uiStringsFor(_config.resolvedLanguage).savePreferencesLabel) || 'Save changes';
+    saveBtn.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;';
+    saveBtn.addEventListener('click', function() {
+      saveCookiePreferenceToggles();
+    });
+    _submitButtons.push(saveBtn);
+    panel.appendChild(saveBtn);
 
     var download = document.createElement('button');
     download.type = 'button';
@@ -2362,6 +2406,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     revoke.addEventListener('click', function() {
       revoke.disabled = true;
       window.CMP.withdrawConsent().then(function() {
+        _prefsDraft = null;
         removeCookiePreferencesPanel();
       }).catch(function() {
         revoke.disabled = false;
@@ -2398,6 +2443,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       links.appendChild(cl);
     }
     appendDataPrincipalRightsControl(links, 'color:#2563EB;text-decoration:none;font-weight:600;');
+    appendGrievanceControl(links, 'color:#2563EB;text-decoration:none;font-weight:600;');
     if (links.childNodes.length) panel.appendChild(links);
 
     var dpoEmail = String(g.dpoEmail || g.grievanceOfficerEmail || '').trim();
@@ -2551,10 +2597,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function dataPrincipalRightsHref() {
+    return String(API_BASE || '').replace(/[/]$/, '') + '/privacy-center/data-principal-request?siteKey=' + encodeURIComponent(SITE_KEY);
+  }
+
+  function grievancePortalHref() {
     var g = (_config && _config.grievance) || {};
     var configured = safeHttpUrl(g.grievancePortalUrl || '');
     if (configured) return configured;
-    return String(API_BASE || '').replace(/[/]$/, '') + '/privacy-center/data-principal-request?siteKey=' + encodeURIComponent(SITE_KEY);
+    return String(API_BASE || '').replace(/[/]$/, '') + '/privacy-center/grievance?siteKey=' + encodeURIComponent(SITE_KEY);
   }
 
   function appendDataPrincipalRightsControl(parent, style) {
@@ -2564,6 +2614,18 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.textContent = uiStringsFor(_config && _config.resolvedLanguage).dataPrincipalRights;
+    a.style.cssText = style || 'font-weight:600;color:inherit;text-decoration:none;padding:8px;font-size:13px;white-space:normal;';
+    parent.appendChild(a);
+    return a;
+  }
+
+  function appendGrievanceControl(parent, style) {
+    if (!parent) return null;
+    var a = document.createElement('a');
+    a.href = grievancePortalHref();
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = extraUiFor(_config && _config.resolvedLanguage).fileGrievance || 'File a grievance';
     a.style.cssText = style || 'font-weight:600;color:inherit;text-decoration:none;padding:8px;font-size:13px;white-space:normal;';
     parent.appendChild(a);
     return a;
@@ -2929,6 +2991,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }));
     }
     appendDataPrincipalRightsControl(
+      leftBtns,
+      'font-weight:600;color:' + (cfg.textColor || '#171717') + ';text-decoration:none;padding:8px;font-size:13px;white-space:normal;max-width:100%;'
+    );
+    appendGrievanceControl(
       leftBtns,
       'font-weight:600;color:' + (cfg.textColor || '#171717') + ';text-decoration:none;padding:8px;font-size:13px;white-space:normal;max-width:100%;'
     );
@@ -3538,6 +3604,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       pcLinks.appendChild(cl);
     }
     appendDataPrincipalRightsControl(pcLinks, pcLinkStyle);
+    appendGrievanceControl(pcLinks, pcLinkStyle);
     footer.appendChild(pcLinks);
 
     var actionRow = document.createElement('div');
@@ -3868,6 +3935,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           blockOptionalProcessing('DENIED', 'Consent withdrawn');
           fireIabEvents('useractioncomplete');
           _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
+          _prefsDraft = null;
           removeCookiePreferencesPanel();
           _choiceDismissed = false;
           renderBanner();

@@ -567,17 +567,12 @@ export function DataPrincipalPortal() {
           you may file a complaint with the Data Protection Board.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button
-            type="button"
+          <Link
+            href={siteKey ? `/privacy-center/grievance?siteKey=${encodeURIComponent(siteKey)}` : "/privacy-center/grievance"}
             className="inline-flex h-10 items-center rounded-lg border border-[#D3E0DE] px-4 text-sm font-semibold text-[#0B2C4A] hover:border-[#00C4A7]"
-            onClick={() => {
-              setRequestType("grievance");
-              setTicketId(null);
-              document.getElementById("requestType")?.scrollIntoView({ behavior: "smooth", block: "center" });
-            }}
           >
             File a Grievance
-          </button>
+          </Link>
           <button
             type="button"
             className="inline-flex h-10 items-center rounded-lg border border-[#D3E0DE] px-4 text-sm font-semibold text-[#0B2C4A] hover:border-[#00C4A7]"

@@ -120,7 +120,7 @@ export async function createRightsRequest(input: {
       status: "verification_pending",
       jurisdiction: snapshot.jurisdiction,
       jurisdictionSnapshot: snapshot,
-      requesterReference: generateRequesterReference(),
+      requesterReference: generateRequesterReference(input.requestType),
       requesterName: input.requesterName,
       requesterEmail: input.requesterEmail,
       requesterPhone: input.requesterPhone,

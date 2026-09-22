@@ -22,6 +22,8 @@ export type ExtraBannerUiStrings = {
   fullConsent: string;
   customConsent: string;
   required: string;
+  saveChanges: string;
+  fileGrievance: string;
 };
 
 type PurposeFamily = "essential" | "functionality" | "analytics" | "marketing" | "personalization";
@@ -50,6 +52,8 @@ export const DEFAULT_EXTRA_UI: ExtraBannerUiStrings = {
   fullConsent: "Full consent",
   customConsent: "Custom",
   required: "Required",
+  saveChanges: "Save changes",
+  fileGrievance: "File a grievance",
 };
 
 export const ENGLISH_PURPOSE_PACKS: Record<PurposeFamily, PurposeFamilyCopy> = {
@@ -662,6 +666,8 @@ export const EXTRA_UI: Record<string, ExtraBannerUiStrings> = {
     fullConsent: "पूर्ण सहमति",
     customConsent: "अनुकूलित",
     required: "आवश्यक",
+    saveChanges: "परिवर्तन सहेजें",
+    fileGrievance: "शिकायत दर्ज करें",
   },
   bn: {
     cookiePreferences: "কুকি পছন্দ",
@@ -680,6 +686,8 @@ export const EXTRA_UI: Record<string, ExtraBannerUiStrings> = {
     fullConsent: "পূর্ণ সম্মতি",
     customConsent: "কাস্টম",
     required: "আবশ্যক",
+    saveChanges: "পরিবর্তন সংরক্ষণ করুন",
+    fileGrievance: "অভিযোগ দায়ের করুন",
   },
   ta: {
     cookiePreferences: "குக்கீ விருப்பங்கள்",
@@ -698,6 +706,8 @@ export const EXTRA_UI: Record<string, ExtraBannerUiStrings> = {
     fullConsent: "முழு ஒப்புதல்",
     customConsent: "தனிப்பயன்",
     required: "அவசியம்",
+    saveChanges: "மாற்றங்களைச் சேமிக்கவும்",
+    fileGrievance: "குறை தாக்கல் செய்யவும்",
   },
   ur: {
     cookiePreferences: "کوکی ترجیحات",
@@ -716,6 +726,8 @@ export const EXTRA_UI: Record<string, ExtraBannerUiStrings> = {
     fullConsent: "مکمل رضامندی",
     customConsent: "حسب ضرورت",
     required: "ضروری",
+    saveChanges: "تبدیلیاں محفوظ کریں",
+    fileGrievance: "شکایت درج کریں",
   },
 };
 

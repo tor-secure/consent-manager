@@ -77,6 +77,8 @@ function testLifecycle() {
 function testTokens() {
   const reference = generateRequesterReference();
   assert.match(reference, /^DPR-[A-F0-9]{8}$/);
+  const grievanceRef = generateRequesterReference("grievance");
+  assert.match(grievanceRef, /^GRV-[A-F0-9]{8}$/);
   const token = generateRightsToken();
   assert.equal(token.length, 64);
   const hash = hashRightsToken(token);

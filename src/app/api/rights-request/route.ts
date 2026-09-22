@@ -5,6 +5,7 @@ import {
   buildIntakeDescription,
   requestHostFromHeaders,
   sanitizeDataCategories,
+  sanitizeGrievanceCategory,
   sanitizePreferredLanguage,
 } from "@/lib/privacy-rights/intake-fields";
 import {
@@ -38,6 +39,8 @@ export async function POST(request: Request) {
     const identityProof = String(body.identityProof ?? body.identityProofDescription ?? "")
       .trim()
       .slice(0, 2000);
+    const priorCommunication = String(body.priorCommunication ?? "").trim().slice(0, 2000);
+    const grievanceCategory = sanitizeGrievanceCategory(body.grievanceCategory);
     const dataCategories = sanitizeDataCategories(body.dataCategories);
     const preferredLanguage = sanitizePreferredLanguage(body.preferredLanguage);
     const processingConsent = body.processingConsent === true || body.processingConsent === "true";
@@ -94,6 +97,18 @@ export async function POST(request: Request) {
     if (!description) {
       return NextResponse.json({ success: false, message: "description is required" }, { status: 400 });
     }
+    if (requestType === "grievance" && description.length < 50) {
+      return NextResponse.json(
+        { success: false, message: "Please describe the grievance in at least 50 characters" },
+        { status: 400 },
+      );
+    }
+    if (requestType === "grievance" && !grievanceCategory) {
+      return NextResponse.json(
+        { success: false, message: "grievanceCategory is required" },
+        { status: 400 },
+      );
+    }
     const hasConsentFields = Object.prototype.hasOwnProperty.call(body, "processingConsent")
       || Object.prototype.hasOwnProperty.call(body, "fulfillConsent");
     if (hasConsentFields && (!processingConsent || !fulfillConsent)) {
@@ -135,6 +150,8 @@ export async function POST(request: Request) {
         identityProof,
         dataCategories,
         preferredLanguage,
+        grievanceCategory,
+        priorCommunication,
       }),
     });
 

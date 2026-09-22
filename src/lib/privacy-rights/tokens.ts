@@ -6,8 +6,9 @@ export function generateRightsToken(): string {
   return randomBytes(32).toString("hex");
 }
 
-export function generateRequesterReference(): string {
-  return `DPR-${randomBytes(4).toString("hex").toUpperCase()}`;
+export function generateRequesterReference(requestType?: string): string {
+  const prefix = requestType === "grievance" ? "GRV" : "DPR";
+  return `${prefix}-${randomBytes(4).toString("hex").toUpperCase()}`;
 }
 
 export function hashRightsToken(token: string): string {

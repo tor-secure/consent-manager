@@ -434,6 +434,12 @@ export function PreferenceCenter({
         >
           Data Principal Rights
         </a>
+        <a
+          href="/privacy-center/grievance"
+          className="text-sm font-semibold text-[var(--foreground)] hover:underline"
+        >
+          File a grievance
+        </a>
 
         {/* Withdraw — only in update mode */}
         {savedConsentId && (

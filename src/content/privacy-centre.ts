@@ -858,6 +858,13 @@ export const PRIVACY_CENTRE_PARTS = [
     href: "/privacy-center/data-principal-request",
     title: "Data Principal Rights",
     description:
-      "Submit and track access, correction, erasure, nomination, and grievance requests under the Digital Personal Data Protection Act, 2023.",
+      "Submit and track access, correction, erasure, nomination, and other Data Principal requests under the Digital Personal Data Protection Act, 2023.",
+  },
+  {
+    part: "Part V",
+    href: "/privacy-center/grievance",
+    title: "File a Grievance",
+    description:
+      "Lodge and track a grievance with Consent Guru's Data Protection Officer under Section 13 of the Digital Personal Data Protection Act, 2023.",
   },
 ] as const;

@@ -292,7 +292,7 @@ export function OrganizationSettingsForm({
           </div>
           <Field
             label="Grievance portal URL"
-            hint="Link to your public grievance submission form or portal (optional)."
+            hint="Leave blank to use Consent Guru's hosted grievance portal. Operators can still publish their own URL."
           >
             <input
               type="url"

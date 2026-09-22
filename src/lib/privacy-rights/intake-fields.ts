@@ -1,3 +1,14 @@
+export const GRIEVANCE_CATEGORY_OPTIONS = [
+  { value: "consent_cookies", label: "Consent or cookie preferences" },
+  { value: "access", label: "Access to personal data" },
+  { value: "correction", label: "Correction of personal data" },
+  { value: "erasure", label: "Erasure of personal data" },
+  { value: "unlawful_processing", label: "Unlawful or unexpected processing" },
+  { value: "security", label: "Data security or suspected breach" },
+  { value: "children", label: "Children's data or parental consent" },
+  { value: "other", label: "Other grievance" },
+] as const;
+
 export const DPDP_REQUEST_TYPE_OPTIONS = [
   { value: "access", label: "Access my personal data" },
   { value: "correction", label: "Correct my personal data" },
@@ -45,6 +56,9 @@ export const PREFERRED_LANGUAGE_OPTIONS = [
   { value: "brx", label: "Bodo" },
 ] as const;
 
+const GRIEVANCE_CATEGORY_VALUES = new Set(
+  GRIEVANCE_CATEGORY_OPTIONS.map((option) => option.value),
+);
 const DATA_CATEGORY_VALUES = new Set(
   DATA_CATEGORY_OPTIONS.map((option) => option.value),
 );
@@ -52,8 +66,20 @@ const LANGUAGE_VALUES = new Set(
   PREFERRED_LANGUAGE_OPTIONS.map((option) => option.value),
 );
 
+export type GrievanceCategoryValue = (typeof GRIEVANCE_CATEGORY_OPTIONS)[number]["value"];
 export type DataCategoryValue = (typeof DATA_CATEGORY_OPTIONS)[number]["value"];
 export type PreferredLanguageValue = (typeof PREFERRED_LANGUAGE_OPTIONS)[number]["value"];
+
+export function sanitizeGrievanceCategory(value: unknown): GrievanceCategoryValue | null {
+  const key = String(value ?? "").trim();
+  return GRIEVANCE_CATEGORY_VALUES.has(key as GrievanceCategoryValue)
+    ? (key as GrievanceCategoryValue)
+    : null;
+}
+
+export function grievanceCategoryLabel(value: string): string {
+  return GRIEVANCE_CATEGORY_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
 
 export function sanitizeDataCategories(value: unknown): DataCategoryValue[] {
   if (!Array.isArray(value)) return [];
@@ -90,10 +116,17 @@ export function buildIntakeDescription(input: {
   identityProof?: string;
   dataCategories?: string[];
   preferredLanguage?: string;
+  grievanceCategory?: string | null;
+  priorCommunication?: string;
 }): string {
   const extras: string[] = [];
+  if (input.grievanceCategory) {
+    extras.push(`Grievance category: ${grievanceCategoryLabel(input.grievanceCategory)}`);
+  }
   const identityProof = input.identityProof?.trim();
   if (identityProof) extras.push(`Identity proof: ${identityProof}`);
+  const priorCommunication = input.priorCommunication?.trim();
+  if (priorCommunication) extras.push(`Prior communication: ${priorCommunication}`);
   const categories = dataCategoryLabels(input.dataCategories ?? []);
   if (categories.length) extras.push(`Data categories: ${categories.join(", ")}`);
   if (input.preferredLanguage) {

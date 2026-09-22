@@ -140,7 +140,7 @@ export default async function RightsRequestsPage() {
                 Data Principals submit requests to this endpoint from your website or the Data Principal Rights portal.
                 No authentication is required. Supply the <code className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted-foreground)]">websiteId</code>{" "}
                 or <code className="rounded-md bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-[11px] text-[var(--muted-foreground)]">siteKey</code>{" "}
-                of the website they are requesting about. Requesters can track with ticket ID (DPR-XXXXXXXX) and email.
+                of the website they are requesting about. Requesters can track with ticket ID (DPR-XXXXXXXX or GRV-XXXXXXXX) and email.
               </p>
             </div>
             <div className="shrink-0">

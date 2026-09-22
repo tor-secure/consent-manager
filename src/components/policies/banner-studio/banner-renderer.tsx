@@ -435,6 +435,9 @@ export function BannerRenderer({
         <a href="/privacy-center/data-principal-request" style={rightsLinkStyle}>
           {ui.dataPrincipalRights}
         </a>
+        <a href="/privacy-center/grievance" style={rightsLinkStyle}>
+          File a grievance
+        </a>
         <label style={{ display: "inline-flex", alignItems: "center" }}>
           <select
             aria-label={ui.language}
@@ -828,6 +831,19 @@ export function PreferenceCenterPreview({ config }: { config: BannerConfiguratio
             }}
           >
             {ui.dataPrincipalRights}
+          </a>
+          <a
+            href="/privacy-center/grievance"
+            style={{
+              fontSize: 12.5,
+              fontWeight: 500,
+              color: "inherit",
+              opacity: 0.7,
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
+            File a grievance
           </a>
         </div>
       </div>
