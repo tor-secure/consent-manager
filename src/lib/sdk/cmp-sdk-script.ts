@@ -189,6 +189,7 @@ ${apiBaseLine}
   var _queuedSubmit = null;
   var _choiceUiHeld = false;
   var _choiceDismissed = false;
+  var _bannerSoftClosed = false;
   var _retryJob = null;
   var _submitButtons = [];
   var _tcString = null;
@@ -337,6 +338,20 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     window.setTimeout(closeUi, delay);
   }
 
+  function dismissBannerWithoutChoice() {
+    _bannerSoftClosed = true;
+    _choiceDismissed = false;
+    _reconsentNotice = '';
+    removeBanner();
+    syncPreferenceWidget();
+  }
+
+  function reopenBannerFromWidget() {
+    _bannerSoftClosed = false;
+    _choiceDismissed = false;
+    showBannerWhenReady();
+  }
+
   function holdChoiceUi() {
     _choiceUiHeld = true;
     removeBanner();
@@ -356,6 +371,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
     _choiceUiHeld = false;
     _choiceDismissed = true;
+    _bannerSoftClosed = false;
     _reconsentNotice = '';
     removeBanner();
     if (typeof removeParentalConsentDialog === 'function') removeParentalConsentDialog();
@@ -2104,15 +2120,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     removePreferenceWidget();
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
-    if (cfg.showPreferenceWidget === false) return;
     if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__') || document.getElementById('__cmp_prefs__')) return;
-    if (!_consentId) return;
+    if (!_consentId && !_bannerSoftClosed) return;
+    if (!_bannerSoftClosed && cfg.showPreferenceWidget === false) return;
 
     var btn = document.createElement('button');
     btn.id = '__cmp_reopen__';
     btn.type = 'button';
-    btn.setAttribute('aria-label', 'Cookie preferences');
-    btn.title = 'Cookie preferences';
+    btn.setAttribute('aria-label', _consentId ? 'Cookie preferences' : 'Cookie consent');
+    btn.title = _consentId ? 'Cookie preferences' : 'Cookie consent';
     var corner = cfg.preferenceWidgetPosition === 'bottom-right' ? 'right:16px;' : 'left:16px;';
     btn.setAttribute('style',
       'position:fixed;bottom:16px;' + corner + 'z-index:2147483645;'
@@ -2123,6 +2139,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><circle cx="8" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="12" cy="15" r="1.1" fill="currentColor"/></svg>';
     btn.addEventListener('click', function() {
+      if (!_consentId) {
+        reopenBannerFromWidget();
+        return;
+      }
       renderCookiePreferencesPanel();
     });
     if (document.body) document.body.appendChild(btn);
@@ -2848,7 +2868,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       );
       overlay.addEventListener('click', function() {
         if (cfg.closeOnOverlayClick && !cfg.blockPageUntilConsent) {
-          removeBanner();
+          dismissBannerWithoutChoice();
         }
       });
       document.body ? document.body.appendChild(overlay) : cmpMountRoot().appendChild(overlay);
@@ -2885,7 +2905,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       closeBtn.setAttribute('aria-label', cfg.closeLabel || 'Close');
       closeBtn.textContent = '×';
       closeBtn.style.cssText = 'position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;font-size:20px;line-height:1;opacity:0.5;color:inherit;';
-      closeBtn.addEventListener('click', function() { removeBanner(); });
+      closeBtn.addEventListener('click', function() { dismissBannerWithoutChoice(); });
       banner.appendChild(closeBtn);
     }
 
