@@ -1751,6 +1751,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function showBannerWhenReady() {
+    if (_choiceUiHeld) return;
     if (_choiceDismissed && !_reconsentNotice) {
       syncPreferenceWidget();
       return;
@@ -2812,6 +2813,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function renderBanner() {
+    if (_choiceUiHeld) return;
+    if (_choiceDismissed && !_reconsentNotice) {
+      syncPreferenceWidget();
+      return;
+    }
     if (!_config || !_config.bannerConfig) return;
     var cfg = _config.bannerConfig;
     cfg.primaryColor = safeCssColor(cfg.primaryColor) || '#171717';
@@ -3736,7 +3742,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return new Promise(function(resolve, reject) {
         var queued = submitConsent('accept-all', [], [], function(err, consentId) {
           if (err) { restoreChoiceUi(); reject(err); return; }
-          _choiceUiHeld = false;
+          finishChoice(null);
           resolve(consentId);
         });
         if (queued) holdChoiceUi();
@@ -3747,7 +3753,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return new Promise(function(resolve, reject) {
         var queued = submitConsent('reject-all', [], [], function(err, consentId) {
           if (err) { restoreChoiceUi(); reject(err); return; }
-          _choiceUiHeld = false;
+          finishChoice(null);
           resolve(consentId);
         });
         if (queued) holdChoiceUi();
@@ -3758,7 +3764,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return new Promise(function(resolve, reject) {
         var queued = submitConsent('granular', purposeDecisions || [], vendorDecisions || [], function(err, consentId) {
           if (err) { restoreChoiceUi(); reject(err); return; }
-          _choiceUiHeld = false;
+          finishChoice(null);
           resolve(consentId);
         });
         if (queued) holdChoiceUi();
@@ -4080,14 +4086,25 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         applyTrackerEnforcement();
         publishExternalSignals();
 
+        if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+          return;
+        }
         if (stored && stored.status === 'confirmed' && stored.serverConfirmed && !consentScopeChanged(stored, nextConfig)) {
           _choiceDismissed = true;
           if (bannerStillOpen) removeBanner();
           syncPreferenceWidget();
         } else if (stored && consentScopeChanged(stored, nextConfig)) {
-          _choiceDismissed = false;
-          _reconsentNotice = 'This consent policy has changed. Please review your choices.';
-          showBannerWhenReady();
+          if (_choiceDismissed) {
+            removeBanner();
+            syncPreferenceWidget();
+          } else {
+            _choiceDismissed = false;
+            _reconsentNotice = 'This consent policy has changed. Please review your choices.';
+            showBannerWhenReady();
+          }
+        } else if (_choiceDismissed) {
+          removeBanner();
+          syncPreferenceWidget();
         } else if (!stored || shouldReshowBanner(stored, nextConfig.bannerConfig)) {
           showBannerWhenReady();
         } else {
@@ -4200,14 +4217,29 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _consentId = stored.consentId;
       rememberAckedScope(stored);
       if (consentScopeChanged(stored, data)) {
-        blockOptionalProcessing('FAILED', '');
-        _choiceDismissed = false;
-        _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
-        showBannerWhenReady();
+        if (_choiceDismissed) {
+          removeBanner();
+          syncPreferenceWidget();
+        } else {
+          blockOptionalProcessing('FAILED', '');
+          _choiceDismissed = false;
+          _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
+          showBannerWhenReady();
+        }
       } else {
+        if (_choiceDismissed && _consentId && stored.consentId === _consentId) {
+          removeBanner();
+          syncPreferenceWidget();
+          return;
+        }
         verifyStoredConsent(stored, function(applied) {
           if (applied) {
             _choiceDismissed = true;
+            removeBanner();
+            syncPreferenceWidget();
+            return;
+          }
+          if (_choiceDismissed) {
             removeBanner();
             syncPreferenceWidget();
             return;
