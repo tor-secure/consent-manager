@@ -80,15 +80,27 @@ export function buildCmpSdkScript(options: {
 export function buildGenericCmpSdkScript(): string {
   const runtimeBootstrap = `
   // --- Runtime siteKey / apiBase detection ---
-  var _scripts = document.getElementsByTagName('script');
-  var _cs = null;
-  var i, src, m;
-  for (i = 0; i < _scripts.length; i++) {
-    src = _scripts[i].src || '';
-    if (_scripts[i].getAttribute('data-site-key')) { _cs = _scripts[i]; break; }
-    if (src.indexOf('/api/sdk/script') !== -1) { _cs = _scripts[i]; break; }
+  // Use the script that is executing. An earlier inline loader must not
+  // steal apiBase, or Accept all posts to the host page and gets a 404.
+  var _cs = document.currentScript || null;
+  var _csSrc = (_cs && _cs.src) || '';
+  var _csIsSdk = !!(_cs && (
+    _cs.getAttribute('data-site-key') ||
+    _csSrc.indexOf('/api/sdk/script') !== -1 ||
+    _csSrc.indexOf('siteKey=') !== -1
+  ));
+  if (!_csIsSdk) {
+    var _scripts = document.getElementsByTagName('script');
+    var i, src;
+    _cs = null;
+    for (i = 0; i < _scripts.length; i++) {
+      src = _scripts[i].src || '';
+      if (!src) continue;
+      if (_scripts[i].getAttribute('data-site-key')) { _cs = _scripts[i]; break; }
+      if (src.indexOf('/api/sdk/script') !== -1) { _cs = _scripts[i]; break; }
+    }
   }
-  if (!_cs) { _cs = document.currentScript || _scripts[_scripts.length - 1] || null; }
+  var m;
   var SITE_KEY = (_cs && _cs.getAttribute('data-site-key')) || window.__CMP_SITE_KEY || '';
   if (!SITE_KEY && _cs && _cs.src) {
     try {
@@ -176,6 +188,7 @@ ${apiBaseLine}
   var _consentState = 'UNKNOWN';
   var _confirmedRevision = 0;
   var _stateVersion = 0;
+  var _replaceMissingConsent = false;
   var _abVariantId = null;
   var _listeners   = [];
   var _explicitLang = '';
@@ -473,7 +486,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function configRequestUrl() {
-    var configUrl = API_BASE + '/api/sdk/' + SITE_KEY + '/config';
+    var configUrl = API_BASE + '/api/sdk/' + encodeURIComponent(SITE_KEY) + '/config';
     var qs = [];
     var lang = detectRequestedLang();
     if (lang) qs.push('lang=' + encodeURIComponent(String(lang).slice(0, 35)));
@@ -1869,8 +1882,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         storedConsentId &&
         incomingConsentId !== storedConsentId
       );
+      var replacingMissingRecord = !!(
+        _replaceMissingConsent &&
+        incomingConsentId &&
+        storedConsentId &&
+        incomingConsentId !== storedConsentId
+      );
       if (
         !newConsentAfterWithdrawal &&
+        !replacingMissingRecord &&
         current &&
         current.submissionId !== submissionId &&
         (
@@ -1888,6 +1908,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         log('Ignored stale consent confirmation');
         return false;
       }
+      _replaceMissingConsent = false;
       _consentId = consentId;
       applyDecisions(decisionsArray);
       _consentState = stateForConfirmedDecisions(decisionsArray);
@@ -1987,8 +2008,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     var body = {
       websiteId: _config.websiteId,
-      consentId: _consentId || undefined,
-      expectedStateVersion: _consentId ? _stateVersion : 0,
+      consentId: (_consentId && _stateVersion >= 1) ? _consentId : undefined,
+      expectedStateVersion: (_consentId && _stateVersion >= 1) ? _stateVersion : 0,
       submissionId: job.submissionId,
       policyContext: _policyContext,
       language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
@@ -2062,6 +2083,28 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (result.ok && confirmedResponse(data)) {
         applyConfirmedConsent(data);
         return;
+      }
+      if (
+        !job.recordRetry &&
+        body.consentId &&
+        (
+          result.status === 404 ||
+          (data && data.message === 'Consent record already withdrawn')
+        )
+      ) {
+        _consentId = null;
+        _stateVersion = 0;
+        _replaceMissingConsent = true;
+        delete body.consentId;
+        body.expectedStateVersion = 0;
+        job.recordRetry = true;
+        return postConsentRecord().then(function(retryResult) {
+          var retryData = retryResult.data;
+          if (!retryResult.ok || !confirmedResponse(retryData)) {
+            throw new Error(failedConsentMessage(retryData));
+          }
+          applyConfirmedConsent(retryData);
+        });
       }
       if (
         !job.contextRetry &&
@@ -4138,6 +4181,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       })
       .catch(function(err) {
         log('Stored consent verification failed: ' + err);
+        _consentId = null;
+        _stateVersion = 0;
+        _replaceMissingConsent = true;
         blockOptionalProcessing('FAILED', '');
         if (callback) callback(false);
       });
@@ -4359,6 +4405,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _consentId = stored.consentId;
       rememberAckedScope(stored);
       if (consentScopeChanged(stored, data)) {
+        _consentId = null;
+        _stateVersion = 0;
+        _replaceMissingConsent = true;
         blockOptionalProcessing('FAILED', '');
         _choiceDismissed = false;
         _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
@@ -4550,7 +4599,7 @@ export function buildEmbedSnippet(options: {
   try { if (!lang && window.__CMP_LANG) lang = window.__CMP_LANG; } catch (e) {}
   try { if (!lang && location.search) lang = new URLSearchParams(location.search).get("lang") || ""; } catch (e) {}
   try { if (!lang) lang = navigator.language || (navigator.languages && navigator.languages[0]) || ""; } catch (e) {}
-  var url = base + "/api/sdk/" + key + "/config";
+  var url = base + "/api/sdk/" + encodeURIComponent(key) + "/config";
   var qs = [];
   if (lang) qs.push("lang=" + encodeURIComponent(String(lang).slice(0, 35)));
   try {

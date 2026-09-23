@@ -403,6 +403,9 @@ function createApi(store) {
 
     const consentId = body.consentId || `cid_e2e_${store.nextConsentNumber++}`;
     let record = store.records.find((row) => row.consentId === consentId);
+    if (body.consentId && !record) {
+      return { status: 404, body: { success: false, message: "Consent record not found" } };
+    }
     if (record?.status === "withdrawn") {
       return { status: 409, body: { success: false, message: "Consent record already withdrawn" } };
     }
@@ -1079,6 +1082,33 @@ async function testPublishedBannerIsFirstPaint() {
     null,
     "confirmed consent must not flash a banner while config loads",
   );
+}
+
+async function testAcceptReplacesMissingConsentRecord() {
+  const store = createStore();
+  const browser = createBrowser(store, {
+    [`cmp_consent_${store.website.siteKey}`]: JSON.stringify({
+      status: "confirmed",
+      serverConfirmed: true,
+      consentId: "cid_missing_record",
+      submissionId: "12121212-1212-4121-8121-121212121212",
+      revision: Date.now(),
+      stateVersion: 2,
+      decisions: [{ purposeId: ids.analyticsPurpose, granted: true }],
+      choice: "accept-all",
+    }),
+  });
+  await loadSdk(browser);
+  assert.ok(
+    browser.document.getElementById("__cmp_banner__"),
+    "a missing consent record should ask for consent again",
+  );
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.equal(store.records.length, 1);
+  assert.notEqual(store.records[0].consentId, "cid_missing_record");
+  assert.equal(store.records[0].status, "accepted");
 }
 
 async function testRejectAllBeforeConfigReturns() {
@@ -2585,6 +2615,7 @@ async function testRejectAllGoogleConsentModeStaysDenied() {
 
 async function main() {
   await testPublishedBannerIsFirstPaint();
+  await testAcceptReplacesMissingConsentRecord();
   await testRejectAllBeforeConfigReturns();
   await testCustomizeSaveAndCloseBeforeConfig();
   await testLanguageChangeDoesNotRestoreBannerAfterAccept();

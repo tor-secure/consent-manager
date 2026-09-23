@@ -89,6 +89,10 @@ export async function loadHomeAnalyticsBundle(input: {
   until: Date | null;
   websiteId: string | null;
 }): Promise<HomeAnalyticsBundle> {
+  // postgres.js rejects Date objects on drizzle's unsafe() path (they are bound as
+  // bytea). ISO strings cast cleanly to timestamptz.
+  const since = input.since ? input.since.toISOString() : null;
+  const until = input.until ? input.until.toISOString() : null;
   const result = await db.execute(sql`
     WITH filtered AS MATERIALIZED (
       SELECT
@@ -105,8 +109,8 @@ export async function loadHomeAnalyticsBundle(input: {
         coalesce(nullif(cr.metadata #>> '{analytics,device}', ''), 'unknown') AS device
       FROM consent_records cr
       WHERE cr.organization_id = ${input.organizationId}::uuid
-        AND (${input.since}::timestamptz IS NULL OR cr.updated_at >= ${input.since}::timestamptz)
-        AND (${input.until}::timestamptz IS NULL OR cr.updated_at <= ${input.until}::timestamptz)
+        AND (${since}::timestamptz IS NULL OR cr.updated_at >= ${since}::timestamptz)
+        AND (${until}::timestamptz IS NULL OR cr.updated_at <= ${until}::timestamptz)
         AND (${input.websiteId}::uuid IS NULL OR cr.website_id = ${input.websiteId}::uuid)
     )
     SELECT jsonb_build_object(
@@ -241,8 +245,8 @@ export async function loadHomeAnalyticsBundle(input: {
           FROM consent_events e
           INNER JOIN filtered f ON f.id = e.consent_record_id
           WHERE e.organization_id = ${input.organizationId}::uuid
-            AND (${input.since}::timestamptz IS NULL OR e.occurred_at >= ${input.since}::timestamptz)
-            AND (${input.until}::timestamptz IS NULL OR e.occurred_at <= ${input.until}::timestamptz)
+            AND (${since}::timestamptz IS NULL OR e.occurred_at >= ${since}::timestamptz)
+            AND (${until}::timestamptz IS NULL OR e.occurred_at <= ${until}::timestamptz)
           GROUP BY date_trunc('day', e.occurred_at)
         ) t
       ), '[]'::jsonb)
