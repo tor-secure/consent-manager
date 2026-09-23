@@ -89,6 +89,7 @@ const footerColumns = [
       { label: "Data Processing Agreement", href: "/privacy-center/data-processing-agreement" },
       { label: "Data Principal Rights", href: "/privacy-center/data-principal-request" },
       { label: "File a Grievance", href: "/privacy-center/grievance" },
+      { label: "Track a request", href: "/privacy-center/track-request" },
       { label: "Disclaimer", href: "/disclaimer" },
     ],
   },

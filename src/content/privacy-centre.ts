@@ -867,4 +867,11 @@ export const PRIVACY_CENTRE_PARTS = [
     description:
       "Lodge and track a grievance with Consent Guru's Data Protection Officer under Section 13 of the Digital Personal Data Protection Act, 2023.",
   },
+  {
+    part: "Part VI",
+    href: "/privacy-center/track-request",
+    title: "Track a request",
+    description:
+      "Look up the status of a Data Principal Rights ticket (DPR-) or a grievance ticket (GRV-) using the email used when you submitted the form.",
+  },
 ] as const;

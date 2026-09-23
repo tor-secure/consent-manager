@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
           "/privacy-center/",
           "/privacy-center/data-principal-request",
           "/privacy-center/grievance",
+          "/privacy-center/track-request",
           "/disclaimer",
           "/faqs",
           "/pricing",

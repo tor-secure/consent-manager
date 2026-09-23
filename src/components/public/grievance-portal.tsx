@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { RightsRequestTracker } from "@/components/public/rights-request-tracker";
 import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
 import {
   GRIEVANCE_CATEGORY_OPTIONS,
@@ -19,16 +20,6 @@ type PortalContact = {
   grievanceOfficerName: string | null;
   grievanceOfficerEmail: string | null;
   addressLines: string[];
-};
-
-type TrackedRequest = {
-  requesterReference: string | null;
-  requestType: string;
-  status: string;
-  verificationStatus: string;
-  receivedAt: string;
-  dueAt: string;
-  completedAt: string | null;
 };
 
 const FALLBACK_CONTACT: PortalContact = {
@@ -81,15 +72,6 @@ function IconPen() {
   );
 }
 
-function IconSearch() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="6.25" stroke="currentColor" strokeWidth="1.7" />
-      <path d="m15.5 15.5 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 export function GrievancePortal() {
   const searchParams = useSearchParams();
   const siteKey = searchParams.get("siteKey")?.trim() ?? "";
@@ -100,12 +82,8 @@ export function GrievancePortal() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [dueAt, setDueAt] = useState<string | null>(null);
-
   const [trackTicket, setTrackTicket] = useState(searchParams.get("ticket")?.trim() ?? "");
-  const [trackEmail, setTrackEmail] = useState("");
-  const [tracking, setTracking] = useState(false);
-  const [trackError, setTrackError] = useState<string | null>(null);
-  const [tracked, setTracked] = useState<TrackedRequest | null>(null);
+  const [trackEmail, setTrackEmail] = useState(searchParams.get("email")?.trim() ?? "");
 
   const remaining = Math.max(0, 50 - description.trim().length);
   const officerEmail = contact.dpoEmail || contact.grievanceOfficerEmail;
@@ -169,43 +147,17 @@ export function GrievancePortal() {
         return;
       }
       const issued = payload.ticketId ?? payload.requesterReference ?? null;
+      const submittedEmail = String(data.get("requesterEmail") ?? "").trim();
       setTicketId(issued);
       setDueAt(payload.dueAt ?? null);
       if (issued) setTrackTicket(issued);
+      if (submittedEmail) setTrackEmail(submittedEmail);
       form.reset();
       setDescription("");
     } catch {
       setSubmitError("Could not submit this grievance. Try again in a moment.");
     } finally {
       setSubmitting(false);
-    }
-  }
-
-  async function trackGrievance(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setTracking(true);
-    setTrackError(null);
-    setTracked(null);
-    try {
-      const params = new URLSearchParams({
-        ticket: trackTicket.trim(),
-        email: trackEmail.trim(),
-      });
-      const res = await fetch(`/api/rights-request/status?${params.toString()}`);
-      const payload = (await res.json()) as {
-        success?: boolean;
-        message?: string;
-        request?: TrackedRequest;
-      };
-      if (!res.ok || !payload.success || !payload.request) {
-        setTrackError(payload.message ?? "Grievance not found");
-        return;
-      }
-      setTracked(payload.request);
-    } catch {
-      setTrackError("Could not look up this grievance. Try again in a moment.");
-    } finally {
-      setTracking(false);
     }
   }
 
@@ -331,7 +283,8 @@ export function GrievancePortal() {
           <div className="mt-6 rounded-xl border border-[#B7E8DC] bg-[#F3FAF8] p-5" role="status">
             <p className="text-sm font-semibold text-[#0B2C4A]">Grievance submitted</p>
             <p className="mt-2 text-sm leading-6 text-[#4B5563]">
-              Save this ticket ID. Use it with the email you submitted to track your grievance.
+              Save this ticket ID. Status is loaded below with the email you submitted. You can also
+              track a Data Principal ticket (DPR-) here.
             </p>
             <p className="mt-3 font-mono text-lg font-bold tracking-wide text-[#0B2C4A]">{ticketId}</p>
             {dueAt ? (
@@ -510,100 +463,22 @@ export function GrievancePortal() {
         )}
       </section>
 
-      <section
+      <RightsRequestTracker
         id="track-grievance"
-        className="scroll-mt-28 rounded-2xl border border-[#D3E0DE] bg-white p-5 shadow-sm sm:p-7"
-      >
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E8F8F5] text-[#00A88F]">
-            <IconSearch />
-          </span>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight text-[#0B2C4A]">Track Your Grievance</h2>
-            <p className="mt-1 text-sm leading-6 text-[#4B5563]">
-              Enter your ticket ID and the email address used when filing the grievance.
-            </p>
-          </div>
-        </div>
-
-        <form onSubmit={trackGrievance} className="mt-5 space-y-4">
-          <div>
-            <label htmlFor="trackTicket" className="field-label">
-              Enter ticket ID (e.g., GRV-XXXXXXXX)
-            </label>
-            <input
-              id="trackTicket"
-              value={trackTicket}
-              onChange={(event) => setTrackTicket(event.target.value)}
-              required
-              autoComplete="off"
-              placeholder="GRV-XXXXXXXX"
-              className="field-input"
-            />
-          </div>
-          <div>
-            <label htmlFor="trackEmail" className="field-label">
-              Email used for the grievance
-            </label>
-            <input
-              id="trackEmail"
-              type="email"
-              value={trackEmail}
-              onChange={(event) => setTrackEmail(event.target.value)}
-              required
-              autoComplete="email"
-              className="field-input"
-            />
-          </div>
-          {trackError ? (
-            <p className="text-sm font-medium text-[#B42318]" role="alert">
-              {trackError}
-            </p>
-          ) : null}
-          <button
-            type="submit"
-            disabled={tracking}
-            className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-[#2563EB] px-5 text-sm font-semibold text-white transition hover:bg-[#1D4ED8] disabled:opacity-60"
-          >
-            {tracking ? "Looking up…" : "Track"}
-          </button>
-        </form>
-
-        {tracked ? (
-          <dl className="mt-5 grid gap-3 rounded-xl border border-[#D3E0DE] bg-[#F8FCFB] p-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-[#6B7280]">Ticket ID</dt>
-              <dd className="mt-0.5 font-mono font-semibold text-[#0B2C4A]">
-                {tracked.requesterReference ?? "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[#6B7280]">Status</dt>
-              <dd className="mt-0.5 font-medium capitalize text-[#0B2C4A]">{tracked.status}</dd>
-            </div>
-            <div>
-              <dt className="text-[#6B7280]">Verification</dt>
-              <dd className="mt-0.5 font-medium text-[#0B2C4A]">{tracked.verificationStatus}</dd>
-            </div>
-            <div>
-              <dt className="text-[#6B7280]">Received</dt>
-              <dd className="mt-0.5 text-[#0B2C4A]">{formatDate(tracked.receivedAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-[#6B7280]">Due</dt>
-              <dd className="mt-0.5 text-[#0B2C4A]">{formatDate(tracked.dueAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-[#6B7280]">Completed</dt>
-              <dd className="mt-0.5 text-[#0B2C4A]">{formatDate(tracked.completedAt)}</dd>
-            </div>
-          </dl>
-        ) : null}
-      </section>
+        title="Track a grievance or Data Principal request"
+        description="Enter a GRV- or DPR- ticket ID and the email used on the form. Status appears here after you submit, and you can look up either type of submission."
+        initialTicket={trackTicket}
+        initialEmail={trackEmail}
+        autoLookup={Boolean(trackTicket && trackEmail)}
+      />
 
       <p className="px-1 text-center text-xs leading-5 text-[#6B7280]">
         This grievance portal is provided in compliance with the Digital Personal Data Protection Act,
-        2023 (DPDP Act).
+        2023 (DPDP Act). Track a Data Principal Rights ticket (DPR-) here too, or{" "}
+        <Link href="/privacy-center/data-principal-request" className="font-medium text-[#0B2C4A] underline decoration-[#00C4A7]/50 underline-offset-2">
+          file a rights request
+        </Link>
+        .
       </p>
     </div>
   );
