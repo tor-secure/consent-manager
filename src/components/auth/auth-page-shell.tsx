@@ -25,8 +25,8 @@ export const clerkAuthAppearance = {
     rootBox: "cmp-auth-root w-full",
     cardBox: "w-full shadow-none",
     card:
-      "cmp-auth-form-card w-full rounded-2xl border border-solid border-[#E5E7EB] bg-white px-6 py-7 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.28)] sm:px-8 sm:py-8",
-    headerTitle: "!text-[#111827] text-[1.75rem] font-bold tracking-tight",
+            "cmp-auth-form-card w-full max-w-full rounded-2xl border border-solid border-[#E5E7EB] bg-white px-4 py-6 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.28)] min-[400px]:px-6 sm:px-8 sm:py-8",
+    headerTitle: "!text-[#111827] text-[clamp(1.25rem,1rem+1.5vw,1.75rem)] font-bold tracking-tight",
     headerSubtitle: "!text-[#6B7280] text-sm",
     socialButtonsBlockButton:
       "!bg-white !text-[#111827] h-11 rounded-xl border border-solid !border-[#D1D5DB] text-sm font-semibold hover:!bg-[#F9FAFB]",
@@ -89,7 +89,7 @@ function BrandPanel({
   showPlus?: boolean;
 }) {
   return (
-    <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[#F3FAF8] px-7 py-8 sm:px-8 lg:px-10 lg:py-10">
+    <div className="relative flex h-full min-w-0 flex-col justify-between overflow-hidden bg-[#F3FAF8] px-4 py-6 min-[400px]:px-6 sm:px-8 lg:px-10 lg:py-10">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -104,14 +104,14 @@ function BrandPanel({
         <span className="inline-flex rounded-full border border-[#B7EDE4] bg-white px-3 py-1 text-[12px] font-semibold text-[#0B2C4A]">
           {badge}
         </span>
-        <p className="mt-4 max-w-md text-balance text-[1.85rem] font-bold leading-tight tracking-tight text-[#111827] sm:text-[2.05rem]">
+        <p className="mt-4 max-w-md text-balance text-[clamp(1.4rem,1.05rem+1.8vw,2.05rem)] font-bold leading-tight tracking-tight text-[#111827]">
           {title}
         </p>
         <p className="mt-3 max-w-md text-sm leading-6 text-[#4B5563]">{description}</p>
 
         <ul className="mt-8 space-y-4">
           {features.map((item) => (
-            <li key={item.title} className="cmp-auth-fade-item flex items-start gap-3">
+            <li key={item.title} className="cmp-auth-fade-item flex min-w-0 items-start gap-3">
               <span
                 className={`mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.iconBg} ${item.iconColor}`}
               >
@@ -129,7 +129,7 @@ function BrandPanel({
                   {item.icon}
                 </svg>
               </span>
-              <span>
+              <span className="min-w-0">
                 <span className="block text-sm font-bold text-[#111827]">{item.title}</span>
                 <span className="mt-0.5 block text-[13px] leading-5 text-[#6B7280]">
                   {item.description}
@@ -150,7 +150,7 @@ function BrandPanel({
               consentguru.com
             </span>
           </div>
-          <div className="grid grid-cols-[1fr_0.85fr] gap-3">
+          <div className="grid min-w-0 grid-cols-1 gap-3 min-[420px]:grid-cols-[minmax(0,1fr)_minmax(0,0.85fr)]">
             <div className="rounded-xl bg-[#F8FAFC] p-3">
               <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
                 Consent rate
@@ -256,32 +256,32 @@ export function AuthPageShell({
 
   return (
     <div
-      className="cmp-auth-page min-h-screen px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
+      className="cmp-auth-page min-h-screen overflow-x-clip px-3 py-4 min-[400px]:px-4 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
       style={{
         background:
           "radial-gradient(ellipse 55% 35% at 15% 0%, rgba(0,196,167,0.14), transparent 55%), linear-gradient(180deg, #F3F4F6 0%, #E6F9F5 100%)",
       }}
     >
       <SkipLink href="#auth-form" />
-      <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-[1100px] flex-col">
-        <div className="flex flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)]">
-          <header className="flex items-center justify-between border-b border-[#F3F4F6] px-6 py-4 sm:px-8">
-            <Link href="/" className="inline-flex items-center" aria-label="Consent Guru home">
-              <BrandLogo height={36} />
+      <div className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-[1100px] flex-col sm:min-h-[calc(100vh-3rem)]">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-clip rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)] sm:overflow-hidden sm:rounded-[1.75rem]">
+          <header className="flex min-w-0 items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 min-[400px]:px-6 sm:px-8 sm:py-4">
+            <Link href="/" className="inline-flex min-w-0 items-center" aria-label="Consent Guru home">
+              <BrandLogo height={36} className="cmp-auth-logo" />
             </Link>
 
             {mode === "sign-in" ? (
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Don&apos;t have an account?</p>
                 <ArrowButton href="/sign-up">Sign up</ArrowButton>
               </div>
             ) : mode === "sign-up" ? (
-              <div className="flex items-center gap-3">
+              <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Already have an account?</p>
                 <ArrowButton href="/sign-in">Log in</ArrowButton>
               </div>
             ) : (
-              <p className="text-sm text-[#4B5563]">
+              <p className="max-w-[11rem] text-right text-xs leading-5 text-[#4B5563] min-[400px]:max-w-none min-[400px]:text-sm">
                 Already have a workspace?{" "}
                 <Link href="/dashboard" className="font-semibold text-[#0B2C4A] hover:text-[#00C4A7]">
                   Open dashboard
@@ -290,18 +290,20 @@ export function AuthPageShell({
             )}
           </header>
 
-          <div className="grid flex-1 lg:grid-cols-[0.95fr_1.05fr]">
-            <BrandPanel
-              badge={copy.badge}
-              title={copy.title}
-              description={copy.description}
-              showPlus={copy.showPlus}
-            />
+          <div className="grid min-w-0 flex-1 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="order-2 min-w-0 lg:order-1">
+              <BrandPanel
+                badge={copy.badge}
+                title={copy.title}
+                description={copy.description}
+                showPlus={copy.showPlus}
+              />
+            </div>
 
-            <div className="flex items-center justify-center bg-[#F9FAFB] px-5 py-8 sm:px-8 lg:px-10">
-              <div id="auth-form" key={mode} className="cmp-auth-form-enter w-full max-w-[420px]" tabIndex={-1}>
+            <div className="order-1 flex min-w-0 items-center justify-center bg-[#F9FAFB] px-3 py-6 min-[400px]:px-5 sm:px-8 sm:py-8 lg:order-2 lg:px-10">
+              <div id="auth-form" key={mode} className="cmp-auth-form-enter w-full min-w-0 max-w-[420px]" tabIndex={-1}>
                 {children}
-                <p className="mt-5 flex items-start gap-2 text-[12px] leading-5 text-[#6B7280]">
+                <p className="mt-5 flex items-start gap-2 text-[12px] leading-5 break-words text-[#6B7280]">
                   <svg
                     width="14"
                     height="14"
@@ -329,7 +331,7 @@ export function AuthPageShell({
           </div>
         </div>
 
-        <p className="mt-5 text-center text-xs text-[#6B7280]">
+        <p className="mt-5 px-2 text-center text-xs leading-5 break-words text-[#6B7280]">
           By continuing, you start a Consent Guru workspace for consent management.{" "}
           <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
             See how it works

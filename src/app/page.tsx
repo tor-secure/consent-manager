@@ -34,7 +34,7 @@ const trustItems = [
 
 export default function Home() {
   return (
-    <div className="public-page min-h-screen bg-white text-[#111827]">
+    <div className="home-page public-page min-h-screen overflow-x-clip bg-white text-[#111827]">
       <SkipLink />
       <HomeInteractions />
       <HomeNavbar />
@@ -58,9 +58,9 @@ export default function Home() {
             aria-hidden="true"
           />
 
-          <div className="relative mx-auto grid max-w-[1200px] items-center gap-12 px-5 py-3 sm:px-8 sm:py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-8">
-            <div className="home-fade-item max-w-xl">
-              <h1 className="text-balance text-[2.35rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl lg:text-[3.4rem]">
+          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] items-center gap-8 px-4 py-4 min-[400px]:px-5 sm:gap-12 sm:px-8 sm:py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-8">
+            <div className="home-fade-item min-w-0 max-w-xl">
+              <h1 className="text-balance text-[clamp(1.85rem,1.15rem+3.6vw,3.4rem)] font-bold leading-[1.1] tracking-tight text-[#111827]">
                 Build trust. Collect consent.{" "}
                 <span
                   className="bg-clip-text text-transparent"
@@ -77,23 +77,23 @@ export default function Home() {
                 all in one powerful platform.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <ArrowButton href="/sign-up" size="lg">
+              <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
+                <ArrowButton href="/sign-up" size="lg" className="w-full justify-center min-[480px]:w-auto">
                   Sign up
                 </ArrowButton>
                 <Link
                   href="/#comparison"
-                  className="inline-flex h-12 items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5]"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-center text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5] min-[480px]:w-auto"
                 >
                   See why we are better
                 </Link>
               </div>
 
-              <PenaltyCallout className="mt-6 max-w-lg" />
+              <PenaltyCallout className="mt-6 w-full max-w-lg" />
 
               <ul className="mt-8 flex flex-col gap-3 text-[13px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
                 {trustItems.map((item) => (
-                  <li key={item.label} className="inline-flex items-center gap-2">
+                  <li key={item.label} className="inline-flex min-w-0 items-start gap-2 sm:items-center">
                     <svg
                       width="16"
                       height="16"

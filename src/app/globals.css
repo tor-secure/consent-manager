@@ -321,6 +321,139 @@ html, body {
   animation-delay: 0.19s;
 }
 
+html:has(.cmp-auth-page),
+html:has(.cmp-auth-page) body {
+  overflow-x: clip;
+}
+
+.cmp-auth-page {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.cmp-auth-page .cmp-auth-logo {
+  height: clamp(1.65rem, 4vw + 0.7rem, 2.25rem) !important;
+  max-width: min(10.5rem, 42vw);
+}
+
+.cmp-auth-page .cl-rootBox,
+.cmp-auth-page .cl-cardBox,
+.cmp-auth-page .cl-card,
+.cmp-auth-page .cl-main,
+.cmp-auth-page .cl-form,
+.cmp-auth-page .cl-socialButtons,
+.cmp-auth-page .cl-formFieldRow,
+.cmp-auth-page .cl-formField,
+.cmp-auth-page .cl-formFieldInputGroup {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.cmp-auth-page .cl-card {
+  padding-inline: clamp(0.9rem, 3vw, 2rem) !important;
+  padding-block: clamp(1rem, 2.5vw, 2rem) !important;
+}
+
+.cmp-auth-page .cl-main,
+.cmp-auth-page .cl-form {
+  align-items: stretch !important;
+  padding-inline: 0 !important;
+}
+
+.cmp-auth-page .cl-formFieldRow,
+.cmp-auth-page .cl-formFieldRow__password {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.cmp-auth-page .cl-formField,
+.cmp-auth-page .cl-formField__password,
+.cmp-auth-page .cl-formFieldLabelRow,
+.cmp-auth-page .cl-formFieldInputGroup,
+.cmp-auth-page [class*="cl-internal-linmqy"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box;
+}
+
+.cmp-auth-page .cl-formFieldInput,
+.cmp-auth-page .cl-socialButtonsBlockButton,
+.cmp-auth-page .cl-formButtonPrimary {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+.cmp-auth-page .cl-formFieldInputGroup {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+}
+
+.cmp-auth-page .cl-formFieldInput__password {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding-right: 2.75rem !important;
+}
+
+.cmp-auth-page .cl-formFieldInputShowPasswordButton {
+  position: absolute !important;
+  right: 0.4rem !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 2rem !important;
+  min-width: 2rem !important;
+  flex-shrink: 0;
+}
+
+.cmp-auth-page .cl-headerTitle {
+  font-size: clamp(1.25rem, 1rem + 1.5vw, 1.75rem) !important;
+  overflow-wrap: break-word;
+}
+
+.cmp-auth-page .cl-headerSubtitle,
+.cmp-auth-page .cl-formFieldLabel,
+.cmp-auth-page .cl-footerActionText {
+  overflow-wrap: break-word;
+}
+
+@media (max-width: 639px) {
+  .cmp-auth-page #auth-form {
+    padding-bottom: 4.25rem;
+  }
+
+  .cmp-auth-page .whatsapp-float-bubble {
+    display: none;
+  }
+
+  .cmp-auth-page .whatsapp-float-btn {
+    height: 2.75rem;
+    width: 2.75rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .cmp-auth-page .max-w-\[1100px\] {
+    max-width: 72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmp-auth-form-enter,
+  .cmp-auth-fade-item {
+    animation: none !important;
+  }
+}
+
 .skip-link {
   position: absolute;
   left: 0.75rem;
@@ -2559,5 +2692,176 @@ html.dark .border-white\/80 { border-color: var(--border) !important; }
     animation: none !important;
     transform: none !important;
     will-change: auto;
+  }
+}
+
+/* Homepage-only responsive layout. Other public routes keep their existing styles. */
+html:has(.home-page),
+html:has(.home-page) body {
+  overflow-x: clip;
+}
+
+.home-page {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.home-page .home-copy p,
+.home-page #site-footer p,
+.home-page #site-footer a,
+.home-page #resources p {
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+@media (max-width: 479px) {
+  .home-page .home-copy p {
+    text-align: left;
+  }
+}
+
+.home-page header[class*="sticky"] nav {
+  min-width: 0;
+  gap: clamp(0.5rem, 1.5vw, 1rem);
+  padding-inline: clamp(0.85rem, 2.4vw, 2rem);
+}
+
+.home-page header [aria-label="Consent Guru home"] img {
+  height: clamp(1.75rem, 4vw + 0.85rem, 2.5rem) !important;
+  max-width: min(11.75rem, 46vw);
+}
+
+.home-page header button[aria-controls="mobile-navigation"] {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  flex-shrink: 0;
+}
+
+.home-page #mobile-navigation:not([hidden]) > div {
+  max-height: min(70dvh, 34rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.home-page #mobile-navigation a,
+.home-page #mobile-navigation summary,
+.home-page #mobile-navigation .arrow-btn {
+  min-height: 2.75rem;
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  .home-page header nav .inline-flex.items-center.rounded-lg.px-3 {
+    padding-inline: 0.55rem;
+  }
+}
+
+.home-page #main-content,
+.home-page #how-it-works,
+.home-page #comparison {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.home-page #product {
+  overflow: hidden;
+  max-width: 100%;
+}
+
+.home-page #product .overflow-x-auto {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.home-page .comparison-switch,
+.home-page .comparison-panels,
+.home-page .comparison-panel,
+.home-page .comparison-scroll {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.home-page .comparison-tabs {
+  width: 100%;
+  max-width: 22rem;
+}
+
+.home-page .industry-marquee {
+  max-width: 100%;
+}
+
+.home-page .industry-marquee-track {
+  max-width: none;
+}
+
+@media (max-width: 379px) {
+  .home-page .industry-card {
+    flex-basis: 15.25rem;
+    width: 15.25rem;
+  }
+
+  .home-page .whatsapp-float-bubble {
+    display: none;
+  }
+
+  .home-page #site-footer nav[aria-label="Footer"] {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+    row-gap: 1.75rem;
+  }
+
+  .home-page .comparison-tab {
+    padding-inline: 0.7rem;
+    font-size: 0.8125rem;
+  }
+}
+
+.home-page #site-footer {
+  overflow-x: clip;
+}
+
+.home-page #site-footer nav[aria-label="Footer"] {
+  min-width: 0;
+}
+
+.home-page #site-footer li {
+  min-width: 0;
+}
+
+.home-page #resources {
+  padding-inline: clamp(0.85rem, 2.4vw, 2rem);
+}
+
+.home-page #resources .home-fade-item {
+  padding-inline: clamp(1rem, 3vw, 2.5rem);
+}
+
+@media (max-width: 479px) {
+  .home-page #resources .relative.grid .flex.items-start {
+    flex-direction: column;
+  }
+
+  .home-page .arrow-btn-lg {
+    width: 100%;
+  }
+}
+
+.home-page .pointer-events-none.fixed {
+  left: clamp(0.75rem, 2vw, 1.25rem);
+  bottom: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+@media (min-width: 1920px) {
+  .home-page header nav,
+  .home-page .max-w-\[1200px\] {
+    max-width: 90rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-page .industry-marquee-track,
+  .home-page .home-section,
+  .home-page .home-fade-item {
+    animation: none !important;
   }
 }

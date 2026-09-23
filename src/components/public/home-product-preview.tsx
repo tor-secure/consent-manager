@@ -74,7 +74,7 @@ function KpiIcon({ kind }: { kind: string }) {
 function HubKpis() {
   const tones = ["#00C4A7", "#3B82F6", "#8B5CF6", "#0B2C4A"];
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
       {hubKpis.map((kpi, i) => (
         <div
           key={kpi.label}
@@ -332,11 +332,11 @@ export function HomeProductPreview() {
   return (
     <div
       id="product"
-      className="home-fade-item relative mx-auto w-full max-w-[640px] lg:max-w-none"
+      className="home-fade-item relative mx-auto w-full min-w-0 max-w-[640px] overflow-x-clip lg:max-w-none"
       aria-label="Consent Guru dashboard preview"
     >
       <div
-        className="pointer-events-none absolute -inset-8 -z-10 rounded-[2rem] opacity-80"
+        className="pointer-events-none absolute inset-0 -z-10 rounded-[2rem] opacity-80 sm:-inset-4 lg:-inset-8"
         style={{
           background:
             "radial-gradient(ellipse at 70% 30%, rgba(0,196,167,0.18), transparent 55%), radial-gradient(ellipse at 30% 80%, rgba(11,44,74,0.12), transparent 50%)",
@@ -345,8 +345,8 @@ export function HomeProductPreview() {
       />
 
       <div className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)]">
-        <div className="grid min-h-[460px] sm:grid-cols-[176px_1fr]">
-          <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-3 sm:block">
+        <div className="grid min-h-[min(28rem,82dvh)] min-[480px]:min-h-[460px] md:grid-cols-[minmax(0,176px)_minmax(0,1fr)]">
+          <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-3 md:block">
             <div className="mb-5 px-1 pt-1">
               <BrandLogo tone="on-light" height={28} className="max-w-full" />
             </div>
@@ -373,15 +373,15 @@ export function HomeProductPreview() {
             </ul>
           </aside>
 
-          <div className="relative bg-[#F8FAFC] p-4 sm:p-5">
+          <div className="relative min-w-0 bg-[#F8FAFC] p-3 min-[400px]:p-4 sm:p-5">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.07]" aria-hidden="true">
-              <BrandLogo markOnly tone="on-light" height={150} className="max-w-[200px]" />
+              <BrandLogo markOnly tone="on-light" height={150} className="max-h-[40%] max-w-[min(200px,55%)]" />
             </div>
-            <div className="relative z-[1]">
-            <div className="mb-3 flex items-center justify-between gap-3 sm:hidden">
+            <div className="relative z-[1] min-w-0">
+            <div className="mb-3 flex items-center justify-between gap-3 md:hidden">
               <BrandLogo tone="on-light" height={24} />
             </div>
-            <div className="mb-3 flex gap-1 overflow-x-auto sm:hidden">
+            <div className="mb-3 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain md:hidden">
               {TABS.map((item) => (
                 <button
                   key={item.id}

@@ -80,7 +80,7 @@ function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; pla
         <div className="rounded-xl bg-[#F8FAFC] p-4 text-[#0F172A]">
           <p className="text-sm font-bold">We use cookies to remember your choices</p>
           <p className="mt-1 text-xs text-[#64748B]">Analytics and ads stay off until you accept.</p>
-          <div className="mt-3 flex gap-2">
+          <div className="mt-3 flex flex-wrap gap-2">
             <span className="rounded-lg bg-[#0B2C4A] px-3 py-1.5 text-xs font-semibold text-white">Accept</span>
             <span className="rounded-lg border border-[#CBD5E1] px-3 py-1.5 text-xs font-semibold">Reject</span>
           </div>
@@ -125,17 +125,17 @@ export function HomeHowItWorks() {
   const step = steps[active] ?? steps[0];
 
   return (
-    <section id="how-it-works" className="bg-white">
-      <div className="mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
+    <section id="how-it-works" className="overflow-x-clip bg-white">
+      <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-[clamp(3.5rem,6vw,5rem)] min-[400px]:px-5 sm:px-8">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">How it works</p>
-        <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#111827] sm:text-4xl">
+        <h2 className="mt-2 text-[clamp(1.6rem,1.15rem+2vw,2.25rem)] font-bold tracking-tight text-[#111827]">
           Live in five steps
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4B5563] sm:text-base">
           Watch the path you follow in the dashboard: website, policy, banner, publish, then install.
         </p>
 
-        <div className="mt-10 grid items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="mt-10 grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <ol className="space-y-2">
             {steps.map((item, index) => {
               const selected = index === active;

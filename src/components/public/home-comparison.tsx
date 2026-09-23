@@ -52,8 +52,8 @@ function FeatureMatrix({
   );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
-      <div className="grid gap-6 border-b border-[#E5E7EB] px-5 py-5 sm:px-6 lg:grid-cols-[1.4fr_0.8fr]">
+    <div className="min-w-0 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+      <div className="grid min-w-0 gap-6 border-b border-[#E5E7EB] px-4 py-5 min-[400px]:px-5 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
         <div>
           <h3 className="text-lg font-bold text-[#0F172A]">{title}</h3>
           <p className="mt-1 text-sm text-[#6B7280]">{subtitle}</p>
@@ -124,7 +124,7 @@ function FeatureMatrix({
 
 export function HomeComparison() {
   return (
-    <section id="comparison" className="relative bg-[#F8FAFF]">
+    <section id="comparison" className="relative overflow-x-clip bg-[#F8FAFF]">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -134,12 +134,12 @@ export function HomeComparison() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto max-w-[1200px] px-5 py-16 sm:px-8 lg:py-20">
-        <div className="max-w-4xl">
-          <h2 className="text-balance text-4xl font-extrabold tracking-tight text-[#0F172A] sm:text-6xl sm:leading-[1.05]">
+      <div className="relative mx-auto w-full min-w-0 max-w-[1200px] px-4 py-[clamp(3.5rem,6vw,5rem)] min-[400px]:px-5 sm:px-8">
+        <div className="max-w-4xl min-w-0">
+          <h2 className="text-balance text-[clamp(1.85rem,1.1rem+3.4vw,3.75rem)] font-extrabold leading-[1.08] tracking-tight text-[#0F172A]">
             Why Consent Guru?
           </h2>
-          <p className="mt-4 text-balance text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">
+          <p className="mt-4 text-balance text-[clamp(1.25rem,0.9rem+2vw,2.25rem)] font-bold tracking-tight text-[#0B2C4A]">
             Built for India. Ready for the world.
           </p>
           <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#4B5563]">
@@ -149,7 +149,7 @@ export function HomeComparison() {
           </p>
         </div>
 
-        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <ul className="mt-8 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {[
             "All top Indian USPs in one platform",
             "AI-powered and future-ready",
@@ -159,7 +159,7 @@ export function HomeComparison() {
           ].map((item) => (
             <li
               key={item}
-              className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-medium text-[#0F172A] shadow-sm"
+              className="min-w-0 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-medium text-[#0F172A] shadow-sm"
             >
               {item}
             </li>
@@ -168,7 +168,7 @@ export function HomeComparison() {
 
         <div className="comparison-switch mt-12">
           <div
-            className="comparison-tabs"
+            className="comparison-tabs w-full max-w-md"
             role="radiogroup"
             aria-label="Comparison market"
           >
@@ -224,14 +224,14 @@ export function HomeComparison() {
           .
         </p>
 
-        <div className="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl bg-[#0B2C4A] px-6 py-6 text-white sm:flex-row sm:items-center">
-          <div>
+        <div className="mt-8 flex flex-col items-stretch justify-between gap-4 rounded-2xl bg-[#0B2C4A] px-4 py-5 text-white min-[400px]:px-6 min-[400px]:py-6 sm:flex-row sm:items-center">
+          <div className="min-w-0">
             <p className="text-lg font-bold">From compliance to competitive advantage</p>
           <p className="mt-1 text-sm text-white/75">
             More than a CMP, a complete consent intelligence platform for the AI era.
           </p>
           </div>
-          <ArrowButton href="/sign-up" tone="inverse">
+          <ArrowButton href="/sign-up" tone="inverse" className="w-full justify-center sm:w-auto">
             Sign up
           </ArrowButton>
         </div>

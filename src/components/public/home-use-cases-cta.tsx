@@ -185,12 +185,12 @@ export function HomeUseCasesCta() {
         backgroundSize: "26px 26px",
       }}
     >
-      <div className="mx-auto max-w-[1200px] px-5 pt-16 sm:px-8 sm:pt-20">
+      <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 pt-[clamp(3.5rem,6vw,5rem)] min-[400px]:px-5 sm:px-8">
         <div className="text-center">
           <span className="home-fade-item inline-flex rounded-full bg-[#E6F9F5] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#0B2C4A]">
             Use Cases
           </span>
-          <h2 className="home-fade-item mt-4 text-balance text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
+          <h2 className="home-fade-item mt-4 text-balance text-[clamp(1.6rem,1.15rem+2vw,2.25rem)] font-bold tracking-tight text-[#0F172A]">
             Built for every industry
           </h2>
           <p className="home-fade-item mx-auto mt-3 max-w-2xl text-[15px] leading-7 text-[#6B7280] sm:text-base">
@@ -243,20 +243,20 @@ export function HomeUseCasesCta() {
           </div>
       </div>
 
-      <div className="mx-auto max-w-[1200px] px-5 pb-16 sm:px-8 sm:pb-20">
+      <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 pb-[clamp(3.5rem,6vw,5rem)] min-[400px]:px-5 sm:px-8">
         <div id="use-cases" className="mt-14 scroll-mt-24">
-          <h3 className="text-xl font-bold tracking-tight text-[#0F172A] sm:text-2xl">
+          <h3 className="text-[clamp(1.15rem,1rem+1vw,1.5rem)] font-bold tracking-tight text-[#0F172A]">
             What you actually run in the workspace
           </h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[#6B7280] sm:text-[15px]">
             Same product surfaces your team already uses after sign-up, not a separate marketing
             stack.
           </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <div className="mt-6 grid grid-cols-1 gap-3 min-[600px]:grid-cols-2">
             {workspaceCapabilities.map((item) => (
               <article
                 key={item.title}
-                className="rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-sm"
+                className="min-w-0 rounded-xl border border-[#E5E7EB] bg-white px-4 py-4 shadow-sm"
               >
                 <h4 className="text-sm font-bold text-[#0F172A]">{item.title}</h4>
                 <p className="mt-1.5 text-justify text-sm leading-6 text-[#6B7280]">{item.description}</p>
@@ -266,7 +266,7 @@ export function HomeUseCasesCta() {
         </div>
 
         <div
-          className="relative mt-12 overflow-hidden rounded-2xl px-6 py-8 sm:px-8 sm:py-9 lg:px-10"
+          className="relative mt-12 overflow-hidden rounded-2xl px-4 py-7 min-[400px]:px-6 min-[400px]:py-8 sm:px-8 sm:py-9 lg:px-10"
           style={{
             background:
               "linear-gradient(105deg, #0B2C4A 0%, #0E3D5C 42%, #00C4A7 100%)",
@@ -309,8 +309,8 @@ export function HomeUseCasesCta() {
               </div>
             </div>
 
-            <div className="shrink-0 lg:text-right">
-              <ArrowButton href="/sign-up" size="lg" tone="inverse">
+            <div className="min-w-0 shrink-0 lg:text-right">
+              <ArrowButton href="/sign-up" size="lg" tone="inverse" className="w-full justify-center sm:w-auto">
                 Sign up
               </ArrowButton>
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-white/90 lg:justify-end">

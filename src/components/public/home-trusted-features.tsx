@@ -77,18 +77,18 @@ const featureCards = [
 export function HomeTrustedFeatures() {
   return (
     <section id="features" className="home-section bg-[#F9FAFB]">
-      <div className="py-14 sm:py-16 lg:py-20">
-        <div className="mx-auto max-w-[1200px] px-5 text-center sm:px-8">
+      <div className="py-[clamp(3rem,5vw,5rem)]">
+        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 text-center min-[400px]:px-5 sm:px-8">
           <p className="home-fade-item text-[15px] font-medium text-[#4B5563]">
             Built for GDPR, CCPA, LGPD, and DPDP workflows, not a customer logo wall.
           </p>
         </div>
 
-        <div className="mx-auto mt-10 max-w-[1200px] px-5 text-center sm:mt-14 sm:px-8">
+        <div className="mx-auto mt-10 w-full min-w-0 max-w-[1200px] px-4 text-center sm:mt-14 min-[400px]:px-5 sm:px-8">
           <span className="home-fade-item inline-flex rounded-full bg-[#DBEAFE] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#1D4ED8]">
             Features
           </span>
-          <h2 className="home-fade-item mx-auto mt-4 max-w-3xl text-balance text-3xl font-bold tracking-tight text-[#0F172A] sm:text-4xl">
+          <h2 className="home-fade-item mx-auto mt-4 max-w-3xl text-balance text-[clamp(1.6rem,1.15rem+2vw,2.25rem)] font-bold tracking-tight text-[#0F172A]">
             Everything you need to manage consent
           </h2>
           <p className="home-fade-item mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-[#6B7280] sm:text-base">
@@ -97,11 +97,11 @@ export function HomeTrustedFeatures() {
           </p>
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-[1200px] gap-5 px-5 sm:grid-cols-2 sm:px-8 lg:mt-12 lg:grid-cols-3">
+        <div className="mx-auto mt-10 grid w-full min-w-0 max-w-[1200px] grid-cols-1 gap-5 px-4 min-[400px]:px-5 min-[600px]:grid-cols-2 sm:px-8 lg:mt-12 lg:grid-cols-3">
           {featureCards.map((card) => (
             <article
               key={card.title}
-              className="home-fade-item rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#D1D5DB] hover:shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)]"
+              className="home-fade-item min-w-0 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#D1D5DB] hover:shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)] sm:p-6"
             >
               <div
                 className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${card.iconBg} ${card.iconColor}`}
