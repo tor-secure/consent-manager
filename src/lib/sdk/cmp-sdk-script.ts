@@ -3231,6 +3231,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     syncPreferenceWidget();
   }
 
+  function hasConfirmedLocalConsent() {
+    var stored = loadStoredConsent();
+    return !!(
+      stored &&
+      stored.status === 'confirmed' &&
+      stored.serverConfirmed === true &&
+      stored.consentId
+    );
+  }
+
   function dismissPreferenceCenter() {
     removePreferenceCenter();
     if (choiceUiShouldStayClosed()) return;
@@ -4463,61 +4473,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     } catch (eWrite) {}
   }
 
-  function hasConfirmedLocalConsent() {
-    var stored = loadStoredConsent();
-    return !!(
-      stored &&
-      stored.status === 'confirmed' &&
-      stored.serverConfirmed === true &&
-      stored.consentId
-    );
-  }
-
-  function paintVisualBanner(cfg, extras) {
-    extras = extras || {};
-    _config = {
-      success: true,
-      websiteId: extras.websiteId || '',
-      bannerConfig: cfg,
-      purposes: extras.purposes || [],
-      vendors: extras.vendors || [],
-      resolvedLanguage: extras.resolvedLanguage || '',
-      childProtection: extras.childProtection || null,
-      california: extras.california || null
-    };
-    showBannerWhenReady();
-  }
-
-  function firstPaintFallbackBanner() {
-    paintVisualBanner({
-      title: '',
-      description: '',
-      acceptAllLabel: 'Accept all',
-      rejectAllLabel: 'Reject all',
-      customizeLabel: 'Customize',
-      savePreferencesLabel: 'Save preferences',
-      showAcceptAll: true,
-      showRejectAll: true,
-      showCustomize: true,
-      showPoweredBy: false,
-      showCloseButton: false,
-      layout: 'bar',
-      position: 'bottom',
-      primaryColor: '#0B2C4A',
-      backgroundColor: '#ffffff',
-      textColor: '#171717',
-      borderRadius: 8,
-      overlayEnabled: false,
-      blockPageUntilConsent: false
-    }, {});
-  }
-
   var cachedCfg = readAnyCachedConfig();
-  if (!hasConfirmedLocalConsent()) {
-    try {
-      firstPaintFallbackBanner();
-    } catch (eVisual) { warn('Instant banner paint failed: ' + eVisual); }
-  }
 
   fetchConfigJson()
     .then(function(data) {

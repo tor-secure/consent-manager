@@ -968,9 +968,34 @@ function buttonByText(browser, text) {
   return found;
 }
 
-async function testBannerPaintsBeforeConfigReturns() {
+function elementText(root) {
+  return collect(root, () => true).map((node) => node.textContent || "").join(" ");
+}
+
+async function testPublishedBannerIsFirstPaint() {
   const store = createStore();
-  const browser = createBrowser(store);
+  store.config.bannerConfig.layout = "dialog";
+  store.config.bannerConfig.title = "Current popup";
+  store.config.bannerConfig.description = "Published template";
+  const browser = createBrowser(store, {
+    [`__cmp_cfg_${store.website.siteKey}`]: JSON.stringify({
+      success: true,
+      __cmpCachedAt: Date.now(),
+      bannerConfig: {
+        title: "Old white bar",
+        description: "First published version",
+        layout: "bar",
+        position: "bottom",
+        backgroundColor: "#ffffff",
+        showAcceptAll: true,
+        showRejectAll: true,
+        showCustomize: true,
+        acceptAllLabel: "Accept all",
+        rejectAllLabel: "Reject all",
+        customizeLabel: "Customize",
+      },
+    }),
+  });
   vm.runInNewContext(
     buildCmpSdkScript({ siteKey: browser.store.website.siteKey, apiBase: "https://cmp.example" }),
     {
@@ -987,26 +1012,23 @@ async function testBannerPaintsBeforeConfigReturns() {
       clearTimeout,
     },
   );
-  assert.ok(
-    browser.document.getElementById("__cmp_banner__"),
-    "banner must paint before /api/sdk/{siteKey}/config returns",
-  );
-  buttonByText(browser, "Accept all");
-  buttonByText(browser, "Reject all");
-  buttonByText(browser, "Customize");
-  buttonByText(browser, "Accept all").click();
   assert.equal(
     browser.document.getElementById("__cmp_banner__"),
     null,
-    "Accept must close the banner before config or the server respond",
+    "a cached or placeholder banner must not paint before the published config returns",
   );
   await flush();
-  assert.equal(
-    browser.document.getElementById("__cmp_banner__"),
-    null,
-    "live config must not bring the banner back after Accept",
-  );
-  assert.ok(store.records[0], "accept before config should still persist once config arrives");
+  const banner = browser.document.getElementById("__cmp_banner__");
+  assert.ok(banner, "published banner should paint once config returns");
+  const painted = elementText(banner);
+  assert.match(painted, /Current popup/);
+  assert.match(painted, /Published template/);
+  assert.doesNotMatch(painted, /Old white bar|First published version/);
+  assert.ok(browser.document.getElementById("__cmp_banner_overlay__"), "dialog layout should paint with the published config");
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.ok(store.records[0]);
 
   const reload = createBrowser(store, Object.fromEntries(browser.storage.entries()));
   vm.runInNewContext(
@@ -1051,12 +1073,13 @@ async function testRejectAllBeforeConfigReturns() {
       clearTimeout,
     },
   );
-  buttonByText(browser, "Reject all").click();
   assert.equal(
     browser.document.getElementById("__cmp_banner__"),
     null,
-    "Reject must close the banner before config returns",
+    "reject is not offered on a placeholder banner before config returns",
   );
+  await flush();
+  buttonByText(browser, "Reject all").click();
   await flush();
   assert.equal(browser.document.getElementById("__cmp_banner__"), null);
   assert.equal(store.records[0].status, "rejected");
@@ -1081,10 +1104,12 @@ async function testCustomizeSaveAndCloseBeforeConfig() {
       clearTimeout,
     },
   );
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.equal(browser.document.getElementById("__cmp_pc__"), null);
+  await flush();
   buttonByText(browser, "Customize").click();
   assert.equal(browser.document.getElementById("__cmp_banner__"), null);
-  assert.ok(browser.document.getElementById("__cmp_pc__"), "Customize must open the preference center immediately");
-  await flush();
+  assert.ok(browser.document.getElementById("__cmp_pc__"), "Customize opens the preference center from the published banner");
   assert.equal(
     browser.document.getElementById("__cmp_banner__"),
     null,
@@ -1114,6 +1139,7 @@ async function testCustomizeSaveAndCloseBeforeConfig() {
       clearTimeout,
     },
   );
+  await flush();
   buttonByText(closeBrowser, "Customize").click();
   const close = collect(closeBrowser.document.body, (el) => el.getAttribute("aria-label") === "Close")[0];
   assert.ok(close, "preference center close control should render");
@@ -1736,7 +1762,7 @@ function testPublicSdkCorsAllowsExternalCachePreflight() {
   assert.match(sdk, /['"]Cache-Control['"]:\s*['"]no-cache['"]/);
   assert.match(sdk, /cached banner is not drawn until the published config is confirmed/);
   assert.doesNotMatch(sdk, /paintVisualBanner\(cachedCfg/);
-  assert.match(sdk, /firstPaintFallbackBanner\(\)/);
+  assert.doesNotMatch(sdk, /firstPaintFallbackBanner\(\)/);
 }
 
 function testPublicAppOriginPrefersExplicitEnv() {
@@ -2530,7 +2556,7 @@ async function testRejectAllGoogleConsentModeStaysDenied() {
 }
 
 async function main() {
-  await testBannerPaintsBeforeConfigReturns();
+  await testPublishedBannerIsFirstPaint();
   await testRejectAllBeforeConfigReturns();
   await testCustomizeSaveAndCloseBeforeConfig();
   await testLanguageChangeDoesNotRestoreBannerAfterAccept();
