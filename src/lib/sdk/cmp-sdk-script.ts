@@ -1858,7 +1858,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       var current = currentRaw ? JSON.parse(currentRaw) : null;
       var currentRevision = current && Number(current.revision) || 0;
       var currentStateVersion = current && Number(current.stateVersion) || 0;
+      var incomingConsentId = consentId || '';
+      var storedConsentId = current && current.consentId || '';
+      // A withdrawal bumps stateVersion on the old record. The next choice
+      // creates a new record at version 1, so version order alone is not stale.
+      var newConsentAfterWithdrawal = !!(
+        current &&
+        current.status === 'withdrawn' &&
+        incomingConsentId &&
+        storedConsentId &&
+        incomingConsentId !== storedConsentId
+      );
       if (
+        !newConsentAfterWithdrawal &&
         current &&
         current.submissionId !== submissionId &&
         (
@@ -1931,7 +1943,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     try {
       var currentRaw = localStorage.getItem(STORAGE_KEY);
       var current = currentRaw ? JSON.parse(currentRaw) : null;
+      var replacingWithdrawal = current && current.status === 'withdrawn' && !_consentId;
       if (
+        !replacingWithdrawal &&
         current &&
         current.submissionId !== (job && job.submissionId) &&
         Number(current.revision || 0) >= Number(job && job.startedAt || 0) &&
@@ -4243,7 +4257,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
   function fetchConfigJson() {
     var headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
-    if (_configHash) headers['If-None-Match'] = '"' + _configHash + '"';
     return fetch(configRequestUrl(), {
       cache: 'no-store',
       mode: 'cors',
@@ -4412,29 +4425,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   pauseTaggedScripts();
 
-  // ── Instant paint ────────────────────────────────────────────────────────
-  // Paint the banner immediately, then load config and persist choices in the
-  // background. Use a still-valid cached config when we can submit from it;
-  // otherwise paint the last cached design (or a complete fallback with
-  // Accept / Reject / Customize) and attach a fresh policy context when
-  // config arrives. Never wait on the network before the first paint.
+  // ── Published banner ─────────────────────────────────────────────────────
+  // A cached banner is not drawn until the published config is confirmed.
+  // Painting the last template first showed the previous layout after a
+  // republish, and the follow-up request could not replace it until the
+  // timed refresh.
   var CONFIG_CACHE_KEY = '__cmp_cfg_' + SITE_KEY;
-  var CONFIG_CACHE_MIN_CONTEXT_MS = 2 * 60 * 1000;
   var CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
   function cachedConfigHasBanner(cfg) {
     return !!(cfg && cfg.success && cfg.bannerConfig);
-  }
-
-  function cachedConfigUsable(cfg) {
-    if (!cachedConfigHasBanner(cfg) || !cfg.websiteId) return false;
-    var age = Date.now() - (cfg.__cmpCachedAt || 0);
-    if (!(age >= 0 && age < CONFIG_CACHE_MAX_AGE_MS)) return false;
-    var ctx = presentedPolicyContext(cfg);
-    var expiresAt = ctx && ctx.claims ? ctx.claims.expiresAt : (ctx && ctx.expiresAt);
-    if (!ctx || !ctx.token || !expiresAt) return false;
-    var expires = Date.parse(expiresAt);
-    return isFinite(expires) && expires - Date.now() > CONFIG_CACHE_MIN_CONTEXT_MS;
   }
 
   function readAnyCachedConfig() {
@@ -4513,23 +4513,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   var cachedCfg = readAnyCachedConfig();
-  if (cachedCfg && cachedConfigUsable(cachedCfg)) {
+  if (!hasConfirmedLocalConsent()) {
     try {
-      applyLoadedConfig(cachedCfg);
-    } catch (eCache) {}
-  } else if (!hasConfirmedLocalConsent()) {
-    try {
-      if (cachedCfg && cachedCfg.bannerConfig) {
-        paintVisualBanner(cachedCfg.bannerConfig, cachedCfg);
-      } else {
-        firstPaintFallbackBanner();
-      }
+      firstPaintFallbackBanner();
     } catch (eVisual) { warn('Instant banner paint failed: ' + eVisual); }
   }
 
   fetchConfigJson()
     .then(function(data) {
       if (!data || data.unchanged) {
+        if (data && data.unchanged && cachedCfg && cachedConfigHasBanner(cachedCfg)) {
+          applyLoadedConfig(cachedCfg);
+          return;
+        }
         if (data && data.unchanged && _config) {
           flushConsentSubmit();
           return;

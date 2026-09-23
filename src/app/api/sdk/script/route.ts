@@ -61,8 +61,7 @@ export async function GET(request: Request) {
         // Browsers revalidate each minute; the CDN keeps serving the script
         // from the edge for 5 minutes (and while it refreshes in the
         // background), so the banner does not wait on a cold function.
-        "Cache-Control":
-          "public, max-age=60, s-maxage=300, stale-while-revalidate=600, must-revalidate",
+        "Cache-Control": "public, max-age=60, must-revalidate",
       },
     });
   } catch (error) {

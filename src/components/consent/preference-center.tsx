@@ -236,6 +236,9 @@ export function PreferenceCenter({
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? "Failed to withdraw consent");
+      setSavedConsentId(null);
+      setSavedStateVersion(0);
+      setConfirmation("");
       onWithdrawn?.();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

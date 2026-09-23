@@ -650,6 +650,10 @@ class FakeElement {
 
   focus() {}
 
+  get childNodes() {
+    return this.children;
+  }
+
   click() {
     if (this.disabled) return;
     for (const handler of this.listeners.click ?? []) handler();
@@ -1721,13 +1725,18 @@ function testPublicSdkCorsAllowsExternalCachePreflight() {
   assert.equal(headers["Access-Control-Allow-Origin"], "*");
   assert.equal(headers["Cross-Origin-Resource-Policy"], "cross-origin");
   assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /Cache-Control/);
+  assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /If-None-Match/);
   assert.match(headers["Access-Control-Allow-Headers"], /Cache-Control/);
   assert.match(headers["Access-Control-Allow-Headers"], /Pragma/);
+  assert.match(headers["Access-Control-Allow-Headers"], /If-None-Match/);
   const sdk = buildCmpSdkScript({
     siteKey: "site_e2e_1234567890",
     apiBase: "https://cmp.example",
   });
   assert.match(sdk, /['"]Cache-Control['"]:\s*['"]no-cache['"]/);
+  assert.match(sdk, /cached banner is not drawn until the published config is confirmed/);
+  assert.doesNotMatch(sdk, /paintVisualBanner\(cachedCfg/);
+  assert.match(sdk, /firstPaintFallbackBanner\(\)/);
 }
 
 function testPublicAppOriginPrefersExplicitEnv() {
@@ -1811,6 +1820,30 @@ async function testGranularPersistenceWithdrawalAndExpiry() {
   assert.equal(reload.document.documentElement.getAttribute("data-cmp-scroll-lock"), "true");
   assert.equal(store.webhookDeliveries.at(-1).eventType, "consent.withdrawn");
   assert.equal(reload.api.withdraw({ consentId: "cid_e2e_1", websiteId: ids.websiteA }).status, 409);
+
+  const withdrawnStored = JSON.parse(reload.storage.get(`cmp_consent_${store.website.siteKey}`));
+  withdrawnStored.revision = Date.now() + 60_000;
+  withdrawnStored.stateVersion = 5;
+  reload.storage.set(`cmp_consent_${store.website.siteKey}`, JSON.stringify(withdrawnStored));
+  buttonByText(reload, "Accept all").click();
+  await flush();
+  const renewed = JSON.parse(reload.storage.get(`cmp_consent_${store.website.siteKey}`));
+  assert.equal(renewed.status, "confirmed");
+  assert.notEqual(renewed.consentId, withdrawnStored.consentId);
+  assert.equal(reload.document.getElementById("__cmp_banner__"), null);
+
+  const widget = collect(reload.document.body, (el) => el.getAttribute("aria-label") === "Cookie preferences")[0];
+  assert.ok(widget, "cookie preferences widget should return after a new consent");
+  widget.click();
+  const purposeSwitch = collect(reload.document.body, (el) => el.getAttribute("role") === "switch" && !el.disabled)[0];
+  assert.ok(purposeSwitch, "an optional purpose toggle should be available");
+  purposeSwitch.click();
+  buttonByText(reload, "Save changes").click();
+  await flush();
+  const savedChanges = JSON.parse(reload.storage.get(`cmp_consent_${store.website.siteKey}`));
+  assert.equal(savedChanges.status, "confirmed");
+  assert.equal(savedChanges.consentId, renewed.consentId);
+  assert.ok(savedChanges.stateVersion > renewed.stateVersion);
 
   const expired = createBrowser(store, {
     [`cmp_consent_${store.website.siteKey}`]: JSON.stringify({ consentId: "cid_expired", decisions: [] }),

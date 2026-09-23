@@ -27,6 +27,7 @@ export const PUBLIC_CORS_ALLOWED_HEADERS = [
   "Accept-Language",
   "Cache-Control",
   "Pragma",
+  "If-None-Match",
 ].join(", ");
 
 export function publicCorsHeaders(methods: string): Record<string, string> {
@@ -34,7 +35,7 @@ export function publicCorsHeaders(methods: string): Record<string, string> {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": methods,
     "Access-Control-Allow-Headers": PUBLIC_CORS_ALLOWED_HEADERS,
-    "Access-Control-Max-Age": "86400",
+    "Access-Control-Max-Age": "600",
     "X-Content-Type-Options": "nosniff",
     "Cross-Origin-Resource-Policy": "cross-origin",
   };
