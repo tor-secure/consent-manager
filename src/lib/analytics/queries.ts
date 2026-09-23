@@ -20,6 +20,7 @@ import {
   countryDisplayName,
   deviceDisplayName,
 } from "@/lib/analytics/client-hints";
+import { loadHomeAnalyticsBundle, type HomeAnalyticsBundle } from "@/lib/analytics/home-bundle";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -65,19 +66,6 @@ async function loadConsentAnalyticsImpl(
     to: filters.to,
   });
 
-  const orgWebsites = await db
-    .select({ id: websites.id, name: websites.name, domain: websites.domain })
-    .from(websites)
-    .where(eq(websites.organizationId, organizationId))
-    .orderBy(websites.name);
-
-  const websiteIds = orgWebsites.map((site) => site.id);
-  const requestedWebsite = optionalUuid(filters.websiteId);
-  const scopedWebsiteIds =
-    requestedWebsite && websiteIds.includes(requestedWebsite)
-      ? [requestedWebsite]
-      : websiteIds;
-
   const country = filters.country?.trim().toLowerCase() === "unknown"
     ? "unknown"
     : filters.country?.trim().toUpperCase() || null;
@@ -85,12 +73,38 @@ async function loadConsentAnalyticsImpl(
   const browser = filters.browser?.trim().toLowerCase() || null;
   const purposeId = optionalUuid(filters.purposeId);
   const policyVersionId = optionalUuid(filters.policyVersionId);
+  const requestedWebsite = optionalUuid(filters.websiteId);
+
+  if (mode === "home" && !country && !device && !browser && !purposeId && !policyVersionId) {
+    const bundle = await loadHomeAnalyticsBundle({
+      organizationId,
+      since: period.since,
+      until: period.until,
+      websiteId: requestedWebsite,
+    });
+    if (bundle.websites.length === 0) {
+      return emptyAnalytics(period.label, []);
+    }
+    return assembleAnalytics(period.label, bundle);
+  }
+
+  const orgWebsites = await db
+    .select({ id: websites.id, name: websites.name, domain: websites.domain })
+    .from(websites)
+    .where(eq(websites.organizationId, organizationId))
+    .orderBy(websites.name);
+
+  const websiteIds = orgWebsites.map((site) => site.id);
+  const singleWebsiteId =
+    requestedWebsite && websiteIds.includes(requestedWebsite) ? requestedWebsite : null;
 
   const recordFilters = [
     eq(consentRecords.organizationId, organizationId),
-    scopedWebsiteIds.length > 0
-      ? inArray(consentRecords.websiteId, scopedWebsiteIds)
-      : sql`false`,
+    websiteIds.length === 0
+      ? sql`false`
+      : singleWebsiteId
+        ? eq(consentRecords.websiteId, singleWebsiteId)
+        : undefined,
     period.since ? gte(consentRecords.updatedAt, period.since) : undefined,
     period.until ? lte(consentRecords.updatedAt, period.until) : undefined,
     country ? sql`${countryExpr} = ${country}` : undefined,
@@ -111,20 +125,15 @@ async function loadConsentAnalyticsImpl(
 
   const recordsWhereWithPurpose = and(recordsWhere, purposeExists);
 
-  const includeCharts = mode === "full" || mode === "charts" || mode === "overview" || mode === "home";
-  const includeOverview = mode === "full" || mode === "overview" || mode === "home";
-  const includeBreakdowns = mode === "full" || mode === "breakdowns" || mode === "home";
+  const includeCharts = mode === "full" || mode === "charts" || mode === "overview";
+  const includeOverview = mode === "full" || mode === "overview";
+  const includeBreakdowns = mode === "full" || mode === "breakdowns";
 
-  if (scopedWebsiteIds.length === 0) {
+  if (websiteIds.length === 0) {
     return emptyAnalytics(period.label, orgWebsites);
   }
 
-  const emptyTotals = [
-    { total: 0, accepted: 0, rejected: 0, partial: 0, withdrawn: 0, pending: 0 },
-  ];
-
   const [
-    recordTotals,
     websiteSummary,
     purposeBreakdown,
     eventTypes,
@@ -137,25 +146,13 @@ async function loadConsentAnalyticsImpl(
     includeOverview
       ? db
           .select({
-            total: sql<number>`count(*)::int`,
-            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-            rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-            partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-            withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-            pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
-          })
-          .from(consentRecords)
-          .where(recordsWhereWithPurpose)
-      : Promise.resolve(emptyTotals),
-    includeOverview
-      ? db
-          .select({
             websiteId: consentRecords.websiteId,
             total: sql<number>`count(*)::int`,
             accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
             rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
             partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
             withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
+            pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
           })
           .from(consentRecords)
           .where(recordsWhereWithPurpose)
@@ -197,6 +194,7 @@ async function loadConsentAnalyticsImpl(
           .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
           .where(
             and(
+              eq(consentEvents.organizationId, organizationId),
               recordsWhereWithPurpose,
               period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
               period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
@@ -219,6 +217,7 @@ async function loadConsentAnalyticsImpl(
           .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
           .where(
             and(
+              eq(consentEvents.organizationId, organizationId),
               recordsWhereWithPurpose,
               period.since ? gte(consentEvents.occurredAt, period.since) : undefined,
               period.until ? lte(consentEvents.occurredAt, period.until) : undefined,
@@ -310,14 +309,17 @@ async function loadConsentAnalyticsImpl(
       : Promise.resolve([]),
   ]);
 
-  const totals = recordTotals[0] ?? {
-    total: 0,
-    accepted: 0,
-    rejected: 0,
-    partial: 0,
-    withdrawn: 0,
-    pending: 0,
-  };
+  const totals = websiteSummary.reduce(
+    (acc, row) => ({
+      total: acc.total + Number(row.total),
+      accepted: acc.accepted + Number(row.accepted),
+      rejected: acc.rejected + Number(row.rejected),
+      partial: acc.partial + Number(row.partial),
+      withdrawn: acc.withdrawn + Number(row.withdrawn),
+      pending: acc.pending + Number(row.pending),
+    }),
+    { total: 0, accepted: 0, rejected: 0, partial: 0, withdrawn: 0, pending: 0 },
+  );
 
   const choiceEvents = eventTypes
     .filter((row) =>
@@ -373,7 +375,12 @@ async function loadConsentAnalyticsImpl(
     },
     trends: trendRows,
     websiteSummary: websiteSummary.map((row) => ({
-      ...row,
+      websiteId: row.websiteId,
+      total: row.total,
+      accepted: row.accepted,
+      rejected: row.rejected,
+      partial: row.partial,
+      withdrawn: row.withdrawn,
       websiteName: websiteMap.get(row.websiteId)?.name ?? "—",
       websiteDomain: websiteMap.get(row.websiteId)?.domain ?? "",
       consentRate: rate(row.accepted + row.partial, row.total),
@@ -430,6 +437,81 @@ async function loadConsentAnalyticsImpl(
 }
 
 export const loadConsentAnalytics = cache(loadConsentAnalyticsImpl);
+
+function assembleAnalytics(periodLabel: string, bundle: HomeAnalyticsBundle) {
+  const totals = bundle.overview;
+  const trendChoice = bundle.trends.reduce(
+    (acc, row) => ({
+      acceptAll: acc.acceptAll + row.acceptAll,
+      rejectAll: acc.rejectAll + row.rejectAll,
+      granular: acc.granular + row.granular,
+      interactions: acc.interactions + row.interactions,
+      withdrawals: acc.withdrawals + row.withdrawals,
+    }),
+    { acceptAll: 0, rejectAll: 0, granular: 0, interactions: 0, withdrawals: 0 },
+  );
+  const choiceTotal = trendChoice.acceptAll + trendChoice.rejectAll + trendChoice.granular;
+  const choiceEvents = choiceTotal;
+
+  return {
+    period: periodLabel,
+    websites: bundle.websites,
+    overview: {
+      total: totals.total,
+      accepted: totals.accepted,
+      rejected: totals.rejected,
+      partial: totals.partial,
+      withdrawn: totals.withdrawn,
+      pending: totals.pending,
+      acceptRate: rate(totals.accepted, totals.total),
+      rejectRate: rate(totals.rejected, totals.total),
+      granularRate: rate(totals.partial, totals.total),
+      withdrawalRate: rate(totals.withdrawn, totals.total),
+      consentRate: rate(totals.accepted + totals.partial, totals.total),
+      interactions: trendChoice.interactions,
+      choiceEvents,
+      acceptAllRate: rate(trendChoice.acceptAll, choiceTotal || choiceEvents),
+      rejectAllRate: rate(trendChoice.rejectAll, choiceTotal || choiceEvents),
+      interactionGranularRate: rate(trendChoice.granular, choiceTotal || choiceEvents),
+      eventWithdrawalRate: rate(trendChoice.withdrawals, trendChoice.interactions),
+    },
+    trends: bundle.trends,
+    websiteSummary: bundle.websiteSummary.map((row) => ({
+      ...row,
+      consentRate: rate(row.accepted + row.partial, row.total),
+    })),
+    purposes: bundle.purposes.map((row) => ({
+      ...row,
+      grantRate: rate(row.granted, row.total),
+    })),
+    countries: bundle.countries.map((row) => ({
+      key: row.country,
+      name: countryDisplayName(row.country),
+      total: row.total,
+      consentRate: rate(row.accepted + row.partial, row.total),
+      rejectRate: rate(row.rejected, row.total),
+    })),
+    devices: bundle.devices.map((row) => ({
+      key: row.device,
+      name: deviceDisplayName(row.device),
+      total: row.total,
+      consentRate: rate(row.accepted + row.partial, row.total),
+      rejectRate: rate(row.rejected, row.total),
+    })),
+    browsers: [],
+    policyVersions: [],
+    eventTypes: [],
+    filterOptions: {
+      countries: bundle.countries.map((row) => row.country),
+      devices: bundle.devices.map((row) => row.device),
+      browsers: [],
+      policyVersions: [],
+      purposes: bundle.purposes.flatMap((row) =>
+        row.purposeId ? [{ id: row.purposeId, label: row.purposeName }] : [],
+      ),
+    },
+  };
+}
 
 function emptyAnalytics(period: string, websites: { id: string; name: string; domain: string }[]) {
   return {
@@ -492,6 +574,7 @@ export async function loadRecentConsentEvents(
     .innerJoin(consentRecords, eq(consentEvents.consentRecordId, consentRecords.id))
     .where(
       and(
+        eq(consentEvents.organizationId, organizationId),
         eq(consentRecords.organizationId, organizationId),
         inArray(consentRecords.websiteId, websiteIds),
         since ? gte(consentEvents.occurredAt, since) : undefined,

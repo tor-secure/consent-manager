@@ -246,6 +246,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
+  function cmpTextNode(text) {
+    if (typeof document.createTextNode === 'function') return document.createTextNode(text);
+    var el = document.createElement('span');
+    el.textContent = String(text == null ? '' : text);
+    return el;
+  }
+
   function newSubmissionId() {
     try {
       if (window.crypto && typeof window.crypto.randomUUID === 'function') {
@@ -350,6 +357,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _bannerSoftClosed = false;
     _choiceDismissed = false;
     showBannerWhenReady();
+  }
+
+  function choiceUiShouldStayClosed() {
+    return !!(
+      _choiceUiHeld ||
+      _submitBusy ||
+      _queuedSubmit ||
+      (_choiceDismissed && !_reconsentNotice)
+    );
   }
 
   function holdChoiceUi() {
@@ -1690,8 +1706,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function consentScopeChanged(stored, config) {
     if (!stored || !config) return false;
     var current = currentScopeSnapshot(config);
-    if (stored.policyVersionId && current.policyVersionId) {
-      return stored.policyVersionId !== current.policyVersionId;
+    if (stored.policyVersionId && current.policyVersionId && stored.policyVersionId !== current.policyVersionId) {
+      return true;
     }
     var storedPurposes = Array.isArray(stored.purposeIds) ? stored.purposeIds.slice() : [];
     if (!storedPurposes.length) {
@@ -1699,12 +1715,27 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if (d && d.purposeId) storedPurposes.push(d.purposeId);
       });
     }
-    if (!storedPurposes.length || !current.purposeIds.length) return false;
-    var knownP = {};
-    storedPurposes.forEach(function(id) { knownP[id] = true; });
-    var i;
-    for (i = 0; i < current.purposeIds.length; i++) {
-      if (!knownP[current.purposeIds[i]]) return true;
+    if (storedPurposes.length && current.purposeIds.length) {
+      var knownP = {};
+      storedPurposes.forEach(function(id) { knownP[id] = true; });
+      var i;
+      for (i = 0; i < current.purposeIds.length; i++) {
+        if (!knownP[current.purposeIds[i]]) return true;
+      }
+    }
+    var storedVendors = Array.isArray(stored.vendorIds) ? stored.vendorIds.slice() : [];
+    if (!storedVendors.length) {
+      (stored.decisions || []).forEach(function(d) {
+        if (d && d.vendorId) storedVendors.push(d.vendorId);
+      });
+    }
+    if (storedVendors.length && current.vendorIds.length) {
+      var knownV = {};
+      storedVendors.forEach(function(id) { knownV[id] = true; });
+      var j;
+      for (j = 0; j < current.vendorIds.length; j++) {
+        if (!knownV[current.vendorIds[j]]) return true;
+      }
     }
     return false;
   }
@@ -2579,11 +2610,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var box = document.createElement('p');
     box.setAttribute('data-cmp-dpdp-age', 'true');
     box.style.cssText = 'margin:0;padding:10px 12px;border-radius:10px;border:1px solid #F59E0B;background:rgba(245,158,11,0.08);color:#B45309;font-size:13px;line-height:1.5;';
-    box.appendChild(document.createTextNode(ui.ageConfirmStart));
+    box.appendChild(cmpTextNode(ui.ageConfirmStart));
     var strong = document.createElement('strong');
     strong.textContent = ui.ageConfirmStrong;
     box.appendChild(strong);
-    box.appendChild(document.createTextNode(ui.ageConfirmEnd));
+    box.appendChild(cmpTextNode(ui.ageConfirmEnd));
     var link = document.createElement('button');
     link.type = 'button';
     link.textContent = ui.under18;
@@ -2732,13 +2763,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var dpo = document.createElement('p');
     dpo.style.cssText = 'margin:0;font-size:12px;color:#64748B;';
     if (dpoEmail) {
-      dpo.appendChild(document.createTextNode('DPO Contact: '));
+      dpo.appendChild(cmpTextNode('DPO Contact: '));
       var mail = document.createElement('a');
       mail.href = 'mailto:' + encodeURIComponent(dpoEmail);
       mail.textContent = dpoEmail;
       mail.style.cssText = 'color:#334155;font-weight:600;text-decoration:none;';
       dpo.appendChild(mail);
-      dpo.appendChild(document.createTextNode(' · Governed by DPDP Act, 2023'));
+      dpo.appendChild(cmpTextNode(' · Governed by DPDP Act, 2023'));
     } else {
       dpo.textContent = 'Governed by DPDP Act, 2023';
     }
@@ -2832,6 +2863,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       '}';
   }
 
+  function bannerActionEnabled(value) {
+    return value !== false;
+  }
+
   function renderBanner() {
     if (_choiceUiHeld) return;
     if (_choiceDismissed && !_reconsentNotice) {
@@ -2843,7 +2878,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     cfg.primaryColor = safeCssColor(cfg.primaryColor) || '#171717';
     cfg.backgroundColor = safeCssColor(cfg.backgroundColor) || '#ffffff';
     cfg.textColor = safeCssColor(cfg.textColor) || '#171717';
-    if (!cfg.showAcceptAll && !cfg.showRejectAll && !cfg.showCustomize && !cfg.showCloseButton) return;
+    var showAccept = bannerActionEnabled(cfg.showAcceptAll);
+    var showReject = bannerActionEnabled(cfg.showRejectAll);
+    var showCustomize = bannerActionEnabled(cfg.showCustomize);
+    if (!showAccept && !showReject && !showCustomize && !cfg.showCloseButton) return;
 
     removePreferenceWidget();
     var existingBanner = document.getElementById('__cmp_banner__');
@@ -2891,7 +2929,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       + 'border-radius:' + radius + 'px;'
       + 'padding:' + pad + ';'
       + 'box-shadow:0 8px 32px rgba(15,23,42,0.18);'
-      + 'z-index:2147483645;'
+      + 'z-index:2147483646;'
+      + 'pointer-events:auto;isolation:isolate;'
       + 'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:14px;'
       + 'text-align:start;box-sizing:border-box;'
       + (layout === 'bar'
@@ -3008,7 +3047,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return b;
     }
 
-    if (cfg.showCustomize) {
+    if (showCustomize) {
       leftBtns.appendChild(btn(cfg.customizeLabel || 'Customize', layout === 'bar' ? 'ghost' : 'ghost', function() {
         _hostScroll.beginTransition();
         removeBanner();
@@ -3026,14 +3065,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
 
     if (layout === 'bar') {
-      if (cfg.showAcceptAll) {
+      if (showAccept) {
         rightBtns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
           if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
             holdChoiceUi();
           }
         }));
       }
-      if (cfg.showRejectAll) {
+      if (showReject) {
         rightBtns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
           if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
             holdChoiceUi();
@@ -3041,14 +3080,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         }));
       }
     } else {
-      if (cfg.showRejectAll) {
+      if (showReject) {
         rightBtns.appendChild(btn(cfg.rejectAllLabel || 'Reject all', 'outline', function() {
           if (submitConsent('reject-all', [], [], function(err) { finishChoice(err); })) {
             holdChoiceUi();
           }
         }));
       }
-      if (cfg.showAcceptAll) {
+      if (showAccept) {
         rightBtns.appendChild(btn(cfg.acceptAllLabel || 'Accept all', 'primary', function() {
           if (submitConsent('accept-all', [], [], function(err) { finishChoice(err); })) {
             holdChoiceUi();
@@ -3178,6 +3217,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     syncPreferenceWidget();
   }
 
+  function dismissPreferenceCenter() {
+    removePreferenceCenter();
+    if (choiceUiShouldStayClosed()) return;
+    if (hasConfirmedLocalConsent()) return;
+    showBannerWhenReady();
+  }
+
   function currentPurposeGranted(purposeId) {
     return !!(
       _decisions && _decisions.purposes && _decisions.purposes[purposeId]
@@ -3206,7 +3252,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       'position:fixed;inset:0;background:rgba(15,23,42,0.45);backdrop-filter:blur(6px);z-index:2147483646;'
     );
     overlay.addEventListener('click', function() {
-      if (cfg.closeOnOverlayClick) removePreferenceCenter();
+      if (cfg.closeOnOverlayClick) dismissPreferenceCenter();
     });
     document.body.appendChild(overlay);
 
@@ -3269,7 +3315,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
     closeBtn.addEventListener('mouseenter', function() { closeBtn.style.opacity = '1'; closeBtn.style.background = 'rgba(15,23,42,0.06)'; });
     closeBtn.addEventListener('mouseleave', function() { closeBtn.style.opacity = '0.55'; closeBtn.style.background = 'transparent'; });
-    closeBtn.addEventListener('click', removePreferenceCenter);
+    closeBtn.addEventListener('click', dismissPreferenceCenter);
 
     header.appendChild(titleBox);
     var pcLocales = availableLocales();
@@ -3289,7 +3335,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       });
       header.appendChild(pcLang);
     }
-    if (cfg.showCloseButton !== false) header.appendChild(closeBtn);
+    header.appendChild(closeBtn);
 
     // Body (scrollable)
     var body = document.createElement('div');
@@ -3907,10 +3953,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           if (data.purposeRoot) _purposeRoot = data.purposeRoot;
           rememberPolicyContext(presentedPolicyContext(data));
           applyLocalNotice(_explicitLang);
+          if (choiceUiShouldStayClosed()) {
+            flushConsentSubmit();
+            if (callback) callback(null, data.resolvedLanguage);
+            return;
+          }
           _hostScroll.beginTransition();
-          if (bannerOpen || document.getElementById('__cmp_banner__')) { removeBanner(); renderBanner(); }
-          if (pcOpen || document.getElementById('__cmp_pc__')) renderPreferenceCenter();
-          if (prefsOpen || document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
+          if (document.getElementById('__cmp_banner__')) { removeBanner(); renderBanner(); }
+          if (document.getElementById('__cmp_pc__')) renderPreferenceCenter();
+          if (document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
           _hostScroll.endTransition();
           if (callback) callback(null, data.resolvedLanguage);
         })
@@ -4114,6 +4165,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           log('Policy changed while consent UI is open; preserving the context currently shown');
           return;
         }
+        if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+          rememberPolicyContext(presentedPolicyContext(data));
+          flushConsentSubmit();
+          return;
+        }
         if (nextRevision === _configRevision) {
           rememberPolicyContext(presentedPolicyContext(data));
           return;
@@ -4128,6 +4184,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         publishExternalSignals();
 
         if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+          flushConsentSubmit();
           return;
         }
         if (stored && stored.status === 'confirmed' && stored.serverConfirmed && !consentScopeChanged(stored, nextConfig)) {
@@ -4247,6 +4304,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return;
     }
 
+    var pcOpen = !!document.getElementById('__cmp_pc__');
+    if (pcOpen) {
+      renderPreferenceCenter();
+      syncCaliforniaOptOut({}, function() {
+        applyTrackerEnforcement();
+        publishExternalSignals();
+      });
+      flushConsentSubmit();
+      return;
+    }
+
     var stored = loadStoredConsent();
     if (
       stored &&
@@ -4258,15 +4326,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _consentId = stored.consentId;
       rememberAckedScope(stored);
       if (consentScopeChanged(stored, data)) {
-        if (_choiceDismissed) {
-          removeBanner();
-          syncPreferenceWidget();
-        } else {
-          blockOptionalProcessing('FAILED', '');
-          _choiceDismissed = false;
-          _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
-          showBannerWhenReady();
-        }
+        blockOptionalProcessing('FAILED', '');
+        _choiceDismissed = false;
+        _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
+        showBannerWhenReady();
       } else {
         if (_choiceDismissed && _consentId && stored.consentId === _consentId) {
           removeBanner();
@@ -4274,22 +4337,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           return;
         }
         verifyStoredConsent(stored, function(applied) {
-          if (applied) {
+          if (applied && !consentScopeChanged(stored, _config) && !_reconsentNotice) {
             _choiceDismissed = true;
             removeBanner();
             syncPreferenceWidget();
             return;
           }
-          if (_choiceDismissed) {
+          if (_choiceDismissed && !_reconsentNotice) {
             removeBanner();
             syncPreferenceWidget();
             return;
           }
-          if (shouldReshowBanner(stored, data.bannerConfig)) {
-            showBannerWhenReady();
-          } else {
-            syncPreferenceWidget();
-          }
+          _choiceDismissed = false;
+          showBannerWhenReady();
         });
       }
       syncCaliforniaOptOut({}, function() {
@@ -4353,11 +4413,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   pauseTaggedScripts();
 
   // ── Instant paint ────────────────────────────────────────────────────────
-  // First paint must not wait on the network when we already know this site's
-  // published banner. Use a still-valid cached config when we can submit from
-  // it; otherwise paint the last cached design and attach a fresh policy
-  // context when config arrives. Never paint a generic default notice — that
-  // flashes the wrong layout before the chosen design loads.
+  // Paint the banner immediately, then load config and persist choices in the
+  // background. Use a still-valid cached config when we can submit from it;
+  // otherwise paint the last cached design (or a complete fallback with
+  // Accept / Reject / Customize) and attach a fresh policy context when
+  // config arrives. Never wait on the network before the first paint.
   var CONFIG_CACHE_KEY = '__cmp_cfg_' + SITE_KEY;
   var CONFIG_CACHE_MIN_CONTEXT_MS = 2 * 60 * 1000;
   var CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -4428,19 +4488,43 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     showBannerWhenReady();
   }
 
-  var paintedFromCache = false;
+  function firstPaintFallbackBanner() {
+    paintVisualBanner({
+      title: '',
+      description: '',
+      acceptAllLabel: 'Accept all',
+      rejectAllLabel: 'Reject all',
+      customizeLabel: 'Customize',
+      savePreferencesLabel: 'Save preferences',
+      showAcceptAll: true,
+      showRejectAll: true,
+      showCustomize: true,
+      showPoweredBy: false,
+      showCloseButton: false,
+      layout: 'bar',
+      position: 'bottom',
+      primaryColor: '#0B2C4A',
+      backgroundColor: '#ffffff',
+      textColor: '#171717',
+      borderRadius: 8,
+      overlayEnabled: false,
+      blockPageUntilConsent: false
+    }, {});
+  }
+
   var cachedCfg = readAnyCachedConfig();
   if (cachedCfg && cachedConfigUsable(cachedCfg)) {
     try {
       applyLoadedConfig(cachedCfg);
-      paintedFromCache = !!_config;
     } catch (eCache) {}
   } else if (!hasConfirmedLocalConsent()) {
     try {
       if (cachedCfg && cachedCfg.bannerConfig) {
         paintVisualBanner(cachedCfg.bannerConfig, cachedCfg);
+      } else {
+        firstPaintFallbackBanner();
       }
-    } catch (eVisual) {}
+    } catch (eVisual) { warn('Instant banner paint failed: ' + eVisual); }
   }
 
   fetchConfigJson()
@@ -4460,14 +4544,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         return;
       }
       writeCachedConfig(data);
-      if (paintedFromCache && _config) {
-        var liveRevision = configRevision(applyAssignedAbTest(data));
-        if (liveRevision === _configRevision) {
-          rememberPolicyContext(presentedPolicyContext(data));
-          flushConsentSubmit();
-          return;
-        }
-      }
       applyLoadedConfig(data);
     })
     .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });

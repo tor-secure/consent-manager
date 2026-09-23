@@ -1,10 +1,11 @@
 import {
+  boolean,
+  index,
   pgTable,
+  text,
   timestamp,
   uuid,
   varchar,
-  text,
-  boolean,
 } from "drizzle-orm/pg-core";
 
 import { websites } from "./websites";
@@ -51,4 +52,8 @@ export const consentPolicies = pgTable("consent_policies", {
   deletedAt: timestamp("deleted_at", {
     withTimezone: true,
   }),
-});
+},
+(table) => [
+  index("consent_policies_website_idx").on(table.websiteId),
+],
+);

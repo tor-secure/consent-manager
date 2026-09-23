@@ -115,5 +115,12 @@ export const consentRecords = pgTable(
       table.organizationId,
       table.createdAt,
     ),
+
+    // Analytics and the home bundle filter by organisation and updated_at.
+    // (organization_id, created_at) cannot serve that predicate.
+    index("consent_records_org_updated_idx").on(
+      table.organizationId,
+      table.updatedAt,
+    ),
   ],
 );

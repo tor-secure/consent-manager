@@ -1,173 +1,165 @@
 import "server-only";
 
 import { cache } from "react";
-import { and, count, eq, inArray, isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { websites } from "@/db/schema/websites";
-import { consentRecords } from "@/db/schema/consent-records";
-import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
-import { trackers } from "@/db/schema/trackers";
-import { purposes } from "@/db/schema/purposes";
-import { vendors } from "@/db/schema/vendors";
 import { loadConsentAnalytics } from "@/lib/analytics/queries";
+import { readTtlCache, writeTtlCache } from "@/lib/ttl-cache";
 
-function countOf(rows: { count: number }[]) {
-  return Number(rows[0]?.count ?? 0);
+const HOME_CACHE_TTL_MS = 30_000;
+
+function num(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
 }
 
 export const loadHomeDashboardCounts = cache(async (organizationId: string) => {
-  const orgWebsiteIds = db
-    .select({ id: websites.id })
-    .from(websites)
-    .where(eq(websites.organizationId, organizationId));
+  const cacheKey = `home-counts:${organizationId}`;
+  const cached = readTtlCache<HomeDashboardCounts>(cacheKey);
+  if (cached) return cached;
 
-  const [
-    websiteRows,
-    consentStatusTotals,
-    trackerRows,
-    policyRows,
-    purposeRows,
-    publishedRows,
-    vendorRows,
-    firstWebsiteRows,
-    unpublishedPolicyRows,
-  ] = await Promise.all([
-    db
-      .select({ count: count() })
-      .from(websites)
-      .where(eq(websites.organizationId, organizationId)),
-    db
-      .select({
-        total: sql<number>`count(*)::int`,
-        accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-        rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
-        partial: sql<number>`count(*) filter (where ${consentRecords.status} = 'partial')::int`,
-        withdrawn: sql<number>`count(*) filter (where ${consentRecords.status} = 'withdrawn')::int`,
-        pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
-      })
-      .from(consentRecords)
-      .where(eq(consentRecords.organizationId, organizationId)),
-    db
-      .select({ count: count() })
-      .from(trackers)
-      .where(inArray(trackers.websiteId, orgWebsiteIds)),
-    db
-      .select({ count: count() })
-      .from(consentPolicies)
-      .where(inArray(consentPolicies.websiteId, orgWebsiteIds)),
-    db
-      .select({ count: count() })
-      .from(purposes)
-      .where(eq(purposes.organizationId, organizationId)),
-    db
-      .select({ count: count() })
-      .from(consentPolicyVersions)
-      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
-      .where(
-        and(
-          inArray(consentPolicies.websiteId, orgWebsiteIds),
-          eq(consentPolicyVersions.isPublished, true),
-        ),
+  const result = await db.execute(sql`
+    SELECT jsonb_build_object(
+      'websiteCount', (SELECT count(*)::int FROM websites WHERE organization_id = ${organizationId}::uuid),
+      'consent', (
+        SELECT jsonb_build_object(
+          'total', count(*)::int,
+          'accepted', count(*) FILTER (WHERE status = 'accepted')::int,
+          'partial', count(*) FILTER (WHERE status = 'partial')::int,
+          'withdrawn', count(*) FILTER (WHERE status = 'withdrawn')::int,
+          'pending', count(*) FILTER (WHERE status = 'pending')::int
+        )
+        FROM consent_records
+        WHERE organization_id = ${organizationId}::uuid
       ),
-    db
-      .select({
-        total: sql<number>`count(*)::int`,
-        mapped: sql<number>`count(*) filter (where ${vendors.role} <> 'unknown')::int`,
-        unknown: sql<number>`count(*) filter (where ${vendors.role} = 'unknown')::int`,
-      })
-      .from(vendors)
-      .where(eq(vendors.organizationId, organizationId)),
-    db
-      .select({ id: websites.id })
-      .from(websites)
-      .where(eq(websites.organizationId, organizationId))
-      .orderBy(websites.createdAt)
-      .limit(1),
-    db
-      .select({ id: consentPolicies.id })
-      .from(consentPolicies)
-      .leftJoin(
-        consentPolicyVersions,
-        and(
-          eq(consentPolicyVersions.policyId, consentPolicies.id),
-          eq(consentPolicyVersions.isPublished, true),
-        ),
+      'trackerCount', (
+        SELECT count(*)::int FROM trackers
+        WHERE website_id IN (SELECT id FROM websites WHERE organization_id = ${organizationId}::uuid)
+      ),
+      'policyCount', (
+        SELECT count(*)::int FROM consent_policies
+        WHERE website_id IN (SELECT id FROM websites WHERE organization_id = ${organizationId}::uuid)
+      ),
+      'purposeCount', (SELECT count(*)::int FROM purposes WHERE organization_id = ${organizationId}::uuid),
+      'publishedCount', (
+        SELECT count(*)::int
+        FROM consent_policy_versions v
+        INNER JOIN consent_policies p ON p.id = v.policy_id
+        WHERE v.is_published = true
+          AND p.website_id IN (SELECT id FROM websites WHERE organization_id = ${organizationId}::uuid)
+      ),
+      'vendors', (
+        SELECT jsonb_build_object(
+          'total', count(*)::int,
+          'mapped', count(*) FILTER (WHERE role <> 'unknown')::int,
+          'unknown', count(*) FILTER (WHERE role = 'unknown')::int
+        )
+        FROM vendors
+        WHERE organization_id = ${organizationId}::uuid
+      ),
+      'firstWebsiteId', (
+        SELECT id FROM websites
+        WHERE organization_id = ${organizationId}::uuid
+        ORDER BY created_at ASC
+        LIMIT 1
+      ),
+      'firstUnpublishedPolicyId', (
+        SELECT p.id
+        FROM consent_policies p
+        LEFT JOIN consent_policy_versions v
+          ON v.policy_id = p.id AND v.is_published = true
+        WHERE p.website_id IN (SELECT id FROM websites WHERE organization_id = ${organizationId}::uuid)
+          AND v.id IS NULL
+        LIMIT 1
       )
-      .where(
-        and(
-          inArray(consentPolicies.websiteId, orgWebsiteIds),
-          isNull(consentPolicyVersions.id),
-        ),
-      )
-      .limit(1),
-  ]);
+    ) AS payload
+  `);
 
-  const totals = consentStatusTotals[0] ?? {
-    total: 0,
-    accepted: 0,
-    rejected: 0,
-    partial: 0,
-    withdrawn: 0,
-    pending: 0,
+  const first = (result as unknown as { payload?: unknown }[])[0];
+  const raw = first?.payload;
+  const payload = asRecord(typeof raw === "string" ? JSON.parse(raw) : raw);
+  const consent = asRecord(payload.consent);
+  const vendors = asRecord(payload.vendors);
+
+  const counts: HomeDashboardCounts = {
+    websiteCount: num(payload.websiteCount),
+    trackerCount: num(payload.trackerCount),
+    policyCount: num(payload.policyCount),
+    purposeCount: num(payload.purposeCount),
+    publishedCount: num(payload.publishedCount),
+    totalConsents: num(consent.total),
+    acceptedConsents: num(consent.accepted),
+    partialConsents: num(consent.partial),
+    pendingConsents: num(consent.pending),
+    withdrawnConsents: num(consent.withdrawn),
+    vendorCount: num(vendors.total),
+    mappedVendorCount: num(vendors.mapped),
+    unknownVendorCount: num(vendors.unknown),
+    firstWebsiteId: payload.firstWebsiteId ? String(payload.firstWebsiteId) : null,
+    firstUnpublishedPolicyId: payload.firstUnpublishedPolicyId
+      ? String(payload.firstUnpublishedPolicyId)
+      : null,
   };
 
-  return {
-    websiteCount: countOf(websiteRows),
-    trackerCount: countOf(trackerRows),
-    policyCount: countOf(policyRows),
-    purposeCount: countOf(purposeRows),
-    publishedCount: countOf(publishedRows),
-    totalConsents: totals.total,
-    acceptedConsents: totals.accepted,
-    partialConsents: totals.partial,
-    pendingConsents: totals.pending,
-    withdrawnConsents: totals.withdrawn,
-    vendorCount: Number(vendorRows[0]?.total ?? 0),
-    mappedVendorCount: Number(vendorRows[0]?.mapped ?? 0),
-    unknownVendorCount: Number(vendorRows[0]?.unknown ?? 0),
-    firstWebsiteId: firstWebsiteRows[0]?.id ?? null,
-    firstUnpublishedPolicyId: unpublishedPolicyRows[0]?.id ?? null,
-  };
+  writeTtlCache(cacheKey, counts, HOME_CACHE_TTL_MS);
+  return counts;
 });
 
-export type HomeDashboardCounts = Awaited<ReturnType<typeof loadHomeDashboardCounts>>;
+export type HomeDashboardCounts = {
+  websiteCount: number;
+  trackerCount: number;
+  policyCount: number;
+  purposeCount: number;
+  publishedCount: number;
+  totalConsents: number;
+  acceptedConsents: number;
+  partialConsents: number;
+  pendingConsents: number;
+  withdrawnConsents: number;
+  vendorCount: number;
+  mappedVendorCount: number;
+  unknownVendorCount: number;
+  firstWebsiteId: string | null;
+  firstUnpublishedPolicyId: string | null;
+};
 
 export const loadHomeChartAnalytics = cache(async (organizationId: string) => {
-  return loadConsentAnalytics(organizationId, { days: "30" }, "home");
+  const cacheKey = `home-charts:${organizationId}`;
+  const cached = readTtlCache<Awaited<ReturnType<typeof loadConsentAnalytics>>>(cacheKey);
+  if (cached) return cached;
+  const value = await loadConsentAnalytics(organizationId, { days: "30" }, "home");
+  writeTtlCache(cacheKey, value, HOME_CACHE_TTL_MS);
+  return value;
 });
 
 /** Cheap existence checks for layout setup-mode. Not a substitute for home counts. */
 export const loadSetupComplete = cache(async (organizationId: string) => {
-  const orgWebsiteIds = db
-    .select({ id: websites.id })
-    .from(websites)
-    .where(eq(websites.organizationId, organizationId));
-
-  const [websiteRows, publishedRows, consentRows] = await Promise.all([
-    db
-      .select({ id: websites.id })
-      .from(websites)
-      .where(eq(websites.organizationId, organizationId))
-      .limit(1),
-    db
-      .select({ id: consentPolicyVersions.id })
-      .from(consentPolicyVersions)
-      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
-      .where(
-        and(
-          inArray(consentPolicies.websiteId, orgWebsiteIds),
-          eq(consentPolicyVersions.isPublished, true),
-        ),
-      )
-      .limit(1),
-    db
-      .select({ id: consentRecords.id })
-      .from(consentRecords)
-      .where(eq(consentRecords.organizationId, organizationId))
-      .limit(1),
-  ]);
-
-  return websiteRows.length > 0 && publishedRows.length > 0 && consentRows.length > 0;
+  const result = await db.execute(sql`
+    SELECT
+      EXISTS (SELECT 1 FROM websites WHERE organization_id = ${organizationId}::uuid) AS has_website,
+      EXISTS (
+        SELECT 1
+        FROM consent_policy_versions v
+        INNER JOIN consent_policies p ON p.id = v.policy_id
+        WHERE v.is_published = true
+          AND p.website_id IN (SELECT id FROM websites WHERE organization_id = ${organizationId}::uuid)
+      ) AS has_published,
+      EXISTS (
+        SELECT 1 FROM consent_records WHERE organization_id = ${organizationId}::uuid
+      ) AS has_consent
+  `);
+  const row = (result as unknown as {
+    has_website?: boolean;
+    has_published?: boolean;
+    has_consent?: boolean;
+  }[])[0];
+  return Boolean(row?.has_website && row?.has_published && row?.has_consent);
 });

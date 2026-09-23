@@ -96,5 +96,12 @@ export const consentEvents = pgTable(
     index("consent_events_occurred_at_idx").on(
       table.occurredAt,
     ),
+
+    // Dashboard trends filter organisation + time. The consent_id column in
+    // consent_events_org_consent_idx blocks that range scan.
+    index("consent_events_org_occurred_idx").on(
+      table.organizationId,
+      table.occurredAt,
+    ),
   ],
 );

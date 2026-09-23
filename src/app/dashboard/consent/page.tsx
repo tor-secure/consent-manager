@@ -119,19 +119,11 @@ export default async function ConsentRecordsPage() {
 
   const LIST_LIMIT = 50;
 
-  const emptyTotals = {
-    total: 0,
-    accepted: 0,
-    rejected: 0,
-    withdrawn: 0,
-    partial: 0,
-    pending: 0,
-  };
-
-  const [statusRows, websiteStatRows, records, publishedPolicyRows] = await Promise.all([
+  const [websiteStatRows, records, publishedPolicyRows] = await Promise.all([
     websiteIds.length > 0
       ? db
           .select({
+            websiteId: consentRecords.websiteId,
             total: sql<number>`count(*)::int`,
             accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
             rejected: sql<number>`count(*) filter (where ${consentRecords.status} = 'rejected')::int`,
@@ -140,17 +132,7 @@ export default async function ConsentRecordsPage() {
             pending: sql<number>`count(*) filter (where ${consentRecords.status} = 'pending')::int`,
           })
           .from(consentRecords)
-          .where(inArray(consentRecords.websiteId, websiteIds))
-      : Promise.resolve([emptyTotals]),
-    websiteIds.length > 0
-      ? db
-          .select({
-            websiteId: consentRecords.websiteId,
-            total: sql<number>`count(*)::int`,
-            accepted: sql<number>`count(*) filter (where ${consentRecords.status} = 'accepted')::int`,
-          })
-          .from(consentRecords)
-          .where(inArray(consentRecords.websiteId, websiteIds))
+          .where(eq(consentRecords.organizationId, localOrg.id))
           .groupBy(consentRecords.websiteId)
       : Promise.resolve([]),
     websiteIds.length > 0
@@ -170,7 +152,7 @@ export default async function ConsentRecordsPage() {
             createdAt: consentRecords.createdAt,
           })
           .from(consentRecords)
-          .where(inArray(consentRecords.websiteId, websiteIds))
+          .where(eq(consentRecords.organizationId, localOrg.id))
           .orderBy(desc(consentRecords.createdAt))
           .limit(LIST_LIMIT)
       : Promise.resolve([]),
@@ -215,7 +197,17 @@ export default async function ConsentRecordsPage() {
   const policyMap = new Map(policyRows.map((p) => [p.id, p]));
   const websiteStats = new Map(websiteStatRows.map((row) => [row.websiteId, row]));
 
-  const totals = statusRows[0] ?? emptyTotals;
+  const totals = websiteStatRows.reduce(
+    (acc, row) => ({
+      total: acc.total + Number(row.total),
+      accepted: acc.accepted + Number(row.accepted),
+      rejected: acc.rejected + Number(row.rejected),
+      withdrawn: acc.withdrawn + Number(row.withdrawn),
+      partial: acc.partial + Number(row.partial),
+      pending: acc.pending + Number(row.pending),
+    }),
+    { total: 0, accepted: 0, rejected: 0, withdrawn: 0, partial: 0, pending: 0 },
+  );
   const total = totals.total;
   const accepted = totals.accepted;
   const rejected = totals.rejected;

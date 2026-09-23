@@ -15,13 +15,14 @@ export async function GET() {
       return NextResponse.json({ count: 0 });
     }
 
-    const localUser = await resolveLocalUser(userId);
+    const [localUser, organization] = await Promise.all([
+      resolveLocalUser(userId),
+      resolveLocalOrganization(orgId),
+    ]);
 
     if (!localUser) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
     }
-
-    const organization = await resolveLocalOrganization(orgId);
 
     if (!organization) {
       return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });

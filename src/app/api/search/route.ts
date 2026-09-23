@@ -13,6 +13,7 @@ import {
   resolveLocalUser,
 } from "@/lib/api-auth-helpers";
 import type { DashboardSearchHit } from "@/lib/dashboard-search";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
   try {
@@ -29,12 +30,21 @@ export async function GET(request: Request) {
       );
     }
 
-    const localUser = await resolveLocalUser(userId);
+    const limit = rateLimit({
+      key: `dashboard-search:${userId}:${getClientIp(request)}`,
+      limit: 60,
+      windowMs: 10_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit);
+
+    const [localUser, organization] = await Promise.all([
+      resolveLocalUser(userId),
+      resolveLocalOrganization(orgId),
+    ]);
     if (!localUser) {
       return NextResponse.json({ success: false, message: "User not found" }, { status: 404 });
     }
 
-    const organization = await resolveLocalOrganization(orgId);
     if (!organization) {
       return NextResponse.json({ success: false, message: "Organization not found" }, { status: 404 });
     }

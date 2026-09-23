@@ -699,6 +699,11 @@ function createBrowser(store, storageSeed = {}, options = {}) {
     createElement(tagName) {
       return new FakeElement(tagName, document);
     },
+    createTextNode(text) {
+      const node = new FakeElement("#text", document);
+      node.textContent = String(text ?? "");
+      return node;
+    },
     getElementsByTagName(tagName) {
       return tagName === "script" ? this.scripts : [];
     },
@@ -982,6 +987,9 @@ async function testBannerPaintsBeforeConfigReturns() {
     browser.document.getElementById("__cmp_banner__"),
     "banner must paint before /api/sdk/{siteKey}/config returns",
   );
+  buttonByText(browser, "Accept all");
+  buttonByText(browser, "Reject all");
+  buttonByText(browser, "Customize");
   buttonByText(browser, "Accept all").click();
   assert.equal(
     browser.document.getElementById("__cmp_banner__"),
@@ -1018,6 +1026,123 @@ async function testBannerPaintsBeforeConfigReturns() {
     null,
     "confirmed consent must not flash a banner while config loads",
   );
+}
+
+async function testRejectAllBeforeConfigReturns() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: browser.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: browser.window,
+      document: browser.document,
+      console,
+      fetch: browser.window.fetch,
+      localStorage: browser.window.localStorage,
+      sessionStorage: browser.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: browser.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  buttonByText(browser, "Reject all").click();
+  assert.equal(
+    browser.document.getElementById("__cmp_banner__"),
+    null,
+    "Reject must close the banner before config returns",
+  );
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.equal(store.records[0].status, "rejected");
+}
+
+async function testCustomizeSaveAndCloseBeforeConfig() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: browser.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: browser.window,
+      document: browser.document,
+      console,
+      fetch: browser.window.fetch,
+      localStorage: browser.window.localStorage,
+      sessionStorage: browser.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: browser.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  buttonByText(browser, "Customize").click();
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.ok(browser.document.getElementById("__cmp_pc__"), "Customize must open the preference center immediately");
+  await flush();
+  assert.equal(
+    browser.document.getElementById("__cmp_banner__"),
+    null,
+    "live config must not replace an open preference center with the banner",
+  );
+  assert.ok(browser.document.getElementById("__cmp_pc__"), "preference center stays open after config");
+  buttonByText(browser, "Save preferences").click();
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_pc__"), null);
+  assert.ok(store.records[0], "Save preferences before/after config should still persist");
+
+  const closeStore = createStore();
+  const closeBrowser = createBrowser(closeStore);
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: closeBrowser.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: closeBrowser.window,
+      document: closeBrowser.document,
+      console,
+      fetch: closeBrowser.window.fetch,
+      localStorage: closeBrowser.window.localStorage,
+      sessionStorage: closeBrowser.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: closeBrowser.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  buttonByText(closeBrowser, "Customize").click();
+  const close = collect(closeBrowser.document.body, (el) => el.getAttribute("aria-label") === "Close")[0];
+  assert.ok(close, "preference center close control should render");
+  close.click();
+  assert.equal(closeBrowser.document.getElementById("__cmp_pc__"), null);
+  assert.ok(
+    closeBrowser.document.getElementById("__cmp_banner__"),
+    "closing Customize without a choice must restore the banner",
+  );
+}
+
+async function testLanguageChangeDoesNotRestoreBannerAfterAccept() {
+  const store = createStore();
+  store.config.bannerConfig.translations = {
+    de: {
+      acceptAllLabel: "Alle akzeptieren",
+      rejectAllLabel: "Alle ablehnen",
+      customizeLabel: "Anpassen",
+    },
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  browser.window.CMP.setLanguage("de");
+  await flush();
+  assert.equal(
+    browser.document.getElementById("__cmp_banner__"),
+    null,
+    "changing language after Accept must not bring the banner back",
+  );
+  assert.equal(store.records[0].status, "accepted");
 }
 
 async function testAcceptAllFlow() {
@@ -2373,6 +2498,9 @@ async function testRejectAllGoogleConsentModeStaysDenied() {
 
 async function main() {
   await testBannerPaintsBeforeConfigReturns();
+  await testRejectAllBeforeConfigReturns();
+  await testCustomizeSaveAndCloseBeforeConfig();
+  await testLanguageChangeDoesNotRestoreBannerAfterAccept();
   await testAcceptAllFlow();
   await testRejectAllFlow();
   await testPublishedPolicyRefresh();

@@ -8,6 +8,7 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 import { organizations } from "./organizations";
 import { users } from "./users";
@@ -88,5 +89,10 @@ export const notifications = pgTable(
     index("notifications_created_at_idx").on(
       table.createdAt,
     ),
+
+    // Header badge counts unread rows for one organisation and user.
+    index("notifications_org_unread_idx")
+      .on(table.organizationId, table.userId)
+      .where(sql`${table.isRead} = false`),
   ],
 );

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import type { ReactNode } from "react";
 
 import { db } from "@/db";
@@ -460,7 +460,8 @@ export async function HomeRecentSection() {
   const recentRecords = await db
     .select({
       visitorId: consentRecords.visitorId,
-      metadata: consentRecords.metadata,
+      email: sql<string>`coalesce(${consentRecords.metadata}->>'email', '')`,
+      name: sql<string>`coalesce(${consentRecords.metadata}->>'name', '')`,
       status: consentRecords.status,
       createdAt: consentRecords.createdAt,
     })
@@ -481,9 +482,8 @@ export async function HomeRecentSection() {
       minute: "2-digit",
     }).format(new Date(r.createdAt));
 
-    const meta = r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : {};
-    const metaEmail = typeof meta.email === "string" ? meta.email : "";
-    const metaName = typeof meta.name === "string" ? meta.name : "";
+    const metaEmail = r.email;
+    const metaName = r.name;
     const name = metaName || (r.visitorId ? `Visitor ${r.visitorId.slice(0, 8)}` : "Visitor");
     const resolvedEmail = metaEmail || "No email on record";
 

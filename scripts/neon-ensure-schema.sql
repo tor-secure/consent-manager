@@ -822,4 +822,16 @@ CREATE TABLE IF NOT EXISTS "rate_limit_buckets" (
 );
 CREATE INDEX IF NOT EXISTS "rate_limit_buckets_reset_idx" ON "rate_limit_buckets" ("reset_at");
 
+-- Dashboard aggregate paths. Apply on a large production table with
+-- CREATE INDEX CONCURRENTLY outside a transaction if writes must stay open.
+CREATE INDEX IF NOT EXISTS "consent_records_org_updated_idx"
+  ON "consent_records" ("organization_id", "updated_at");
+CREATE INDEX IF NOT EXISTS "consent_events_org_occurred_idx"
+  ON "consent_events" ("organization_id", "occurred_at");
+CREATE INDEX IF NOT EXISTS "consent_policies_website_idx"
+  ON "consent_policies" ("website_id");
+CREATE INDEX IF NOT EXISTS "notifications_org_unread_idx"
+  ON "notifications" ("organization_id", "user_id")
+  WHERE "is_read" = false;
+
 
