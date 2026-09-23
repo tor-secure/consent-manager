@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { PortalSelect } from "@/components/public/portal-select";
 import { RightsRequestTracker } from "@/components/public/rights-request-tracker";
 import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
 import {
@@ -77,6 +78,7 @@ export function GrievancePortal() {
   const siteKey = searchParams.get("siteKey")?.trim() ?? "";
 
   const [contact, setContact] = useState<PortalContact>(FALLBACK_CONTACT);
+  const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -111,6 +113,10 @@ export function GrievancePortal() {
 
   async function submitGrievance(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!category) {
+      setSubmitError("Select a grievance category.");
+      return;
+    }
     const form = event.currentTarget;
     const data = new FormData(form);
     setSubmitting(true);
@@ -154,6 +160,7 @@ export function GrievancePortal() {
       if (submittedEmail) setTrackEmail(submittedEmail);
       form.reset();
       setDescription("");
+      setCategory("");
     } catch {
       setSubmitError("Could not submit this grievance. Try again in a moment.");
     } finally {
@@ -312,14 +319,14 @@ export function GrievancePortal() {
               <label htmlFor="grievanceCategory" className="field-label">
                 Grievance Category *
               </label>
-              <select id="grievanceCategory" name="grievanceCategory" required className="field-input">
-                <option value="">Select grievance category</option>
-                {GRIEVANCE_CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <PortalSelect
+                id="grievanceCategory"
+                name="grievanceCategory"
+                value={category}
+                onChange={setCategory}
+                options={GRIEVANCE_CATEGORY_OPTIONS}
+                placeholder="Select grievance category"
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

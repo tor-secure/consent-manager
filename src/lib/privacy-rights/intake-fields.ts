@@ -1,22 +1,24 @@
 export const GRIEVANCE_CATEGORY_OPTIONS = [
-  { value: "consent_cookies", label: "Consent or cookie preferences" },
-  { value: "access", label: "Access to personal data" },
-  { value: "correction", label: "Correction of personal data" },
-  { value: "erasure", label: "Erasure of personal data" },
-  { value: "unlawful_processing", label: "Unlawful or unexpected processing" },
-  { value: "security", label: "Data security or suspected breach" },
-  { value: "children", label: "Children's data or parental consent" },
-  { value: "other", label: "Other grievance" },
+  { value: "consent_violation", label: "Consent Violation" },
+  { value: "data_breach", label: "Data Breach Incident" },
+  { value: "unauthorized_processing", label: "Unauthorized Data Processing" },
+  { value: "rights_not_honored", label: "Data Principal Rights Not Honored" },
+  { value: "data_quality", label: "Data Quality / Inaccuracy" },
+  { value: "excessive_collection", label: "Excessive Data Collection" },
+  { value: "retention_violation", label: "Data Retention Violation" },
+  { value: "unauthorized_sharing", label: "Unauthorized Third-Party Sharing" },
+  { value: "children_data", label: "Children's Data Violation" },
+  { value: "cross_border", label: "Cross-Border Transfer Violation" },
+  { value: "other", label: "Other" },
 ] as const;
 
 export const DPDP_REQUEST_TYPE_OPTIONS = [
-  { value: "access", label: "Access my personal data" },
-  { value: "correction", label: "Correct my personal data" },
-  { value: "erasure", label: "Erase / delete my personal data" },
-  { value: "portability", label: "Receive a copy of my data (portability)" },
-  { value: "withdraw_consent", label: "Withdraw consent" },
-  { value: "grievance", label: "File a grievance" },
-  { value: "nomination", label: "Nominate another person" },
+  { value: "access", label: "Right to Access (Section 11)" },
+  { value: "erasure", label: "Right to Erasure/Deletion (Section 12)" },
+  { value: "correction", label: "Right to Correction/Rectification (Section 11)" },
+  { value: "portability", label: "Right to Data Portability (Section 11)" },
+  { value: "objection", label: "Right to Object (Section 11)" },
+  { value: "restriction", label: "Right to Restrict Processing (Section 11)" },
 ] as const;
 
 export const DATA_CATEGORY_OPTIONS = [

@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { RightsRequestTracker } from "@/components/public/rights-request-tracker";
+import { PortalSelect } from "@/components/public/portal-select";
 import {
   DATA_CATEGORY_OPTIONS,
   DPDP_REQUEST_TYPE_OPTIONS,
@@ -87,6 +88,10 @@ export function DataPrincipalPortal() {
 
   async function submitRequest(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!requestType) {
+      setSubmitError("Select your request type.");
+      return;
+    }
     const form = event.currentTarget;
     const data = new FormData(form);
     setSubmitting(true);
@@ -205,21 +210,17 @@ export function DataPrincipalPortal() {
               <label htmlFor="requestType" className="field-label">
                 Request Type *
               </label>
-              <select
+              <PortalSelect
                 id="requestType"
                 name="requestType"
-                required
                 value={requestType}
-                onChange={(event) => setRequestType(event.target.value)}
-                className="field-input"
-              >
-                <option value="">Select your request type</option>
-                {DPDP_REQUEST_TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setRequestType}
+                options={DPDP_REQUEST_TYPE_OPTIONS}
+                placeholder="Select your request type"
+              />
+              {!requestType ? (
+                <p className="mt-1 text-xs text-[#6B7280]">Choose a right before submitting.</p>
+              ) : null}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

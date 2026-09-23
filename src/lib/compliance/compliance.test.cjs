@@ -100,7 +100,7 @@ function baseSnapshot(overrides = {}) {
     assignedRegulationKeys: ["gdpr"],
     rightsByJurisdiction: {
       gdpr: ["access", "correction", "erasure", "restriction", "objection", "portability", "withdraw_consent"],
-      dpdp: ["access", "correction", "erasure", "portability", "withdraw_consent", "grievance", "nomination"],
+      dpdp: ["access", "correction", "erasure", "portability", "objection", "restriction", "withdraw_consent", "grievance", "nomination"],
       ccpa: ["access", "correction", "erasure", "portability", "objection", "withdraw_consent"],
       lgpd: ["access", "correction", "erasure", "portability", "objection", "restriction", "withdraw_consent"],
     },
