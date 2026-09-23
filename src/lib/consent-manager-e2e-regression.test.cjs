@@ -977,6 +977,33 @@ async function testPublishedBannerIsFirstPaint() {
   store.config.bannerConfig.layout = "dialog";
   store.config.bannerConfig.title = "Current popup";
   store.config.bannerConfig.description = "Published template";
+  const instant = createBrowser(store, {
+    [`__cmp_cfg_${store.website.siteKey}`]: JSON.stringify({
+      ...JSON.parse(JSON.stringify(store.config)),
+      __cmpCachedAt: Date.now(),
+    }),
+  });
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: instant.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: instant.window,
+      document: instant.document,
+      console,
+      fetch: instant.window.fetch,
+      localStorage: instant.window.localStorage,
+      sessionStorage: instant.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: instant.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  const instantBanner = instant.document.getElementById("__cmp_banner__");
+  assert.ok(instantBanner, "cached popup paints before the config request finishes");
+  assert.match(elementText(instantBanner), /Current popup/);
+  assert.ok(instant.document.getElementById("__cmp_banner_overlay__"), "cached dialog popup paints immediately");
+
   const browser = createBrowser(store, {
     [`__cmp_cfg_${store.website.siteKey}`]: JSON.stringify({
       success: true,
@@ -1012,10 +1039,10 @@ async function testPublishedBannerIsFirstPaint() {
       clearTimeout,
     },
   );
-  assert.equal(
-    browser.document.getElementById("__cmp_banner__"),
-    null,
-    "a cached or placeholder banner must not paint before the published config returns",
+  assert.match(
+    elementText(browser.document.getElementById("__cmp_banner__")),
+    /Old white bar/,
+    "the last published banner is visible immediately",
   );
   await flush();
   const banner = browser.document.getElementById("__cmp_banner__");
@@ -1743,6 +1770,7 @@ function testSynchronousBootstrapSnippet() {
   assert.match(snippet, /<script src="https:\/\/cmp\.example\/api\/sdk\/script"/);
   assert.match(snippet, /data-site-key="site_bootstrap_test"/);
   assert.match(snippet, /rel="preconnect"/);
+  assert.match(snippet, /__CMP_CONFIG_PROMISE/);
   assert.doesNotMatch(snippet, /\basync\b|\bdefer\b/);
 }
 
@@ -1760,8 +1788,8 @@ function testPublicSdkCorsAllowsExternalCachePreflight() {
     apiBase: "https://cmp.example",
   });
   assert.match(sdk, /['"]Cache-Control['"]:\s*['"]no-cache['"]/);
-  assert.match(sdk, /cached banner is not drawn until the published config is confirmed/);
-  assert.doesNotMatch(sdk, /paintVisualBanner\(cachedCfg/);
+  assert.match(sdk, /Draw the last published popup immediately/);
+  assert.match(sdk, /applyLoadedConfig\(cachedCfg\)/);
   assert.doesNotMatch(sdk, /firstPaintFallbackBanner\(\)/);
 }
 

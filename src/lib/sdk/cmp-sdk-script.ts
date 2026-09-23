@@ -4267,7 +4267,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
   function fetchConfigJson() {
     var headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
-    return fetch(configRequestUrl(), {
+    var expectedUrl = configRequestUrl();
+    var prefetched = window.__CMP_CONFIG_PROMISE;
+    if (
+      prefetched &&
+      typeof prefetched.then === 'function' &&
+      window.__CMP_CONFIG_URL === expectedUrl
+    ) {
+      window.__CMP_CONFIG_PROMISE = null;
+      return prefetched;
+    }
+    return fetch(expectedUrl, {
       cache: 'no-store',
       mode: 'cors',
       headers: headers
@@ -4436,10 +4446,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   pauseTaggedScripts();
 
   // ── Published banner ─────────────────────────────────────────────────────
-  // A cached banner is not drawn until the published config is confirmed.
-  // Painting the last template first showed the previous layout after a
-  // republish, and the follow-up request could not replace it until the
-  // timed refresh.
+  // Draw the last published popup immediately so it is on screen within a
+  // second. The live config response still replaces it as soon as it arrives
+  // when the published template has changed.
   var CONFIG_CACHE_KEY = '__cmp_cfg_' + SITE_KEY;
   var CONFIG_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
@@ -4474,6 +4483,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   var cachedCfg = readAnyCachedConfig();
+  if (cachedCfg && !hasConfirmedLocalConsent()) {
+    try { applyLoadedConfig(cachedCfg); }
+    catch (eVisual) { warn('Cached banner paint failed: ' + eVisual); }
+  }
 
   fetchConfigJson()
     .then(function(data) {
@@ -4515,17 +4528,52 @@ export function buildEmbedSnippet(options: {
   cdnUrl: string;
 }): string {
   let preconnect = "";
+  let prefetch = "";
   try {
     const origin = new URL(options.cdnUrl).origin;
     if (origin) {
       preconnect = `<link rel="preconnect" href="${origin}" crossorigin>\n<link rel="dns-prefetch" href="${origin}">\n`;
+      const siteKey = JSON.stringify(options.siteKey);
+      const apiOrigin = JSON.stringify(origin);
+      prefetch = `<script>
+(function(){
+  var key = ${siteKey};
+  var base = ${apiOrigin};
+  var lang = "";
+  try {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+      var declared = scripts[i].getAttribute("data-lang");
+      if (declared) { lang = declared; break; }
+    }
+  } catch (e) {}
+  try { if (!lang && window.__CMP_LANG) lang = window.__CMP_LANG; } catch (e) {}
+  try { if (!lang && location.search) lang = new URLSearchParams(location.search).get("lang") || ""; } catch (e) {}
+  try { if (!lang) lang = navigator.language || (navigator.languages && navigator.languages[0]) || ""; } catch (e) {}
+  var url = base + "/api/sdk/" + key + "/config";
+  var qs = [];
+  if (lang) qs.push("lang=" + encodeURIComponent(String(lang).slice(0, 35)));
+  try {
+    var geo = window.__CMP_GEO;
+    if (geo && geo.country) qs.push("country=" + encodeURIComponent(String(geo.country).slice(0, 8)));
+    if (geo && geo.region) qs.push("region=" + encodeURIComponent(String(geo.region).slice(0, 16)));
+  } catch (e) {}
+  if (qs.length) url += "?" + qs.join("&");
+  window.__CMP_CONFIG_URL = url;
+  window.__CMP_CONFIG_PROMISE = fetch(url, { cache: "no-store", mode: "cors", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } }).then(function(r) {
+    if (r.status === 304) return { success: true, unchanged: true };
+    return r.json();
+  });
+})();
+</script>
+`;
     }
   } catch {
     /* relative cdn URLs skip preconnect */
   }
   return `<!-- Consent Management Platform -->
 <!-- Load synchronously before optional trackers. -->
-${preconnect}<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
+${preconnect}${prefetch}<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
 <!-- /CMP -->`;
 }
 

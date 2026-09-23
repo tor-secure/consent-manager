@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
+import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
@@ -126,7 +127,7 @@ export async function GET(
 
     // Everything below only depends on the website row, so fetch it in one
     // round-trip batch. The banner paints from a local visual cache first.
-    const [resolved, orgRow, trackerRows, negotiation, childSnapshot] = await Promise.all([
+    const [resolved, orgRow, trackerRows, negotiation, childSnapshot, publishedVersions] = await Promise.all([
       resolveWebsiteConsentContext({
         websiteId: website.id,
         organizationId: website.organizationId,
@@ -217,6 +218,27 @@ export async function GET(
             return null;
           })
         : Promise.resolve(null),
+      db
+        .select({
+          policyId: consentPolicyVersions.policyId,
+          id: consentPolicyVersions.id,
+          version: consentPolicyVersions.version,
+          isPublished: consentPolicyVersions.isPublished,
+          configuration: consentPolicyVersions.configuration,
+          processingSnapshot: consentPolicyVersions.processingSnapshot,
+          configHash: consentPolicyVersions.configHash,
+        })
+        .from(consentPolicyVersions)
+        .innerJoin(
+          consentPolicies,
+          eq(consentPolicyVersions.policyId, consentPolicies.id),
+        )
+        .where(
+          and(
+            eq(consentPolicies.websiteId, website.id),
+            eq(consentPolicyVersions.isPublished, true),
+          ),
+        ),
     ]);
 
     if (!resolved.selectedPolicy) {
@@ -232,24 +254,12 @@ export async function GET(
     };
 
     // Only the latest published version may be shown to external visitors.
-    const [latestVersion] = await db
-      .select({
-        id: consentPolicyVersions.id,
-        version: consentPolicyVersions.version,
-        isPublished: consentPolicyVersions.isPublished,
-        configuration: consentPolicyVersions.configuration,
-        processingSnapshot: consentPolicyVersions.processingSnapshot,
-        configHash: consentPolicyVersions.configHash,
-      })
-      .from(consentPolicyVersions)
-      .where(
-        and(
-          eq(consentPolicyVersions.policyId, policy.id),
-          eq(consentPolicyVersions.isPublished, true),
-        ),
-      )
-      .orderBy(desc(consentPolicyVersions.version))
-      .limit(1);
+    const latestVersion = publishedVersions
+      .filter((row) => row.policyId === policy.id)
+      .reduce<(typeof publishedVersions)[number] | undefined>((latest, row) => {
+        if (!latest || row.version > latest.version) return row;
+        return latest;
+      }, undefined);
 
     if (!latestVersion) {
       return NextResponse.json(
