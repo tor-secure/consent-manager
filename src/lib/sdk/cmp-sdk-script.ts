@@ -3719,6 +3719,27 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   window.CMP = {
     getConsent: getConsent,
+    getPreferenceSnapshot: function() {
+      var stored = loadStoredConsent() || {};
+      var purposes = ((_config && _config.purposes) || []).map(function(p) {
+        return {
+          id: p.id,
+          key: p.key,
+          name: p.name,
+          description: p.description || '',
+          isRequired: !!p.isRequired,
+          granted: !!p.isRequired || currentPurposeGranted(p.id)
+        };
+      });
+      return {
+        consentId: _consentId || stored.consentId || null,
+        status: stored.status || (_consentId ? 'confirmed' : null),
+        consentedAt: stored.consentedAt || null,
+        expiresAt: stored.expiresAt || null,
+        websiteId: _config ? _config.websiteId : null,
+        purposes: purposes
+      };
+    },
     getCaliforniaOptOut: function() { return _california; },
     getEnforcementDiagnostics: function() {
       return {

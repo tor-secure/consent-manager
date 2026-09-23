@@ -51,15 +51,6 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-function openPreferenceCenter() {
-  const cmp = (window as Window & { CMP?: { openPreferenceCenter?: () => void } }).CMP;
-  if (cmp && typeof cmp.openPreferenceCenter === "function") {
-    cmp.openPreferenceCenter();
-    return;
-  }
-  window.location.href = "/privacy-center/cookie-policy";
-}
-
 export function DataPrincipalPortal() {
   const searchParams = useSearchParams();
   const siteKey = searchParams.get("siteKey")?.trim() ?? "";
@@ -447,13 +438,16 @@ export function DataPrincipalPortal() {
           >
             Track a request
           </Link>
-          <button
-            type="button"
+          <Link
+            href={
+              siteKey
+                ? `/privacy-center/consent-preferences?siteKey=${encodeURIComponent(siteKey)}`
+                : "/privacy-center/consent-preferences"
+            }
             className="inline-flex h-10 items-center rounded-lg border border-[#D3E0DE] px-4 text-sm font-semibold text-[#0B2C4A] hover:border-[#00C4A7]"
-            onClick={openPreferenceCenter}
           >
             Manage Preferences
-          </button>
+          </Link>
         </div>
         <p className="mt-4 text-sm text-[#5D6B73]">
           Data Protection Officer: {PRIVACY_CENTRE_ORG.dpoName},{" "}

@@ -90,6 +90,7 @@ const footerColumns = [
       { label: "Data Principal Rights", href: "/privacy-center/data-principal-request" },
       { label: "File a Grievance", href: "/privacy-center/grievance" },
       { label: "Track a request", href: "/privacy-center/track-request" },
+      { label: "Manage Preferences", href: "/privacy-center/consent-preferences" },
       { label: "Disclaimer", href: "/disclaimer" },
     ],
   },

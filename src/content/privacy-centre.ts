@@ -874,4 +874,11 @@ export const PRIVACY_CENTRE_PARTS = [
     description:
       "Look up the status of a Data Principal Rights ticket (DPR-) or a grievance ticket (GRV-) using the email used when you submitted the form.",
   },
+  {
+    part: "Part VII",
+    href: "/privacy-center/consent-preferences",
+    title: "Manage Preferences",
+    description:
+      "Review consent recorded in this browser, withdraw consent under DPDP Section 6(4), and check withdrawal status.",
+  },
 ] as const;
