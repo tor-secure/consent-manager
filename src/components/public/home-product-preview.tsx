@@ -362,12 +362,17 @@ export function HomeProductPreview() {
                       type="button"
                       onClick={() => setTab(item.id)}
                       className={[
-                        "flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
+                        "flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                         active ? "bg-[#E6F9F5] text-[#00C4A7]" : "text-[#6B7280] hover:bg-[#F3F4F6]",
                       ].join(" ")}
                       aria-current={active ? "page" : undefined}
                     >
-                      <span className={["h-1.5 w-1.5 rounded-full", active ? "bg-[#00C4A7]" : "bg-[#D1D5DB]"].join(" ")} />
+                      <span
+                        className={[
+                          "h-1.5 w-1.5 rounded-full transition-colors duration-300",
+                          active ? "bg-[#00C4A7]" : "bg-[#D1D5DB]",
+                        ].join(" ")}
+                      />
                       {item.label}
                     </button>
                   </li>
@@ -376,7 +381,7 @@ export function HomeProductPreview() {
             </ul>
           </aside>
 
-          <div className="relative min-w-0 bg-[#F8FAFC] p-2 min-[400px]:p-2.5 sm:p-3">
+          <div className="relative min-h-[16.5rem] min-w-0 bg-[#F8FAFC] p-2 min-[400px]:p-2.5 sm:min-h-[17.5rem] sm:p-3">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.07]" aria-hidden="true">
               <BrandLogo markOnly tone="on-light" height={110} className="max-h-[36%] max-w-[min(150px,50%)]" />
             </div>
@@ -391,7 +396,7 @@ export function HomeProductPreview() {
                   type="button"
                   onClick={() => setTab(item.id)}
                   className={[
-                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                    "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
                     tab === item.id ? "bg-[#E6F9F5] text-[#00C4A7]" : "bg-white text-[#6B7280]",
                   ].join(" ")}
                 >
@@ -399,6 +404,7 @@ export function HomeProductPreview() {
                 </button>
               ))}
             </div>
+            <div key={tab} className="preview-tab-pane min-w-0">
             {tab !== "dashboard" && (
               <h3 className="mb-2 text-[13px] font-bold tracking-tight text-[#111827]">{titles[tab]}</h3>
             )}
@@ -407,7 +413,8 @@ export function HomeProductPreview() {
             {tab === "preferences" && <PreferencesView />}
             {tab === "integrations" && <IntegrationsView />}
             {tab === "reports" && <ReportsView />}
-          {tab === "settings" && <SettingsView />}
+            {tab === "settings" && <SettingsView />}
+            </div>
             </div>
           </div>
         </div>

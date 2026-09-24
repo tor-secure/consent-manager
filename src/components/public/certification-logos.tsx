@@ -60,11 +60,11 @@ export function CertificationLogos({
   heading?: string;
 }) {
   return (
-    <div className={compact ? "@container mt-0 min-w-0" : "@container mt-8 min-w-0"}>
+    <div className={compact ? "@container mt-0 min-w-0 text-center" : "@container mt-8 min-w-0"}>
       <p
         className={
           compact
-            ? "text-left text-[10px] font-semibold leading-snug text-[#0B2C4A]"
+            ? "!text-center text-[11px] font-semibold leading-snug text-[#0B2C4A] sm:text-xs"
             : "text-left text-sm font-semibold leading-6 text-[#0B2C4A]"
         }
       >
@@ -73,7 +73,7 @@ export function CertificationLogos({
       <ul
         className={
           compact
-            ? "mt-1 grid w-full grid-cols-6 items-center justify-items-center gap-x-1.5 gap-y-1.5 @[520px]:flex @[520px]:flex-nowrap @[520px]:justify-between @[520px]:gap-x-2"
+            ? "mt-1.5 grid w-full grid-cols-6 items-center justify-items-center gap-x-2 gap-y-2 @[520px]:flex @[520px]:flex-nowrap @[520px]:justify-between @[520px]:gap-x-3"
             : "mt-3 grid grid-cols-6 items-center justify-items-center gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-x-6 sm:gap-y-3 lg:gap-x-8"
         }
       >
@@ -88,10 +88,10 @@ export function CertificationLogos({
               className={
                 item.kind === "badge"
                   ? compact
-                    ? "h-7 w-7 object-contain @[520px]:h-8 @[520px]:w-8"
+                    ? "h-10 w-10 object-contain @[520px]:h-12 @[520px]:w-12"
                     : "h-12 w-12 object-contain sm:h-14 sm:w-14"
                   : compact
-                    ? "h-5 w-auto max-w-[72px] object-contain @[520px]:h-6 @[520px]:max-w-[96px]"
+                    ? "h-8 w-auto max-w-[110px] object-contain @[520px]:h-9 @[520px]:max-w-[132px]"
                     : "h-8 w-auto max-w-[110px] object-contain sm:h-9 sm:max-w-[140px]"
               }
             />
@@ -125,7 +125,7 @@ export function CertificationLogos({
       <p
         className={
           compact
-            ? "mt-1 text-center text-[9px] leading-snug text-[#6B7280]"
+            ? "mt-1.5 !text-center text-[10px] leading-snug text-[#6B7280] sm:text-[11px]"
             : "mt-3 text-left text-xs leading-5 text-[#6B7280]"
         }
       >

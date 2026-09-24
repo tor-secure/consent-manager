@@ -77,32 +77,32 @@ const featureCards = [
 export function HomeTrustedFeatures() {
   return (
     <section id="features" className="home-section bg-[#F3FAF8]">
-      <div className="pt-4 pb-[clamp(3rem,5vw,5rem)] sm:pt-5">
+      <div className="pt-4 pb-8 sm:pt-5 sm:pb-10">
         <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 text-center min-[400px]:px-5 sm:px-8">
-          <span className="home-fade-item inline-flex rounded-full bg-[#DBEAFE] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#1D4ED8]">
+          <span className="home-fade-item inline-flex rounded-full bg-[#DBEAFE] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1D4ED8]">
             Features
           </span>
-          <h2 className="home-fade-item mx-auto mt-4 max-w-3xl text-balance text-[clamp(1.6rem,1.15rem+2vw,2.25rem)] font-bold tracking-tight text-[#0F172A]">
+          <h2 className="home-fade-item mx-auto mt-2.5 max-w-3xl text-balance text-[clamp(1.4rem,1.05rem+1.6vw,1.9rem)] font-bold tracking-tight text-[#0F172A]">
             Everything you need to manage consent
           </h2>
-          <p className="home-fade-item mx-auto mt-4 max-w-2xl text-[15px] leading-7 text-[#6B7280] sm:text-base">
+          <p className="home-fade-item mx-auto mt-2 max-w-2xl text-[13px] leading-5 text-[#6B7280] sm:text-sm">
             Powerful features to help you collect, manage and analyze consent while staying
             compliant with global privacy laws.
           </p>
         </div>
 
-        <div className="mx-auto mt-10 grid w-full min-w-0 max-w-[1200px] grid-cols-1 gap-5 px-4 min-[400px]:px-5 min-[600px]:grid-cols-2 sm:px-8 lg:mt-12 lg:grid-cols-3">
+        <div className="mx-auto mt-6 grid w-full min-w-0 max-w-[1200px] grid-cols-1 gap-3 px-4 min-[400px]:px-5 min-[600px]:grid-cols-2 sm:px-8 lg:mt-7 lg:grid-cols-3">
           {featureCards.map((card) => (
             <article
               key={card.title}
-              className="home-fade-item min-w-0 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#D1D5DB] hover:shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)] sm:p-6"
+              className="home-fade-item min-w-0 rounded-xl border border-[#E5E7EB] bg-white p-3.5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition hover:border-[#D1D5DB] hover:shadow-[0_10px_30px_-18px_rgba(15,23,42,0.25)] sm:p-4"
             >
               <div
-                className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${card.iconBg} ${card.iconColor}`}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-lg ${card.iconBg} ${card.iconColor}`}
               >
                 <svg
-                  width="22"
-                  height="22"
+                  width="16"
+                  height="16"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"
@@ -114,13 +114,13 @@ export function HomeTrustedFeatures() {
                   {card.icon}
                 </svg>
               </div>
-              <h3 className="mt-5 text-[17px] font-bold tracking-tight text-[#0F172A]">
+              <h3 className="mt-2.5 text-[14px] font-bold tracking-tight text-[#0F172A]">
                 {card.title}
               </h3>
-              <p className="mt-2 text-justify text-sm leading-6 text-[#6B7280]">{card.description}</p>
+              <p className="mt-1 text-justify text-[12px] leading-5 text-[#6B7280]">{card.description}</p>
               <Link
                 href={card.href}
-                className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-[#0B2C4A] transition hover:text-[#00C4A7]"
+                className="mt-2 inline-flex items-center gap-1 text-[12px] font-semibold text-[#0B2C4A] transition hover:text-[#00C4A7]"
               >
                 Learn more <span aria-hidden="true">→</span>
               </Link>
