@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { PricingEnquiryForm } from "@/components/public/pricing-enquiry-form";
+import { recaptchaSiteKey } from "@/lib/recaptcha";
 import { SkipLink } from "@/components/ui/skip-link";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
@@ -141,7 +142,7 @@ export default function PricingPage() {
               </p>
             </div>
             <Suspense fallback={<div className="h-96 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFF]" />}>
-              <PricingEnquiryForm />
+              <PricingEnquiryForm siteKey={recaptchaSiteKey()} />
             </Suspense>
           </div>
         </section>

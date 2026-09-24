@@ -1,11 +1,8 @@
 import "server-only";
 
-import { sendEmail } from "@/lib/mail/send-email";
+import { sendWithNodemailer } from "@/lib/mail/send-email";
 
-export const PRICING_ENQUIRY_RECIPIENTS = [
-  "support@torsecure.com",
-  "info@torsecure.com",
-] as const;
+export const PRICING_ENQUIRY_RECIPIENTS = ["torsecure.dev@gmail.com"] as const;
 
 function escapeHtml(value: string): string {
   return value
@@ -50,7 +47,7 @@ export async function sendPricingEnquiryEmail(input: {
     <p>${escapeHtml(input.message).replaceAll("\n", "<br />")}</p>
   `;
 
-  await sendEmail({
+  await sendWithNodemailer({
     to: [...PRICING_ENQUIRY_RECIPIENTS],
     replyTo: input.email,
     subject: `Pricing enquiry (${planLabel}) from ${input.organisation}`,

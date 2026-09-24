@@ -44,14 +44,28 @@ async function sendWithResend(input: SendEmailInput): Promise<void> {
   }
 }
 
-async function sendWithSmtp(input: SendEmailInput): Promise<void> {
-  const host = process.env.SMTP_HOST?.trim();
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.trim() || process.env.SMTP_PASSWORD?.trim();
-  if (!host || !user || !pass) return;
+const GMAIL_SMTP_HOST = "smtp.gmail.com";
+const GMAIL_SMTP_USER = "torsecure.dev@gmail.com";
 
-  const nodemailer = await import("nodemailer");
+function smtpPassword(): string {
+  return process.env.SMTP_PASS?.trim() || process.env.SMTP_PASSWORD?.trim() || "";
+}
+
+export function isNodemailerConfigured(): boolean {
+  return Boolean(smtpPassword());
+}
+
+/** Gmail SMTP via Nodemailer. Host and user default to the pricing inbox. */
+export async function sendWithNodemailer(input: SendEmailInput): Promise<void> {
+  const pass = smtpPassword();
+  if (!pass) {
+    throw new Error("SMTP password is not configured.");
+  }
+
+  const host = process.env.SMTP_HOST?.trim() || GMAIL_SMTP_HOST;
+  const user = process.env.SMTP_USER?.trim() || GMAIL_SMTP_USER;
   const port = Number(process.env.SMTP_PORT ?? "587");
+  const nodemailer = await import("nodemailer");
   const transporter = nodemailer.createTransport({
     host,
     port: Number.isFinite(port) ? port : 587,
@@ -60,7 +74,7 @@ async function sendWithSmtp(input: SendEmailInput): Promise<void> {
   });
 
   await transporter.sendMail({
-    from: fromAddress(),
+    from: process.env.SMTP_FROM?.trim() || process.env.MAIL_FROM?.trim() || user,
     to: input.to.join(", "),
     replyTo: input.replyTo,
     subject: input.subject,
@@ -70,21 +84,16 @@ async function sendWithSmtp(input: SendEmailInput): Promise<void> {
 }
 
 export function isMailConfigured(): boolean {
-  return Boolean(
-    process.env.RESEND_API_KEY?.trim() ||
-      (process.env.SMTP_HOST?.trim() &&
-        process.env.SMTP_USER?.trim() &&
-        (process.env.SMTP_PASS?.trim() || process.env.SMTP_PASSWORD?.trim())),
-  );
+  return Boolean(process.env.RESEND_API_KEY?.trim() || isNodemailerConfigured());
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<void> {
-  if (process.env.RESEND_API_KEY?.trim()) {
-    await sendWithResend(input);
+  if (isNodemailerConfigured()) {
+    await sendWithNodemailer(input);
     return;
   }
-  if (process.env.SMTP_HOST?.trim()) {
-    await sendWithSmtp(input);
+  if (process.env.RESEND_API_KEY?.trim()) {
+    await sendWithResend(input);
     return;
   }
   throw new Error("Mail is not configured.");
