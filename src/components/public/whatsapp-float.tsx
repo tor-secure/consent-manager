@@ -13,23 +13,23 @@ function WhatsAppGlyph({ className = "" }: { className?: string }) {
 
 export function WhatsAppFloat() {
   return (
-    <div className="pointer-events-none fixed bottom-5 left-4 z-[60] flex items-end gap-2 sm:bottom-6 sm:left-5">
+    <div className="pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex items-end gap-2">
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="whatsapp-float-btn pointer-events-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_28px_-8px_rgba(18,140,70,0.7)] transition hover:scale-105 hover:bg-[#1EBE57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
-        aria-label="Chat on WhatsApp with Consent Guru"
+        className="whatsapp-float-bubble pointer-events-auto mb-0.5 max-w-[168px] rounded-2xl rounded-br-md border border-[#D1FADF] bg-white px-2.5 py-1.5 text-left text-[12px] font-medium leading-4 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
       >
-        <WhatsAppGlyph className="h-8 w-8" />
+        Chat on WhatsApp
       </a>
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="whatsapp-float-bubble pointer-events-auto mb-1 max-w-[200px] rounded-2xl rounded-bl-md border border-[#D1FADF] bg-white px-3 py-2 text-left text-[13px] font-medium leading-5 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
+        className="whatsapp-float-btn pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_20px_-6px_rgba(18,140,70,0.7)] transition hover:scale-105 hover:bg-[#1EBE57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+        aria-label="Chat on WhatsApp with Consent Guru"
       >
-        Chat on WhatsApp
+        <WhatsAppGlyph className="h-5 w-5" />
       </a>
     </div>
   );

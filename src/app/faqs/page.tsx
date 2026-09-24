@@ -52,14 +52,14 @@ export default async function FaqsPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-[#D3E0DE] bg-[#F3FAF8]">
+        <section className="relative overflow-x-clip overflow-y-visible border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div
             className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#00C4A7]/10"
             aria-hidden="true"
           />
           <div className="relative mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-10 lg:py-12">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#00A88F]">Help</p>
-            <h1 className="mt-4 max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-[#0B2C4A] sm:text-5xl">
+            <h1 className="mt-4 max-w-3xl text-balance text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
               Frequently asked questions
             </h1>
             <p className="mt-5 max-w-2xl text-justify text-base leading-7 text-[#4B5563] sm:text-lg">

@@ -65,7 +65,7 @@ export function LegalBlocks({ blocks }: { blocks: LegalBlock[] }) {
         return (
           <dl key={index} className="divide-y divide-[#D3E0DE] overflow-hidden rounded-2xl border border-[#D3E0DE] bg-[#F8FCFB]">
             {block.items.map((item) => (
-              <div key={item.term} className="grid gap-2 px-5 py-4 sm:grid-cols-[220px_1fr] sm:gap-6">
+              <div key={item.term} className="grid min-w-0 gap-2 px-5 py-4 sm:grid-cols-[minmax(7rem,12rem)_minmax(0,1fr)] sm:gap-6">
                 <dt className="text-sm font-semibold text-[#0B2C4A]">{item.term}</dt>
                 <dd className="text-justify text-[15px] leading-7 text-[#4B5563]">{withEmails(item.definition)}</dd>
               </div>
@@ -93,11 +93,11 @@ export function PrivacyCentreLayout({
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-[#D3E0DE] bg-[#F3FAF8]">
+        <section className="relative overflow-x-clip overflow-y-visible border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#00C4A7]/10" aria-hidden="true" />
           <div className="relative mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-10 lg:py-12">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#00A88F]">{kicker}</p>
-            <h1 className="mt-4 max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-[#0B2C4A] sm:text-5xl">
+            <h1 className="mt-4 max-w-3xl text-balance text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
               {title}
             </h1>
             {intro ? (
@@ -154,7 +154,7 @@ export function LegalDocument({
 }) {
   return (
     <section className="bg-white px-5 py-12 sm:px-8 sm:py-16">
-      <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-16">
+      <div className="mx-auto grid min-w-0 max-w-[1200px] gap-10 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:gap-16">
         <aside className="lg:sticky lg:top-24 lg:self-start">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#00A88F]">On this page</p>
           <ul className="mt-4 space-y-2">

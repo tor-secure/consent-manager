@@ -202,13 +202,13 @@ export function HomeNavbar() {
       <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white">
         <nav
           aria-label="Primary"
-          className="mx-auto flex min-h-[72px] max-w-[1200px] items-center justify-between gap-4 px-5 sm:px-8"
+          className="mx-auto flex min-h-[72px] w-full min-w-0 max-w-[1200px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8"
         >
-          <Link href="/" className="flex items-center" aria-label="Consent Guru home">
+          <Link href="/" className="flex min-w-0 shrink items-center" aria-label="Consent Guru home">
             <BrandLogo height={40} priority />
           </Link>
 
-          <div className="hidden items-center gap-1 lg:flex">
+          <div className="hidden min-w-0 items-center gap-0.5 xl:flex">
             {navItems.map((entry) => {
               if (entry.type === "link") {
                 const active = isPlainLinkActive(entry, pathname);
@@ -247,7 +247,9 @@ export function HomeNavbar() {
                     <Chevron open={openMenu === entry.label} />
                   </button>
                   <div
-                    className={`absolute left-0 top-full z-50 min-w-[13.5rem] pt-1 transition ${
+                    className={`absolute top-full z-50 min-w-[13.5rem] max-w-[calc(100vw-1.5rem)] pt-1 transition ${
+                      entry.label === "Company" ? "right-0" : "left-0"
+                    } ${
                       openMenu === entry.label
                         ? "visible opacity-100"
                         : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
@@ -275,13 +277,13 @@ export function HomeNavbar() {
             })}
           </div>
 
-          <div className="hidden items-center gap-3 lg:flex">
+          <div className="hidden shrink-0 items-center gap-3 xl:flex">
             <AuthButtons />
           </div>
 
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-[#E5E7EB] text-[#111827] lg:hidden"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#E5E7EB] text-[#111827] xl:hidden"
             aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-controls="mobile-navigation"
             aria-expanded={mobileOpen}
@@ -311,7 +313,7 @@ export function HomeNavbar() {
         <div
           id="mobile-navigation"
           hidden={!mobileOpen}
-          className={`grid border-t border-[#E5E7EB] bg-white transition-[grid-template-rows,opacity] duration-300 lg:hidden ${
+          className={`grid border-t border-[#E5E7EB] bg-white transition-[grid-template-rows,opacity] duration-300 xl:hidden ${
             mobileOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
           }`}
         >

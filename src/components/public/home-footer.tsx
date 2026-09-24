@@ -101,7 +101,7 @@ export function HomeFooter() {
     <>
       <section id="resources" className="home-section bg-white px-5 py-10 sm:px-8 sm:py-12">
         <div
-          className="home-fade-item relative mx-auto max-w-[1200px] overflow-hidden rounded-2xl px-6 py-8 sm:px-8 lg:px-10"
+          className="home-fade-item relative mx-auto max-w-[1200px] overflow-x-clip rounded-2xl px-4 py-8 min-[400px]:px-6 sm:px-8 lg:px-10"
           style={{
             background:
               "linear-gradient(180deg, #E6F9F5 0%, #F3FAF8 100%)",
@@ -117,7 +117,7 @@ export function HomeFooter() {
           />
 
           <div className="relative grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="flex items-start gap-4">
+            <div className="flex min-w-0 items-start gap-4">
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#E6F9F5]">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
@@ -176,7 +176,7 @@ export function HomeFooter() {
       </section>
 
       <footer id="site-footer" className="home-section bg-[#0B1220] text-white">
-        <div className="home-fade-item w-full px-6 py-14 sm:px-10 lg:px-12 lg:py-16 xl:px-16">
+        <div className="home-fade-item w-full min-w-0 px-4 py-14 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-10 lg:px-12 lg:py-16 xl:px-16">
           <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
             <div id="company" className="w-full shrink-0 text-left lg:max-w-[280px]">
               <Link href="/" className="inline-flex items-center" aria-label="Consent Guru home">
@@ -195,7 +195,7 @@ export function HomeFooter() {
 
             <nav
               aria-label="Footer"
-              className="grid w-full flex-1 grid-cols-2 items-start gap-x-8 gap-y-10 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-10"
+              className="grid w-full min-w-0 flex-1 grid-cols-1 items-start gap-x-8 gap-y-10 min-[400px]:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 lg:gap-x-10"
             >
               {footerColumns.map((column) => (
                 <div key={column.title} id={column.title === "Legal" ? "legal" : undefined}>
@@ -219,7 +219,7 @@ export function HomeFooter() {
 
           <div className="mt-12 border-t border-white/10 pt-8">
             <h2 className="text-sm font-semibold text-white">Offices</h2>
-            <ul className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <ul className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
               {offices.map((office) => (
                 <li key={office.city} className="flex items-start gap-3 text-left">
                   <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#00C4A7]">

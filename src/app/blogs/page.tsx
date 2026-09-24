@@ -33,7 +33,7 @@ export default function BlogsPage() {
       <HomeNavbar />
       <main id="main-content">
         <section
-          className="relative overflow-hidden border-b border-[#E5E7EB]"
+          className="relative overflow-x-clip overflow-y-visible border-b border-[#E5E7EB]"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
@@ -43,7 +43,7 @@ export default function BlogsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#00C4A7] sm:text-base">
               Blogs
             </p>
-            <h1 className="mt-3 max-w-3xl text-balance text-[2.6rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-6xl">
+            <h1 className="mt-3 max-w-3xl text-balance text-[clamp(1.85rem,1.1rem+3vw,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#111827]">
               Privacy laws, consent, and the systems that make them real
             </h1>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#4B5563] sm:text-base">

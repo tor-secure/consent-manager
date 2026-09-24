@@ -36,7 +36,7 @@ const hubKpis = [
 ];
 
 function KpiIcon({ kind }: { kind: string }) {
-  const cls = "h-4 w-4";
+  const cls = "h-3.5 w-3.5";
   if (kind === "doc") {
     return (
       <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -75,22 +75,22 @@ function KpiIcon({ kind }: { kind: string }) {
 function HubKpis() {
   const tones = ["#00C4A7", "#3B82F6", "#8B5CF6", "#0B2C4A"];
   return (
-    <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
+    <div className="grid grid-cols-2 gap-1.5">
       {hubKpis.map((kpi, i) => (
         <div
           key={kpi.label}
-          className="flex items-start gap-3 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white px-3.5 py-3 shadow-sm"
+          className="flex items-start gap-2 overflow-hidden rounded-xl border border-[#E5E7EB] bg-white px-2 py-1.5 shadow-sm"
         >
           <span
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white"
             style={{ background: tones[i] }}
           >
             <KpiIcon kind={kpi.icon} />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[18px] font-bold leading-none tracking-tight text-[#111827]">{kpi.value}</p>
-            <p className="mt-1.5 text-[11px] leading-snug text-[#6B7280]">{kpi.label}</p>
-            <p className="mt-1 text-[11px] font-medium text-[#16A34A]">{kpi.delta}</p>
+            <p className="truncate text-[14px] font-bold leading-none tracking-tight text-[#111827]">{kpi.value}</p>
+            <p className="mt-0.5 text-[10px] leading-snug text-[#6B7280]">{kpi.label}</p>
+            <p className="mt-0.5 text-[10px] font-medium text-[#16A34A]">{kpi.delta}</p>
           </div>
         </div>
       ))}
@@ -108,13 +108,13 @@ function CardShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border border-[#E5E7EB] bg-white p-3.5 shadow-sm">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full text-white" style={{ background: accent }}>
-            <span className="h-2 w-2 rounded-full bg-white/90" />
+    <div className="rounded-xl border border-[#E5E7EB] bg-white p-2.5 shadow-sm">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full text-white" style={{ background: accent }}>
+            <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
           </span>
-          <p className="text-[13px] font-semibold text-[#111827]">{title}</p>
+          <p className="text-[12px] font-semibold text-[#111827]">{title}</p>
         </div>
         <span className="text-[#9CA3AF]">›</span>
       </div>
@@ -130,12 +130,12 @@ function PreferencesView() {
     { name: "Loyalty & Rewards", status: "Withdrawn", tone: "withdrawn" },
   ];
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <HubKpis />
       <CardShell title="Consent & Preferences" accent="#00C4A7">
-        <ul className="space-y-2.5">
+        <ul className="space-y-1.5">
           {rows.map((row) => (
-            <li key={row.name} className="flex items-center justify-between gap-2 text-[12px]">
+            <li key={row.name} className="flex items-center justify-between gap-2 text-[11px]">
               <span className="text-[#374151]">{row.name}</span>
               <span
                 className={
@@ -149,7 +149,7 @@ function PreferencesView() {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-[12px] font-semibold text-[#2563EB]">Manage Preferences →</p>
+        <p className="mt-2 text-[11px] font-semibold text-[#2563EB]">Manage Preferences →</p>
       </CardShell>
     </div>
   );
@@ -157,11 +157,11 @@ function PreferencesView() {
 
 function ConsentsView() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <HubKpis />
       <CardShell title="Cookie Consent Management" accent="#8B5CF6">
-        <p className="text-[12px] text-[#4B5563]">41 cookies found across 3 domains</p>
-        <div className="mt-3 flex h-2 overflow-hidden rounded-full">
+        <p className="text-[11px] text-[#4B5563]">41 cookies found across 3 domains</p>
+        <div className="mt-2 flex h-1.5 overflow-hidden rounded-full">
           <span className="w-[29%] bg-[#3B82F6]" />
           <span className="w-[20%] bg-[#8B5CF6]" />
           <span className="w-[51%] bg-[#F59E0B]" />
@@ -171,10 +171,10 @@ function ConsentsView() {
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#8B5CF6]" />8 Marketing</span>
           <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-[#F59E0B]" />21 Functional</span>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="rounded-lg border border-[#E5E7EB] px-3 py-1.5 text-[11px] font-semibold text-[#374151]">Manage</span>
-          <span className="rounded-lg border border-[#FECACA] bg-white px-3 py-1.5 text-[11px] font-semibold text-[#DC2626]">Reject All</span>
-          <span className="rounded-lg bg-[#2563EB] px-3 py-1.5 text-[11px] font-semibold text-white">Accept All</span>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          <span className="rounded-md border border-[#E5E7EB] px-2 py-1 text-[10px] font-semibold text-[#374151]">Manage</span>
+          <span className="rounded-md border border-[#FECACA] bg-white px-2 py-1 text-[10px] font-semibold text-[#DC2626]">Reject All</span>
+          <span className="rounded-md bg-[#2563EB] px-2 py-1 text-[10px] font-semibold text-white">Accept All</span>
         </div>
       </CardShell>
     </div>
@@ -183,10 +183,10 @@ function ConsentsView() {
 
 function IntegrationsView() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <HubKpis />
       <CardShell title="Third-Party Governance" accent="#F59E0B">
-        <ul className="space-y-2.5 text-[12px]">
+        <ul className="space-y-1.5 text-[11px]">
           <li className="flex items-center justify-between gap-2">
             <span className="text-[#374151]">Fintrust Payments</span>
             <span className="rounded-full bg-[#FEE2E2] px-2 py-0.5 text-[10px] font-semibold text-[#DC2626]">High Risk</span>
@@ -196,7 +196,7 @@ function IntegrationsView() {
             <span className="rounded-full bg-[#E6F9F5] px-2 py-0.5 text-[10px] font-semibold text-[#059669]">Low Risk</span>
           </li>
         </ul>
-        <p className="mt-3 text-[12px] font-semibold text-[#2563EB]">View all vendors →</p>
+        <p className="mt-2 text-[11px] font-semibold text-[#2563EB]">View all vendors →</p>
       </CardShell>
     </div>
   );
@@ -204,10 +204,10 @@ function IntegrationsView() {
 
 function ReportsView() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <HubKpis />
       <CardShell title="Data Principal Access Rights" accent="#EC4899">
-        <ul className="space-y-2.5 text-[12px]">
+        <ul className="space-y-1.5 text-[11px]">
           <li className="flex items-center justify-between gap-2">
             <span className="text-[#374151]">#1042 Access request</span>
             <span className="rounded-full bg-[#DBEAFE] px-2 py-0.5 text-[10px] font-semibold text-[#2563EB]">2d left</span>
@@ -217,7 +217,7 @@ function ReportsView() {
             <span className="rounded-full bg-[#FEE2E2] px-2 py-0.5 text-[10px] font-semibold text-[#DC2626]">Overdue</span>
           </li>
         </ul>
-        <p className="mt-3 text-[12px] font-semibold text-[#2563EB]">View all requests →</p>
+        <p className="mt-2 text-[11px] font-semibold text-[#2563EB]">View all requests →</p>
       </CardShell>
     </div>
   );
@@ -225,21 +225,21 @@ function ReportsView() {
 
 function SettingsView() {
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <HubKpis />
       <CardShell title="Privacy Center" accent="#3B82F6">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-[#F8FAFC] p-3 text-center">
-            <p className="text-[10px] uppercase tracking-wide text-[#6B7280]">ROPA</p>
-            <p className="mt-1 text-xl font-bold text-[#111827]">318</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          <div className="rounded-lg bg-[#F8FAFC] p-2 text-center">
+            <p className="text-[9px] uppercase tracking-wide text-[#6B7280]">ROPA</p>
+            <p className="mt-0.5 text-base font-bold text-[#111827]">318</p>
           </div>
-          <div className="rounded-xl bg-[#F8FAFC] p-3 text-center">
-            <p className="text-[10px] uppercase tracking-wide text-[#6B7280]">Notices</p>
-            <p className="mt-1 text-xl font-bold text-[#111827]">28</p>
+          <div className="rounded-lg bg-[#F8FAFC] p-2 text-center">
+            <p className="text-[9px] uppercase tracking-wide text-[#6B7280]">Notices</p>
+            <p className="mt-0.5 text-base font-bold text-[#111827]">28</p>
           </div>
         </div>
-        <p className="mt-3 text-center text-[11px] text-[#6B7280]">Data → Purpose → Process → Vendor</p>
-        <p className="mt-2 text-[12px] font-semibold text-[#2563EB]">Go to Privacy Center →</p>
+        <p className="mt-2 text-center text-[10px] text-[#6B7280]">Data → Purpose → Process → Vendor</p>
+        <p className="mt-1.5 text-[11px] font-semibold text-[#2563EB]">Go to Privacy Center →</p>
       </CardShell>
     </div>
   );
@@ -248,23 +248,23 @@ function SettingsView() {
 function DashboardOverview() {
   return (
     <>
-      <h3 className="text-[15px] font-bold tracking-tight text-[#111827]">Dashboard Overview</h3>
-      <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
+      <h3 className="text-[13px] font-bold tracking-tight text-[#111827]">Dashboard Overview</h3>
+      <div className="mt-2 grid gap-1.5 sm:grid-cols-3">
         {overviewStats.map((stat) => (
-          <div key={stat.label} className="rounded-xl border border-[#E5E7EB] bg-white px-3 py-3 shadow-sm">
-            <p className="text-[10px] font-medium uppercase tracking-[0.04em] text-[#6B7280]">{stat.label}</p>
-            <p className="mt-1 text-lg font-bold tracking-tight text-[#111827]">{stat.value}</p>
-            <p className="mt-1 text-[10px] font-medium text-[#16A34A]">{stat.delta}</p>
+          <div key={stat.label} className="rounded-lg border border-[#E5E7EB] bg-white px-2 py-1.5 shadow-sm">
+            <p className="text-[9px] font-medium uppercase tracking-[0.04em] text-[#6B7280]">{stat.label}</p>
+            <p className="mt-0.5 text-[14px] font-bold tracking-tight text-[#111827]">{stat.value}</p>
+            <p className="mt-0.5 text-[9px] font-medium text-[#16A34A]">{stat.delta}</p>
           </div>
         ))}
       </div>
-      <div className="relative mt-3 pb-1">
-      <div className="rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-sm sm:p-4">
+      <div className="relative mt-2 pb-0.5">
+      <div className="rounded-lg border border-[#E5E7EB] bg-white p-2 shadow-sm sm:p-2.5">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-[12px] font-semibold text-[#111827]">Consent Rate Over Time</p>
-          <p className="text-[10px] text-[#9CA3AF]">Last 30 days</p>
+          <p className="text-[11px] font-semibold text-[#111827]">Consent Rate Over Time</p>
+          <p className="text-[9px] text-[#9CA3AF]">Last 30 days</p>
         </div>
-        <div className="relative mt-3 h-[150px] sm:h-[170px]">
+        <div className="relative mt-1.5 h-[92px] sm:h-[108px]">
           <svg viewBox="0 0 420 160" className="h-full w-full" aria-hidden="true">
             <defs>
               <linearGradient id="cf-line-fill" x1="0" y1="0" x2="0" y2="1">
@@ -288,17 +288,17 @@ function DashboardOverview() {
             />
             <circle cx="295" cy="52" r="5" fill="#00C4A7" stroke="white" strokeWidth="2" />
           </svg>
-          <div className="absolute left-[36%] top-2 hidden -translate-x-1/2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] text-[#374151] shadow-md sm:block">
+          <div className="absolute left-[36%] top-1 hidden -translate-x-1/2 rounded-md border border-[#E5E7EB] bg-white px-2 py-1 text-[9px] text-[#374151] shadow-md sm:block">
             <span className="font-medium text-[#111827]">May 12, 2025</span>
             <span className="text-[#9CA3AF]"> • </span>
             Consent Rate: <span className="font-semibold text-[#00C4A7]">92.6%</span>
           </div>
         </div>
       </div>
-      <div className="absolute bottom-3 right-3 hidden w-[180px] rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] lg:block">
-        <p className="text-[12px] font-semibold text-[#111827]">Consent Status</p>
-        <div className="mt-2 flex items-center gap-3">
-          <svg viewBox="0 0 36 36" className="h-14 w-14 shrink-0" aria-hidden="true">
+      <div className="absolute bottom-2 right-2 hidden w-[min(150px,44%)] rounded-lg border border-[#E5E7EB] bg-white p-2 shadow-[0_12px_30px_-12px_rgba(15,23,42,0.35)] @[560px]:block">
+        <p className="text-[11px] font-semibold text-[#111827]">Consent Status</p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <svg viewBox="0 0 36 36" className="h-10 w-10 shrink-0" aria-hidden="true">
             <circle cx="18" cy="18" r="14" fill="none" stroke="#E6F9F5" strokeWidth="5" />
             <circle cx="18" cy="18" r="14" fill="none" stroke="#00C4A7" strokeWidth="5" strokeDasharray="60.5 27.5" strokeDashoffset="0" transform="rotate(-90 18 18)" />
             <circle cx="18" cy="18" r="14" fill="none" stroke="#EF4444" strokeWidth="5" strokeDasharray="12.5 75.5" strokeDashoffset="-60.5" transform="rotate(-90 18 18)" />
@@ -347,13 +347,13 @@ export function HomeProductPreview() {
         aria-hidden="true"
       />
 
-      <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)]">
-        <div className="grid min-h-[min(28rem,82dvh)] min-[480px]:min-h-[460px] md:grid-cols-[minmax(0,176px)_minmax(0,1fr)]">
-          <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-3 md:block">
-            <div className="mb-5 px-1 pt-1">
-              <BrandLogo tone="on-light" height={28} className="max-w-full" />
+      <div className="@container relative flex min-w-0 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)]">
+        <div className="grid min-w-0 md:grid-cols-[minmax(0,8.25rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,9.5rem)_minmax(0,1fr)]">
+          <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-2 md:block">
+            <div className="mb-3 px-1 pt-0.5">
+              <BrandLogo tone="on-light" height={22} className="max-w-full" />
             </div>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               {TABS.map((item) => {
                 const active = tab === item.id;
                 return (
@@ -362,7 +362,7 @@ export function HomeProductPreview() {
                       type="button"
                       onClick={() => setTab(item.id)}
                       className={[
-                        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[12px] font-medium transition",
+                        "flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition",
                         active ? "bg-[#E6F9F5] text-[#00C4A7]" : "text-[#6B7280] hover:bg-[#F3F4F6]",
                       ].join(" ")}
                       aria-current={active ? "page" : undefined}
@@ -376,15 +376,15 @@ export function HomeProductPreview() {
             </ul>
           </aside>
 
-          <div className="relative min-w-0 bg-[#F8FAFC] p-3 min-[400px]:p-4 sm:p-5">
+          <div className="relative min-w-0 bg-[#F8FAFC] p-2 min-[400px]:p-2.5 sm:p-3">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.07]" aria-hidden="true">
-              <BrandLogo markOnly tone="on-light" height={150} className="max-h-[40%] max-w-[min(200px,55%)]" />
+              <BrandLogo markOnly tone="on-light" height={110} className="max-h-[36%] max-w-[min(150px,50%)]" />
             </div>
             <div className="relative z-[1] min-w-0">
-            <div className="mb-3 flex items-center justify-between gap-3 md:hidden">
-              <BrandLogo tone="on-light" height={24} />
+            <div className="mb-2 flex items-center justify-between gap-3 md:hidden">
+              <BrandLogo tone="on-light" height={20} />
             </div>
-            <div className="mb-3 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain md:hidden">
+            <div className="mb-2 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto overscroll-x-contain md:hidden">
               {TABS.map((item) => (
                 <button
                   key={item.id}
@@ -400,7 +400,7 @@ export function HomeProductPreview() {
               ))}
             </div>
             {tab !== "dashboard" && (
-              <h3 className="mb-3 text-[15px] font-bold tracking-tight text-[#111827]">{titles[tab]}</h3>
+              <h3 className="mb-2 text-[13px] font-bold tracking-tight text-[#111827]">{titles[tab]}</h3>
             )}
             {tab === "dashboard" && <DashboardOverview />}
             {tab === "consents" && <ConsentsView />}
@@ -411,7 +411,7 @@ export function HomeProductPreview() {
             </div>
           </div>
         </div>
-        <div className="relative z-10 shrink-0 border-t border-[#EEF2F7] bg-white px-3 py-2.5">
+        <div className="relative z-10 shrink-0 border-t border-[#EEF2F7] bg-white px-2.5 py-1.5">
           <CertificationLogos compact />
         </div>
       </div>

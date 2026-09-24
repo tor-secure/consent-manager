@@ -159,7 +159,7 @@ export function DashboardShell({
         <div className="flex min-h-screen flex-1 flex-col min-w-0">
           {/* Top header */}
           <header className="sticky top-0 z-40 shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] backdrop-blur-md">
-            <div className="flex h-16 min-w-0 flex-nowrap items-center gap-1.5 sm:gap-2 sm:px-4 md:gap-3 md:px-6 px-3">
+            <div className="flex h-16 min-w-0 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-3 sm:gap-2 sm:overflow-visible sm:px-4 md:gap-3 md:px-6">
               <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
@@ -194,7 +194,7 @@ export function DashboardShell({
           </header>
 
           {/* Page content — no wrapper padding; each page owns its own spacing */}
-          <main id="main-content" className="flex-1 min-w-0 overflow-x-hidden animate-fade-in">
+          <main id="main-content" className="min-w-0 flex-1 overflow-x-auto animate-fade-in">
             {children}
           </main>
         </div>

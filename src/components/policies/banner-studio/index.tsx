@@ -123,7 +123,7 @@ export function BannerStudio({
     : null;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-[var(--muted)]">
+    <div className="flex h-dvh max-h-dvh flex-col overflow-hidden bg-[var(--muted)]">
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--card)] px-4 shadow-sm">
         <Link
           href={`/dashboard/policies/${policyId}`}

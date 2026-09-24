@@ -89,7 +89,7 @@ function BrandPanel({
   showPlus?: boolean;
 }) {
   return (
-    <div className="relative flex h-full min-w-0 flex-col justify-between overflow-hidden bg-[#F3FAF8] px-4 py-6 min-[400px]:px-6 sm:px-8 lg:px-10 lg:py-10">
+    <div className="relative flex h-full min-w-0 flex-col justify-between overflow-x-clip bg-[#F3FAF8] px-4 py-6 min-[400px]:px-6 sm:px-8 lg:px-10 lg:py-10">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
@@ -263,8 +263,8 @@ export function AuthPageShell({
       }}
     >
       <SkipLink href="#auth-form" />
-      <div className="mx-auto flex min-h-[calc(100dvh-2rem)] w-full min-w-0 max-w-[1100px] flex-col sm:min-h-[calc(100vh-3rem)]">
-        <div className="flex min-w-0 flex-1 flex-col overflow-x-clip rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)] sm:overflow-hidden sm:rounded-[1.75rem]">
+      <div className="mx-auto flex w-full min-w-0 max-w-[1100px] flex-col lg:min-h-[calc(100dvh-3rem)]">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-clip rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-36px_rgba(15,23,42,0.4)] sm:rounded-[1.75rem]">
           <header className="flex min-w-0 items-center justify-between gap-3 border-b border-[#F3F4F6] px-4 py-3 min-[400px]:px-6 sm:px-8 sm:py-4">
             <Link href="/" className="inline-flex min-w-0 items-center" aria-label="Consent Guru home">
               <BrandLogo height={36} className="cmp-auth-logo" />

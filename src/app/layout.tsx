@@ -77,7 +77,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <Script
           id="cmp-theme-bootstrap"
           strategy="beforeInteractive"

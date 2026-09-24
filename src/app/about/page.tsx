@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { SkipLink } from "@/components/ui/skip-link";
@@ -85,13 +84,13 @@ export default function AboutPage() {
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <section className="relative overflow-hidden border-b border-[#D3E0DE] bg-[#F3FAF8]">
+        <section className="relative overflow-x-clip overflow-y-visible border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#00C4A7]/10" aria-hidden="true" />
           <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-[#0B2C4A]/[0.04]" aria-hidden="true" />
           <div className="relative mx-auto max-w-[1200px] px-5 py-5 sm:px-8 sm:py-7 lg:py-10">
             <div className="max-w-3xl">
               <SectionLabel>About ConsentGuru</SectionLabel>
-              <h1 className="mt-5 max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-[#0B2C4A] sm:text-6xl">
+              <h1 className="mt-5 max-w-3xl text-balance text-[clamp(1.85rem,1.1rem+3.2vw,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
                 Powering the future of <span className="text-[#00A88F]">digital trust.</span>
               </h1>
               <p className="mt-7 max-w-2xl text-lg leading-8 text-[#4B5563] sm:text-xl">
@@ -119,7 +118,7 @@ export default function AboutPage() {
         <section className="bg-[#0B2C4A] px-5 py-20 text-white sm:px-8 lg:py-28">
           <div className="mx-auto max-w-[1200px]">
             <div className="max-w-2xl"><SectionLabel>From consent to trust</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">Consent should be more than a checkbox.</h2><p className="mt-6 text-base leading-7 text-white/70">It should be clear, meaningful, transparent, manageable, and changeable. Consent is one part of a much larger relationship between an organization and the individual.</p></div>
-            <div className="mt-14 flex flex-wrap items-center gap-x-3 gap-y-5 sm:flex-nowrap sm:gap-x-4">
+            <div className="mt-14 flex flex-wrap items-center gap-x-3 gap-y-5">
               {["Consent", "Privacy", "Accountability", "Trust"].map((item, index) => <div key={item} className="flex items-center gap-2"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#00C4A7]/50 text-sm font-bold text-[#7DE4D4]">0{index + 1}</div><span className="text-lg font-semibold">{item}</span>{index < 3 ? <span className="text-xl leading-none text-[#00C4A7]" aria-hidden="true">→</span> : null}</div>)}
             </div>
           </div>

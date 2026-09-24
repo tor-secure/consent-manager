@@ -36,7 +36,7 @@ export default async function NewsPage() {
       <HomeNavbar />
       <main id="main-content">
         <section
-          className="relative overflow-hidden border-b border-[#E5E7EB]"
+          className="relative overflow-x-clip overflow-y-visible border-b border-[#E5E7EB]"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
@@ -44,7 +44,7 @@ export default async function NewsPage() {
         >
           <div className="relative mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-10">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#00C4A7]">News</p>
-            <h1 className="mt-3 max-w-3xl text-balance text-[2.4rem] font-bold leading-[1.08] tracking-tight text-[#111827] sm:text-5xl">
+            <h1 className="mt-3 max-w-3xl text-balance text-[clamp(1.75rem,1.15rem+2.6vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#111827]">
               Privacy and security headlines, live from the wire
             </h1>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#4B5563] sm:text-base">

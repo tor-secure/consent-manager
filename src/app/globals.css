@@ -125,6 +125,8 @@ html:has(.public-page),
 html:has(.public-page) body {
   background: #ffffff;
   color: #111827;
+  max-width: 100%;
+  min-width: 0;
 }
 
 html, body {
@@ -436,8 +438,8 @@ html:has(.cmp-auth-page) body {
   }
 
   .cmp-auth-page .whatsapp-float-btn {
-    height: 2.75rem;
-    width: 2.75rem;
+    height: 2.25rem;
+    width: 2.25rem;
   }
 }
 
@@ -1408,7 +1410,9 @@ html:has(.cmp-auth-page) body {
 
   .table-scroll {
     overflow-x: auto;
+    max-width: 100%;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
   }
 
   .comparison-switch input[name="comparison-market"] {
@@ -1546,7 +1550,7 @@ html:has(.cmp-auth-page) body {
 
   .comparison-col-feature {
     width: 28%;
-    min-width: 12.5rem;
+    min-width: 9.5rem;
     text-align: left;
   }
 
@@ -1931,6 +1935,16 @@ html:has(.cmp-auth-page) body {
   .public-page {
     background: #ffffff;
     color: #111827;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .public-container {
+    width: 100%;
+    min-width: 0;
+    max-width: 75rem;
+    margin-inline: auto;
+    padding-inline: clamp(1rem, 3.2vw, 2rem);
   }
 
   .home-copy p {
@@ -1940,8 +1954,9 @@ html:has(.cmp-auth-page) body {
   .public-hero {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
-    min-height: calc(100vh - var(--header-height));
+    overflow-x: clip;
+    overflow-y: visible;
+    min-height: 0;
     background:
       radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 22rem),
       radial-gradient(circle at 18% 82%, color-mix(in srgb, var(--primary) 10%, transparent), transparent 20rem),
@@ -2847,7 +2862,8 @@ html:has(.home-page) body {
 }
 
 .home-page .pointer-events-none.fixed {
-  left: clamp(0.75rem, 2vw, 1.25rem);
+  left: auto;
+  right: clamp(0.75rem, 2vw, 1.25rem);
   bottom: clamp(1rem, 2.5vw, 1.5rem);
 }
 

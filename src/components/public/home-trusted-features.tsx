@@ -76,15 +76,9 @@ const featureCards = [
 
 export function HomeTrustedFeatures() {
   return (
-    <section id="features" className="home-section bg-[#F9FAFB]">
-      <div className="py-[clamp(3rem,5vw,5rem)]">
+    <section id="features" className="home-section bg-[#F3FAF8]">
+      <div className="pt-4 pb-[clamp(3rem,5vw,5rem)] sm:pt-5">
         <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 text-center min-[400px]:px-5 sm:px-8">
-          <p className="home-fade-item text-[15px] font-medium text-[#4B5563]">
-            Built for GDPR, CCPA, LGPD, and DPDP workflows, not a customer logo wall.
-          </p>
-        </div>
-
-        <div className="mx-auto mt-10 w-full min-w-0 max-w-[1200px] px-4 text-center sm:mt-14 min-[400px]:px-5 sm:px-8">
           <span className="home-fade-item inline-flex rounded-full bg-[#DBEAFE] px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#1D4ED8]">
             Features
           </span>

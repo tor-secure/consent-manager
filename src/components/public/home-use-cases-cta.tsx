@@ -178,7 +178,7 @@ export function HomeUseCasesCta() {
   return (
     <section
       id="solutions"
-      className="home-section relative overflow-hidden bg-[#F8FAFC]"
+      className="home-section relative overflow-x-clip overflow-y-visible bg-[#F8FAFC]"
       style={{
         backgroundImage:
           "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.16) 1px, transparent 0)",

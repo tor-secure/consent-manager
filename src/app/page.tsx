@@ -40,7 +40,7 @@ export default function Home() {
       <HomeNavbar />
       <main id="main-content" className="home-copy">
         <section
-          className="home-section relative overflow-hidden"
+          className="home-section relative overflow-x-clip overflow-y-visible"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 90%, rgba(11,44,74,0.08), transparent 50%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
@@ -58,9 +58,9 @@ export default function Home() {
             aria-hidden="true"
           />
 
-          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] items-center gap-8 px-4 py-4 min-[400px]:px-5 sm:gap-12 sm:px-8 sm:py-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-14 lg:py-8">
-            <div className="home-fade-item min-w-0 max-w-xl">
-              <h1 className="text-balance text-[clamp(1.85rem,1.15rem+3.6vw,3.4rem)] font-bold leading-[1.1] tracking-tight text-[#111827]">
+          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] items-start gap-6 px-4 pt-2 pb-2 min-[400px]:px-5 sm:gap-8 sm:px-8 sm:pt-2 sm:pb-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 xl:gap-10 lg:pt-3 lg:pb-3">
+            <div className="home-fade-item min-w-0 max-w-xl lg:max-w-none">
+              <h1 className="text-balance text-[clamp(1.55rem,1.05rem+2.6vw,2.6rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
                 Build trust. Collect consent.{" "}
                 <span
                   className="bg-clip-text text-transparent"
@@ -72,26 +72,26 @@ export default function Home() {
                 </span>
               </h1>
 
-              <p className="mt-5 max-w-lg text-[15px] leading-7 text-[#4B5563] sm:text-base">
+              <p className="mt-3 max-w-lg text-[14px] leading-6 text-[#4B5563] sm:text-[15px]">
                 Consent Guru helps you manage user consent transparently across web, mobile and apps,
                 all in one powerful platform.
               </p>
 
-              <div className="mt-8 flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center">
-                <ArrowButton href="/sign-up" size="lg" className="w-full justify-center min-[480px]:w-auto">
+              <div className="mt-5 flex flex-col gap-2.5 min-[480px]:flex-row min-[480px]:items-center">
+                <ArrowButton href="/sign-up" size="md" className="w-full justify-center min-[480px]:w-auto">
                   Sign up
                 </ArrowButton>
                 <Link
                   href="/#comparison"
-                  className="inline-flex h-12 w-full items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-5 text-center text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5] min-[480px]:w-auto"
+                  className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-4 text-center text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5] min-[480px]:w-auto"
                 >
                   See why we are better
                 </Link>
               </div>
 
-              <PenaltyCallout className="mt-6 w-full max-w-lg" />
+              <PenaltyCallout className="mt-4 w-full max-w-lg" />
 
-              <ul className="mt-8 flex flex-col gap-3 text-[13px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
+              <ul className="mt-4 flex min-w-0 flex-col gap-2 text-[12px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1.5">
                 {trustItems.map((item) => (
                   <li key={item.label} className="inline-flex min-w-0 items-start gap-2 sm:items-center">
                     <svg

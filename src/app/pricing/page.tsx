@@ -78,14 +78,14 @@ export default function PricingPage() {
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <section className="relative overflow-hidden bg-[#F8FAFF]">
+        <section className="relative overflow-x-clip overflow-y-visible bg-[#F8FAFF]">
           <div
             className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#6D28D9]/10"
             aria-hidden="true"
           />
           <div className="relative mx-auto max-w-[1200px] px-5 py-12 sm:px-8 lg:py-16">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6D28D9]">Pricing</p>
-            <h1 className="mt-4 max-w-3xl text-balance text-4xl font-bold leading-[1.08] tracking-tight text-[#0B2C4A] sm:text-5xl">
+            <h1 className="mt-4 max-w-3xl text-balance text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
               Choose the plan that fits. Ask us for a quote.
             </h1>
             <p className="mt-5 max-w-2xl text-justify text-[15px] leading-7 text-[#4B5563]">

@@ -52,7 +52,7 @@ function FeatureMatrix({
   );
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+    <div className="min-w-0 overflow-x-clip rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
       <div className="grid min-w-0 gap-6 border-b border-[#E5E7EB] px-4 py-5 min-[400px]:px-5 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
         <div>
           <h3 className="text-lg font-bold text-[#0F172A]">{title}</h3>
@@ -124,7 +124,7 @@ function FeatureMatrix({
 
 export function HomeComparison() {
   return (
-    <section id="comparison" className="relative overflow-x-clip bg-[#F8FAFF]">
+    <section id="comparison" className="relative overflow-x-clip overflow-y-visible bg-[#F8FAFF]">
       <div
         className="pointer-events-none absolute inset-0 opacity-40"
         style={{
