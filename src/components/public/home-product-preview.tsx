@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { CertificationLogos } from "@/components/public/certification-logos";
 
 type PreviewTab = "dashboard" | "consents" | "preferences" | "integrations" | "reports" | "settings";
 
@@ -257,7 +258,8 @@ function DashboardOverview() {
           </div>
         ))}
       </div>
-      <div className="relative mt-3 rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-sm sm:p-4">
+      <div className="relative mt-3 pb-1">
+      <div className="rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-sm sm:p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[12px] font-semibold text-[#111827]">Consent Rate Over Time</p>
           <p className="text-[10px] text-[#9CA3AF]">Last 30 days</p>
@@ -286,7 +288,7 @@ function DashboardOverview() {
             />
             <circle cx="295" cy="52" r="5" fill="#00C4A7" stroke="white" strokeWidth="2" />
           </svg>
-          <div className="absolute left-[52%] top-2 hidden -translate-x-1/2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] text-[#374151] shadow-md sm:block">
+          <div className="absolute left-[36%] top-2 hidden -translate-x-1/2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1.5 text-[10px] text-[#374151] shadow-md sm:block">
             <span className="font-medium text-[#111827]">May 12, 2025</span>
             <span className="text-[#9CA3AF]"> • </span>
             Consent Rate: <span className="font-semibold text-[#00C4A7]">92.6%</span>
@@ -313,6 +315,7 @@ function DashboardOverview() {
             ))}
           </ul>
         </div>
+      </div>
       </div>
     </>
   );
@@ -344,7 +347,7 @@ export function HomeProductPreview() {
         aria-hidden="true"
       />
 
-      <div className="relative overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)]">
+      <div className="relative flex flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_24px_60px_-20px_rgba(15,23,42,0.25)]">
         <div className="grid min-h-[min(28rem,82dvh)] min-[480px]:min-h-[460px] md:grid-cols-[minmax(0,176px)_minmax(0,1fr)]">
           <aside className="hidden border-r border-[#EEF2F7] bg-[#FAFBFC] p-3 md:block">
             <div className="mb-5 px-1 pt-1">
@@ -404,9 +407,12 @@ export function HomeProductPreview() {
             {tab === "preferences" && <PreferencesView />}
             {tab === "integrations" && <IntegrationsView />}
             {tab === "reports" && <ReportsView />}
-            {tab === "settings" && <SettingsView />}
+          {tab === "settings" && <SettingsView />}
             </div>
           </div>
+        </div>
+        <div className="relative z-10 shrink-0 border-t border-[#EEF2F7] bg-white px-3 py-2.5">
+          <CertificationLogos compact />
         </div>
       </div>
     </div>
