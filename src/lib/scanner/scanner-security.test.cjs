@@ -119,6 +119,35 @@ function htmlResponse(body, init = {}) {
     },
   );
 
+  const { diagnoseCmpInstall } = require("../../../.tmp/sdk/early-block.js");
+  const beforeCmp = diagnoseCmpInstall(`
+    <script src="https://www.googletagmanager.com/gtm.js?id=GTM-1"></script>
+    <script src="https://www.googletagmanager.com/gtag/js?id=G-1"></script>
+    <script src="https://connect.facebook.net/en_US/fbevents.js"></script>
+    <script src="https://example.com/analytics.js"></script>
+    <img src="https://ad.doubleclick.net/pixel">
+    <iframe src="https://www.youtube.com/embed/example"></iframe>
+    <script src="https://cmp.example/api/sdk/script" data-site-key="site_test"></script>
+  `);
+  assert.ok(beforeCmp.some((item) => item.message.includes("Google Tag Manager was detected as an executable script before consent control.")));
+  assert.ok(beforeCmp.some((item) => item.message.includes("Google tag (gtag.js) was detected as an executable script before consent control.")));
+  assert.ok(beforeCmp.some((item) => item.message.includes("Meta Pixel was detected as an executable script before consent control.")));
+  assert.ok(beforeCmp.some((item) => item.message.includes("An analytics script was detected as an executable script before consent control.")));
+  assert.ok(beforeCmp.some((item) => item.message.includes("A known tracking pixel was detected as an executable tracking pixel before consent control.")));
+  assert.ok(beforeCmp.some((item) => item.message.includes("An optional third-party iframe was detected as an executable iframe before consent control.")));
+
+  const safeOptional = diagnoseCmpInstall(`
+    <script src="https://cmp.example/api/sdk/script" data-site-key="site_test"></script>
+    <script type="text/plain" data-cmp-purpose="analytics" src="https://www.google-analytics.com/analytics.js"></script>
+  `);
+  assert.equal(safeOptional.length, 0);
+
+  const missingPurpose = diagnoseCmpInstall(`
+    <script src="https://cmp.example/api/sdk/script" data-site-key="site_test"></script>
+    <script type="text/plain" src="https://www.google-analytics.com/analytics.js"></script>
+  `);
+  assert.ok(missingPurpose.some((item) => item.message.includes("missing data-cmp-purpose")));
+
   console.log("Scanner security tests passed");
 })().catch((error) => {
   console.error(error);

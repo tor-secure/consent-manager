@@ -72,29 +72,15 @@ export default async function InstallationPage({
     cdnUrl: sdkScriptUrl,
   });
 
-  const nextjsSnippet = `// app/layout.tsx  (or pages/_app.tsx)
-import Script from 'next/script';
+  const nextjsSnippet = `// Use the HTML snippet above as the first child of <head> in app/layout.tsx.
+// That snippet runs the blocking bootstrap, then loads the SDK synchronously.
+// A next/script tag by itself does not include the bootstrap.
+// Do not add async or defer, and do not inject the CMP from useEffect.`;
 
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <head>
-        <Script
-          id="cmp-sdk"
-          strategy="beforeInteractive"
-          src="${sdkScriptUrl}"
-          data-site-key="${website.siteKey}"
-        />
-      </head>
-      <body>{children}</body>
-    </html>
-  );
-}`;
-
-  const reactSnippet = `<!-- public/index.html — place first in <head>, before the React bundle and trackers -->
-<script src="${sdkScriptUrl}" data-site-key="${website.siteKey}"></script>
-
-<!-- Do not inject the CMP from useEffect; that runs after page scripts may execute. -->`;
+  const reactSnippet = `<!-- public/index.html — paste the HTML snippet above as the first thing in <head>. -->
+<!-- Do not inject the CMP from useEffect; that runs after page scripts may execute. -->
+<!-- Optional scripts must stay inert until consent: -->
+<script type="text/plain" data-cmp-purpose="analytics" src="/analytics.js"></script>`;
 
   const configEndpointNote = `GET ${configUrlAbsolute}
 # Returns: banner config, purposes, vendors, trackerRules for site key ${website.siteKey}
@@ -102,22 +88,30 @@ export default function RootLayout({ children }) {
 # CORS: Access-Control-Allow-Origin: *
 # Cache-Control: public, max-age=300`;
 
-  const enforceSnippet = `<!-- Pause a third-party script until the "analytics" purpose is granted -->
+  const enforceSnippet = `<!-- Optional JavaScript stays inert until the matching purpose is confirmed -->
 <script type="text/plain" data-cmp-purpose="analytics" src="https://www.google-analytics.com/analytics.js"></script>
+
+<!-- Inert GTM loader. The CMP creates the real loader only after analytics consent. -->
+<script type="text/plain" data-cmp-purpose="analytics" data-cmp-src="https://www.googletagmanager.com/gtm.js?id=GTM-XXXX"></script>
+
+<!-- Optional iframe: do not set src until consent -->
+<iframe data-cmp-purpose="marketing" data-cmp-src="https://www.youtube.com/embed/example" title="Video"></iframe>
+
+<!-- Optional pixel: do not set src until consent -->
+<img data-cmp-purpose="marketing" data-cmp-src="https://ad.doubleclick.net/pixel" alt="" width="1" height="1">
 
 <!-- Pause an inline script until "marketing" consent is granted -->
 <script type="text/plain" data-cmp-purpose="marketing">
   // Your marketing pixel code here
 </script>
 
-<!-- Same-origin application code is not treated as an unknown tracker -->
+<!-- Same-origin application code stays available when it does not match a tracker rule -->
 <script src="/your-essential-app.js"></script>
 
-<!-- Third-party resources must be registered and reviewed before marking their tracker record essential. -->
+<!-- A same-origin file that matches a tracker rule is still optional -->
+<script type="text/plain" data-cmp-purpose="analytics" src="/analytics.js"></script>
 
-<!-- Optional iframe remains blank until marketing is confirmed -->
-<iframe data-cmp-purpose="marketing" data-cmp-tracker="Video embed"
-  src="https://www.youtube.com/embed/example"></iframe>`;
+<!-- Third-party resources must be registered and reviewed before marking their tracker record essential. -->`;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -208,9 +202,10 @@ export default function RootLayout({ children }) {
         <section>
           <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Step 2 — Add the snippet</h2>
           <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-            Paste the snippet as high in the{" "}
-            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">&lt;head&gt;</code>{" "}
-            as possible, before any analytics or advertising scripts.
+            Paste the HTML snippet as the first script in{" "}
+            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">&lt;head&gt;</code>
+            , before Google Tag Manager, gtag, Meta Pixel, analytics, and advertising tags.
+            The scanner reports technologies that appear before this snippet.
           </p>
 
           <div className="mb-4">
@@ -276,7 +271,9 @@ export default function RootLayout({ children }) {
         <section>
           <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Google Tag Manager</h2>
           <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            The SDK can pause the GTM / gtag loader URL itself. It cannot see or pause individual tags already configured inside a GTM container.
+            Allowing the GTM loader does not automatically grant consent to every tag inside the GTM container.
+            The CMP can hold the loader. Each tag inside the container still needs its own consent requirement in GTM:
+            analytics tags wait for analytics consent, advertising tags wait for marketing consent, and other tags wait for their matching purpose.
           </p>
           <ul className="list-inside list-disc space-y-1.5 text-sm text-[var(--muted-foreground)]">
             <li>Load the CMP snippet in <code className="rounded-md bg-[var(--secondary)] px-1 font-mono text-xs">&lt;head&gt;</code> before GTM.</li>

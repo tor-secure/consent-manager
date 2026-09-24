@@ -73,6 +73,12 @@ export async function GET(
     if (!isValidSiteKey(trimmedKey)) {
       return NextResponse.json({ success: false, message: "Invalid siteKey" }, { status: 400, headers: CORS_HEADERS });
     }
+    const readLimit = await consumeRateLimit({
+      key: `ccpa-opt-out-get:${trimmedKey}:${getClientIp(request)}`,
+      limit: 300,
+      windowMs: 60_000,
+    });
+    if (!readLimit.allowed) return rateLimitResponse(readLimit, CORS_HEADERS);
     const website = await loadWebsiteBySiteKey(trimmedKey);
     if (!website) {
       return NextResponse.json({ success: false, message: "Website not found" }, { status: 404, headers: CORS_HEADERS });

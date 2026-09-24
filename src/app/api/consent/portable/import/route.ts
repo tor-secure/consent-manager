@@ -25,7 +25,7 @@ import {
   type PortableConsentCryptoProof,
 } from "@/lib/portable-consent-proof";
 import { validatePortableClaims } from "@/lib/portable-consent-core";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import {
   isValidWebsiteId,
   publicCorsHeaders,
@@ -37,7 +37,7 @@ const HEADERS = { ...publicCorsHeaders("POST, OPTIONS"), "Cache-Control": "no-st
 
 export async function POST(request: Request) {
   try {
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `portable-import:${getClientIp(request)}`,
       limit: 30,
       windowMs: 60_000,

@@ -12,6 +12,7 @@ import {
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
 import { logger } from "@/lib/logger";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 // ---------------------------------------------------------------------------
@@ -48,6 +49,13 @@ export async function GET(
         { status: 400, headers: corsHeaders },
       );
     }
+
+    const limit = await consumeRateLimit({
+      key: `sdk-trackers:${trimmedKey}:${getClientIp(request)}`,
+      limit: 300,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit, corsHeaders);
 
     const [website] = await db
       .select({

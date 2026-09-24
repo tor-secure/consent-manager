@@ -12,7 +12,7 @@ import { portableConsentExchanges } from "@/db/schema/portable-consent-exchanges
 import { websites } from "@/db/schema/websites";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { resolveConsentState } from "@/lib/consent-evaluation-core";
-import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import { publicCorsHeaders, publicOptionsResponse, isValidConsentId, isValidWebsiteId } from "@/lib/sdk/public-http";
 import {
   createPortableConsentCryptoProof,
@@ -49,7 +49,7 @@ export async function GET(request: Request) {
       );
     }
 
-    const limit = rateLimit({
+    const limit = await consumeRateLimit({
       key: `portable-export:${websiteId}:${getClientIp(request)}`,
       limit: 20,
       windowMs: 60_000,

@@ -408,8 +408,8 @@ for (const route of [
   const oneLine = compact(source);
   assertMatches(
     oneLine,
-    /eq\(websites\.organizationId,\s*(organization|localOrg)\.id\).*inArray\(consentRecords\.websiteId,\s*websiteIds\)/,
-    "consent record list reads are scoped through organization-owned websites",
+    /eq\(websites\.organizationId,\s*localOrg\.id\)[\s\S]*eq\(consentRecords\.organizationId,\s*localOrg\.id\)/,
+    "consent record list reads are scoped to the active organization",
   );
 }
 

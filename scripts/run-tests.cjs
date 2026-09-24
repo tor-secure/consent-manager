@@ -78,6 +78,7 @@ compile(
     "src/lib/portable-consent-core.ts",
     "src/lib/redaction-core.ts",
     "src/lib/policy/lifecycle-core.ts",
+    "src/lib/sdk/early-block.ts",
     "src/lib/sdk/cmp-sdk-script.ts",
     "src/lib/sdk/purpose-aliases.ts",
     "src/lib/sdk/tracker-catalog.ts",
@@ -132,6 +133,7 @@ copyCompiled("src/lib/security-headers.js", "security-headers/security-headers.j
 copyCompiled("src/lib/scanner/ssrf-guard.js", "scanner-security/ssrf-guard.js");
 copyCompiled("src/lib/scanner/tracker-signatures.js", "scanner-security/tracker-signatures.js");
 copyCompiled("src/lib/scanner/html-analyser.js", "scanner-security/html-analyser.js");
+copyCompiled("src/lib/sdk/early-block.js", "sdk/early-block.js");
 copyCompiled("src/lib/rate-limit.js", "rate-limit/rate-limit.js");
 copyCompiled("src/lib/sdk/origin-allowlist.js", "origin-allowlist/origin-allowlist.js");
 copyCompiled("src/lib/api-key-auth-logic.js", "enforcement/api-key-auth-logic.js");

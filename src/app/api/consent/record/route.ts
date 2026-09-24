@@ -105,6 +105,13 @@ export async function GET(request: Request) {
       );
     }
 
+    const readLimit = await consumeRateLimit({
+      key: `consent-record-get:${websiteId}:${getClientIp(request)}`,
+      limit: 300,
+      windowMs: 60_000,
+    });
+    if (!readLimit.allowed) return rateLimitResponse(readLimit, CORS_HEADERS);
+
     const [record] = await db
       .select({
         id: consentRecords.id,
