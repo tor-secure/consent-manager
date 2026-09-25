@@ -449,6 +449,21 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (msg.indexOf('already being submitted') !== -1) {
         return;
       }
+      var storedChoice = loadStoredConsent();
+      if (
+        storedChoice &&
+        storedChoice.status === 'confirmed' &&
+        storedChoice.serverConfirmed &&
+        storedChoice.consentId
+      ) {
+        _choiceUiHeld = false;
+        _choiceDismissed = true;
+        _reconsentNotice = '';
+        removeBanner();
+        if (typeof removePreferenceCenter === 'function') removePreferenceCenter();
+        syncPreferenceWidget();
+        return;
+      }
       _choiceDismissed = false;
       restoreChoiceUi();
       return;
@@ -2190,10 +2205,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function flushConsentSubmit() {
     if (_submitBusy || !_queuedSubmit || !_config) return;
-    if (
-      !_livePolicyReady &&
-      !(_consentId && _policyContext && _policyContext.token)
-    ) return;
+    // A cached notice token expires. Sending it always comes back as 409 and
+    // reopens the banner. Wait for the live config, then submit that token once.
+    if (!_livePolicyReady) return;
     if (!_config.websiteId || !_policyContext || !_policyContext.token) return;
     var job = _queuedSubmit;
     _queuedSubmit = null;
@@ -2223,7 +2237,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var requestedTimeout = Number(window.__CMP_SUBMIT_TIMEOUT_MS);
     var timeoutMs = isFinite(requestedTimeout)
       ? Math.max(250, Math.min(60000, requestedTimeout))
-      : 10000;
+      : 30000;
     if (controller) {
       timeoutId = window.setTimeout(function() { controller.abort(); }, timeoutMs);
     }
@@ -2320,7 +2334,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           if (!next || next.unchanged || !next.success) throw new Error(failedConsentMessage(data));
           var nextContext = presentedPolicyContext(next);
           if (_policyContext && nextContext && !samePresentedPolicy(_policyContext, nextContext)) {
-            throw new Error(failedConsentMessage(data));
+            _config = applyAssignedAbTest(next);
+            rememberPolicyContext(nextContext);
+            _configRevision = configRevision(_config);
+            _reconsentNotice = 'This consent policy has changed. Please review your choices.';
+            throw new Error(_reconsentNotice);
           }
           _config = applyAssignedAbTest(next);
           rememberPolicyContext(nextContext);
@@ -2335,6 +2353,23 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             }
             applyConfirmedConsent(retryData);
           });
+        });
+      }
+      if (
+        !job.submissionRetry &&
+        result.status === 409 &&
+        data &&
+        String(data.message || '').indexOf('Submission id already used') !== -1
+      ) {
+        body.submissionId = newSubmissionId();
+        job.submissionId = body.submissionId;
+        job.submissionRetry = true;
+        return postConsentRecord().then(function(retryResult) {
+          var retryData = retryResult.data;
+          if (!retryResult.ok || !confirmedResponse(retryData)) {
+            throw new Error(failedConsentMessage(retryData));
+          }
+          applyConfirmedConsent(retryData);
         });
       }
       if (
@@ -4554,6 +4589,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       .then(function(data) {
         if (!data.success) return;
         _livePolicyReady = true;
+        if (_submitBusy) return;
         if (!_config) {
           applyLoadedConfig(data, true);
           return;
@@ -4564,14 +4600,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         var pcOpen = !!document.getElementById('__cmp_pc__');
         if ((bannerOpen || pcOpen) && _policyContext) {
           var incomingContext = presentedPolicyContext(data);
-          if (samePresentedPolicy(_policyContext, incomingContext)) {
+          if (incomingContext && !samePresentedPolicy(_policyContext, incomingContext)) {
+            _config = nextConfig;
+            _configRevision = nextRevision;
+            _reconsentNotice = 'This consent policy has changed. Please review your choices.';
             rememberPolicyContext(incomingContext);
-          } else {
-            log('Policy changed while consent UI is open; preserving the context currently shown');
+            showBannerWhenReady();
+          } else if (incomingContext) {
+            rememberPolicyContext(incomingContext);
           }
+          if (_queuedSubmit) flushConsentSubmit();
           return;
         }
-        if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+        if (_choiceUiHeld || _queuedSubmit) {
           rememberPolicyContext(presentedPolicyContext(data));
           flushConsentSubmit();
           return;

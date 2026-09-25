@@ -379,13 +379,17 @@ export async function POST(request: Request) {
           )
         : undefined,
     };
+    // Identity is the notice and the choice. The policy-context id is a new
+    // token on every config load, so it must not make a repeat of the same
+    // choice look like a different submission.
     const requestHash = createHash("sha256")
       .update(
         canonicalizePolicyNoticeSnapshot({
           websiteId,
           consentId: isNew ? null : String(rawConsentId).trim(),
           expectedStateVersion,
-          policyContextId: policyContext.contextId,
+          policyVersionId: policyContext.policyVersionId,
+          noticeHash: policyContext.noticeHash,
           variantId: submittedVariant,
           submission,
         }),
@@ -766,7 +770,11 @@ export async function POST(request: Request) {
         .where(eq(consentEvidenceSnapshots.submissionId, submissionId))
         .limit(1);
       if (existingSubmission) {
-        if (existingSubmission.requestHash !== requestHash) {
+        const sameNoticeChoice =
+          existingSubmission.noticeHash === policyContext.noticeHash &&
+          existingSubmission.policyVersionId === policyContext.policyVersionId &&
+          existingSubmission.choice === submission.choice;
+        if (existingSubmission.requestHash !== requestHash && !sameNoticeChoice) {
           throw new Error("Submission id already used for different consent data");
         }
         idempotentEvidence = existingSubmission;
