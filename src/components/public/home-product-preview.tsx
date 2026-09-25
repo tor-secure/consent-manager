@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { CertificationLogos } from "@/components/public/certification-logos";
-
 type PreviewTab = "dashboard" | "consents" | "preferences" | "integrations" | "reports" | "settings";
 
 const TABS: { id: PreviewTab; label: string }[] = [
@@ -381,7 +379,7 @@ export function HomeProductPreview() {
             </ul>
           </aside>
 
-          <div className="relative min-h-[16.5rem] min-w-0 bg-[#F8FAFC] p-2 min-[400px]:p-2.5 sm:min-h-[17.5rem] sm:p-3">
+          <div className="relative min-h-[14rem] min-w-0 bg-[#F8FAFC] p-2 min-[400px]:p-2.5 lg:min-h-[15rem] sm:p-3">
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.07]" aria-hidden="true">
               <BrandLogo markOnly tone="on-light" height={110} className="max-h-[36%] max-w-[min(150px,50%)]" />
             </div>
@@ -417,9 +415,6 @@ export function HomeProductPreview() {
             </div>
             </div>
           </div>
-        </div>
-        <div className="relative z-10 shrink-0 border-t border-[#EEF2F7] bg-white px-2.5 py-1.5">
-          <CertificationLogos compact />
         </div>
       </div>
     </div>

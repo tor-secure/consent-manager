@@ -120,6 +120,10 @@ compile(
     "src/lib/webhooks/secret-crypto.ts",
     "src/lib/billing/stripe.ts",
     "src/lib/intelligence/twin-restore.ts",
+    "src/lib/tools/assessment-engine.ts",
+    "src/lib/tools/access.ts",
+    "src/lib/tools/redact.ts",
+    "src/lib/tools/parse-answers.ts",
   ],
   ["--rootDir", "."],
 );

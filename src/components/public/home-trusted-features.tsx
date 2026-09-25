@@ -77,7 +77,7 @@ const featureCards = [
 export function HomeTrustedFeatures() {
   return (
     <section id="features" className="home-section bg-[#F3FAF8]">
-      <div className="pt-4 pb-8 sm:pt-5 sm:pb-10">
+      <div className="pt-12 pb-4 sm:pt-16 sm:pb-6">
         <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 text-center min-[400px]:px-5 sm:px-8">
           <span className="home-fade-item inline-flex rounded-full bg-[#DBEAFE] px-3 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#1D4ED8]">
             Features

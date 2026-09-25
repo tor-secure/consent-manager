@@ -6,47 +6,45 @@ const CERTIFICATIONS: {
   width: number;
   height: number;
   kind: "wide" | "badge";
-  unoptimized?: boolean;
   href?: string;
 }[] = [
   {
-    src: "/certification/Techens_logo.jpg",
+    src: "/certification/Techens_logo.png",
     alt: "iTechens",
-    width: 140,
-    height: 40,
+    width: 280,
+    height: 80,
     kind: "wide",
     href: "https://techensglobal.com/",
   },
   {
-    src: "/certification/Certin.jpeg",
+    src: "/certification/Certin.png",
     alt: "CERT-In",
-    width: 140,
-    height: 40,
+    width: 280,
+    height: 80,
     kind: "wide",
     href: "https://www.cert-in.org.in/",
   },
   {
-    src: "/certification/Ism.jpeg",
+    src: "/certification/Ism.png",
     alt: "ISO 27001 certified",
-    width: 72,
-    height: 72,
+    width: 160,
+    height: 160,
     kind: "badge",
     href: "https://www.iso.org/standard/27001",
   },
   {
-    src: "/certification/Aicpa.jpeg",
+    src: "/certification/Aicpa.png",
     alt: "AICPA SOC",
-    width: 72,
-    height: 72,
+    width: 160,
+    height: 160,
     kind: "badge",
-    unoptimized: true,
     href: "https://www.aicpa-cima.com/home",
   },
   {
-    src: "/certification/Torsecure.jpg",
+    src: "/certification/Torsecure.png",
     alt: "Torsecure",
-    width: 140,
-    height: 40,
+    width: 280,
+    height: 80,
     kind: "wide",
     href: "https://torsecure.com/",
   },
@@ -54,7 +52,7 @@ const CERTIFICATIONS: {
 
 export function CertificationLogos({
   compact = false,
-  heading = "The only consent management platform certified by",
+  heading = "The only Consent-Management platform certified by",
 }: {
   compact?: boolean;
   heading?: string;
@@ -73,7 +71,7 @@ export function CertificationLogos({
       <ul
         className={
           compact
-            ? "mt-1.5 grid w-full grid-cols-6 items-center justify-items-center gap-x-2 gap-y-2 @[520px]:flex @[520px]:flex-nowrap @[520px]:justify-between @[520px]:gap-x-3"
+            ? "mt-2 grid w-full grid-cols-6 items-center justify-items-center gap-x-3 gap-y-3 @[520px]:flex @[520px]:flex-nowrap @[520px]:justify-evenly @[520px]:gap-x-6"
             : "mt-3 grid grid-cols-6 items-center justify-items-center gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-x-6 sm:gap-y-3 lg:gap-x-8"
         }
       >
@@ -84,15 +82,14 @@ export function CertificationLogos({
               alt={item.alt}
               width={item.width}
               height={item.height}
-              unoptimized={Boolean(item.unoptimized)}
               className={
                 item.kind === "badge"
                   ? compact
-                    ? "h-10 w-10 object-contain @[520px]:h-12 @[520px]:w-12"
-                    : "h-12 w-12 object-contain sm:h-14 sm:w-14"
+                    ? "h-14 w-14 object-contain @[520px]:h-16 @[520px]:w-16"
+                    : "h-16 w-16 object-contain sm:h-20 sm:w-20"
                   : compact
-                    ? "h-8 w-auto max-w-[110px] object-contain @[520px]:h-9 @[520px]:max-w-[132px]"
-                    : "h-8 w-auto max-w-[110px] object-contain sm:h-9 sm:max-w-[140px]"
+                    ? "h-10 w-auto max-w-[140px] object-contain @[520px]:h-12 @[520px]:max-w-[180px]"
+                    : "h-12 w-auto max-w-[160px] object-contain sm:h-16 sm:max-w-[220px]"
               }
             />
           );
@@ -101,7 +98,7 @@ export function CertificationLogos({
             <li
               key={item.src}
               className={[
-                "flex items-center justify-center @[520px]:shrink-0 @[520px]:justify-start",
+                "relative flex items-center justify-center @[520px]:shrink-0",
                 index < 3 ? "col-span-2" : "col-span-3",
               ].join(" ")}
             >
@@ -111,7 +108,7 @@ export function CertificationLogos({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${item.alt} (opens in a new tab)`}
-                  className="rounded-sm outline-offset-2 transition hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C4A7]"
+                  className="inline-flex origin-center rounded-sm outline-offset-4 transition-transform duration-300 ease-out hover:z-10 hover:scale-125 focus-visible:z-10 focus-visible:scale-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C4A7]"
                 >
                   {image}
                 </a>
@@ -125,11 +122,11 @@ export function CertificationLogos({
       <p
         className={
           compact
-            ? "mt-1.5 !text-center text-[10px] leading-snug text-[#6B7280] sm:text-[11px]"
+            ? "mt-2 !text-center text-[10px] leading-snug text-[#6B7280] sm:text-[11px]"
             : "mt-3 text-left text-xs leading-5 text-[#6B7280]"
         }
       >
-        ConsentGuru is a proprietary product of{" "}
+        ConsentGuru is a proprietary software of{" "}
         <a
           href="https://techensglobal.com/"
           target="_blank"

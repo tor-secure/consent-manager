@@ -134,7 +134,7 @@ export function HomeComparison() {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto w-full min-w-0 max-w-[1200px] px-4 py-[clamp(3.5rem,6vw,5rem)] min-[400px]:px-5 sm:px-8">
+      <div className="relative mx-auto w-full min-w-0 max-w-[1200px] px-4 pt-6 pb-[clamp(2.5rem,5vw,4rem)] min-[400px]:px-5 sm:px-8 sm:pt-8">
         <div className="max-w-4xl min-w-0">
           <h2 className="text-balance text-[clamp(1.85rem,1.1rem+3.4vw,3.75rem)] font-extrabold leading-[1.08] tracking-tight text-[#0F172A]">
             Why Consent Guru?
@@ -149,22 +149,31 @@ export function HomeComparison() {
           </p>
         </div>
 
-        <ul className="mt-8 grid grid-cols-1 gap-3 min-[480px]:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="relative mt-8">
+          <div
+            className="pointer-events-none absolute left-[1.35rem] right-[1.35rem] top-6 hidden h-px bg-gradient-to-r from-[#00C4A7] via-[#6D28D9] to-[#00C4A7] lg:block"
+            aria-hidden="true"
+          />
+          <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            "All top Indian USPs in one platform",
-            "AI-powered and future-ready",
-            "Built for DPDP & global compliance",
-            "Enterprise-grade, yet easy to use",
-            "Better value, more capabilities",
+            { n: "01", title: "All top Indian USPs", detail: "One platform" },
+            { n: "02", title: "AI-powered", detail: "Future-ready" },
+            { n: "03", title: "DPDP and global", detail: "Built for both" },
+            { n: "04", title: "Enterprise-grade", detail: "Easy to use" },
+            { n: "05", title: "Better value", detail: "More capabilities" },
           ].map((item) => (
-            <li
-              key={item}
-              className="min-w-0 rounded-xl border border-[#E5E7EB] bg-white px-4 py-3 text-sm font-medium text-[#0F172A] shadow-sm"
-            >
-              {item}
+            <li key={item.n} className="relative flex items-center gap-3 rounded-2xl border border-[#E5E7EB]/80 bg-white/80 px-3 py-3 backdrop-blur-sm lg:flex-col lg:items-start lg:px-4 lg:pt-0">
+              <span className="relative z-[1] inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#0B2C4A] text-xs font-bold tracking-wide text-white shadow-[0_0_0_6px_#F8FAFF]">
+                {item.n}
+              </span>
+              <span className="min-w-0 lg:pt-3">
+                <span className="block text-sm font-bold leading-5 text-[#0F172A]">{item.title}</span>
+                <span className="mt-0.5 block text-xs font-medium text-[#00A88F]">{item.detail}</span>
+              </span>
             </li>
           ))}
-        </ul>
+          </ol>
+        </div>
 
         <div className="comparison-switch mt-12">
           <div

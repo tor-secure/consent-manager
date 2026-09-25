@@ -60,9 +60,19 @@ export const CLERK_CSP_EXTRA_DIRECTIVES: Record<string, string[]> = {
   "frame-ancestors": ["self"],
   // Banner studio previews customer sites in an iframe (any http(s) origin).
   "frame-src": ["https:"],
-  "script-src": ["https://www.google.com", "https://www.gstatic.com"],
+  "script-src": [
+    "https://www.google.com",
+    "https://www.gstatic.com",
+    "https://www.consentguru.com",
+    "https://consentguru.com",
+  ],
   "style-src": ["https://www.gstatic.com"],
-  "connect-src": ["https://www.google.com", "https://www.gstatic.com"],
+  "connect-src": [
+    "https://www.google.com",
+    "https://www.gstatic.com",
+    "https://www.consentguru.com",
+    "https://consentguru.com",
+  ],
 };
 
 export function shouldSendHsts(protocol: string, forwardedProto: string | null): boolean {

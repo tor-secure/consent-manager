@@ -824,6 +824,22 @@ CREATE INDEX IF NOT EXISTS "rate_limit_buckets_reset_idx" ON "rate_limit_buckets
 
 -- Dashboard aggregate paths. Apply on a large production table with
 -- CREATE INDEX CONCURRENTLY outside a transaction if writes must stay open.
+CREATE TABLE IF NOT EXISTS "tool_assessments" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "user_id" uuid REFERENCES "users"("id") ON DELETE SET NULL,
+  "tool_type" varchar(40) NOT NULL,
+  "status" varchar(20) NOT NULL DEFAULT 'completed',
+  "score" integer,
+  "methodology_version" varchar(32) NOT NULL,
+  "answers" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "result" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "tool_assessments_org_tool_idx"
+  ON "tool_assessments" ("organization_id", "tool_type", "updated_at");
+
 CREATE INDEX IF NOT EXISTS "consent_records_org_updated_idx"
   ON "consent_records" ("organization_id", "updated_at");
 CREATE INDEX IF NOT EXISTS "consent_events_org_occurred_idx"

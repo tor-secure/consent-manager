@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
 
 const offices = [
@@ -55,6 +54,7 @@ const footerColumns = [
       { label: "Why us", href: "/#comparison" },
       { label: "E learning", href: "/e-learning" },
       { label: "Pricing", href: "/pricing" },
+      { label: "DPDP tools", href: "/tools" },
     ],
   },
   {
@@ -99,83 +99,6 @@ const footerColumns = [
 
 export function HomeFooter() {
   return (
-    <>
-      <section id="resources" className="home-section bg-white px-5 py-10 sm:px-8 sm:py-12">
-        <div
-          className="home-fade-item relative mx-auto max-w-[1200px] overflow-x-clip rounded-2xl px-4 py-8 min-[400px]:px-6 sm:px-8 lg:px-10"
-          style={{
-            background:
-              "linear-gradient(180deg, #E6F9F5 0%, #F3FAF8 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-1/2 opacity-50"
-            style={{
-              background:
-                "repeating-linear-gradient(115deg, transparent 0 16px, rgba(0,196,167,0.12) 16px 18px)",
-            }}
-            aria-hidden="true"
-          />
-
-          <div className="relative grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="flex min-w-0 items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#E6F9F5]">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M3.75 7.5 12 12.75 20.25 7.5M4.5 18h15A1.5 1.5 0 0 0 21 16.5v-9A1.5 1.5 0 0 0 19.5 6h-15A1.5 1.5 0 0 0 3 7.5v9A1.5 1.5 0 0 0 4.5 18Z"
-                    stroke="#0B2C4A"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M16.5 17.25 18 18.75l3-3"
-                    stroke="#00C4A7"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-balance text-2xl font-bold tracking-tight text-[#111827] sm:text-[1.7rem]">
-                  Start a workspace and{" "}
-                  <span className="text-[#00C4A7]">go live</span>
-                </h2>
-                <p className="mt-2 max-w-lg text-justify text-sm leading-6 text-[#6B7280]">
-                  Create an account, add a website, and publish a consent banner. A public mailing
-                  list is not open yet.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <ArrowButton href="/sign-up" size="lg">
-                Sign up
-              </ArrowButton>
-              <p className="mt-2.5 flex items-center gap-1.5 text-[12px] text-[#6B7280]">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M12 3.75 5.25 6v5.25c0 4.25 2.83 7.85 6.75 9 3.92-1.15 6.75-4.75 6.75-9V6L12 3.75Z"
-                    stroke="#00C4A7"
-                    strokeWidth="1.6"
-                    strokeLinejoin="round"
-                  />
-                  <path
-                    d="M9.75 12.5l1.5 1.5 3-3"
-                    stroke="#00C4A7"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Product updates ship in the workspace. A public mailing list is not open yet.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
       <footer id="site-footer" className="home-section bg-[#0B1220] text-white">
         <div className="home-fade-item w-full min-w-0 px-4 py-14 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-10 lg:px-12 lg:py-16 xl:px-16">
           <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
@@ -247,6 +170,5 @@ export function HomeFooter() {
           </div>
         </div>
       </footer>
-    </>
   );
 }

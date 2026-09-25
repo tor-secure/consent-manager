@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
           "/news",
           "/e-learning",
           "/dpdp-act",
+          "/tools",
           "/privacy-center",
           "/privacy-center/",
           "/privacy-center/data-principal-request",

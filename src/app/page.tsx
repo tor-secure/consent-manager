@@ -2,6 +2,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { CertificationLogos } from "@/components/public/certification-logos";
 import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
@@ -40,7 +41,7 @@ export default function Home() {
       <HomeNavbar />
       <main id="main-content" className="home-copy">
         <section
-          className="home-section relative overflow-x-clip overflow-y-visible"
+          className="home-section relative flex min-h-[calc(100svh-73px)] flex-col overflow-visible"
           style={{
             background:
               "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 90%, rgba(11,44,74,0.08), transparent 50%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
@@ -58,7 +59,7 @@ export default function Home() {
             aria-hidden="true"
           />
 
-          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] items-start gap-6 px-4 pt-2 pb-2 min-[400px]:px-5 sm:gap-8 sm:px-8 sm:pt-2 sm:pb-3 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 xl:gap-10 lg:pt-3 lg:pb-3">
+          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] flex-1 content-center items-center gap-6 px-4 pt-3 pb-2 min-[400px]:px-5 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 xl:gap-10">
             <div className="home-fade-item min-w-0 max-w-xl lg:max-w-none">
               <h1 className="text-balance text-[clamp(1.55rem,1.05rem+2.6vw,2.6rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
                 Build trust. Collect consent.{" "}
@@ -115,6 +116,10 @@ export default function Home() {
             </div>
 
             <HomeProductPreview />
+          </div>
+
+          <div className="relative mx-auto w-full min-w-0 max-w-[1200px] shrink-0 px-4 pt-3 pb-5 min-[400px]:px-5 sm:px-8">
+            <CertificationLogos compact />
           </div>
         </section>
 

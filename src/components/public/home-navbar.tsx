@@ -51,6 +51,7 @@ const navItems: NavEntry[] = [
     ],
   },
   { type: "link", label: "Pricing", href: "/pricing" },
+  { type: "link", label: "Tools", href: "/tools" },
   { type: "link", label: "About", href: "/about" },
   {
     type: "group",

@@ -6,6 +6,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import Script from "next/script";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
+import {
+  CONSENT_GURU_SITE_VERIFICATION,
+  ConsentGuruInstall,
+} from "@/components/site/consent-guru-install";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
 import {
@@ -52,6 +56,9 @@ export const metadata: Metadata = {
   category: "technology",
   classification: "Consent Management Platform",
   robots: INDEXABLE_ROBOTS,
+  other: {
+    "cmp-site-verification": CONSENT_GURU_SITE_VERIFICATION,
+  },
   formatDetection: { email: false, address: false, telephone: false },
   alternates: pageAlternates("/"),
   icons: {
@@ -77,7 +84,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://www.consentguru.com" />
+      </head>
       <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
+        <ConsentGuruInstall nonce={nonce} />
         <Script
           id="cmp-theme-bootstrap"
           strategy="beforeInteractive"

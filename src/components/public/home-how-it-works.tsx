@@ -30,80 +30,113 @@ const steps = [
   {
     n: "05",
     title: "Install the snippet",
-    body: "Paste one script in your site head and verify the published config.",
+    body: "Paste the ConsentGuru block first in your site head.",
     scene: "install",
   },
 ] as const;
 
-function Scene({ scene, playing }: { scene: (typeof steps)[number]["scene"]; playing: boolean }) {
+const INSTALL_SNIPPET = `<meta name="cmp-site-verification" content="your-verification-token" />
+
+<!-- Consent Management Platform. Keep this as the first script in <head>. -->
+<!-- Optional tags must use type="text/plain" and data-cmp-purpose. -->
+<link rel="preconnect" href="https://www.consentguru.com" crossorigin>
+<link rel="dns-prefetch" href="https://www.consentguru.com">
+<script>
+  gtag("consent", "default", {
+    ad_storage: "denied",
+    analytics_storage: "denied",
+    wait_for_update: 500
+  });
+</script>
+<script src="https://www.consentguru.com/api/sdk/script"
+  data-site-key="site_your_site_key"></script>
+<!-- /CMP -->`;
+
+function SiteCanvas({ scene, playing }: { scene: (typeof steps)[number]["scene"]; playing: boolean }) {
+  const showBanner = scene === "banner" || scene === "publish" || scene === "install";
+  const showSnippet = scene === "install";
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/15 bg-[#071525] p-4 shadow-[0_24px_60px_-28px_rgba(0,0,0,0.65)]">
-      <div className="mb-3 flex items-center gap-1.5">
+    <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-[0_28px_70px_-32px_rgba(11,44,74,0.45)]">
+      <div className="flex items-center gap-2 border-b border-[#E5E7EB] bg-[#F8FAFC] px-3 py-2.5">
         <span className="h-2.5 w-2.5 rounded-full bg-[#F87171]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#FBBF24]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[#34D399]" />
-        <span className="ml-3 truncate rounded-md bg-white/10 px-2 py-0.5 text-[11px] text-white/70">
-          consentguru.com
-        </span>
+        <div className="ml-2 flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-[#E5E7EB] bg-white px-2.5 py-1 text-[12px] text-[#334155]">
+          <span className="text-[#00A88F]" aria-hidden="true">●</span>
+          <span className="truncate font-medium">https://shop.example.com</span>
+          {scene === "publish" || scene === "install" ? (
+            <span className={`ml-auto rounded-full bg-[#E6F9F5] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#0B2C4A] ${playing && scene === "publish" ? "how-it-works-pulse" : ""}`}>
+              Live
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      {scene === "domain" ? (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Website</p>
-          <div className="rounded-xl bg-white/10 px-3 py-2 font-mono text-sm text-white">
-            shop.example.com
+      <div className="relative min-h-[22rem] bg-[#F7FBFA]">
+        {showSnippet ? (
+          <div className="max-h-44 overflow-auto border-b border-[#0B2C4A] bg-[#071525] px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#5EEAD4]">head · ConsentGuru snippet</p>
+            <pre className="mt-2 overflow-x-auto text-[11px] leading-5 text-[#A5F3FC]">{INSTALL_SNIPPET}</pre>
           </div>
-          <div className={`h-2 overflow-hidden rounded-full bg-white/10 ${playing ? "how-it-works-bar" : ""}`}>
-            <div className="h-full w-2/3 rounded-full bg-[#00C4A7]" />
-          </div>
-          <p className="text-xs text-white/60">Domain verified · India region</p>
-        </div>
-      ) : null}
+        ) : null}
 
-      {scene === "policy" ? (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Policy</p>
-          {["DPDP 2023 template", "Analytics (optional)", "Advertising (optional)"].map((line, i) => (
-            <div
-              key={line}
-              className="flex items-center justify-between rounded-lg bg-white/8 px-3 py-2 text-sm text-white"
-              style={{ animationDelay: `${i * 120}ms` }}
-            >
-              {line}
-              <span className="text-[#34D399]">✓</span>
+        <div className={`px-4 py-4 sm:px-5 ${scene === "domain" ? "opacity-40" : ""}`}>
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold tracking-tight text-[#0B2C4A]">Northwind Shop</p>
+            <p className="text-[11px] text-[#64748B]">New arrivals</p>
+          </div>
+          <div className="mt-3 rounded-xl bg-gradient-to-r from-[#0B2C4A] to-[#0E7490] px-4 py-5 text-white">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#99F6E4]">This season</p>
+            <p className="mt-1 text-lg font-bold">Linen, made to last</p>
+          </div>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {["Shirt", "Tote", "Lamp"].map((item) => (
+              <div key={item} className="rounded-lg border border-[#E5E7EB] bg-white p-2">
+                <div className="h-10 rounded-md bg-[#E6F9F5]" />
+                <p className="mt-1.5 text-[11px] font-semibold text-[#0F172A]">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {scene === "domain" ? (
+          <div className="absolute inset-x-4 top-16 rounded-xl border border-[#E5E7EB] bg-white p-4 shadow-lg sm:inset-x-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#00A88F]">Add website</p>
+            <p className="mt-2 rounded-lg border border-[#D1D5DB] bg-[#F8FAFC] px-3 py-2 font-mono text-sm text-[#0F172A]">shop.example.com</p>
+            <div className={`mt-3 h-1.5 overflow-hidden rounded-full bg-[#E5E7EB] ${playing ? "how-it-works-bar" : ""}`}>
+              <div className="h-full w-2/3 rounded-full bg-[#00C4A7]" />
             </div>
-          ))}
-        </div>
-      ) : null}
-
-      {scene === "banner" ? (
-        <div className="rounded-xl bg-[#F8FAFC] p-4 text-[#0F172A]">
-          <p className="text-sm font-bold">We use cookies to remember your choices</p>
-          <p className="mt-1 text-xs text-[#64748B]">Analytics and ads stay off until you accept.</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className="rounded-lg bg-[#0B2C4A] px-3 py-1.5 text-xs font-semibold text-white">Accept</span>
-            <span className="rounded-lg border border-[#CBD5E1] px-3 py-1.5 text-xs font-semibold">Reject</span>
+            <p className="mt-2 text-xs text-[#64748B]">Domain verified · India region</p>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {scene === "publish" ? (
-        <div className="space-y-3 text-white">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#5EEAD4]">Go live</p>
-          <div className="rounded-xl border border-[#00C4A7]/40 bg-[#00C4A7]/10 px-4 py-6 text-center">
-            <p className={`text-3xl font-extrabold text-[#5EEAD4] ${playing ? "how-it-works-pulse" : ""}`}>LIVE</p>
-            <p className="mt-1 text-sm text-white/70">Published to shop.example.com</p>
+        {scene === "policy" ? (
+          <div className="absolute inset-y-3 right-3 w-[min(100%,14rem)] rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-lg">
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#00A88F]">Policy</p>
+            <ul className="mt-2 space-y-1.5">
+              {["DPDP 2023 template", "Analytics, optional", "Advertising, optional"].map((line) => (
+                <li key={line} className="flex items-center justify-between rounded-lg bg-[#F8FAFC] px-2.5 py-2 text-[12px] text-[#0F172A]">
+                  {line}
+                  <span className="text-[#00A88F]" aria-hidden="true">✓</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </div>
-      ) : null}
+        ) : null}
 
-      {scene === "install" ? (
-        <pre className="overflow-x-auto rounded-xl bg-black/40 p-3 text-[11px] leading-5 text-[#A5F3FC]">
-{`<script src="https://consentguru.com/sdk.js"
-  data-site="shop.example.com"
-  async></script>`}
-        </pre>
-      ) : null}
+        {showBanner ? (
+          <div className="absolute inset-x-3 bottom-3 rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-[0_12px_30px_-16px_rgba(11,44,74,0.45)]">
+            <p className="text-sm font-bold text-[#0F172A]">We use cookies to remember your choices</p>
+            <p className="mt-0.5 text-[11px] text-[#64748B]">Analytics and ads stay off until you accept.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="rounded-lg bg-[#0B2C4A] px-3 py-1.5 text-[11px] font-semibold text-white">Accept</span>
+              <span className="rounded-lg border border-[#CBD5E1] px-3 py-1.5 text-[11px] font-semibold text-[#0F172A]">Reject</span>
+              <span className="rounded-lg px-2 py-1.5 text-[11px] font-semibold text-[#0B2C4A]">Preferences</span>
+            </div>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -174,7 +207,7 @@ export function HomeHowItWorks() {
             onMouseEnter={() => setPaused(true)}
             onMouseLeave={() => setPaused(false)}
           >
-            <Scene scene={step.scene} playing={!paused} />
+            <SiteCanvas scene={step.scene} playing={!paused} />
             <div className="mt-3 flex gap-1.5" aria-hidden="true">
               {steps.map((item, index) => (
                 <span
