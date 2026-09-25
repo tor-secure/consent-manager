@@ -1084,6 +1084,65 @@ async function testPublishedBannerIsFirstPaint() {
   );
 }
 
+async function testCachedPolicyDoesNotSubmitUntilLiveConfig() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  const cacheKey = `__cmp_cfg_${store.website.siteKey}`;
+  browser.storage.set(
+    cacheKey,
+    JSON.stringify({
+      ...store.config,
+      success: true,
+      __cmpCachedAt: Date.now(),
+      policyContext: {
+        ...store.config.policyContext,
+        token: "stale-cached-token",
+      },
+    }),
+  );
+  const tokens = [];
+  store.consentPostInterceptor = (body, _init, api) => {
+    tokens.push(body.policyContext && body.policyContext.token);
+    if (body.policyContext && body.policyContext.token === "stale-cached-token") {
+      return {
+        status: 409,
+        body: {
+          success: false,
+          code: "POLICY_CONTEXT_POLICY_MISMATCH",
+          message: "Policy context does not match the published policy",
+        },
+      };
+    }
+    return api.submitConsent(body);
+  };
+  vm.runInNewContext(
+    buildCmpSdkScript({ siteKey: browser.store.website.siteKey, apiBase: "https://cmp.example" }),
+    {
+      window: browser.window,
+      document: browser.document,
+      console,
+      fetch: browser.window.fetch,
+      localStorage: browser.window.localStorage,
+      sessionStorage: browser.window.sessionStorage,
+      URL,
+      URLSearchParams,
+      CustomEvent: browser.window.CustomEvent,
+      setTimeout,
+      clearTimeout,
+    },
+  );
+  assert.ok(browser.document.getElementById("__cmp_banner__"), "cached banner should paint immediately");
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  await flush();
+  await flush();
+  assert.equal(tokens.includes("stale-cached-token"), false, "Accept all must not POST a cached policy token");
+  assert.equal(store.records.length, 1);
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.ok(browser.document.getElementById("__cmp_reopen__"), "cookie button should remain after Accept all");
+}
+
 async function testAcceptReplacesMissingConsentRecord() {
   const store = createStore();
   const browser = createBrowser(store, {
@@ -2734,6 +2793,7 @@ async function testRejectAllGoogleConsentModeStaysDenied() {
 
 async function main() {
   await testPublishedBannerIsFirstPaint();
+  await testCachedPolicyDoesNotSubmitUntilLiveConfig();
   await testAcceptReplacesMissingConsentRecord();
   await testRejectAllBeforeConfigReturns();
   await testCustomizeSaveAndCloseBeforeConfig();

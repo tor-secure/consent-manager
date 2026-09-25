@@ -248,6 +248,8 @@ ${apiBaseLine}
   var _choiceUiHeld = false;
   var _choiceDismissed = false;
   var _bannerSoftClosed = false;
+  var _livePolicyReady = false;
+  var _ignoreWidgetUntil = 0;
   var _retryJob = null;
   var _submitButtons = [];
   var _tcString = null;
@@ -428,8 +430,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function holdChoiceUi() {
     _choiceUiHeld = true;
+    _ignoreWidgetUntil = Date.now() + 1000;
     removeBanner();
     if (typeof removePreferenceCenter === 'function') removePreferenceCenter();
+    syncPreferenceWidget();
   }
 
   function restoreChoiceUi() {
@@ -451,6 +455,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _choiceDismissed = true;
     _bannerSoftClosed = false;
     _reconsentNotice = '';
+    _ignoreWidgetUntil = Date.now() + 1000;
     removeBanner();
     if (typeof removeParentalConsentDialog === 'function') removeParentalConsentDialog();
     if (typeof removePreferenceCenter === 'function') removePreferenceCenter();
@@ -1745,8 +1750,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       var fresh = null;
       if (kind === 'script') {
         fresh = document.createElement('script');
-        fresh.type = 'text/javascript';
-        fresh.src = url;
+        if (fresh.setAttribute) {
+          fresh.setAttribute('type', 'text/javascript');
+          fresh.setAttribute('src', url);
+        } else {
+          fresh.type = 'text/javascript';
+          fresh.src = url;
+        }
       } else if (kind === 'iframe') {
         fresh = document.createElement('iframe');
         fresh.src = url;
@@ -1761,6 +1771,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (!fresh) return;
       fresh.setAttribute('data-cmp-activated', '1');
       parent.appendChild(fresh);
+      if (kind === 'script') {
+        try {
+          if (document.scripts && typeof document.scripts.push === 'function') {
+            var listed = false;
+            for (var si = 0; si < document.scripts.length; si++) {
+              if (document.scripts[si] === fresh) { listed = true; break; }
+            }
+            if (!listed) document.scripts.push(fresh);
+          }
+        } catch (eScriptList) {}
+      }
       _enforcementMetrics.allowed += 1;
       recordEnforcement('ALLOWED', null, kind, url, 'fresh-element-after-consent');
     } finally {
@@ -1812,7 +1833,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function shouldReshowBanner(stored, cfg) {
-    if (_choiceDismissed && stored && stored.status === 'confirmed' && stored.serverConfirmed) {
+    if (stored && stored.status === 'confirmed' && stored.serverConfirmed) {
       return false;
     }
     if (cfg && cfg.showOnEveryVisit) return true;
@@ -1856,7 +1877,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       });
     }
     if (current.vendorIds.length) {
-      if (!storedVendors.length) return true;
+      if (!storedVendors.length) {
+        if (stored.choice === 'accept-all') return false;
+        return true;
+      }
       var knownV = {};
       storedVendors.forEach(function(id) { knownV[id] = true; });
       var j;
@@ -2114,7 +2138,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function flushConsentSubmit() {
     if (_submitBusy || !_queuedSubmit || !_config) return;
-    if (!_config.websiteId || !_policyContext || !_policyContext.token) return;
+    if (!_livePolicyReady || !_config.websiteId || !_policyContext || !_policyContext.token) return;
     var job = _queuedSubmit;
     _queuedSubmit = null;
     _submitBusy = true;
@@ -2167,6 +2191,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }).then(function(r) {
         return r.json().then(function(data) {
           return { ok: r.ok, status: r.status, data: data };
+        }, function() {
+          return {
+            ok: false,
+            status: r.status,
+            data: { success: false, message: failedConsentMessage(null) }
+          };
         });
       });
     }
@@ -2352,8 +2382,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
     if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__') || document.getElementById('__cmp_prefs__')) return;
-    if (!_consentId && !_bannerSoftClosed) return;
-    if (!_bannerSoftClosed && cfg.showPreferenceWidget === false) return;
+    if (!_consentId && !_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed) return;
+    if (!_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed && cfg.showPreferenceWidget === false) return;
 
     var btn = document.createElement('button');
     btn.id = '__cmp_reopen__';
@@ -2370,6 +2400,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     );
     btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10"/><circle cx="8" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.3" fill="currentColor"/><circle cx="12" cy="15" r="1.1" fill="currentColor"/></svg>';
     btn.addEventListener('click', function() {
+      if (Date.now() < _ignoreWidgetUntil) return;
+      if (_submitBusy || _queuedSubmit || _choiceUiHeld) return;
       if (!_consentId) {
         reopenBannerFromWidget();
         return;
@@ -4419,8 +4451,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       .then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data.success) return;
+        _livePolicyReady = true;
         if (!_config) {
-          applyLoadedConfig(data);
+          applyLoadedConfig(data, true);
           return;
         }
         var nextConfig = applyAssignedAbTest(data);
@@ -4569,7 +4602,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     ].join('\x1f');
   }
 
-  function applyLoadedConfig(data) {
+  function applyLoadedConfig(data, fromLiveNetwork) {
     var previousVisualKey = bannerVisualKey(_config);
     var bannerWasOpen = !!document.getElementById('__cmp_banner__');
     if (data.noticeRoot) _noticeRoot = data.noticeRoot;
@@ -4577,6 +4610,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _config = applyAssignedAbTest(data);
     if (_explicitLang) applyLocalNotice(_explicitLang);
     rememberPolicyContext(presentedPolicyContext(data));
+    if (fromLiveNetwork) _livePolicyReady = true;
     _configRevision = configRevision(_config);
     _configHash = (data.policy && data.policy.configHash) || '';
     scheduleConfigRefresh();
@@ -4738,20 +4772,32 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   var cachedCfg = readAnyCachedConfig();
   if (cachedCfg && !hasConfirmedLocalConsent()) {
-    try { applyLoadedConfig(cachedCfg); }
+    try {
+      applyLoadedConfig(cachedCfg, false);
+      rememberPolicyContext(null);
+      _livePolicyReady = false;
+    }
     catch (eVisual) { warn('Cached banner paint failed: ' + eVisual); }
   }
 
   fetchConfigJson()
     .then(function(data) {
       if (!data || data.unchanged) {
-        if (data && data.unchanged && cachedCfg && cachedConfigHasBanner(cachedCfg)) {
-          applyLoadedConfig(cachedCfg);
-          return;
-        }
-        if (data && data.unchanged && _config) {
+        if (_livePolicyReady && _config) {
           flushConsentSubmit();
           return;
+        }
+        if (data && data.unchanged) {
+          return fetchConfigJson(true).then(function(fresh) {
+            if (fresh && fresh.success && !fresh.unchanged) {
+              writeCachedConfig(fresh);
+              applyLoadedConfig(fresh, true);
+              return;
+            }
+            if (cachedCfg && cachedConfigHasBanner(cachedCfg)) {
+              applyLoadedConfig(cachedCfg, true);
+            }
+          });
         }
         warn('Config load failed: ' + ((data && data.message) || 'unknown error'));
         scheduleConfigRefresh();
@@ -4763,7 +4809,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         return;
       }
       writeCachedConfig(data);
-      applyLoadedConfig(data);
+      applyLoadedConfig(data, true);
     })
     .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });
 

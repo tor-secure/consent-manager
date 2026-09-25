@@ -8,7 +8,15 @@ export function normalizeHostname(value: string): string {
 
 export function hostnameMatchesWebsiteDomain(hostname: string, websiteDomain: string): boolean {
   const host = normalizeHostname(hostname);
-  const expected = normalizeHostname(websiteDomain.split("/")[0] ?? "");
+  let registered = (websiteDomain || "").trim();
+  try {
+    if (/^https?:\/\//i.test(registered)) {
+      registered = new URL(registered).hostname;
+    }
+  } catch {
+    registered = registered.split("/")[0] ?? "";
+  }
+  const expected = normalizeHostname(registered.split("/")[0] ?? "");
   if (!host || !expected) return false;
   return host === expected;
 }

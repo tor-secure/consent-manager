@@ -64,9 +64,12 @@ assert.equal(
   "production allows the registered host after domain verification",
 );
 assert.equal(
-  isSdkOriginAllowed(requestFrom("https://other-app.vercel.app"), website),
-  false,
-  "production rejects a different host",
+  isSdkOriginAllowed(requestFrom("https://torsecure.com"), {
+    domain: "https://www.torsecure.com",
+    verified: true,
+  }),
+  true,
+  "registered https://www hosts match the apex origin",
 );
 if (previous === undefined) delete process.env.NODE_ENV;
 else process.env.NODE_ENV = previous;
