@@ -12,6 +12,7 @@ export type NewsArticle = {
   title: string;
   excerpt: string;
   url: string;
+  imageUrl: string | null;
   publishedAt: string | null;
 };
 

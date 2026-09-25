@@ -1,29 +1,23 @@
 import { NextResponse } from "next/server";
 
+import { buildCmpLocaleScript } from "@/lib/sdk/cmp-sdk-script";
 import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
-import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
 import { publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
 
 export async function GET(request: Request) {
   const headers = publicCorsHeaders("GET, OPTIONS");
   const limit = await consumeRateLimit({
-    key: `sdk-gvl:${getClientIp(request)}`,
+    key: `sdk-locale:${getClientIp(request)}`,
     limit: 600,
     windowMs: 60_000,
   });
   if (!limit.allowed) return rateLimitResponse(limit, headers);
 
-  const gvl = await getCurrentGvl();
-  if (!gvl) {
-    return NextResponse.json({ success: false, message: "No validated GVL is available" }, {
-      status: 503, headers: publicCorsHeaders("GET, OPTIONS"),
-    });
-  }
-  return NextResponse.json(gvl.payload, {
+  return new NextResponse(buildCmpLocaleScript(), {
     headers: {
+      "Content-Type": "application/javascript; charset=utf-8",
       ...publicCorsHeaders("GET, OPTIONS"),
-      "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
-      ETag: `"${gvl.sha256}"`,
+      "Cache-Control": "public, max-age=3600, must-revalidate",
     },
   });
 }

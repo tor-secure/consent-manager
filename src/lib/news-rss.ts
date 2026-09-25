@@ -58,16 +58,70 @@ function innerTag(block: string, tag: string): string | null {
   return match ? unwrapCdata(match[1]) : null;
 }
 
-function safeHttpUrl(raw: string | null | undefined): string | null {
+function safeHttpUrl(raw: string | null | undefined, base?: string): string | null {
   if (!raw) return null;
   try {
-    const url = new URL(decodeXmlEntities(raw).trim());
+    const url = new URL(decodeXmlEntities(raw).trim(), base);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
     url.hash = "";
     return url.toString();
   } catch {
     return null;
   }
+}
+
+function imageFromAttrs(attrs: string): string | null {
+  const type = attrs.match(/\btype=["']([^"']+)["']/i)?.[1]?.toLowerCase() ?? "";
+  const medium = attrs.match(/\bmedium=["']([^"']+)["']/i)?.[1]?.toLowerCase() ?? "";
+  if (type.startsWith("video") || type.startsWith("audio") || medium === "video" || medium === "audio") {
+    return null;
+  }
+  if (type && !type.startsWith("image/")) return null;
+  return safeHttpUrl(attrs.match(/\b(?:url|href)=["']([^"']+)["']/i)?.[1]);
+}
+
+function imageFromHtml(html: string, base: string): string | null {
+  const images = [...html.matchAll(/<img\b([^>]*?)>/gi)];
+  for (const match of images) {
+    const attrs = match[1] ?? "";
+    const raw =
+      attrs.match(/\bsrc=["']([^"']+)["']/i)?.[1] ??
+      attrs.match(/\bdata-src=["']([^"']+)["']/i)?.[1];
+    const url = safeHttpUrl(raw, base);
+    if (!url) continue;
+    if (/pixel|spacer|1x1|tracking|doubleclick|facebook\.com\/tr|feeds\.feedburner/i.test(url)) continue;
+    const width = Number(attrs.match(/\bwidth=["'](\d+)["']/i)?.[1] ?? 0);
+    if (width > 0 && width < 40) continue;
+    return url;
+  }
+  return null;
+}
+
+function imageFromBlock(block: string, pageUrl: string): string | null {
+  let best: { url: string; width: number } | null = null;
+  for (const match of block.matchAll(/<media:(?:content|thumbnail)\b([^>]*?)\/?>/gi)) {
+    const attrs = match[1] ?? "";
+    const url = imageFromAttrs(attrs);
+    if (!url) continue;
+    const declaredWidth = Number(attrs.match(/\bwidth=["'](\d+)["']/i)?.[1] ?? 0);
+    const width = declaredWidth || (match[0].toLowerCase().startsWith("<media:thumbnail") ? 1 : 200);
+    if (!best || width > best.width) best = { url, width };
+  }
+  if (best) return best.url;
+
+  for (const match of block.matchAll(/<(?:enclosure|itunes:image)\b([^>]*?)\/?>/gi)) {
+    const url = imageFromAttrs(match[1] ?? "");
+    if (url) return url;
+  }
+
+  const html = decodeXmlEntities(
+    innerTag(block, "content:encoded") ??
+      innerTag(block, "description") ??
+      innerTag(block, "summary") ??
+      innerTag(block, "content") ??
+      "",
+  );
+  return imageFromHtml(html, pageUrl);
 }
 
 function linkFromBlock(block: string): string | null {
@@ -158,6 +212,7 @@ function parseFeedXml(xml: string, source: NewsSource): NewsArticle[] {
       title: title.replace(/\s+[-–—]\s+(SC Media|Privacy Affairs|IAPP|Google News)\s*$/i, ""),
       excerpt,
       url,
+      imageUrl: imageFromBlock(block, url),
       publishedAt: publishedFromBlock(block),
     });
 
@@ -165,6 +220,55 @@ function parseFeedXml(xml: string, source: NewsSource): NewsArticle[] {
   }
 
   return articles;
+}
+
+function metaImage(html: string, pageUrl: string): string | null {
+  const patterns = [
+    /<meta\b[^>]*(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]*>/gi,
+    /<meta\b[^>]*content=["'][^"']+["'][^>]*(?:property|name)=["'](?:og:image(?::secure_url)?|twitter:image(?::src)?)["'][^>]*>/gi,
+  ];
+  for (const pattern of patterns) {
+    for (const match of html.matchAll(pattern)) {
+      const tag = match[0];
+      const content = tag.match(/\bcontent=["']([^"']+)["']/i)?.[1];
+      const url = safeHttpUrl(content, pageUrl);
+      if (url) return url;
+    }
+  }
+  return null;
+}
+
+async function pageImage(pageUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(pageUrl, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(4_000),
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml",
+      },
+      next: { revalidate: REVALIDATE_SECONDS },
+    });
+    if (!response.ok) return null;
+    const html = (await response.text()).slice(0, 150_000);
+    return metaImage(html, pageUrl);
+  } catch {
+    return null;
+  }
+}
+
+async function fillMissingImages(articles: NewsArticle[]): Promise<void> {
+  const missing = articles.filter((article) => !article.imageUrl);
+  let cursor = 0;
+  async function worker() {
+    while (cursor < missing.length) {
+      const article = missing[cursor];
+      cursor += 1;
+      article.imageUrl = await pageImage(article.url);
+    }
+  }
+  const workers = Math.min(6, missing.length);
+  await Promise.all(Array.from({ length: workers }, () => worker()));
 }
 
 async function fetchXml(url: string): Promise<string | null> {
@@ -218,8 +322,11 @@ export async function getNewsFeed(): Promise<NewsFeedResult> {
     return bTime - aTime;
   });
 
+  const visible = articles.slice(0, MAX_FEED_ITEMS);
+  await fillMissingImages(visible);
+
   return {
-    articles: articles.slice(0, MAX_FEED_ITEMS),
+    articles: visible,
     sources,
     fetchedAt: new Date().toISOString(),
   };

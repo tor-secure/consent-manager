@@ -7,6 +7,7 @@ import {
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
 import { logger } from "@/lib/logger";
+import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
 // ---------------------------------------------------------------------------
 // GET /api/sdk/script
@@ -24,6 +25,14 @@ import { logger } from "@/lib/logger";
 
 export async function GET(request: Request) {
   try {
+    const headers = publicCorsHeaders("GET, OPTIONS");
+    const limit = await consumeRateLimit({
+      key: `sdk-script:${getClientIp(request)}`,
+      limit: 600,
+      windowMs: 60_000,
+    });
+    if (!limit.allowed) return rateLimitResponse(limit, headers);
+
     const js = buildGenericCmpSdkScript();
 
     const { searchParams } = new URL(request.url);

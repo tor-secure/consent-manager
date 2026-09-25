@@ -8,7 +8,7 @@ import { purposes } from "@/db/schema/purposes";
 import { websites } from "@/db/schema/websites";
 import { negotiationOfferSchema, publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
 import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
-import { isValidSiteKey, publicCorsHeaders, publicOptionsResponse } from "@/lib/sdk/public-http";
+import { isValidSiteKey, publicCorsHeaders, publicOptionsResponse, readPublicJsonObject } from "@/lib/sdk/public-http";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
 
 const bodySchema = z.object({
@@ -32,7 +32,11 @@ export async function POST(
     windowMs: 60 * 60_000,
   });
   if (!limit.allowed) return rateLimitResponse(limit, headers);
-  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
+  const payload = await readPublicJsonObject(request);
+  if (!payload.ok) {
+    return NextResponse.json({ success: false, message: payload.message }, { status: payload.status, headers });
+  }
+  const parsed = bodySchema.safeParse(payload.body);
   if (!parsed.success) return NextResponse.json({ success: false, message: "Invalid outcome" }, { status: 400, headers });
 
   const [row] = await db

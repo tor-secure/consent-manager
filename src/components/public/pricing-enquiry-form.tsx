@@ -1,9 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { ArrowButton } from "@/components/ui/arrow-button";
+
+type Grecaptcha = {
+  render: (
+    element: HTMLElement,
+    options: {
+      sitekey: string;
+      size: "invisible";
+      callback: (token: string) => void;
+      "expired-callback": () => void;
+      "error-callback": () => void;
+    },
+  ) => number;
+  execute: (widgetId: number) => void;
+  reset: (widgetId: number) => void;
+};
+
+type InvisibleRecaptchaHandle = {
+  execute: () => void;
+  reset: () => void;
+};
+
+declare global {
+  interface Window {
+    grecaptcha?: Grecaptcha;
+    recaptchaOnLoad?: () => void;
+  }
+}
 
 const PLANS = [
   { id: "silver", label: "Silver", hint: "Essential compliance" },
@@ -12,16 +39,96 @@ const PLANS = [
   { id: "unsure", label: "Not sure yet", hint: "Help me choose" },
 ] as const;
 
-export function PricingEnquiryForm() {
+function InvisibleRecaptcha({
+  ref,
+  siteKey,
+  onToken,
+  onError,
+}: {
+  ref: React.Ref<InvisibleRecaptchaHandle>;
+  siteKey: string;
+  onToken: (token: string) => void;
+  onError: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<number | null>(null);
+  const onTokenRef = useRef(onToken);
+  const onErrorRef = useRef(onError);
+  onTokenRef.current = onToken;
+  onErrorRef.current = onError;
+
+  useImperativeHandle(ref, () => ({
+    execute() {
+      const widgetId = widgetIdRef.current;
+      if (widgetId == null || !window.grecaptcha) {
+        onErrorRef.current();
+        return;
+      }
+      window.grecaptcha.execute(widgetId);
+    },
+    reset() {
+      const widgetId = widgetIdRef.current;
+      if (widgetId == null || !window.grecaptcha) return;
+      window.grecaptcha.reset(widgetId);
+    },
+  }));
+
+  useEffect(() => {
+    let cancelled = false;
+
+    function renderWidget() {
+      if (cancelled || !containerRef.current || !window.grecaptcha || widgetIdRef.current != null) return;
+      widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
+        sitekey: siteKey,
+        size: "invisible",
+        callback: (token) => onTokenRef.current(token),
+        "expired-callback": () => onErrorRef.current(),
+        "error-callback": () => onErrorRef.current(),
+      });
+    }
+
+    if (window.grecaptcha) {
+      renderWidget();
+    } else {
+      window.recaptchaOnLoad = () => {
+        if (!cancelled) renderWidget();
+      };
+      if (!document.querySelector("script[data-recaptcha-api]")) {
+        const script = document.createElement("script");
+        script.src = "https://www.google.com/recaptcha/api.js?render=explicit&onload=recaptchaOnLoad";
+        script.async = true;
+        script.defer = true;
+        script.dataset.recaptchaApi = "true";
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [siteKey]);
+
+  return <div ref={containerRef} className="hidden" aria-hidden="true" />;
+}
+
+export function PricingEnquiryForm({ siteKey }: { siteKey: string }) {
   const searchParams = useSearchParams();
   const requestedPlan = searchParams.get("plan")?.toLowerCase();
   const selectedPlan = PLANS.some((plan) => plan.id === requestedPlan) ? requestedPlan : "silver";
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const captchaRef = useRef<InvisibleRecaptchaHandle>(null);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = event.currentTarget;
+  function captchaFailed() {
+    captchaRef.current?.reset();
+    setStatus("error");
+    setMessage("Security check failed. Try sending the enquiry again.");
+  }
+
+  async function postForm(recaptchaToken: string) {
+    const form = formRef.current;
+    if (!form) return;
     const data = new FormData(form);
     setStatus("sending");
     setMessage(null);
@@ -38,25 +145,41 @@ export function PricingEnquiryForm() {
           plan: data.get("plan"),
           message: data.get("message"),
           companyUrl: data.get("companyUrl"),
+          recaptchaToken,
         }),
       });
       const payload = (await res.json()) as { success?: boolean; message?: string };
       if (!res.ok || !payload.success) {
         setStatus("error");
         setMessage(payload.message ?? "Could not send the enquiry.");
+        captchaRef.current?.reset();
         return;
       }
       setStatus("sent");
       setMessage(payload.message ?? "Thanks. We will be in touch.");
       form.reset();
+      captchaRef.current?.reset();
     } catch {
       setStatus("error");
       setMessage("Could not send the enquiry. Try again in a moment.");
+      captchaRef.current?.reset();
     }
+  }
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!siteKey) {
+      void postForm("");
+      return;
+    }
+    setStatus("sending");
+    setMessage(null);
+    captchaRef.current?.execute();
   }
 
   return (
     <form
+      ref={formRef}
       onSubmit={submit}
       className="relative rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8"
     >
@@ -161,6 +284,17 @@ export function PricingEnquiryForm() {
         <label htmlFor="pricing-company-url">Company website</label>
         <input id="pricing-company-url" name="companyUrl" tabIndex={-1} autoComplete="off" />
       </div>
+
+      {siteKey ? (
+        <InvisibleRecaptcha
+          ref={captchaRef}
+          siteKey={siteKey}
+          onToken={(token) => {
+            void postForm(token);
+          }}
+          onError={captchaFailed}
+        />
+      ) : null}
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <ArrowButton type="submit" disabled={status === "sending"}>

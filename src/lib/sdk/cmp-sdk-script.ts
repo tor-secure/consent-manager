@@ -37,6 +37,7 @@
 // proper optimised bundle.
 // ---------------------------------------------------------------------------
 
+import { earlyBlockBootstrapSource } from "@/lib/sdk/early-block";
 import { HOST_SCROLL_LOCK_RUNTIME } from "@/lib/sdk/scroll-lock";
 import { PURPOSE_KEY_FAMILIES } from "@/lib/sdk/purpose-aliases";
 import { BUILTIN_TRACKER_CATALOG } from "@/lib/sdk/tracker-catalog";
@@ -55,6 +56,18 @@ import {
   NOTICE_TEXT_CATALOG,
   PURPOSE_PACKS,
 } from "@/lib/i18n/indian-entity-translations";
+
+export function buildCmpLocaleScript(): string {
+  return `window.__CMP_LOCALE_PACKS=${JSON.stringify({
+    notices: INDIAN_NOTICE_PACKS,
+    ui: INDIAN_UI_STRINGS,
+    labels: INDIAN_LOCALE_NATIVE_LABELS,
+    noticeCatalog: NOTICE_TEXT_CATALOG,
+    purposes: PURPOSE_PACKS,
+    extraUi: { en: DEFAULT_EXTRA_UI, ...EXTRA_UI },
+    legalBasis: LEGAL_BASIS,
+  })};if(window.__CMP_INSTALL_LOCALE_PACKS){window.__CMP_INSTALL_LOCALE_PACKS(window.__CMP_LOCALE_PACKS);}`;
+}
 
 export function buildCmpSdkScript(options: {
   siteKey: string;
@@ -172,13 +185,43 @@ ${apiBaseLine}
   var DEFAULT_BANNER_LOCALES = ${JSON.stringify(DEFAULT_BANNER_LOCALES)};
   var DEFAULT_NOTICE_STRINGS = ${JSON.stringify(DEFAULT_NOTICE_STRINGS)};
   var DEFAULT_BANNER_UI_STRINGS = ${JSON.stringify(DEFAULT_BANNER_UI_STRINGS)};
-  var INDIAN_NOTICE_PACKS = ${JSON.stringify(INDIAN_NOTICE_PACKS)};
-  var INDIAN_UI_STRINGS = ${JSON.stringify(INDIAN_UI_STRINGS)};
-  var INDIAN_LOCALE_NATIVE_LABELS = ${JSON.stringify(INDIAN_LOCALE_NATIVE_LABELS)};
-  var NOTICE_TEXT_CATALOG = ${JSON.stringify(NOTICE_TEXT_CATALOG)};
-  var PURPOSE_PACKS = ${JSON.stringify(PURPOSE_PACKS)};
-  var EXTRA_UI_PACKS = ${JSON.stringify({ en: DEFAULT_EXTRA_UI, ...EXTRA_UI })};
-  var LEGAL_BASIS_PACKS = ${JSON.stringify(LEGAL_BASIS)};
+  var INDIAN_NOTICE_PACKS = {};
+  var INDIAN_UI_STRINGS = {};
+  var INDIAN_LOCALE_NATIVE_LABELS = {};
+  var NOTICE_TEXT_CATALOG = {};
+  var PURPOSE_PACKS = {};
+  var EXTRA_UI_PACKS = ${JSON.stringify({ en: DEFAULT_EXTRA_UI })};
+  var LEGAL_BASIS_PACKS = {};
+  var _localePackPromise = null;
+  function installLocalePacks(packs) {
+    if (!packs) return;
+    INDIAN_NOTICE_PACKS = packs.notices || {};
+    INDIAN_UI_STRINGS = packs.ui || {};
+    INDIAN_LOCALE_NATIVE_LABELS = packs.labels || {};
+    NOTICE_TEXT_CATALOG = packs.noticeCatalog || {};
+    PURPOSE_PACKS = packs.purposes || {};
+    EXTRA_UI_PACKS = packs.extraUi || EXTRA_UI_PACKS;
+    LEGAL_BASIS_PACKS = packs.legalBasis || {};
+    window.__CMP_LOCALE_READY = true;
+  }
+  window.__CMP_INSTALL_LOCALE_PACKS = installLocalePacks;
+  function ensureLocalePacks(lang, done) {
+    var base = localeBase(lang);
+    if (!base || base === 'en' || window.__CMP_LOCALE_READY) {
+      if (done) done();
+      return;
+    }
+    if (!_localePackPromise) {
+      _localePackPromise = new Promise(function(resolve) {
+        var loader = document.createElement('script');
+        loader.src = API_BASE + '/api/sdk/locale';
+        loader.onload = function() { resolve(); };
+        loader.onerror = function() { resolve(); };
+        (document.head || document.documentElement).appendChild(loader);
+      });
+    }
+    _localePackPromise.then(function() { if (done) done(); });
+  }
 
   var _config      = null;
   var _policyContext = null;
@@ -193,6 +236,8 @@ ${apiBaseLine}
   var _listeners   = [];
   var _explicitLang = '';
   var _pcLastFocus = null;
+  var _bannerLastFocus = null;
+  var _bannerEscapeCloses = false;
   var _reconsentNotice = '';
   var _ackedPurposeIds = {};
   var _ackedVendorIds = {};
@@ -620,8 +665,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function applyLocalNotice(lang) {
     if (!_config || !_config.bannerConfig) return;
-    var cfg = _config.bannerConfig;
     var base = localeBase(lang);
+    if (base && base !== 'en' && !window.__CMP_LOCALE_READY) {
+      ensureLocalePacks(lang, function() { applyLocalNotice(lang); });
+      return;
+    }
+    var cfg = _config.bannerConfig;
     var root = _noticeRoot || {};
     var builtin = INDIAN_NOTICE_PACKS[base] || {};
     var operatorPacks = cfg.translations || {};
@@ -815,16 +864,24 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function publishExternalSignals() {
     if (!_config || !_config.signals) return;
     var google = _config.signals.googleConsentMode;
-    if (google && google.enabled) {
+    if ((google && google.enabled) || window.__CMP_CONSENT_DEFAULT_SET) {
       ensureGtag();
       var state = googleDefaultState();
-      var map = google.purposeSignals || {};
+      var map = (google && google.purposeSignals) || {};
+      var familyFallback = {
+        analytics: ['analytics_storage'],
+        marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+        advertising: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+        functional: ['functionality_storage'],
+        preferences: ['functionality_storage', 'personalization_storage']
+      };
       var purposes = _config.purposes || [];
       purposes.forEach(function(p) {
         var granted = !!(p.isRequired || (_decisions.purposes && _decisions.purposes[p.id]));
         if (!granted) return;
         var family = purposeKeyFamily(p.key);
-        var signals = map[p.key] || (family && map[family]) || [];
+        var key = String(p.key || '').toLowerCase();
+        var signals = map[p.key] || map[key] || (family && map[family]) || familyFallback[family] || familyFallback[key] || [];
         signals.forEach(function(signal) { state[signal] = 'granted'; });
       });
       state.security_storage = 'granted';
@@ -1224,7 +1281,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (tag === 'iframe' && (node.name === '__tcfapiLocator' || node.getAttribute('name') === '__tcfapiLocator')) {
       return null;
     }
+    var declaredSrc = node.getAttribute && (
+      node.getAttribute('data-cmp-src') || node.getAttribute('data-cmp-blocked-src')
+    );
+    if (declaredSrc && !node.__cmpOriginalSrc) node.__cmpOriginalSrc = declaredSrc;
     var src = node.__cmpOriginalSrc ||
+      declaredSrc ||
       (node.getAttribute && node.getAttribute('src')) ||
       node.src ||
       '';
@@ -1290,10 +1352,29 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (_quarantinedNodes.indexOf(node) === -1) _quarantinedNodes.push(node);
   }
 
+  function warnIfExecutableInstall(node, url, kind) {
+    if (!node || !url) return;
+    if (node.getAttribute && node.getAttribute('data-cmp-activated') === '1') return;
+    var type = String((node.getAttribute && node.getAttribute('type')) || '').toLowerCase();
+    if (kind === 'script' && type === 'text/plain') return;
+    var rule = findTrackerRule(url, kind);
+    var label = (rule && rule.name) || 'An optional resource';
+    var noun = kind === 'iframe' ? 'iframe' : kind === 'pixel' ? 'tracking pixel' : 'script';
+    var target = noun === 'tracking pixel' ? 'pixel' : noun;
+    var message = 'CMP Installation Warning: "' + label + ' was detected as an executable ' + noun + ' before consent control." Convert this ' + target + ' to a consent-controlled element.';
+    window.__CMP_INSTALL_WARNINGS = window.__CMP_INSTALL_WARNINGS || [];
+    for (var i = 0; i < window.__CMP_INSTALL_WARNINGS.length; i++) {
+      if (window.__CMP_INSTALL_WARNINGS[i].url === url) return;
+    }
+    window.__CMP_INSTALL_WARNINGS.push({ message: message, url: url });
+    try { console.warn(message); } catch (eInstallWarn) {}
+  }
+
   function quarantineNode(node, decision) {
     if (!node || !decision || !decision.resource) return;
     var resource = decision.resource;
     if (node.__cmpQuarantined) return;
+    warnIfExecutableInstall(node, resource.url, resource.kind);
     _enforcementMutating = true;
     try {
       node.__cmpQuarantined = true;
@@ -1342,23 +1423,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         node.removeAttribute('data-cmp-blocked');
         node.removeAttribute('data-cmp-block-reason');
       }
-      if (kind === 'script') {
-        var parent = node.parentNode;
-        if (parent) {
-          var clone = document.createElement('script');
-          Array.prototype.slice.call(node.attributes || []).forEach(function(attr) {
-            if (attr.name !== 'type' && attr.name !== 'src') clone.setAttribute(attr.name, attr.value);
-          });
-          if (node.__cmpOriginalType) clone.setAttribute('type', node.__cmpOriginalType);
-          if (originalSrc) clone.setAttribute('src', originalSrc);
-          if (node.textContent) clone.textContent = node.textContent;
-          parent.replaceChild(clone, node);
-        }
+      if (kind === 'script' || kind === 'iframe' || kind === 'pixel') {
+        activateFreshResource(node, originalSrc, kind);
       } else if (originalSrc && node.setAttribute) {
         node.setAttribute('src', originalSrc);
+        _enforcementMetrics.allowed += 1;
+        recordEnforcement('ALLOWED', decision.rule, kind, originalSrc, decision.reason);
       }
-      _enforcementMetrics.allowed += 1;
-      recordEnforcement('ALLOWED', decision.rule, kind, originalSrc, decision.reason);
     } finally {
       _enforcementMutating = false;
     }
@@ -1369,9 +1440,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var started = window.performance && window.performance.now ? window.performance.now() : Date.now();
     _enforcementMetrics.inspected += 1;
     var decision = decisionForNode(node);
-    if (decision.action === 'block') quarantineNode(node, decision);
+    if (decision.action === 'block') {
+      if (isInertConsentElement(node)) return;
+      quarantineNode(node, decision);
+    }
     else if (decision.action === 'allow') {
       if (node.__cmpQuarantined) restoreQuarantinedNode(node, decision);
+      else if (isInertConsentElement(node) && decision.resource) activateFreshResource(node, decision.resource.url, decision.resource.kind);
       else if (decision.resource) {
         _enforcementMetrics.allowed += 1;
         recordEnforcement('ALLOWED', decision.rule, decision.resource.kind, decision.resource.url, decision.reason);
@@ -1539,6 +1614,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function installEnforcementBootstrap() {
+    window.__CMP_HOLD_URL = function(url) {
+      var value = String(url || '');
+      if (!value || isCmpInternalResource(value)) return false;
+      var rule = findTrackerRule(value, 'script') || findTrackerRule(value, 'iframe') || findTrackerRule(value, 'pixel');
+      return !!(rule && isBlocked(rule));
+    };
     var started = window.performance && window.performance.now ? window.performance.now() : Date.now();
     patchInsertionTarget(document.head);
     patchInsertionTarget(document.body);
@@ -1644,31 +1725,53 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     return { domains: domains, identifiers: identifiers };
   }
 
+  function isInertConsentElement(node) {
+    if (!node || !node.getAttribute) return false;
+    if (node.getAttribute('data-cmp-activated') === '1') return false;
+    var type = String(node.getAttribute('type') || '').toLowerCase();
+    if (type === 'text/plain' && (node.getAttribute('data-cmp-purpose') || node.getAttribute('data-cmp-src'))) return true;
+    if (node.getAttribute('data-cmp-src') && !node.getAttribute('src')) return true;
+    return false;
+  }
+
+  function activateFreshResource(node, url, kind) {
+    if (!node || !url || (node.getAttribute && node.getAttribute('data-cmp-activated') === '1')) return;
+    var parent = node.parentNode || document.head || document.documentElement;
+    if (!parent) return;
+    var previousMutating = _enforcementMutating;
+    _enforcementMutating = true;
+    try {
+      node.setAttribute('data-cmp-activated', '1');
+      var fresh = null;
+      if (kind === 'script') {
+        fresh = document.createElement('script');
+        fresh.type = 'text/javascript';
+        fresh.src = url;
+      } else if (kind === 'iframe') {
+        fresh = document.createElement('iframe');
+        fresh.src = url;
+        fresh.title = node.getAttribute('title') || 'Embedded content';
+      } else if (kind === 'pixel') {
+        fresh = document.createElement('img');
+        fresh.src = url;
+        fresh.alt = '';
+        fresh.width = 1;
+        fresh.height = 1;
+      }
+      if (!fresh) return;
+      fresh.setAttribute('data-cmp-activated', '1');
+      parent.appendChild(fresh);
+      _enforcementMetrics.allowed += 1;
+      recordEnforcement('ALLOWED', null, kind, url, 'fresh-element-after-consent');
+    } finally {
+      _enforcementMutating = previousMutating;
+    }
+  }
+
   function enforceScriptTags() {
-    var tags = document.querySelectorAll('script[data-cmp-purpose]');
+    var tags = document.querySelectorAll('script[data-cmp-purpose], iframe[data-cmp-purpose], img[data-cmp-purpose]');
     tags.forEach(function(el) {
-      if (el.__cmpQuarantined) {
-        inspectEnforcementNode(el);
-        return;
-      }
-      var purposeKey = el.getAttribute('data-cmp-purpose');
-      var granted = false;
-
-      granted = purposeGrantedByKey(purposeKey);
-
-      if (granted && el.getAttribute('type') === 'text/plain') {
-        el.removeAttribute('type');
-        var clone = document.createElement('script');
-        Array.prototype.slice.call(el.attributes).forEach(function(attr) {
-          clone.setAttribute(attr.name, attr.value);
-        });
-        if (el.textContent) clone.textContent = el.textContent;
-        el.parentNode.replaceChild(clone, el);
-        log('Restored script for purpose: ' + purposeKey);
-      } else if (!granted && el.getAttribute('type') !== 'text/plain') {
-        el.setAttribute('type', 'text/plain');
-        log('Paused script for purpose: ' + purposeKey);
-      }
+      inspectEnforcementNode(el);
     });
   }
 
@@ -1752,7 +1855,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if (d && d.vendorId) storedVendors.push(d.vendorId);
       });
     }
-    if (storedVendors.length && current.vendorIds.length) {
+    if (current.vendorIds.length) {
+      if (!storedVendors.length) return true;
       var knownV = {};
       storedVendors.forEach(function(id) { knownV[id] = true; });
       var j;
@@ -3017,6 +3121,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     banner.setAttribute('dir', dir);
     banner.setAttribute('lang', (_config.resolvedLanguage || 'en'));
     banner.setAttribute('role', 'dialog');
+    banner.setAttribute('aria-modal', 'true');
+    banner.setAttribute('aria-labelledby', '__cmp_banner_title__');
     banner.setAttribute('aria-label', cfg.title || 'Consent');
     banner.setAttribute('style',
       bannerPositionStyle(layout, position)
@@ -3060,6 +3166,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }
       if (cfg.title) {
         var h = document.createElement(layout === 'bar' ? 'strong' : 'p');
+        h.id = '__cmp_banner_title__';
         h.textContent = cfg.title;
         h.style.display = 'block';
         h.style.margin = '0 0 6px 0';
@@ -3230,10 +3337,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
 
     cmpMountRoot().appendChild(banner);
+    ensureFocusStyles();
+    _bannerEscapeCloses = !cfg.blockPageUntilConsent || !!cfg.showCloseButton;
+    try { _bannerLastFocus = document.activeElement || null; } catch (eBannerFocus) { _bannerLastFocus = null; }
+    document.addEventListener('keydown', onBannerKeyDown, true);
+    var bannerFocus = pcFocusables(banner)[0];
+    if (bannerFocus && typeof bannerFocus.focus === 'function') {
+      try { bannerFocus.focus(); } catch (eBannerFirst) {}
+    }
     _hostScroll.sync();
   }
 
   function removeBanner() {
+    document.removeEventListener('keydown', onBannerKeyDown, true);
     var el = document.getElementById('__cmp_banner__');
     if (el && el.parentNode) el.parentNode.removeChild(el);
     var overlay = document.getElementById('__cmp_banner_overlay__');
@@ -3241,6 +3357,47 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     removeParentalConsentDialog();
     _hostScroll.sync();
     syncPreferenceWidget();
+    var restore = _bannerLastFocus;
+    _bannerLastFocus = null;
+    if (restore && typeof restore.focus === 'function' && document.contains && document.contains(restore)) {
+      try { restore.focus(); } catch (eRestore) {}
+    }
+  }
+
+  function ensureFocusStyles() {
+    if (document.getElementById('__cmp_focus_css')) return;
+    var style = document.createElement('style');
+    style.id = '__cmp_focus_css';
+    style.textContent = '#__cmp_banner__ button:focus-visible,#__cmp_banner__ select:focus-visible,#__cmp_pc__ button:focus-visible,#__cmp_pc__ [role="switch"]:focus-visible{outline:2px solid currentColor;outline-offset:2px;}';
+    (document.head || document.documentElement).appendChild(style);
+  }
+
+  function onBannerKeyDown(e) {
+    var banner = document.getElementById('__cmp_banner__');
+    if (!banner || !e) return;
+    if (e.key === 'Escape') {
+      if (_bannerEscapeCloses) {
+        if (e.preventDefault) e.preventDefault();
+        dismissBannerWithoutChoice();
+      }
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    var list = pcFocusables(banner);
+    if (!list.length) {
+      if (e.preventDefault) e.preventDefault();
+      return;
+    }
+    var first = list[0];
+    var last = list[list.length - 1];
+    var active = document.activeElement;
+    if (e.shiftKey && active === first) {
+      if (e.preventDefault) e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      if (e.preventDefault) e.preventDefault();
+      first.focus();
+    }
   }
 
   function getConsent() {
@@ -4616,8 +4773,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
 // ---------------------------------------------------------------------------
 // buildEmbedSnippet
-// Returns the small loader snippet that goes in <head>.
-// The main SDK is loaded async from the CDN URL.
+// Returns the loader that must be the first script in <head>.
+// The inline bootstrap runs before the SDK file is downloaded. The SDK script
+// itself stays synchronous. Do not add async or defer.
 // ---------------------------------------------------------------------------
 
 export function buildEmbedSnippet(options: {
@@ -4668,9 +4826,9 @@ export function buildEmbedSnippet(options: {
   } catch {
     /* relative cdn URLs skip preconnect */
   }
-  return `<!-- Consent Management Platform -->
-<!-- Load synchronously before optional trackers. -->
-${preconnect}${prefetch}<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
+  return `<!-- Consent Management Platform. Keep this as the first script in <head>. -->
+<!-- Optional tags must use type="text/plain" and data-cmp-purpose so the browser does not execute them before consent. -->
+${preconnect}${earlyBlockBootstrapSource()}${prefetch}<script src="${options.cdnUrl}" data-site-key="${options.siteKey}"></script>
 <!-- /CMP -->`;
 }
 

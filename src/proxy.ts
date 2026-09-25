@@ -70,6 +70,17 @@ const clerkProxy = clerkMiddleware(
       return preflight;
     }
 
+    if (!isPublicRoute(request) && pathname.startsWith("/api/")) {
+      const session = await auth();
+      if (!session.userId) {
+        const unauthorized = NextResponse.json(
+          { success: false, message: "Unauthorized" },
+          { status: 401 },
+        );
+        return withBaselineHeaders(request, unauthorized);
+      }
+    }
+
     if (
       shouldEnforceCsrfOrigin(request.method, pathname) &&
       !hasMachineBearerAuth(request)
@@ -93,7 +104,7 @@ const clerkProxy = clerkMiddleware(
       }
     }
 
-    if (!isPublicRoute(request)) {
+    if (!isPublicRoute(request) && !pathname.startsWith("/api/")) {
       await auth.protect();
     }
 

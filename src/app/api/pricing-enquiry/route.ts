@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
+import { recaptchaSiteKey, verifyRecaptcha } from "@/lib/recaptcha";
 import { logger } from "@/lib/logger";
-import { isMailConfigured } from "@/lib/mail/send-email";
+import { isNodemailerConfigured } from "@/lib/mail/send-email";
 import { sendPricingEnquiryEmail } from "@/lib/mail/send-pricing-enquiry";
 import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 
@@ -49,13 +50,24 @@ export async function POST(request: Request) {
       );
     }
 
+    if (recaptchaSiteKey()) {
+      const recaptchaToken = String(body.recaptchaToken ?? "").trim();
+      const captchaOk = await verifyRecaptcha(recaptchaToken, getClientIp(request));
+      if (!captchaOk) {
+        return NextResponse.json(
+          { success: false, message: "Security check failed. Try sending the enquiry again." },
+          { status: 400 },
+        );
+      }
+    }
+
     logger.info("pricing_enquiry_received", {
       plan,
       organisationLength: organisation.length,
       hasPhone: Boolean(phone),
     });
 
-    if (!isMailConfigured()) {
+    if (!isNodemailerConfigured()) {
       logger.error("pricing_enquiry_mail_unconfigured");
       return NextResponse.json(
         { success: false, message: "Could not send the enquiry. Mail is not configured yet." },

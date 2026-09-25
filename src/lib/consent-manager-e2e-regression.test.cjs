@@ -1871,6 +1871,12 @@ function testSynchronousBootstrapSnippet() {
   assert.match(snippet, /data-site-key="site_bootstrap_test"/);
   assert.match(snippet, /rel="preconnect"/);
   assert.match(snippet, /__CMP_CONFIG_PROMISE/);
+  assert.match(snippet, /data-cmp-src/);
+  assert.doesNotMatch(snippet, /beforescriptexecute/);
+  assert.match(snippet, /__CMP_CONSENT_DEFAULT_SET/);
+  assert.match(snippet, /analytics_storage: "denied"/);
+  assert.match(snippet, /CMP Installation Warning/);
+  assert.match(snippet, /type="text\/plain"/);
   assert.doesNotMatch(snippet, /\basync\b|\bdefer\b/);
 }
 
@@ -2665,6 +2671,49 @@ async function testPurposeAndVendorScopeChangeRequiresReconsent() {
   assert.ok(vendorReload.document.getElementById("__cmp_banner__"), "new vendors require re-consent");
 }
 
+async function testSameOriginTrackerAndNetworkBlock() {
+  const store = createStore();
+  const api = createApi(store);
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+
+  const sameOriginAnalytics = appendResource(browser, "script", "https://example.com/analytics.js");
+  assert.equal(sameOriginAnalytics.getAttribute("src"), null);
+  assert.equal(sameOriginAnalytics.getAttribute("type"), "text/plain");
+  const applicationScript = appendResource(browser, "script", "https://example.com/app.js");
+  assert.equal(applicationScript.getAttribute("src"), "https://example.com/app.js");
+  const thirdParty = appendResource(browser, "script", "https://www.google-analytics.com/analytics.js");
+  assert.equal(thirdParty.getAttribute("src"), null);
+
+  await assert.rejects(
+    () => browser.window.fetch("https://www.google-analytics.com/g/collect?v=2"),
+    /CMP blocked fetch/,
+  );
+  await assert.rejects(
+    () => browser.window.fetch("https://www.facebook.com/tr?id=1"),
+    /CMP blocked fetch/,
+  );
+
+  browser.window.CMP.openPreferenceCenter();
+  const analyticsToggle = collect(
+    browser.document.body,
+    (el) => el.getAttribute("aria-label") === "Toggle Analytics",
+  )[0];
+  assert.ok(analyticsToggle, "analytics preference should be available");
+  analyticsToggle.click();
+  buttonByText(browser, "Save preferences").click();
+  await flush();
+
+  const analyticsRequest = await browser.window.fetch("https://www.google-analytics.com/g/collect?v=2");
+  assert.equal(analyticsRequest.status, 404);
+  await assert.rejects(
+    () => browser.window.fetch("https://googleads.g.doubleclick.net/pagead/viewthroughconversion/1"),
+    /CMP blocked fetch/,
+  );
+  const otherTenant = api.getConsent(store.records[0].consentId, ids.websiteB);
+  assert.equal(otherTenant.status, 404);
+}
+
 async function testRejectAllGoogleConsentModeStaysDenied() {
   const store = createStore();
   store.config.signals.googleConsentMode = {
@@ -2725,6 +2774,7 @@ async function main() {
   await testServerVerificationFailureKeepsOptionalBlocked();
   await testPurposeAndVendorScopeChangeRequiresReconsent();
   await testRejectAllGoogleConsentModeStaysDenied();
+  await testSameOriginTrackerAndNetworkBlock();
 
   console.log("consent manager e2e regression tests passed");
 }

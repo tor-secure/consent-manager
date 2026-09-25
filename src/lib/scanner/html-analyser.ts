@@ -1,4 +1,5 @@
 import "server-only";
+import { diagnoseCmpInstall } from "../sdk/early-block";
 import { matchDomain, type TrackerSignature } from "./tracker-signatures";
 import {
   getSafeScanUrl,
@@ -376,6 +377,29 @@ function analyseHtml(html: string, pageUrl: string): DetectedItem[] {
       cmpPurposeValue: null,
       resourceKind: "beacon",
       details: { beaconUrl, evidenceSource: "static_html", evidenceClass: "configuration_mismatch" },
+    });
+  }
+
+  for (const warning of diagnoseCmpInstall(html)) {
+    add({
+      type: "install-warning",
+      name: warning.message,
+      domain: warning.url ? extractHostname(warning.url) : null,
+      identifier: warning.url ? warning.url.slice(0, 500) : warning.code,
+      riskLevel: "high",
+      classificationStatus: "known",
+      category: "installation",
+      signature: null,
+      pageUrl,
+      wouldExecuteOnParse: warning.code !== "missing-purpose",
+      cmpPurposeValue: null,
+      resourceKind: "other",
+      details: {
+        code: warning.code,
+        message: warning.message,
+        evidenceSource: "static_html",
+        evidenceClass: "installation_warning",
+      },
     });
   }
 
