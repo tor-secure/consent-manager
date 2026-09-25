@@ -394,6 +394,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function finishChoice(err, closeUi) {
     if (err) {
+      var msg = err && err.message ? String(err.message) : '';
+      if (msg.indexOf('already being submitted') !== -1) {
+        return;
+      }
       _choiceDismissed = false;
       restoreChoiceUi();
       return;
@@ -522,6 +526,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return data.policyContexts[_abVariantId];
     }
     return data && data.policyContext;
+  }
+
+  function samePresentedPolicy(current, incoming) {
+    if (!current || !incoming || !current.claims || !incoming.claims) return false;
+    return current.claims.policyVersionId === incoming.claims.policyVersionId
+      && current.claims.noticeHash === incoming.claims.noticeHash;
   }
 
   function configRevision(config) {
@@ -2109,13 +2119,21 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (
         !job.contextRetry &&
         data &&
-        data.code === 'POLICY_CONTEXT_EXPIRED'
+        (
+          data.code === 'POLICY_CONTEXT_EXPIRED' ||
+          data.code === 'POLICY_CONTEXT_POLICY_MISMATCH' ||
+          data.code === 'POLICY_CONTEXT_SCOPE_MISMATCH' ||
+          data.code === 'POLICY_CONTEXT_VARIANT_MISMATCH'
+        )
       ) {
-        return fetchConfigJson().then(function(next) {
-          if (next && next.unchanged) throw new Error(failedConsentMessage(data));
-          if (!next || !next.success) throw new Error(failedConsentMessage(data));
+        return fetchConfigJson(true).then(function(next) {
+          if (!next || next.unchanged || !next.success) throw new Error(failedConsentMessage(data));
+          var nextContext = presentedPolicyContext(next);
+          if (_policyContext && nextContext && !samePresentedPolicy(_policyContext, nextContext)) {
+            throw new Error(failedConsentMessage(data));
+          }
           _config = applyAssignedAbTest(next);
-          rememberPolicyContext(presentedPolicyContext(next));
+          rememberPolicyContext(nextContext);
           if (!_policyContext || !_policyContext.token) throw new Error(failedConsentMessage(data));
           body.policyContext = _policyContext;
           body.language = (_config && _config.resolvedLanguage) || body.language;
@@ -2127,6 +2145,28 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             }
             applyConfirmedConsent(retryData);
           });
+        });
+      }
+      if (
+        !job.recordRetry &&
+        result.status === 409 &&
+        data &&
+        String(data.message || '').indexOf('Consent state changed') !== -1
+      ) {
+        _consentId = null;
+        _stateVersion = 0;
+        _replaceMissingConsent = true;
+        delete body.consentId;
+        body.expectedStateVersion = 0;
+        body.submissionId = newSubmissionId();
+        job.submissionId = body.submissionId;
+        job.recordRetry = true;
+        return postConsentRecord().then(function(retryResult) {
+          var retryData = retryResult.data;
+          if (!retryResult.ok || !confirmedResponse(retryData)) {
+            throw new Error(failedConsentMessage(retryData));
+          }
+          applyConfirmedConsent(retryData);
         });
       }
       throw new Error(failedConsentMessage(data));
@@ -2152,7 +2192,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function submitConsent(choice, purposeDecisions, vendorDecisions, callback) {
     if (_submitBusy || _queuedSubmit) {
-      if (callback) callback(new Error('A consent request is already being submitted'));
       return false;
     }
     var retrySignature = JSON.stringify({
@@ -4232,7 +4271,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         var bannerOpen = !!document.getElementById('__cmp_banner__');
         var pcOpen = !!document.getElementById('__cmp_pc__');
         if ((bannerOpen || pcOpen) && _policyContext) {
-          log('Policy changed while consent UI is open; preserving the context currently shown');
+          var incomingContext = presentedPolicyContext(data);
+          if (samePresentedPolicy(_policyContext, incomingContext)) {
+            rememberPolicyContext(incomingContext);
+          } else {
+            log('Policy changed while consent UI is open; preserving the context currently shown');
+          }
           return;
         }
         if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
@@ -4311,9 +4355,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       }
     });
   }
-  function fetchConfigJson() {
+  function fetchConfigJson(forceRefresh) {
     var headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
     var expectedUrl = configRequestUrl();
+    if (forceRefresh) {
+      expectedUrl += (expectedUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
+      window.__CMP_CONFIG_PROMISE = null;
+    }
     var prefetched = window.__CMP_CONFIG_PROMISE;
     if (
       prefetched &&

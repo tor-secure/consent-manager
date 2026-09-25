@@ -1483,6 +1483,76 @@ async function testExpiredPolicyContextRetriesOnce() {
   assert.equal(browser.document.getElementById("__cmp_banner__"), null);
 }
 
+async function testPolicyMismatchRetriesWithFreshToken() {
+  const store = createStore();
+  let posts = 0;
+  store.consentPostInterceptor = (body, _init, api) => {
+    posts += 1;
+    if (posts === 1) {
+      return {
+        status: 409,
+        body: {
+          success: false,
+          code: "POLICY_CONTEXT_POLICY_MISMATCH",
+          message: "Policy context does not match the published policy",
+        },
+      };
+    }
+    return api.submitConsent(body);
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  await flush();
+  await flush();
+
+  assert.equal(posts, 2, "policy mismatch should refresh config and retry once");
+  assert.equal(store.records.length, 1);
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+}
+
+async function testAcceptAllDoubleClickDoesNotRestoreBanner() {
+  const store = createStore();
+  let posts = 0;
+  store.consentPostInterceptor = (body, _init, api) => {
+    posts += 1;
+    return api.submitConsent(body);
+  };
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  const accept = buttonByText(browser, "Accept all");
+  accept.click();
+  accept.click();
+  await flush();
+  await flush();
+
+  assert.equal(posts, 1, "a second Accept all click must not start another submit");
+  assert.equal(store.records.length, 1);
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+}
+
+async function testStaleConsentVersionAcceptAllRetries() {
+  const store = createStore();
+  const browser = createBrowser(store);
+  await loadSdk(browser);
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  assert.equal(store.records.length, 1);
+  store.records[0].stateVersion += 1;
+
+  browser.window.CMP.showBanner();
+  buttonByText(browser, "Accept all").click();
+  await flush();
+  await flush();
+
+  assert.equal(browser.window.CMP.getConsent().confirmed, true);
+  assert.equal(browser.document.getElementById("__cmp_banner__"), null);
+  assert.ok(store.records.length >= 1);
+}
+
 async function testConsentTimeoutRemainsBlocked() {
   const store = createStore();
   store.consentPostInterceptor = (_body, init) =>
@@ -2625,6 +2695,9 @@ async function main() {
   await testServerConfirmedConsentStateMachine();
   await testConsentFailuresRemainBlocked();
   await testExpiredPolicyContextRetriesOnce();
+  await testPolicyMismatchRetriesWithFreshToken();
+  await testAcceptAllDoubleClickDoesNotRestoreBanner();
+  await testStaleConsentVersionAcceptAllRetries();
   await testConsentTimeoutRemainsBlocked();
   await testPendingReloadAndCrossTabWithdrawal();
   await testPendingStorageNeverActivatesProcessing();
