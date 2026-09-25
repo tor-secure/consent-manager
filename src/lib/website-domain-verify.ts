@@ -6,11 +6,10 @@ import { promises as dns } from "node:dns";
 import {
   SITE_VERIFICATION_TXT_PREFIX,
   SITE_VERIFICATION_WELL_KNOWN_PATH,
-  apexHostname,
   htmlHasVerificationMeta,
   verificationFetchHosts,
 } from "@/lib/website-domain-verify-constants";
-import { assertSafeScanUrl } from "@/lib/scanner/ssrf-guard";
+import { fetchVerificationDocument } from "@/lib/website-domain-verify-fetch";
 
 export {
   SITE_VERIFICATION_META_NAME,
@@ -45,56 +44,10 @@ export async function checkDnsTxt(domain: string, token: string): Promise<boolea
   }
 }
 
-async function fetchText(url: string, hops = 0): Promise<string | null> {
-  if (hops > 3) return null;
-  try {
-    await assertSafeScanUrl(url);
-  } catch {
-    return null;
-  }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-  try {
-    const response = await fetch(url, {
-      method: "GET",
-      redirect: "manual",
-      signal: controller.signal,
-      headers: {
-        Accept: "text/html,text/plain,*/*",
-        "User-Agent": "ConsentManager-DomainVerify/1.0",
-      },
-    });
-    if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get("location");
-      if (!location) return null;
-      const next = new URL(location, url);
-      const from = new URL(url);
-      if (next.protocol !== "https:" && next.protocol !== "http:") return null;
-      if (apexHostname(from.hostname) !== apexHostname(next.hostname)) return null;
-      return fetchText(next.href, hops + 1);
-    }
-    if (!response.ok) return null;
-    const contentType = response.headers.get("content-type") ?? "";
-    if (
-      contentType &&
-      !contentType.includes("text/") &&
-      !contentType.includes("html") &&
-      !contentType.includes("xml")
-    ) {
-      return null;
-    }
-    return (await response.text()).slice(0, 200_000);
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export async function checkMetaTag(domain: string, token: string): Promise<boolean> {
   for (const host of verificationFetchHosts(domain)) {
     for (const protocol of ["https", "http"] as const) {
-      const html = await fetchText(`${protocol}://${host}/`);
+      const html = await fetchVerificationDocument(`${protocol}://${host}/`);
       if (html && htmlHasVerificationMeta(html, token)) return true;
     }
   }
@@ -104,7 +57,9 @@ export async function checkMetaTag(domain: string, token: string): Promise<boole
 export async function checkWellKnownFile(domain: string, token: string): Promise<boolean> {
   for (const host of verificationFetchHosts(domain)) {
     for (const protocol of ["https", "http"] as const) {
-      const body = await fetchText(`${protocol}://${host}${SITE_VERIFICATION_WELL_KNOWN_PATH}`);
+      const body = await fetchVerificationDocument(
+        `${protocol}://${host}${SITE_VERIFICATION_WELL_KNOWN_PATH}`,
+      );
       if (body && body.trim() === token) return true;
     }
   }
