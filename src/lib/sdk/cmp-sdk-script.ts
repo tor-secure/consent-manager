@@ -2026,9 +2026,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         storedConsentId &&
         incomingConsentId !== storedConsentId
       );
+      var sameRecordUpdate = !!(
+        incomingConsentId &&
+        storedConsentId &&
+        incomingConsentId === storedConsentId &&
+        incomingStateVersion >= currentStateVersion
+      );
       if (
         !newConsentAfterWithdrawal &&
         !replacingMissingRecord &&
+        !sameRecordUpdate &&
         current &&
         current.submissionId !== submissionId &&
         (
@@ -2098,10 +2105,25 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function persistUnconfirmedState(state, job, message) {
+    var currentRaw = null;
+    var current = null;
+    try {
+      currentRaw = localStorage.getItem(STORAGE_KEY);
+      current = currentRaw ? JSON.parse(currentRaw) : null;
+    } catch (eRead) {}
+    var updatingConfirmed = !!(
+      current &&
+      current.status === 'confirmed' &&
+      current.serverConfirmed &&
+      (_consentId || current.consentId)
+    );
+    if (updatingConfirmed) {
+      _consentState = state;
+      renderSubmissionState(message);
+      return;
+    }
     blockOptionalProcessing(state, message);
     try {
-      var currentRaw = localStorage.getItem(STORAGE_KEY);
-      var current = currentRaw ? JSON.parse(currentRaw) : null;
       var replacingWithdrawal = current && current.status === 'withdrawn' && !_consentId;
       if (
         !replacingWithdrawal &&
@@ -2138,7 +2160,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function flushConsentSubmit() {
     if (_submitBusy || !_queuedSubmit || !_config) return;
-    if (!_livePolicyReady || !_config.websiteId || !_policyContext || !_policyContext.token) return;
+    if (
+      !_livePolicyReady &&
+      !(_consentId && _policyContext && _policyContext.token)
+    ) return;
+    if (!_config.websiteId || !_policyContext || !_policyContext.token) return;
     var job = _queuedSubmit;
     _queuedSubmit = null;
     _submitBusy = true;
@@ -2309,11 +2335,28 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (timeoutId) window.clearTimeout(timeoutId);
       log('Submit consent failed: ' + err);
       _retryJob = job;
-      persistUnconfirmedState(
-        'FAILED',
-        job,
-        err && err.message ? String(err.message) : failedConsentMessage(null)
-      );
+      var storedAfterFail = loadStoredConsent();
+      if (
+        storedAfterFail &&
+        storedAfterFail.status === 'confirmed' &&
+        storedAfterFail.serverConfirmed
+      ) {
+        _consentState = storedAfterFail.choice === 'reject-all' ? 'DENIED' : 'GRANTED';
+        applyDecisions(storedAfterFail.decisions || []);
+        applyTrackerEnforcement();
+        publishExternalSignals();
+        renderSubmissionState(
+          document.getElementById('__cmp_prefs__')
+            ? 'Preferences could not be saved. Please retry.'
+            : (err && err.message ? String(err.message) : failedConsentMessage(null))
+        );
+      } else {
+        persistUnconfirmedState(
+          'FAILED',
+          job,
+          err && err.message ? String(err.message) : failedConsentMessage(null)
+        );
+      }
       if (job.callback) job.callback(new Error('Consent could not be saved. Please retry.'));
     })
     .then(function() {
@@ -2502,7 +2545,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function saveCookiePreferenceToggles() {
-    if (!_config || !_consentId) return;
+    if (!_config || !_consentId) {
+      renderSubmissionState('Preferences could not be saved. Please retry.');
+      return;
+    }
     var draft = seedPrefsDraft();
     var purposeDecisions = ((_config.purposes) || []).map(function(p) {
       return { purposeId: p.id, granted: !!(p.isRequired || (draft.purposes && draft.purposes[p.id])) };
@@ -2510,12 +2556,19 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var vendorDecisions = ((_config.vendors) || []).map(function(v) {
       return { vendorId: v.id, granted: currentVendorGranted(v.id) };
     });
-    submitConsent('granular', purposeDecisions, vendorDecisions, function(err) {
+    var queued = submitConsent('granular', purposeDecisions, vendorDecisions, function(err) {
       _choiceUiHeld = false;
       if (err) {
         renderSubmissionState('Preferences could not be saved. Please retry.');
+        return;
       }
+      _prefsDraft = null;
+      renderSubmissionState('Preferences saved');
+      if (document.getElementById('__cmp_prefs__')) renderCookiePreferencesPanel();
     });
+    if (!queued) {
+      renderSubmissionState('Preferences could not be saved. Please retry.');
+    }
   }
 
   function applyToggleLook(btn, on) {
@@ -2664,6 +2717,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       list.appendChild(row);
     });
     panel.appendChild(list);
+
+    var prefsStatus = document.createElement('div');
+    prefsStatus.id = '__cmp_prefs_status__';
+    prefsStatus.setAttribute('role', 'status');
+    prefsStatus.style.cssText = 'display:none;margin:0 0 8px;font-size:12px;font-weight:600;color:#B45309;';
+    panel.appendChild(prefsStatus);
 
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
