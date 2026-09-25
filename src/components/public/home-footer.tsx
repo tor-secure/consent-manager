@@ -77,6 +77,7 @@ const footerColumns = [
       { label: "Blogs", href: "/blogs" },
       { label: "News", href: "/news" },
       { label: "FAQs", href: "/faqs" },
+      { label: "DPDP Act", href: "/dpdp-act" },
       { label: "E learning", href: "/e-learning" },
     ],
   },

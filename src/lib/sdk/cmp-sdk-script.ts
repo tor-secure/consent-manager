@@ -158,6 +158,8 @@ function buildSdkScriptBody(
 ${preamble ?? ""}
 ${siteKeyLine}
 ${apiBaseLine}
+  if (window.__CMP_SDK_LOADED__ === SITE_KEY) return;
+  window.__CMP_SDK_LOADED__ = SITE_KEY;
   var STORAGE_KEY = 'cmp_consent_' + SITE_KEY;
   var EXPIRY_KEY  = 'cmp_expiry_'  + SITE_KEY;
   var POLICY_CONTEXT_KEY = 'cmp_policy_context_' + SITE_KEY;
@@ -1618,6 +1620,29 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
+  function patchSetAttribute() {
+    var proto = window.Element && window.Element.prototype;
+    if (!proto || proto.__cmpAttrPatched || typeof proto.setAttribute !== 'function') return;
+    var nativeSetAttribute = proto.setAttribute;
+    proto.setAttribute = function(name, value) {
+      var attr = String(name || '').toLowerCase();
+      var tag = this && this.tagName ? String(this.tagName).toLowerCase() : '';
+      if (
+        !_enforcementMutating &&
+        attr === 'src' &&
+        (tag === 'script' || tag === 'iframe' || tag === 'img') &&
+        !(this.getAttribute && this.getAttribute('data-cmp-activated') === '1') &&
+        shouldBlockNetworkUrl(String(value || ''), tag === 'img' ? 'pixel' : tag)
+      ) {
+        nativeSetAttribute.call(this, 'data-cmp-src', String(value || ''));
+        if (tag === 'script') nativeSetAttribute.call(this, 'type', 'text/plain');
+        return;
+      }
+      return nativeSetAttribute.call(this, name, value);
+    };
+    proto.__cmpAttrPatched = true;
+  }
+
   function installEnforcementBootstrap() {
     window.__CMP_HOLD_URL = function(url) {
       var value = String(url || '');
@@ -1626,6 +1651,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return !!(rule && isBlocked(rule));
     };
     var started = window.performance && window.performance.now ? window.performance.now() : Date.now();
+    if (window.Node && window.Node.prototype) patchInsertionTarget(window.Node.prototype);
+    patchSetAttribute();
     patchInsertionTarget(document.head);
     patchInsertionTarget(document.body);
     patchInsertionTarget(document.documentElement);
@@ -1856,6 +1883,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (stored.policyVersionId && current.policyVersionId && stored.policyVersionId !== current.policyVersionId) {
       return true;
     }
+    var liveHash = _configHash || (config && config.policy && config.policy.configHash) || '';
+    if (stored.configHash && liveHash && stored.configHash !== liveHash) return true;
     var storedPurposes = Array.isArray(stored.purposeIds) ? stored.purposeIds.slice() : [];
     if (!storedPurposes.length) {
       (stored.decisions || []).forEach(function(d) {
@@ -2075,6 +2104,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         decisions: decisionsArray,
         choice: choice || '',
         policyVersionId: scope.policyVersionId,
+        configHash: _configHash || ((_config && _config.policy && _config.policy.configHash) || ''),
         purposeIds: scope.purposeIds,
         vendorIds: scope.vendorIds,
         tcString: _tcString,
@@ -3431,6 +3461,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     ensureFocusStyles();
     _bannerEscapeCloses = !cfg.blockPageUntilConsent || !!cfg.showCloseButton;
     try { _bannerLastFocus = document.activeElement || null; } catch (eBannerFocus) { _bannerLastFocus = null; }
+    document.removeEventListener('keydown', onBannerKeyDown, true);
     document.addEventListener('keydown', onBannerKeyDown, true);
     var bannerFocus = pcFocusables(banner)[0];
     if (bannerFocus && typeof bannerFocus.focus === 'function') {
@@ -3769,8 +3800,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
             paintKnob();
           });
         }
-        if (childLocked) {
+        if (p.isRequired || childLocked) {
           toggle.disabled = true;
+          toggle.setAttribute('aria-disabled', 'true');
           toggle.style.cursor = 'not-allowed';
           toggle.style.opacity = '0.55';
         }
@@ -4108,6 +4140,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _hostScroll.endTransition();
 
     try { _pcLastFocus = document.activeElement || null; } catch (eAf) { _pcLastFocus = null; }
+    document.removeEventListener('keydown', onPcKeyDown, true);
     document.addEventListener('keydown', onPcKeyDown, true);
     var firstFocus = pcFocusables(pc)[0];
     if (firstFocus && typeof firstFocus.focus === 'function') {
@@ -4161,7 +4194,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       applyTrackerEnforcement();
       return this.getEnforcementDiagnostics();
     },
-    onConsentChange: function(fn) { _listeners.push(fn); },
+    onConsentChange: function(fn) {
+      if (typeof fn !== 'function') return;
+      for (var li = 0; li < _listeners.length; li++) {
+        if (_listeners[li] === fn) return;
+      }
+      _listeners.push(fn);
+    },
     showBanner: function() {
       _choiceDismissed = false;
       _hostScroll.beginTransition();
@@ -4486,7 +4525,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var stored = loadStoredConsent();
     if (!stored || stored.status === 'withdrawn') {
       _consentId = null;
-      blockOptionalProcessing('DENIED', '');
+      _choiceDismissed = false;
+      _bannerSoftClosed = false;
+      _reconsentNotice = stored && stored.status === 'withdrawn' ? 'Consent withdrawn' : '';
+      blockOptionalProcessing('DENIED', stored && stored.status === 'withdrawn' ? 'Consent withdrawn' : '');
+      showBannerWhenReady();
       return;
     }
     if (stored.status === 'pending' || stored.status === 'failed') {

@@ -27,6 +27,7 @@ const isPublicRoute = createRouteMatcher([
   "/blogs(.*)",
   "/news(.*)",
   "/e-learning(.*)",
+  "/dpdp-act(.*)",
   "/robots.txt",
   "/sitemap.xml",
   "/manifest.webmanifest",

@@ -226,6 +226,36 @@ export function earlyBlockBootstrapSource(): string {
   try { patchSrc(window.HTMLScriptElement); } catch (e) {}
   try { patchSrc(window.HTMLIFrameElement); } catch (e) {}
   try { patchSrc(window.HTMLImageElement); } catch (e) {}
+  function neutralize(node) {
+    if (!node || !node.getAttribute || !node.tagName) return;
+    var tag = String(node.tagName).toLowerCase();
+    if (tag !== "script" && tag !== "iframe" && tag !== "img") return;
+    var src = node.getAttribute("src") || "";
+    if (!shouldHold(src)) return;
+    var held = String(src);
+    var rule = hit(held);
+    node.setAttribute("data-cmp-src", held);
+    node.removeAttribute("src");
+    if (tag === "script") node.setAttribute("type", "text/plain");
+    if (rule && rule.purpose && !node.getAttribute("data-cmp-purpose")) node.setAttribute("data-cmp-purpose", rule.purpose);
+  }
+  function patchInsert(proto) {
+    if (!proto || proto.__cmpEarlyInsert || typeof proto.appendChild !== "function") return;
+    proto.__cmpEarlyInsert = true;
+    var nativeAppend = proto.appendChild;
+    proto.appendChild = function(node) {
+      try { neutralize(node); } catch (err) {}
+      return nativeAppend.call(this, node);
+    };
+    if (typeof proto.insertBefore === "function") {
+      var nativeInsert = proto.insertBefore;
+      proto.insertBefore = function(node, ref) {
+        try { neutralize(node); } catch (err) {}
+        return nativeInsert.call(this, node, ref);
+      };
+    }
+  }
+  try { patchInsert(window.Node && window.Node.prototype); } catch (e) {}
 })();
 </script>
 `;
