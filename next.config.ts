@@ -10,6 +10,12 @@ const documentCorpHeader = {
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/blogs", permanent: true },
+      { source: "/blog/:slug", destination: "/blogs/:slug", permanent: true },
+    ];
+  },
   async headers() {
     const baseline = Object.entries(BASELINE_SECURITY_HEADERS).map(([key, value]) => ({
       key,

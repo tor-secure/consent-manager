@@ -12,6 +12,7 @@ import {
 } from "@/components/site/consent-guru-install";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
+import { JsonLd } from "@/components/seo/json-ld";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -21,6 +22,7 @@ import {
   pageAlternates,
   socialMetadata,
 } from "@/lib/site-metadata";
+import { graphSchema, organizationSchema, websiteSchema } from "@/lib/structured-data";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -96,42 +98,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
-        <Script
-          id="cmp-jsonld"
-          type="application/ld+json"
-          nonce={nonce}
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": "SoftwareApplication",
-                  name: SITE_NAME,
-                  url: SITE_URL,
-                  applicationCategory: "BusinessApplication",
-                  operatingSystem: "Web",
-                  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-                  description: DEFAULT_DESCRIPTION,
-                  logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
-                  image: `${SITE_URL}/og/consent-guru-share.png`,
-                  sameAs: [SITE_URL],
-                },
-                {
-                  "@type": "Organization",
-                  name: SITE_NAME,
-                  url: SITE_URL,
-                  logo: `${SITE_URL}/brand/consent-guru-logo.svg`,
-                },
-                {
-                  "@type": "WebSite",
-                  name: SITE_NAME,
-                  url: SITE_URL,
-                  inLanguage: "en-IN",
-                },
-              ],
-            }),
-          }}
-        />
+        <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
           <OptionalClerkProvider>{children}</OptionalClerkProvider>
         </ThemeProvider>

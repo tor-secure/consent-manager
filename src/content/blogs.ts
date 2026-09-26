@@ -1,3 +1,5 @@
+import { SEO_ARTICLES } from "@/content/seo-articles";
+
 export type BlogSection = {
   heading?: string;
   paragraphs: string[];
@@ -823,12 +825,16 @@ export const BLOGS: BlogPost[] = [
   },
 ];
 
+function allBlogs(): BlogPost[] {
+  return [...SEO_ARTICLES, ...BLOGS];
+}
+
 export function getAllBlogs(): BlogPost[] {
-  return [...BLOGS].sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
+  return allBlogs().sort((a, b) => (a.publishedAt < b.publishedAt ? 1 : -1));
 }
 
 export function getBlogBySlug(slug: string): BlogPost | undefined {
-  return BLOGS.find((post) => post.slug === slug);
+  return allBlogs().find((post) => post.slug === slug);
 }
 
 export function getRelatedBlogs(slug: string, limit = 3): BlogPost[] {

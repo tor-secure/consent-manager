@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { getAllBlogs } from "@/content/blogs";
+import { SEO_LANDINGS } from "@/content/seo-landings";
 import { SITE_URL } from "@/lib/site-metadata";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -28,6 +29,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/disclaimer`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.4 },
     { url: `${SITE_URL}/faqs`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    ...SEO_LANDINGS.map((page) => ({
+      url: `${SITE_URL}${page.path}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: page.path === "/consent-management-platform" ? 0.9 : 0.8,
+    })),
   ];
 
   const posts = getAllBlogs().map((post) => ({

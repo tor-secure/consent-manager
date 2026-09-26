@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 export const SITE_URL = "https://consentguru.com";
 export const SITE_NAME = "Consent Guru";
-export const DEFAULT_TITLE = "Consent Guru — Consent Management Platform";
+export const DEFAULT_TITLE =
+  "Consent Management Platform | Privacy & Cookie Consent Manager";
 export const DEFAULT_DESCRIPTION =
-  "Consent Guru helps you manage user consent transparently across web, mobile and apps — DPDP, GDPR, CCPA, LGPD and more.";
+  "Consent Guru helps teams manage cookie consent, privacy preferences, consent records, and analytics for GDPR, CCPA/CPRA, and the DPDP Act in one workspace.";
+
 export const SHARE_IMAGE_PATH = "/og/consent-guru-share.png";
 export const SHARE_IMAGE_ALT =
   "Consent Guru — Build trust. Collect consent. Stay compliant. consentguru.com";
@@ -103,5 +105,24 @@ export function unlistedPageMetadata(title: string, description: string): Metada
     description,
     robots: NOINDEX_ROBOTS,
     ...socialMetadata({ title, description }),
+  };
+}
+
+export function buildPageMetadata({
+  title,
+  description,
+  path,
+}: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata {
+  const socialTitle = title.includes(SITE_NAME) ? title : `${title} — ${SITE_NAME}`;
+  return {
+    title,
+    description,
+    robots: INDEXABLE_ROBOTS,
+    alternates: pageAlternates(path),
+    ...socialMetadata({ title: socialTitle, description, path }),
   };
 }

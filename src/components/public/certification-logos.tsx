@@ -26,7 +26,7 @@ const CERTIFICATIONS: {
   },
   {
     src: "/certification/Ism.png",
-    alt: "ISO 27001 certified",
+    alt: "ISO/IEC 27001",
     width: 160,
     height: 160,
     kind: "badge",
@@ -52,7 +52,7 @@ const CERTIFICATIONS: {
 
 export function CertificationLogos({
   compact = false,
-  heading = "The only Consent-Management platform certified by",
+  heading = "Organizations and standards",
 }: {
   compact?: boolean;
   heading?: string;
@@ -71,11 +71,11 @@ export function CertificationLogos({
       <ul
         className={
           compact
-            ? "mt-2 grid w-full grid-cols-6 items-center justify-items-center gap-x-3 gap-y-3 @[520px]:flex @[520px]:flex-nowrap @[520px]:justify-evenly @[520px]:gap-x-6"
-            : "mt-3 grid grid-cols-6 items-center justify-items-center gap-x-3 gap-y-3 sm:flex sm:flex-wrap sm:justify-start sm:gap-x-6 sm:gap-y-3 lg:gap-x-8"
+            ? "mt-3 flex w-full min-w-0 flex-wrap items-center justify-center gap-x-4 gap-y-4 sm:gap-x-8"
+            : "mt-3 flex min-w-0 flex-wrap items-center justify-start gap-x-6 gap-y-4 lg:gap-x-8"
         }
       >
-        {CERTIFICATIONS.map((item, index) => {
+        {CERTIFICATIONS.map((item) => {
           const image = (
             <Image
               src={item.src}
@@ -84,12 +84,8 @@ export function CertificationLogos({
               height={item.height}
               className={
                 item.kind === "badge"
-                  ? compact
-                    ? "h-14 w-14 object-contain @[520px]:h-16 @[520px]:w-16"
-                    : "h-16 w-16 object-contain sm:h-20 sm:w-20"
-                  : compact
-                    ? "h-10 w-auto max-w-[140px] object-contain @[520px]:h-12 @[520px]:max-w-[180px]"
-                    : "h-12 w-auto max-w-[160px] object-contain sm:h-16 sm:max-w-[220px]"
+                  ? "h-14 w-14 max-w-full object-contain sm:h-16 sm:w-16"
+                  : "h-auto max-h-10 w-auto max-w-full object-contain sm:max-h-12"
               }
             />
           );
@@ -97,10 +93,7 @@ export function CertificationLogos({
           return (
             <li
               key={item.src}
-              className={[
-                "relative flex items-center justify-center @[520px]:shrink-0",
-                index < 3 ? "col-span-2" : "col-span-3",
-              ].join(" ")}
+              className="flex w-[calc(50%-0.5rem)] min-w-0 max-w-[9.5rem] items-center justify-center sm:w-auto sm:max-w-[11rem]"
             >
               {item.href ? (
                 <a
@@ -108,7 +101,7 @@ export function CertificationLogos({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`${item.alt} (opens in a new tab)`}
-                  className="inline-flex origin-center rounded-sm outline-offset-4 transition-transform duration-300 ease-out hover:z-10 hover:scale-125 focus-visible:z-10 focus-visible:scale-125 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C4A7]"
+                  className="inline-flex max-w-full min-w-0 items-center justify-center rounded-sm outline-offset-4 transition-transform duration-300 ease-out hover:z-10 focus-visible:z-10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00C4A7] sm:hover:scale-110 sm:focus-visible:scale-110"
                 >
                   {image}
                 </a>

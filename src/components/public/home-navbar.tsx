@@ -38,6 +38,7 @@ const navItems: NavEntry[] = [
       { label: "Features", href: "/#features", hash: "#features" },
       { label: "How it works", href: "/#how-it-works", hash: "#how-it-works" },
       { label: "Why us", href: "/#comparison", hash: "#comparison" },
+      { label: "DPDP tools", href: "/tools" },
     ],
   },
   {
@@ -53,6 +54,7 @@ const navItems: NavEntry[] = [
   { type: "link", label: "Pricing", href: "/pricing" },
   { type: "link", label: "Tools", href: "/tools" },
   { type: "link", label: "About", href: "/about" },
+  { type: "link", label: "DPDP Act", href: "/dpdp-act" },
   {
     type: "group",
     label: "Company",

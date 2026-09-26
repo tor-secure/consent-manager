@@ -9,7 +9,7 @@ export const PRIVACY_CENTRE_ORG = {
     "Karnataka, India",
   ],
   supportEmail: "support@consentguru.com",
-  dpoName: "Shijas Ahmed",
+  dpoName: "Shijas Mohidheen",
   dpoEmail: "shijas@consentguru.com",
   website: "www.consentguru.com",
 } as const;
@@ -61,7 +61,7 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
       },
       {
         type: "p",
-        text: "For privacy-related questions: support@consentguru.com. Data Protection Officer: Shijas Ahmed, shijas@consentguru.com.",
+        text: "For privacy-related questions: support@consentguru.com. Data Protection Officer: Shijas Mohidheen, shijas@consentguru.com.",
       },
       {
         type: "p",
@@ -218,7 +218,7 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "You may submit a Data Principal request through the ConsentGuru Data Principal Rights portal, or contact support@consentguru.com or our Data Protection Officer, Shijas Ahmed, at shijas@consentguru.com. We may request reasonable information necessary to verify your identity and protect against unauthorised requests. We will respond within the period required by applicable law.",
+        text: "You may submit a Data Principal request through the ConsentGuru Data Principal Rights portal, or contact support@consentguru.com or our Data Protection Officer, Shijas Mohidheen, at shijas@consentguru.com. We may request reasonable information necessary to verify your identity and protect against unauthorised requests. We will respond within the period required by applicable law.",
       },
     ],
   },
@@ -284,7 +284,7 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "If you have a privacy concern or believe that your personal data has been processed inconsistently with this Privacy Policy or applicable law, please contact Shijas Ahmed, Data Protection Officer, at shijas@consentguru.com or support@consentguru.com. Where applicable law provides a right to complain to a data protection authority or other regulatory body, you may exercise that right.",
+        text: "If you have a privacy concern or believe that your personal data has been processed inconsistently with this Privacy Policy or applicable law, please contact Shijas Mohidheen, Data Protection Officer, at shijas@consentguru.com or support@consentguru.com. Where applicable law provides a right to complain to a data protection authority or other regulatory body, you may exercise that right.",
       },
     ],
   },
@@ -306,7 +306,7 @@ export const PRIVACY_POLICY_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "ConsentGuru, #10, Second Floor, Manasa Towers, MG Road, Mangalore - 575003, Karnataka, India. General Privacy Contact: support@consentguru.com. Data Protection Officer: Shijas Ahmed, shijas@consentguru.com. Website: www.consentguru.com.",
+        text: "ConsentGuru, #10, Second Floor, Manasa Towers, MG Road, Mangalore - 575003, Karnataka, India. General Privacy Contact: support@consentguru.com. Data Protection Officer: Shijas Mohidheen, shijas@consentguru.com. Website: www.consentguru.com.",
       },
     ],
   },
@@ -726,7 +726,7 @@ export const DPA_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "ConsentGuru's Data Protection Officer is Shijas Ahmed, shijas@consentguru.com. The DPO may be contacted regarding privacy and data protection matters relating to ConsentGuru's processing activities.",
+        text: "ConsentGuru's Data Protection Officer is Shijas Mohidheen, shijas@consentguru.com. The DPO may be contacted regarding privacy and data protection matters relating to ConsentGuru's processing activities.",
       },
     ],
   },
@@ -770,7 +770,7 @@ export const DPA_SECTIONS: LegalSection[] = [
     blocks: [
       {
         type: "p",
-        text: "ConsentGuru, #10, Second Floor, Manasa Towers, MG Road, Mangalore - 575003, Karnataka, India. General Privacy Contact: support@consentguru.com. Data Protection Officer: Shijas Ahmed, shijas@consentguru.com. Website: www.consentguru.com.",
+        text: "ConsentGuru, #10, Second Floor, Manasa Towers, MG Road, Mangalore - 575003, Karnataka, India. General Privacy Contact: support@consentguru.com. Data Protection Officer: Shijas Mohidheen, shijas@consentguru.com. Website: www.consentguru.com.",
       },
     ],
   },
@@ -823,7 +823,7 @@ export const DPA_SECTIONS: LegalSection[] = [
           },
           {
             term: "Data Protection Contact",
-            definition: "Shijas Ahmed, Data Protection Officer, shijas@consentguru.com",
+            definition: "Shijas Mohidheen, Data Protection Officer, shijas@consentguru.com",
           },
         ],
       },

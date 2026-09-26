@@ -1,6 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
@@ -29,6 +30,8 @@ const isPublicRoute = createRouteMatcher([
   "/e-learning(.*)",
   "/dpdp-act(.*)",
   "/tools(.*)",
+  "/blog(.*)",
+  ...SEO_PUBLIC_MATCHERS,
   "/robots.txt",
   "/sitemap.xml",
   "/manifest.webmanifest",
@@ -108,7 +111,7 @@ const clerkProxy = clerkMiddleware(
       }
     }
 
-    if (!isPublicRoute(request) && !pathname.startsWith("/api/")) {
+    if (isPrivatePage(pathname)) {
       await auth.protect();
     }
 
@@ -121,6 +124,10 @@ const clerkProxy = clerkMiddleware(
     },
   },
 );
+
+function isPrivatePage(pathname: string) {
+  return pathname === "/dashboard" || pathname.startsWith("/dashboard/") || pathname === "/create-organization" || pathname.startsWith("/create-organization/");
+}
 
 async function unconfiguredProxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -144,7 +151,7 @@ async function productionUnconfiguredProxy(request: NextRequest) {
   if (
     pathname === "/api/health" ||
     pathname === "/api/health/ready" ||
-    (isPublicRoute(request) && !pathname.startsWith("/api/"))
+    (!pathname.startsWith("/api/") && !isPrivatePage(pathname))
   ) {
     return withBaselineHeaders(request, NextResponse.next());
   }

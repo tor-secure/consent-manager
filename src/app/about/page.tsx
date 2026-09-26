@@ -7,7 +7,7 @@ import { ArrowButton } from "@/components/ui/arrow-button";
 import { pageAlternates, socialMetadata, INDEXABLE_ROBOTS } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
-  title: "About ConsentGuru",
+  title: { absolute: "About Consent Guru" },
   description:
     "Learn how ConsentGuru is helping organizations build transparent, responsible, and trusted digital relationships.",
   robots: INDEXABLE_ROBOTS,

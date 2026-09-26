@@ -417,6 +417,9 @@ export function HomeProductPreview() {
           </div>
         </div>
       </div>
+      <p className="mt-2 text-center text-[11px] leading-4 text-[#6B7280]">
+        Sample interface. Figures are illustrative, not live customer results.
+      </p>
     </div>
   );
 }

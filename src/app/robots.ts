@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { SEO_PUBLIC_PATHS } from "@/content/seo-landings";
 import { SITE_URL } from "@/lib/site-metadata";
 
 export default function robots(): MetadataRoute.Robots {
@@ -25,6 +26,7 @@ export default function robots(): MetadataRoute.Robots {
           "/disclaimer",
           "/faqs",
           "/pricing",
+          ...SEO_PUBLIC_PATHS,
         ],
         disallow: [
           "/dashboard",

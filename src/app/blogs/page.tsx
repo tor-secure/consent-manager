@@ -8,8 +8,9 @@ import { BlogCover } from "@/components/public/blog-cover";
 import { formatBlogDate, getAllBlogs } from "@/content/blogs";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
-const blogsTitle = "Blogs";
-const blogsDescription = "Stay relevant with news of the DPDP Act and related privacy topics.";
+const blogsTitle = "Consent and Privacy Blog";
+const blogsDescription =
+  "Articles on consent management, cookie banners, GDPR, CCPA, the DPDP Act, DSAR, and Google Consent Mode.";
 
 export const metadata: Metadata = {
   title: blogsTitle,
