@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -21,7 +21,7 @@ import {
   publicCorsHeaders,
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
-import { etagMatches, hashForPublishedVersion, sdkConfigCacheHeaders } from "@/lib/policy/lifecycle-core";
+import { etagMatches, hashForPublishedVersion, hashPublishedConfig, sdkConfigCacheHeaders } from "@/lib/policy/lifecycle-core";
 import { logger } from "@/lib/logger";
 import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
 import { publicRegulationSummary } from "@/lib/regulations/engine";
@@ -45,6 +45,8 @@ import { californiaRuntimeApplies } from "@/lib/ccpa/types";
 import { resolveTrackerCcpaClassification } from "@/lib/ccpa/enforcement";
 import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
 import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
+import { experiments } from "@/db/schema/experiments";
+import { promoteDueExperiments } from "@/lib/experiments/lifecycle";
 
 // GET /api/sdk/[siteKey]/config
 // Public, CORS-enabled endpoint.
@@ -268,12 +270,23 @@ export async function GET(
       );
     }
 
-    const configHash =
-      latestVersion.configHash ||
-      hashForPublishedVersion({
+    await promoteDueExperiments(new Date(), { websiteId: website.id, policyVersionId: latestVersion.id });
+    const experimentRows = await db.select().from(experiments).where(and(
+      eq(experiments.organizationId, website.organizationId),
+      eq(experiments.websiteId, website.id),
+      eq(experiments.policyVersionId, latestVersion.id),
+    )).orderBy(desc(experiments.updatedAt)).limit(20);
+    const firstClassExperiment = experimentRows.find((row) => row.status === "RUNNING")
+      ?? experimentRows.find((row) => row.status === "SCHEDULED")
+      ?? experimentRows[0]
+      ?? null;
+    const configHash = hashPublishedConfig({
+        base: latestVersion.configHash || hashForPublishedVersion({
         id: latestVersion.id,
         configuration: latestVersion.configuration,
         processingSnapshot: latestVersion.processingSnapshot,
+        }),
+        experiment: firstClassExperiment ? { id: firstClassExperiment.id, status: firstClassExperiment.status, variants: firstClassExperiment.variants, allocation: firstClassExperiment.allocation, updatedAt: firstClassExperiment.updatedAt.toISOString() } : null,
       });
     const cacheHeaders = {
       ...publicCorsHeaders("GET, OPTIONS"),
@@ -294,13 +307,21 @@ export async function GET(
     const bannerConfig = toPublicBannerConfig(
       parseBannerConfig(latestVersion.configuration as Record<string, unknown>),
     );
-    const abTest = parseBannerAbTest(
+    const legacyAbTest = parseBannerAbTest(
       latestVersion.configuration &&
         typeof latestVersion.configuration === "object" &&
         !Array.isArray(latestVersion.configuration)
         ? (latestVersion.configuration as Record<string, unknown>).abTest
         : null,
     );
+    const abTest = firstClassExperiment
+      ? {
+          enabled: firstClassExperiment.status === "RUNNING",
+          experimentId: firstClassExperiment.id,
+          controlVariantId: firstClassExperiment.controlVariantId,
+          variants: firstClassExperiment.variants,
+        }
+      : legacyAbTest;
 
     const requestedLang = resolveRequestedLocale({
       queryLang: url.searchParams.get("lang"),
@@ -559,6 +580,7 @@ export async function GET(
                 jurisdiction,
                 locale: resolvedNotice.resolvedLocale,
                 variantId: variant.id,
+                ...(firstClassExperiment ? { experimentId: firstClassExperiment.id } : {}),
                 noticeSnapshot: variantSnapshot,
               }),
             ];
@@ -592,6 +614,7 @@ export async function GET(
         },
         bannerConfig: legalBannerConfig,
         abTest,
+        experiment: firstClassExperiment ? { id: firstClassExperiment.id, name: firstClassExperiment.name, status: firstClassExperiment.status, controlVariantId: firstClassExperiment.controlVariantId } : null,
         resolvedLanguage: resolvedNotice.resolvedLocale,
         policyContext,
         policyContexts,

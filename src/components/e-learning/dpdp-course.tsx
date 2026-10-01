@@ -37,8 +37,8 @@ export function DpdpCourse() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    setProgress(loadProgress());
-    setHydrated(true);
+    const frame = window.requestAnimationFrame(() => setHydrated(true));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {

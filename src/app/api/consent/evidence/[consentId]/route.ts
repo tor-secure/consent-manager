@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, desc } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -10,6 +10,8 @@ import { consentDecisions } from "@/db/schema/consent-decisions";
 import { consentEvents } from "@/db/schema/consent-events";
 import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
+import { consentSessions } from "@/db/schema/consent-sessions";
+import { privacyEvents } from "@/db/schema/privacy-events";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { purposes } from "@/db/schema/purposes";
 import { vendors } from "@/db/schema/vendors";
@@ -62,7 +64,10 @@ function serializeSnapshot(snapshot: typeof consentEvidenceSnapshots.$inferSelec
         evidence,
         hash: snapshot.evidenceHash,
         signature: snapshot.evidenceSignature,
+        keyId: snapshot.proofKeyId,
       }),
+      proofVersion: snapshot.proofVersion,
+      keyId: snapshot.proofKeyId,
     },
   };
 }
@@ -259,8 +264,10 @@ export async function GET(
         ? (record.metadata as Record<string, unknown>)
         : {};
     const storedProof = readStoredCryptoProof(metadata);
+    const [session] = await db.select({ id: consentSessions.id, status: consentSessions.status, decisionCount: consentSessions.decisionCount, expiresAt: consentSessions.expiresAt, revokedAt: consentSessions.revokedAt, createdAt: consentSessions.createdAt }).from(consentSessions).where(and(eq(consentSessions.consentRecordId, record.id), eq(consentSessions.organizationId, organization.id))).orderBy(desc(consentSessions.createdAt)).limit(1);
+    const phase4Events = await db.select({ id: privacyEvents.id, eventType: privacyEvents.eventType, provenance: privacyEvents.provenance, payload: privacyEvents.payload, occurredAt: privacyEvents.occurredAt }).from(privacyEvents).where(and(eq(privacyEvents.organizationId, organization.id), eq(privacyEvents.websiteId, record.websiteId), ...(session ? [eq(privacyEvents.sessionId, session.id)] : []))).orderBy(privacyEvents.occurredAt, privacyEvents.id).limit(250);
     const claims = {
-      v: 1 as const,
+      v: storedProof?.proofVersion === 2 ? 2 as const : 1 as const,
       consentId: record.consentId,
       websiteId: record.websiteId,
       policyVersionId: record.policyVersionId,
@@ -276,6 +283,7 @@ export async function GET(
         typeof metadata.capturedAt === "string"
           ? metadata.capturedAt
           : (record.consentedAt ?? record.createdAt).toISOString(),
+      ...(storedProof?.proofVersion === 2 ? { sessionId: session?.id ?? (typeof metadata.sessionId === "string" ? metadata.sessionId : null) } : {}),
     };
     const currentProof = createConsentCryptoProof(claims, record.updatedAt);
     const verification = storedProof
@@ -330,9 +338,13 @@ export async function GET(
           source: e.source,
           occurredAt: e.occurredAt,
         })),
+        privacyEvents: phase4Events,
+        session: session ? { id: session.id, status: session.revokedAt ? "revoked" : session.expiresAt <= new Date() ? "expired" : session.status, decisionCount: session.decisionCount, issuedAt: session.createdAt, expiresAt: session.expiresAt, revokedAt: session.revokedAt } : null,
         proof: {
           stored: storedProof,
           currentHash: currentProof.hash,
+          proofVersion: storedProof?.proofVersion ?? 1,
+          keyId: storedProof?.keyId ?? "legacy",
           verification,
         },
         history: history.map(serializeSnapshot),

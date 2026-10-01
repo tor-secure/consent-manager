@@ -23,6 +23,7 @@ export type PolicyContextClaims = {
   jurisdiction: string;
   locale: string;
   variantId: string | null;
+  experimentId?: string | null;
   noticeHash: string;
   issuedAt: string;
   expiresAt: string;
@@ -222,6 +223,7 @@ function validClaims(value: unknown): value is PolicyContextClaims {
     claims.locale.length <= 35 &&
     (claims.variantId === null ||
       (typeof claims.variantId === "string" && claims.variantId.length <= 40)) &&
+    (claims.experimentId === undefined || claims.experimentId === null || (typeof claims.experimentId === "string" && UUID_RE.test(claims.experimentId))) &&
     typeof claims.noticeHash === "string" &&
     HASH_RE.test(claims.noticeHash) &&
     Number.isFinite(issuedAt) &&

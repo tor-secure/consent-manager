@@ -160,9 +160,12 @@ export function ConsentPreferencesPortal() {
   }, []);
 
   useEffect(() => {
-    refresh();
+    const initialRefresh = window.setTimeout(refresh, 0);
     const timer = window.setInterval(refresh, 1500);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(initialRefresh);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
 
   const purposes = useMemo(() => {

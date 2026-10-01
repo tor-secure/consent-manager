@@ -17,7 +17,6 @@ const JURISDICTION_RIGHTS: Record<RightsJurisdiction, RightsRequestType[]> = {
     "erasure",
     "portability",
     "objection",
-    "restriction",
     "withdraw_consent",
     "grievance",
     "nomination",

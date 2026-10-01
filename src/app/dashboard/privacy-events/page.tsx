@@ -1,0 +1,9 @@
+import { desc, eq } from "drizzle-orm";
+import { requireDashboardContext } from "@/lib/bootstrap-current-context";
+import { db } from "@/db";
+import { websites } from "@/db/schema/websites";
+import { privacyEvents } from "@/db/schema/privacy-events";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ui/page-header";
+export default async function PrivacyEventsPage() { const context = await requireDashboardContext(); const rows = await db.select({ event: privacyEvents, websiteName: websites.name }).from(privacyEvents).innerJoin(websites, eq(privacyEvents.websiteId, websites.id)).where(eq(privacyEvents.organizationId, context.organization.id)).orderBy(desc(privacyEvents.occurredAt), desc(privacyEvents.id)).limit(250); return <div className="page-wrap space-y-6"><PageHeader title="Privacy event history" description="Chronological, organization-scoped consent and privacy events with their evidence provenance."/><Card><div className="card-section-header"><h2 className="font-semibold">Recent events</h2><span className="text-sm text-[var(--muted-foreground)]">{rows.length}</span></div><ol className="divide-y divide-[var(--border)]">{rows.map(({ event, websiteName })=><li className="flex flex-wrap items-start justify-between gap-3 p-4" key={event.id}><div><p className="font-medium">{event.eventType}</p><p className="text-sm text-[var(--muted-foreground)]">{websiteName} · {event.occurredAt.toLocaleString()}</p>{Object.keys(event.payload).length > 0 && <pre className="mt-2 max-w-3xl overflow-auto rounded bg-[var(--muted)] p-2 text-xs">{JSON.stringify(event.payload, null, 2)}</pre>}</div><Badge variant="neutral" size="sm" className="capitalize">{event.provenance}</Badge></li>)}{rows.length===0&&<li className="p-8 text-center text-sm text-[var(--muted-foreground)]">No privacy events have been recorded yet.</li>}</ol></Card></div>; }
