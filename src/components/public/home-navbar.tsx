@@ -49,6 +49,7 @@ const navItems: NavEntry[] = [
     items: [
       { label: "By Industry", href: "/#industries", hash: "#industries" },
       { label: "By Use Case", href: "/#use-cases", hash: "#use-cases" },
+      { label: "DPO-as-a-Service", href: "/dpo-as-service" },
     ],
   },
   { type: "link", label: "Pricing", href: "/pricing" },
