@@ -1,6 +1,6 @@
 # Phases 1–6 integration inventory
 
-This inventory records the implementation present in the Phase 7 audit working tree. Database migrations listed below are pending deployment; they were not applied as part of the audit.
+This inventory records the implementation present in the Phase 7 audit working tree. Migrations through `0062` were successfully applied to a fresh, disposable local PostgreSQL database during verification. Production migrations remain unapplied.
 
 | Migrated capability | Consent Guru implementation | API / worker | Database model | Frontend | Tests and documentation | Status |
 |---|---|---|---|---|---|---|
@@ -22,4 +22,10 @@ Authenticated dashboard APIs scope records to the active organization and, where
 
 ## Deployment boundary
 
-Migrations `0057`–`0062` must be reviewed and applied through the normal deployment process. This audit did not connect to a live database, apply migrations, push, or commit. Secure-transfer plaintext is submitted to the Consent Guru server before recipient encryption. Production deployment should also enforce outbound network restrictions for browser crawling; DNS validation cannot by itself eliminate DNS-rebinding/resolve-time races.
+Migrations `0057`–`0062` must be reviewed and applied through the normal deployment process. No live tenant database was accessed. Changes are committed and pushed only to `rift-features`, as requested; main/master was not pushed. Secure-transfer plaintext is submitted to the Consent Guru server before recipient encryption. The crawler's pinned proxy closes the DNS validation/socket connection race for proxied traffic. Production deployment must additionally verify outbound network restrictions against browser bypasses; the environment attestation alone does not establish those restrictions.
+
+## Follow-up verification
+
+The public-site crawl loaded `https://example.com` in real Chromium through the pinned proxy, persisted an HTTP 200 page and sanitized crawler observations in a disposable local database, and exposed those observations in the Privacy Graph. A different organization could not load that site graph. A crawl of a missing public page correctly finished with `failed` status. The Chromium resolver rule now excludes only the loopback proxy address; other hostname resolution remains disabled. Proxy shutdown closes idle connections, and HTTP forwarding no longer passes an invalid undefined header.
+
+The complete automated suite, typecheck, lint, production build, migration journal check, and whitespace check were executed. The local SDK browser readiness harness passed 27 checks across Chrome, Edge, and Firefox. This harness does not verify authenticated dashboard workflows; login and authenticated frontend mutations still require a dedicated test Clerk session and test tenant. Four existing lint warnings remain: one unoptimized news image and three banner installation `beforeInteractive` warnings. See `PHASE7_VERIFICATION.md` for commands and deployment limitations.

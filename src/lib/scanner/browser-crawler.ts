@@ -11,7 +11,7 @@ import { trackers } from "@/db/schema/trackers";
 import { fetchPublicText, startSafeBrowserProxy, validateSafeBrowserTarget } from "./safe-browser-proxy";
 import { redactDiscoveryKey, redactDiscoveryPath, sanitizeDiscoveryPageUrl } from "@/lib/discovery-redaction-core";
 import { logger } from "@/lib/logger";
-import { BROWSER_CRAWL_CHROMIUM_ARGS, browserCrawlConfigSchema, crawlerEgressGuardEnabled, crawlerSafeRequestHeaders, isSameCrawlSite, normalizeCrawlUrl, robotsAllows, type BrowserCrawlConfig } from "./browser-crawl-core";
+import { BROWSER_CRAWL_CHROMIUM_ARGS, browserCrawlConfigSchema, completedCrawlStatus, crawlerEgressGuardEnabled, crawlerSafeRequestHeaders, isSameCrawlSite, normalizeCrawlUrl, robotsAllows, type BrowserCrawlConfig } from "./browser-crawl-core";
 export { BROWSER_CRAWL_CHROMIUM_ARGS, browserCrawlConfigSchema, crawlerEgressGuardEnabled, crawlerSafeRequestHeaders, isSameCrawlSite, normalizeCrawlUrl, robotsAllows, type BrowserCrawlConfig } from "./browser-crawl-core";
 
 export const BROWSER_CRAWLER_VERSION = "2.0.0";
@@ -81,7 +81,8 @@ export async function runBrowserCrawl(scanId: string): Promise<void> {
   const proxy = await startSafeBrowserProxy();
   let browser: import("playwright").Browser | undefined;
   const seen = new Set<string>(); const queue: Array<{ url: string; depth: number }> = [{ url: root, depth: 0 }];
-  let pages = 0, discovered = 1, resources = 0, items = 0, claimedPages = 0, cancelled = false;
+  const scheduled = new Set<string>([root]);
+  let pages = 0, loadedPages = 0, discovered = 1, resources = 0, items = 0, claimedPages = 0, cancelled = false;
   try {
     browser = await playwright.chromium.launch({ headless: true, args: [...BROWSER_CRAWL_CHROMIUM_ARGS] });
     const activeBrowser = browser;
@@ -90,18 +91,18 @@ export async function runBrowserCrawl(scanId: string): Promise<void> {
       const page = await context.newPage(); const captured: CapturedResource[] = [];
       await page.route("**/*", async (route) => {
         const request = route.request();
-        if (captured.length >= MAX_RESOURCES_PER_PAGE && request.resourceType() !== "document") return route.abort();
+        if (captured.length >= MAX_RESOURCES_PER_PAGE) return route.abort();
         if (request.isNavigationRequest() && request.frame() === page.mainFrame() && !isSameCrawlSite(request.url(), root)) return route.abort();
         try { await validateSafeBrowserTarget(request.url()); } catch { return route.abort(); }
         captured.push({ url: request.url(), type: request.resourceType(), method: request.method(), initiator: request.frame().url() || null });
         return route.continue({ headers: crawlerSafeRequestHeaders(await request.allHeaders()) });
       });
       let statusCode: number | null = null; let error: string | null = null;
-      try { const response = await page.goto(normalized, { waitUntil: "domcontentloaded", timeout: 20_000 }); statusCode = response?.status() ?? null; await page.waitForTimeout(500); }
+      try { const response = await page.goto(normalized, { waitUntil: "domcontentloaded", timeout: 20_000 }); statusCode = response?.status() ?? null; if (statusCode !== null && statusCode >= 400) error = "Page returned an HTTP error"; await page.waitForTimeout(500); }
       catch { error = "Page could not be loaded"; }
       const finalUrl = safeObservedPageUrl(normalizeCrawlUrl(page.url()) ?? normalized) ?? safeObservedPageUrl(normalized) ?? root;
       const title = error ? null : (await page.title().catch(() => "")).slice(0, 512);
-      const links = error ? [] : await page.locator("a[href]").evaluateAll((anchors) => anchors.map((a) => (a as HTMLAnchorElement).href).slice(0, 500)).catch(() => [] as string[]);
+      const links = error ? [] : await page.locator("a[href]").evaluateAll((anchors) => anchors.slice(0, 500).map((a) => (a as HTMLAnchorElement).href)).catch(() => [] as string[]);
       const cookies = await context.cookies().catch(() => []);
       const storage = error ? { local: [] as string[], session: [] as string[] } : await page.evaluate(() => ({
         local: Array.from({ length: Math.min(localStorage.length, 100) }, (_, index) => localStorage.key(index)).filter((key): key is string => Boolean(key)),
@@ -121,8 +122,8 @@ export async function runBrowserCrawl(scanId: string): Promise<void> {
       for (const [observationType, keys] of [["local_storage", storage.local], ["session_storage", storage.session]] as const) for (const key of keys) observations.push({ organizationId: site.organizationId, websiteId: site.id, eventId: randomUUID(), observationType, evidenceStatus: "observed", discoverySource: "browser_crawler", pageUrl: finalUrl, pageOrigin: new URL(finalUrl).origin, destinationHost: new URL(finalUrl).hostname, resourcePath: null, resourceType: null, requestMethod: null, initiator: null, party: "first_party", navigationType: null, storageKey: redactDiscoveryKey(key), consentState: {}, sanitizationStatus: "sanitized", confidence: 100, metadata: { scanId }, observedAt: now });
       if (observations.length) await db.insert(runtimeDiscoveryObservations).values(observations).onConflictDoNothing();
       await db.insert(crawlPages).values({ scanId, websiteId: site.id, url: finalUrl, normalizedUrl: finalUrl, depth: job.depth, statusCode, title, errorMessage: error, resourcesObserved: captured.length, cookiesObserved: cookies.length, metadata: { evidenceStatus: "observed", discoverySource: "browser_crawler" } });
-      pages++; resources += captured.length; items += observations.length;
-      if (job.depth < config.maxDepth) for (const link of links) { const url = normalizeCrawlUrl(link); if (url && isSameCrawlSite(url, root) && !seen.has(url) && queue.length < config.maxPages * 3) { queue.push({ url, depth: job.depth + 1 }); discovered++; } }
+      pages++; if (!error && statusCode !== null && statusCode < 400) loadedPages++; resources += captured.length; items += observations.length;
+      if (job.depth < config.maxDepth) for (const link of links) { const url = normalizeCrawlUrl(link); if (url && isSameCrawlSite(url, root) && !scheduled.has(url) && queue.length < config.maxPages * 3) { scheduled.add(url); queue.push({ url, depth: job.depth + 1 }); discovered++; } }
       await context.close();
       const progress = Math.min(99, Math.round((pages / config.maxPages) * 100));
       await db.update(scans).set({
@@ -143,6 +144,9 @@ export async function runBrowserCrawl(scanId: string): Promise<void> {
         if (!normalized || seen.has(normalized) || !isSameCrawlSite(normalized, root)) continue;
         if (robots && !robotsAllows(robots, new URL(normalized).pathname)) continue;
         await validateSafeBrowserTarget(normalized);
+        // DNS validation yields; another worker can claim the same URL or the
+        // last page slot while it is in progress.
+        if (seen.has(normalized) || claimedPages >= config.maxPages) continue;
         seen.add(normalized);
         claimedPages++;
         await crawlPage(job, normalized);
@@ -152,12 +156,12 @@ export async function runBrowserCrawl(scanId: string): Promise<void> {
     const workerFailure = workers.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (workerFailure) throw workerFailure.reason;
     cancelled = cancelled || await cancellationRequested(scanId);
-    await db.update(scans).set({ status: cancelled ? "cancelled" : "completed", completedAt: new Date(), progress: 100, pagesScanned: pages, pagesDiscovered: Math.min(discovered, config.maxPages), resourcesObserved: resources, itemsDetected: items, updatedAt: new Date() }).where(eq(scans.id, scanId));
+    const status = completedCrawlStatus(cancelled, loadedPages);
+    await db.update(scans).set({ status, errorMessage: status === "failed" ? "No pages could be loaded successfully; check the website and robots policy" : null, completedAt: new Date(), progress: 100, pagesScanned: pages, pagesDiscovered: Math.min(discovered, config.maxPages), resourcesObserved: resources, itemsDetected: items, updatedAt: new Date() }).where(eq(scans.id, scanId));
   } catch (error) {
     logger.error("Browser crawl failed", { operation: "scanner.browser", scanId, error });
     await db.update(scans).set({ status: "failed", errorMessage: "Browser crawl failed", completedAt: new Date(), progress: 100, updatedAt: new Date() }).where(eq(scans.id, scanId));
   } finally {
-    await browser?.close();
-    await proxy.close();
+    try { await browser?.close(); } finally { await proxy.close(); }
   }
 }

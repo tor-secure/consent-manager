@@ -14,9 +14,13 @@ The crawler only permits HTTP(S) targets on public DNS addresses and standard po
 
 Browser HTTP(S) traffic goes through a loopback-only egress proxy. The proxy validates every target, rejects mixed public/private DNS answers, and opens the upstream socket to the selected validated IP, so Chromium does not independently resolve the target hostname. The robots.txt fetch uses the same pinned-address check. Keep the worker in an outbound-restricted network that blocks private, loopback, link-local, and metadata ranges as defense in depth, especially if browser or proxy behavior changes.
 
-Chromium is launched with host resolution disabled and WebRTC restricted to proxied UDP, preventing page code from bypassing the HTTP(S) proxy through browser DNS or direct peer-to-peer sockets. The proxy itself removes authorization, cookie, API-key, token, secret, credential, and password headers as a second boundary, including WebSocket handshakes. Site-set cookie names remain observable in the isolated browser context, but cookie values are not sent on subsequent crawler requests.
+Chromium is launched with host resolution disabled except for the loopback proxy address, and WebRTC restricted to proxied UDP. This prevents target hostname resolution and direct peer-to-peer sockets while allowing Chromium to reach its proxy. The proxy itself removes authorization, cookie, API-key, token, secret, credential, and password headers as a second boundary, including WebSocket handshakes. Site-set cookie names remain observable in the isolated browser context, but cookie values are not sent on subsequent crawler requests.
+
+Robots rules select the most specific matching crawler user-agent group, support wildcard and end-anchored paths, and prefer the longest matching rule (Allow wins a tie). Empty Disallow rules impose no restriction. A scan with no successfully loaded pages finishes as failed, with an explanation; individual page failures remain inspectable. Cancellation takes precedence over this result. The request cap also applies to document and redirect requests, and queued links are deduplicated before discovery counts are incremented.
 
 The worker and scan-creation API fail closed unless `CONSENT_GURU_CRAWLER_EGRESS_RESTRICTED=true` is set. Set this deployment attestation only after the worker's network policy has been verified; the variable itself does not configure or prove firewall enforcement.
+
+Proxy downloads are capped at 16 MiB per HTTP response or HTTPS connection and 128 MiB across a scan. HTTPS limits count encrypted tunnel bytes rather than decoded individual responses. Idle upstream tunnels time out after 20 seconds. These limits bound network input; they do not replace worker container memory/CPU limits, particularly for decompression or malicious page scripts. Oversized content can cause individual pages to fail.
 
 ## APIs
 

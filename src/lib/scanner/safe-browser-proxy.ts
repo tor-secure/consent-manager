@@ -5,9 +5,10 @@ import { createServer, request as httpRequest, type Server } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { connect as connectTcp } from "node:net";
 import { isIP } from "node:net";
+import type { Socket } from "node:net";
 import type { Writable } from "node:stream";
 import { assertSafeScanUrl } from "./ssrf-guard";
-import { pickPublicAddress, type AddressRecord } from "./safe-browser-proxy-core";
+import { createProxyByteBudget, MAX_PROXY_CONNECTION_BYTES, MAX_PROXY_SCAN_BYTES, pickPublicAddress, type AddressRecord } from "./safe-browser-proxy-core";
 import { crawlerSafeProxyHeaders } from "./browser-crawl-core";
 
 type Resolver = (hostname: string) => Promise<AddressRecord[]>;
@@ -82,6 +83,7 @@ function writeProxyError(socket: Writable & { destroyed: boolean }, status = 403
  */
 export async function startSafeBrowserProxy(options: { resolver?: Resolver } = {}): Promise<{ url: string; close: () => Promise<void> }> {
   const resolver = options.resolver;
+  const scanBudget = createProxyByteBudget(MAX_PROXY_SCAN_BYTES);
   const server: Server = createServer(async (request, response) => {
     let target: Awaited<ReturnType<typeof resolveAndPin>>;
     try {
@@ -100,11 +102,18 @@ export async function startSafeBrowserProxy(options: { resolver?: Resolver } = {
       port: target.port,
       method: request.method,
       path: `${target.url.pathname}${target.url.search}`,
-      headers: { ...crawlerSafeProxyHeaders(request.headers), host: target.url.host, connection: "close", "proxy-connection": undefined },
+      headers: { ...crawlerSafeProxyHeaders(request.headers), host: target.url.host, connection: "close" },
       agent: false,
       timeout: 20_000,
     });
     upstream.on("response", (upstreamResponse) => {
+      const connectionBudget = createProxyByteBudget(MAX_PROXY_CONNECTION_BYTES);
+      if (Number(upstreamResponse.headers["content-length"] || 0) > MAX_PROXY_CONNECTION_BYTES) {
+        upstreamResponse.destroy(); upstream.destroy(); writeProxyError(response, 502); return;
+      }
+      upstreamResponse.on("data", (chunk: Buffer) => {
+        if (!connectionBudget(chunk.length) || !scanBudget(chunk.length)) { upstreamResponse.destroy(); upstream.destroy(); response.destroy(); }
+      });
       const headers = { ...upstreamResponse.headers };
       delete headers["proxy-authenticate"];
       response.writeHead(upstreamResponse.statusCode ?? 502, headers);
@@ -117,6 +126,11 @@ export async function startSafeBrowserProxy(options: { resolver?: Resolver } = {
     request.pipe(upstream);
   });
 
+  const sockets = new Set<Socket>();
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.once("close", () => sockets.delete(socket));
+  });
   server.on("connect", async (request, clientSocket, head) => {
     let target: Awaited<ReturnType<typeof resolveAndPin>>;
     try {
@@ -129,7 +143,13 @@ export async function startSafeBrowserProxy(options: { resolver?: Resolver } = {
       writeProxyError(clientSocket);
       return;
     }
+    if (clientSocket.destroyed) return;
     const upstream = connectTcp({ host: target.address, family: target.family, port: target.port });
+    const connectionBudget = createProxyByteBudget(MAX_PROXY_CONNECTION_BYTES);
+    upstream.on("data", (chunk: Buffer) => {
+      if (!connectionBudget(chunk.length) || !scanBudget(chunk.length)) { upstream.destroy(); clientSocket.destroy(); }
+    });
+    upstream.setTimeout(20_000, () => { upstream.destroy(); clientSocket.destroy(); });
     const connectTimeout = setTimeout(() => upstream.destroy(new Error("Connect timeout")), 10_000);
     upstream.once("connect", () => {
       clearTimeout(connectTimeout);
@@ -151,6 +171,9 @@ export async function startSafeBrowserProxy(options: { resolver?: Resolver } = {
   if (!address || typeof address === "string") throw new Error("Unable to start browser proxy");
   return {
     url: `http://127.0.0.1:${address.port}`,
-    close: () => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())),
+    close: () => new Promise<void>((resolve, reject) => {
+      server.close((error) => error ? reject(error) : resolve());
+      for (const socket of sockets) socket.destroy();
+    }),
   };
 }

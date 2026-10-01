@@ -5,6 +5,15 @@ const { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const tempRoot = path.join(root, ".tmp");
 const tsc = path.join(root, "node_modules", "typescript", "bin", "tsc");
+const cleanedDirectories = new Set();
+
+function cleanTestDirectory(name) {
+  const target = path.resolve(tempRoot, name);
+  if (path.dirname(target) !== tempRoot) throw new Error("Invalid test output directory");
+  if (cleanedDirectories.has(name)) return;
+  fs.rmSync(target, { recursive: true, force: true });
+  cleanedDirectories.add(name);
+}
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -17,6 +26,7 @@ function run(command, args) {
 }
 
 function compile(outDir, sources, extraArgs = []) {
+  cleanTestDirectory(outDir);
   const configPath = path.join(tempRoot, `tsconfig.${outDir}.json`);
   const rootDirIndex = extraArgs.indexOf("--rootDir");
   const rootDir = rootDirIndex >= 0
@@ -50,12 +60,17 @@ function collectTests(directory) {
 }
 
 function copyCompiled(source, destination) {
+  cleanTestDirectory(destination.split("/")[0]);
   const target = path.join(tempRoot, destination);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(path.join(tempRoot, "compiled", source), target);
 }
 
-fs.rmSync(tempRoot, { recursive: true, force: true });
+// Other harnesses keep logs, browsers, and disposable databases in .tmp.
+// Remove only this runner's generated outputs, never the entire shared folder.
+fs.mkdirSync(tempRoot, { recursive: true });
+cleanTestDirectory("test-libs");
+cleanTestDirectory("consent-manager-e2e");
 
 run(process.execPath, [tsc, "-p", "tsconfig.tests.json"]);
 compile(
