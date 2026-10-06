@@ -30,6 +30,7 @@ import {
   lessonText,
   scriptText,
 } from "@/lib/learning/catalog";
+import { lessonVideo, moduleDrivePreviewUrl } from "@/lib/learning/module-videos";
 import {
   CERTIFICATE_PROGRAM_LINE,
   certificateVerificationUrl,
@@ -179,8 +180,7 @@ export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
       caseStudy: courseModule.caseStudy,
       takeaways: courseModule.keyTakeaways,
       video: {
-        provider: courseModule.videoProvider,
-        url: courseModule.videoUrl,
+        ...lessonVideo(courseModule.moduleNumber, courseModule.videoProvider, courseModule.videoUrl),
         title: `Module ${String(courseModule.moduleNumber).padStart(2, "0")} — ${courseModule.title}`,
         minutes: courseModule.estimatedMinutes,
       },
@@ -620,7 +620,8 @@ async function ensureCatalog() {
           summary: courseModule.summary,
           learningObjectives: courseModule.objectives,
           estimatedMinutes: courseModule.minutes,
-          videoProvider: "placeholder",
+          videoProvider: "embed",
+          videoUrl: moduleDrivePreviewUrl(courseModule.number),
           videoScript: scriptText(courseModule),
           lessonContent: lessonText(courseModule),
           keyConcepts: courseModule.concepts,

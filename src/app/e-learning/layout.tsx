@@ -7,14 +7,18 @@ import { SkipLink } from "@/components/ui/skip-link";
 
 export default function ELearningLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="public-page min-h-screen bg-[#f3f7f6] text-[#0B2C4A]">
+    <div className="public-page min-h-screen bg-[#f3f7f6] text-[#0B2C4A] print:bg-white">
       <SkipLink />
       <HomeInteractions />
-      <HomeNavbar />
-      <main id="main-content" className="py-8">
-        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 sm:px-8">{children}</div>
+      <div className="print:hidden">
+        <HomeNavbar />
+      </div>
+      <main id="main-content" className="py-6 sm:py-8 print:py-0">
+        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 sm:px-8 print:max-w-none print:px-0">{children}</div>
       </main>
-      <HomeFooter />
+      <div className="print:hidden">
+        <HomeFooter />
+      </div>
     </div>
   );
 }
