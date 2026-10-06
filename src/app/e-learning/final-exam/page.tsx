@@ -38,7 +38,7 @@ export default async function FinalExamPage() {
       <section className={`${card} p-6 sm:p-8`}>
         <p className={eyebrow}>Final examination</p>
         <h1 className="mt-2 text-2xl font-semibold leading-tight sm:text-[1.75rem]">DPDP course examination</h1>
-        <p className="mt-2 text-base leading-7 text-[#36505c]">
+        <p className="mt-2 text-justify text-base leading-7 text-[#36505c]">
           This is a course examination. It is not a government or legally mandated DPDP certification.
         </p>
         <dl className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">

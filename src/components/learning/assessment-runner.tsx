@@ -163,7 +163,7 @@ export function AssessmentRunner({
               <h2 id="assessment-result" ref={resultHeading} tabIndex={-1} className="text-xl font-semibold text-[#0B2C4A] focus:outline-none">
                 {result.passed ? "Passed" : "Not passed yet"}
               </h2>
-              <p className="mt-1 text-sm text-[#4d6570]">
+              <p className="mt-1 text-justify text-sm text-[#4d6570]">
                 {result.passed
                   ? result.nextModuleUnlocked
                     ? "Well done. The next module is now unlocked."
@@ -232,7 +232,7 @@ export function AssessmentRunner({
                     );
                   })}
                 </ul>
-                {item.explanation ? <p className="mt-3 text-sm leading-6 text-[#36505c]">{item.explanation}</p> : null}
+                {item.explanation ? <p className="mt-3 text-justify text-sm leading-6 text-[#36505c]">{item.explanation}</p> : null}
               </li>
             );
           })}
@@ -248,7 +248,7 @@ export function AssessmentRunner({
         <h2 id="assessment-start" className="mt-2 text-xl font-semibold text-[#0B2C4A]">
           {title}
         </h2>
-        {intro ? <p className="mt-2 max-w-2xl text-base leading-7 text-[#36505c]">{intro}</p> : null}
+        {intro ? <p className="mt-2 max-w-2xl text-justify text-base leading-7 text-[#36505c]">{intro}</p> : null}
         <ul className="mt-4 grid gap-2 text-sm text-[#0B2C4A] sm:grid-cols-3">
           {questionCount ? <li className="rounded-lg bg-[#f3f7f6] px-3 py-2"><span className="font-semibold">{questionCount}</span> questions</li> : null}
           <li className="rounded-lg bg-[#f3f7f6] px-3 py-2">

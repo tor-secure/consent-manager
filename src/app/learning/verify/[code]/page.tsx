@@ -25,7 +25,7 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
   const qrSvg = await certificateQrSvg(certificate.verificationUrl);
   return (
     <main className="min-h-screen bg-[#f3f7f6] px-4 py-8 text-[#0B2C4A] sm:px-6 sm:py-12">
-      <div className="mx-auto mb-6 flex max-w-[920px] flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto mb-6 flex max-w-[1100px] flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-[#E6F9F5] px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#0B2C4A]">
             <span className="inline-block h-2 w-2 rounded-full bg-[#00C4A7]" aria-hidden="true" />

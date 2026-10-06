@@ -5,6 +5,7 @@ import { PrintButton } from "@/components/learning/print-button";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, primaryBtn, secondaryBtn, textLink } from "@/components/learning/ui";
+import { certificateGrade } from "@/lib/learning/grade";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { certificateQrSvg } from "@/lib/learning/qr-svg";
 import { getCertificate, getCourseHome } from "@/lib/learning/service";
@@ -37,7 +38,7 @@ export default async function CertificatePage() {
         <section className={`${card} p-6 sm:p-8`}>
           <p className={eyebrow}>Certificate of completion</p>
           <h1 className="mt-2 text-2xl font-semibold leading-tight">Your certificate is not ready yet</h1>
-          <p className="mt-2 text-base leading-7 text-[#36505c]">Finish these two steps and the certificate is issued straight away.</p>
+          <p className="mt-2 text-justify text-base leading-7 text-[#36505c]">Finish these two steps and the certificate is issued straight away.</p>
           <div className="mt-5">
             <ProgressBar value={(completed / total) * 100} label="Modules completed" />
           </div>
@@ -67,12 +68,12 @@ export default async function CertificatePage() {
   const qrSvg = await certificateQrSvg(certificate.verificationUrl);
   return (
     <div className="space-y-6 text-[#0B2C4A]">
-      <section className={`${card} mx-auto flex max-w-[920px] flex-col gap-4 p-5 print:hidden sm:flex-row sm:items-center`} aria-label="Certificate actions">
+      <section className={`${card} mx-auto flex max-w-[1100px] flex-col gap-4 p-5 print:hidden sm:flex-row sm:items-center`} aria-label="Certificate actions">
         <StatusIcon status="completed" size={40} />
         <div className="min-w-0 flex-1">
           <h1 className="text-lg font-semibold">Course complete — congratulations</h1>
           <p className="mt-0.5 text-sm text-[#4d6570]">
-            Certificate {certificate.certificateCode} · score {certificate.scorePercent}%
+            Certificate {certificate.certificateCode} · grade {certificateGrade(certificate.scorePercent)}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

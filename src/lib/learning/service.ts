@@ -70,16 +70,17 @@ const COURSE_TITLE = "DPDP Act 2023 — Complete Data Protection & Privacy Train
 
 export async function enrollInCourse(ctx: LearnerContext) {
   const course = await ensureCatalog();
-  const enrollment = await ensureEnrollment(ctx, course.id);
-  const already = await enrollmentEvent(ctx, course.id, "course_enrolled");
+  const [enrollment, already] = await Promise.all([
+    ensureEnrollment(ctx, course.id),
+    enrollmentEvent(ctx, course.id, "course_enrolled"),
+  ]);
   if (!already) await recordEvent(ctx, course.id, "course_enrolled", enrollment.id);
   return { enrolled: true as const, moduleCount: MODULE_COUNT };
 }
 
 export async function getCourseHome(ctx: LearnerContext) {
   const course = await ensureCatalog();
-  const enrollment = await activeEnrollment(ctx, course.id);
-  const modules = await publishedModules(course.id);
+  const [enrollment, modules] = await Promise.all([activeEnrollment(ctx, course.id), publishedModules(course.id)]);
   if (!enrollment) {
     return {
       enrolled: false as const,
@@ -93,10 +94,12 @@ export async function getCourseHome(ctx: LearnerContext) {
       })),
     };
   }
-  const passed = await passedModuleNumbers(enrollment.id);
-  const lessonDone = await lessonCompletionSet(enrollment.id);
-  const exam = await latestExam(enrollment.id);
-  const certificate = await certificateFor(enrollment.id);
+  const [passed, lessonDone, exam, certificate] = await Promise.all([
+    passedModuleNumbers(enrollment.id),
+    lessonCompletionSet(enrollment.id),
+    latestExam(enrollment.id),
+    certificateFor(enrollment.id),
+  ]);
   const completed = courseCompleted({ passedModuleNumbers: passed, examPassed: Boolean(exam?.passed) });
   return {
     enrolled: true as const,
@@ -489,6 +492,7 @@ export async function updateCourseSettings(
     .update(learningCourses)
     .set({ passPercent, examPassPercent, examQuestionCount, updatedAt: new Date() })
     .where(eq(learningCourses.id, course.id));
+  cachedCourse = null;
   return { ok: true as const, passPercent, examPassPercent, examQuestionCount };
 }
 
@@ -582,8 +586,22 @@ export async function listOrgProgress(ctx: LearnerContext) {
   return { error: null, progress };
 }
 
+const COURSE_CACHE_TTL_MS = 60_000;
+let cachedCourse: { row: typeof learningCourses.$inferSelect; expiresAt: number } | null = null;
+let catalogShapeChecked = false;
+
 async function ensureCatalog() {
-  assertCatalogShape();
+  if (cachedCourse && cachedCourse.expiresAt > Date.now()) return cachedCourse.row;
+  if (!catalogShapeChecked) {
+    assertCatalogShape();
+    catalogShapeChecked = true;
+  }
+  const course = await loadOrSeedCatalog();
+  cachedCourse = { row: course, expiresAt: Date.now() + COURSE_CACHE_TTL_MS };
+  return course;
+}
+
+async function loadOrSeedCatalog() {
   const [existing] = await db.select().from(learningCourses).where(eq(learningCourses.slug, COURSE_SLUG)).limit(1);
   if (existing) return existing;
   return db.transaction(async (tx) => {
@@ -697,19 +715,20 @@ async function enrollmentEvent(ctx: LearnerContext, courseId: string, action: st
 }
 
 async function learnerHasEntered(ctx: LearnerContext, courseId: string, enrollmentId: string) {
-  if (await enrollmentEvent(ctx, courseId, "course_enrolled")) return true;
-  const [lesson] = await db
-    .select({ id: learningLessonCompletions.id })
-    .from(learningLessonCompletions)
-    .where(eq(learningLessonCompletions.enrollmentId, enrollmentId))
-    .limit(1);
-  if (lesson) return true;
-  const [quiz] = await db
-    .select({ id: learningQuizAttempts.id })
-    .from(learningQuizAttempts)
-    .where(eq(learningQuizAttempts.enrollmentId, enrollmentId))
-    .limit(1);
-  return Boolean(quiz);
+  const [enrolled, [lesson], [quiz]] = await Promise.all([
+    enrollmentEvent(ctx, courseId, "course_enrolled"),
+    db
+      .select({ id: learningLessonCompletions.id })
+      .from(learningLessonCompletions)
+      .where(eq(learningLessonCompletions.enrollmentId, enrollmentId))
+      .limit(1),
+    db
+      .select({ id: learningQuizAttempts.id })
+      .from(learningQuizAttempts)
+      .where(eq(learningQuizAttempts.enrollmentId, enrollmentId))
+      .limit(1),
+  ]);
+  return Boolean(enrolled || lesson || quiz);
 }
 
 async function activeEnrollment(ctx: LearnerContext, courseId: string) {
@@ -1072,19 +1091,21 @@ async function touchEnrollment(enrollmentId: string) {
 }
 
 async function recordEvent(ctx: LearnerContext, courseId: string, action: string, resourceId: string | null) {
-  await db.insert(learningEvents).values({
-    organizationId: ctx.organizationId,
-    userId: ctx.userId,
-    courseId,
-    action,
-    resourceId,
-  });
-  await db.insert(auditLogs).values({
-    organizationId: ctx.organizationId,
-    userId: ctx.userId,
-    action: `learning.${action}`,
-    resourceType: "learning_course",
-    resourceId: resourceId,
-    description: action,
-  });
+  await Promise.all([
+    db.insert(learningEvents).values({
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      courseId,
+      action,
+      resourceId,
+    }),
+    db.insert(auditLogs).values({
+      organizationId: ctx.organizationId,
+      userId: ctx.userId,
+      action: `learning.${action}`,
+      resourceType: "learning_course",
+      resourceId: resourceId,
+      description: action,
+    }),
+  ]);
 }

@@ -7,7 +7,7 @@ import { LockMark } from "@/components/learning/lock-mark";
 import { ModuleNav } from "@/components/learning/module-nav";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusChip, StatusIcon } from "@/components/learning/status-icon";
-import { card, eyebrow, pad, primaryBtn, secondaryBtn, textLink } from "@/components/learning/ui";
+import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { VideoPlayer } from "@/components/learning/video-player";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { getCourseHome, getModuleForLearner } from "@/lib/learning/service";
@@ -48,7 +48,7 @@ function BulletList({ items }: { items: string[] }) {
       {items.map((item) => (
         <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
           <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-          <span>{item}</span>
+          <span className="min-w-0 flex-1 text-justify">{item}</span>
         </li>
       ))}
     </ul>
@@ -162,7 +162,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
             </div>
             <h1 className="text-2xl font-semibold leading-tight sm:text-[1.75rem]">{courseModule.title}</h1>
             <p className="text-sm text-[#4d6570]">{courseModule.minutes} minutes</p>
-            <p className="max-w-3xl text-base leading-7 text-[#36505c]">{courseModule.summary}</p>
+            <p className="max-w-3xl text-justify text-base leading-7 text-[#36505c]">{courseModule.summary}</p>
           </header>
           <Steps lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
 
@@ -172,7 +172,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
           <Section title="Lesson">
             <div className="max-w-3xl space-y-4">
               {courseModule.lesson.split("\n\n").map((paragraph, paragraphIndex) => (
-                <p key={`${courseModule.slug}-lesson-${paragraphIndex}`} className="text-base leading-7 text-[#0B2C4A]">
+                <p key={`${courseModule.slug}-lesson-${paragraphIndex}`} className="text-justify text-base leading-7 text-[#0B2C4A]">
                   {paragraph}
                 </p>
               ))}
@@ -183,10 +183,10 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
           </Section>
           <div className="grid gap-5 xl:grid-cols-2">
             <Section title="Practical example">
-              <p className="text-base leading-7">{courseModule.example}</p>
+              <p className="text-justify text-base leading-7">{courseModule.example}</p>
             </Section>
             <Section title="Case study">
-              <p className="text-base leading-7">{courseModule.caseStudy}</p>
+              <p className="text-justify text-base leading-7">{courseModule.caseStudy}</p>
             </Section>
           </div>
           <Section title="Key takeaways">
@@ -198,7 +198,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
               <p className="text-base font-semibold">
                 {courseModule.quizPassed ? "Module complete" : courseModule.lessonComplete ? "Ready for the quiz" : "Finished the lesson?"}
               </p>
-              <p className="mt-1 text-sm text-[#4d6570]">
+              <p className="mt-1 text-justify text-sm text-[#4d6570]">
                 {courseModule.quizPassed
                   ? "You passed this module quiz. You can retake it at any time."
                   : courseModule.lessonComplete
@@ -246,14 +246,6 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
               </Link>
             )}
           </nav>
-
-          {learner.operator ? (
-            <p>
-              <Link href={`/e-learning/module/${courseModule.slug}/edit`} className={textLink}>
-                Edit this module
-              </Link>
-            </p>
-          ) : null}
         </article>
       </div>
     </div>

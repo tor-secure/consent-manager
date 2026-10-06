@@ -49,7 +49,7 @@ function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode;
           <h1 className="mt-2 max-w-3xl text-2xl font-semibold leading-tight text-[#0B2C4A] sm:text-[2rem] sm:leading-[1.2]">
             {course.title}
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-[#36505c]">{course.description}</p>
+          <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#36505c]">{course.description}</p>
         </div>
         <div className="flex flex-col items-start gap-2 lg:items-end">
           {action}
@@ -74,7 +74,7 @@ function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode;
 function Disclaimer({ text, reviewed }: { text: string; reviewed?: string }) {
   return (
     <section aria-label="Course disclaimer" className="border-t border-[#d5e3e0] pt-6">
-      <p className="max-w-4xl text-sm leading-6 text-[#4d6570]">{text}</p>
+      <p className="max-w-4xl text-justify text-sm leading-6 text-[#4d6570]">{text}</p>
       {reviewed ? <p className="mt-2 text-sm text-[#4d6570]">Last reviewed {reviewed}.</p> : null}
     </section>
   );
@@ -101,7 +101,7 @@ function AchievementCard({
       <div className="min-w-0 flex-1">
         <h3 className="text-base font-semibold text-[#0B2C4A]">{heading}</h3>
         <p className="mt-0.5 text-sm font-medium text-[#0B2C4A]">{state}</p>
-        <p className="mt-1 text-sm leading-6 text-[#4d6570]">{detail}</p>
+        <p className="mt-1 text-justify text-sm leading-6 text-[#4d6570]">{detail}</p>
       </div>
       {action}
     </div>

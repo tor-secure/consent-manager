@@ -17,14 +17,19 @@ export function VideoPlayer({ video }: { video: VideoLesson }) {
           <track kind="captions" />
         </video>
       ) : embedded ? (
-        <iframe
-          className="aspect-video w-full bg-black"
-          src={video.url ?? undefined}
-          title={video.title}
-          allow="autoplay; fullscreen"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
+        <div className="relative">
+          <iframe
+            className="block aspect-video w-full bg-black"
+            src={video.url ?? undefined}
+            title={video.title}
+            allow="autoplay; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+          {video.url?.includes("drive.google.com") ? (
+            <div aria-hidden="true" className="absolute right-0 top-0 h-12 w-12 rounded-bl-lg bg-black" onContextMenu={(event) => event.preventDefault()} />
+          ) : null}
+        </div>
       ) : (
         <div className="flex aspect-video flex-col items-center justify-center gap-3 px-6 text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-300">Video player placeholder</p>

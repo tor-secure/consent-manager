@@ -10,12 +10,16 @@ import type { LearnerContext } from "@/lib/learning/service";
 export async function requireLearner(): Promise<LearnerContext | NextResponse> {
   const session = await auth();
   if (!session.userId || !session.orgId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const localUser = await resolveLocalUser(session.userId);
-  const organization = await resolveLocalOrganization(session.orgId);
+  const [localUser, organization] = await Promise.all([
+    resolveLocalUser(session.userId),
+    resolveLocalOrganization(session.orgId),
+  ]);
   if (!localUser || !organization) return NextResponse.json({ error: "Organization required" }, { status: 403 });
-  const membership = await resolveActiveMembership(organization.id, localUser.id);
+  const [membership, [user]] = await Promise.all([
+    resolveActiveMembership(organization.id, localUser.id),
+    db.select({ name: users.name }).from(users).where(eq(users.id, localUser.id)).limit(1),
+  ]);
   if (!membership) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  const [user] = await db.select({ name: users.name }).from(users).where(eq(users.id, localUser.id)).limit(1);
   return {
     organizationId: organization.id,
     userId: localUser.id,
