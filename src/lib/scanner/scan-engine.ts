@@ -17,6 +17,7 @@ import { calculateConsentQualityScore } from "@/lib/monitoring/consent-quality";
 import { captureDigitalTwinSnapshot } from "@/lib/intelligence/service";
 import { findBuiltinTracker } from "@/lib/sdk/tracker-catalog";
 import { findMatchingTracker } from "@/lib/trackers/management";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 const SCANNER_VERSION = "1.0.0";
 
@@ -268,6 +269,7 @@ export async function runScan(
       });
     }
 
+    await invalidateSdkConfigForWebsite(websiteId);
     return { scanId: scan.id, status: "completed", errorMessage: null };
   } catch (error) {
     // Unexpected error — mark scan as failed.

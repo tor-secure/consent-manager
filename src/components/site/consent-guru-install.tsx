@@ -1,4 +1,3 @@
-import Script from "next/script";
 import { earlyBlockBootstrapSource } from "@/lib/sdk/early-block";
 
 /** Public install credentials for the ConsentGuru marketing site. */
@@ -47,28 +46,27 @@ function configPrefetchSource(): string {
 }
 
 /**
- * The install block customers paste into <head>. beforeInteractive keeps these
- * synchronous and ahead of the rest of the app scripts.
+ * The install block customers paste into <head>. These are server-rendered
+ * script tags so the browser runs them. next/script is a client component,
+ * and React does not execute script tags rendered on the client.
  */
 export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
   return (
     <>
-      <Script
+      <script
         id="cmp-early-block"
-        strategy="beforeInteractive"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: scriptBody(earlyBlockBootstrapSource()) }}
       />
-      <Script
+      <script
         id="cmp-config-prefetch"
-        strategy="beforeInteractive"
         nonce={nonce}
         dangerouslySetInnerHTML={{ __html: configPrefetchSource() }}
       />
-      <Script
+      <script
         id="cmp-sdk"
         src={CONSENT_GURU_SDK_SRC}
-        strategy="beforeInteractive"
+        async
         nonce={nonce}
         data-site-key={CONSENT_GURU_SITE_KEY}
       />

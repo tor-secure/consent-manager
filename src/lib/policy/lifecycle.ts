@@ -8,6 +8,7 @@ import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { websites } from "@/db/schema/websites";
 import { hashForPublishedVersion } from "@/lib/policy/lifecycle-core";
+import { invalidateSdkConfigCache } from "@/lib/sdk/config-cache-next";
 
 export async function archiveOtherPublishedVersions(policyId: string, keepVersionId: string, now: Date) {
   await db
@@ -39,7 +40,7 @@ export async function markVersionPublished(input: {
     configuration: input.configuration,
     processingSnapshot: input.processingSnapshot,
   });
-  return db.transaction(async (tx) => {
+  const updated = await db.transaction(async (tx) => {
     await tx
       .update(consentPolicyVersions)
       .set({
@@ -76,6 +77,8 @@ export async function markVersionPublished(input: {
       .where(eq(consentPolicies.id, input.policyId));
     return updated;
   });
+  if (updated) await invalidatePublishedSdkConfig(input.policyId);
+  return updated;
 }
 
 export async function unpublishPolicy(policyId: string, now = new Date()) {
@@ -92,6 +95,16 @@ export async function unpublishPolicy(policyId: string, now = new Date()) {
     .update(consentPolicies)
     .set({ status: "draft", liveVersionId: null, updatedAt: now })
     .where(eq(consentPolicies.id, policyId));
+  await invalidatePublishedSdkConfig(policyId);
+}
+
+async function invalidatePublishedSdkConfig(policyId: string) {
+  try {
+    const siteKey = await websiteSiteKeyForPolicy(policyId);
+    if (siteKey) await invalidateSdkConfigCache(siteKey);
+  } catch {
+    // Publishing must succeed even when the config cache cannot be purged.
+  }
 }
 
 export async function schedulePolicyVersion(input: {

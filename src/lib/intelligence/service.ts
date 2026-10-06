@@ -18,6 +18,7 @@ import type { ConsentQualityInput } from "@/lib/monitoring/consent-quality";
 import type { ConsentGraphSnapshot } from "./graph-model";
 import { trackers } from "@/db/schema/trackers";
 import { websites } from "@/db/schema/websites";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 import { trackersFromTwinPayload } from "./twin-restore";
 import { buildAutopilotPlan } from "./autopilot-engine";
 
@@ -164,6 +165,7 @@ export async function restoreDigitalTwinSnapshot(input: {
     metadata: { websiteId: input.websiteId, trackerCount: rows.length, updated },
   });
 
+  if (updated > 0) await invalidateSdkConfigForWebsite(input.websiteId);
   return { ok: true as const, snapshotId: snapshot.id, trackerCount: rows.length, updated };
 }
 

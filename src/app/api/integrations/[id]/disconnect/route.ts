@@ -11,6 +11,7 @@ import { auditLogs } from "@/db/schema/audit-logs";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 import { applyIntegrationRuntime, runtimeKindForIntegration, serializeRuntime } from "@/lib/integrations/runtime";
 import { requireOperatorRole } from "@/lib/org-roles";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 // DELETE /api/integrations/[id]/disconnect
 // [id] is websiteIntegrations.id — tenant-safe via website → org chain.
@@ -108,6 +109,7 @@ export async function DELETE(
         .update(websites)
         .set({ consentIntegrations: serializeRuntime(next), updatedAt: new Date() })
         .where(eq(websites.id, website.id));
+      await invalidateSdkConfigForWebsite(website.id);
     }
 
     await db

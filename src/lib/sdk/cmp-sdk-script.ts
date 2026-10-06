@@ -4369,7 +4369,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (pcOpen) renderPreferenceCenter();
       if (prefsOpen) renderCookiePreferencesPanel();
       _hostScroll.endTransition();
-      fetch(configRequestUrl(), { cache: 'no-store' })
+      fetch(configRequestUrl(), { cache: 'no-cache', headers: { 'Cache-Control': 'no-cache' } })
         .then(function(r) { return r.json(); })
         .then(function(data) {
           if (!data.success) {
@@ -4581,9 +4581,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function refreshPublishedConfig() {
     if (document.hidden) return;
     fetch(configRequestUrl(), {
-      cache: 'no-store',
+      cache: 'no-cache',
       mode: 'cors',
-      headers: { 'Cache-Control': 'no-cache', Pragma: 'no-cache' }
+      headers: { 'Cache-Control': 'no-cache' }
     })
       .then(function(r) { return r.json(); })
       .then(function(data) {
@@ -4689,7 +4689,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     });
   }
   function fetchConfigJson(forceRefresh) {
-    var headers = { 'Cache-Control': 'no-cache', Pragma: 'no-cache' };
+    var headers = { 'Cache-Control': 'no-cache' };
     var expectedUrl = configRequestUrl();
     if (forceRefresh) {
       expectedUrl += (expectedUrl.indexOf('?') >= 0 ? '&' : '?') + '_=' + Date.now();
@@ -4705,7 +4705,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return prefetched;
     }
     return fetch(expectedUrl, {
-      cache: 'no-store',
+      cache: 'no-cache',
       mode: 'cors',
       headers: headers
     }).then(function(r) {
@@ -5004,7 +5004,7 @@ export function buildEmbedSnippet(options: {
   } catch (e) {}
   if (qs.length) url += "?" + qs.join("&");
   window.__CMP_CONFIG_URL = url;
-  window.__CMP_CONFIG_PROMISE = fetch(url, { cache: "no-store", mode: "cors", headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } }).then(function(r) {
+  window.__CMP_CONFIG_PROMISE = fetch(url, { cache: "no-cache", mode: "cors", headers: { "Cache-Control": "no-cache" } }).then(function(r) {
     if (r.status === 304) return { success: true, unchanged: true };
     return r.json();
   });

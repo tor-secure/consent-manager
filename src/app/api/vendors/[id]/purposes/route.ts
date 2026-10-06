@@ -9,6 +9,7 @@ import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
 import { requireOperatorRole } from "@/lib/org-roles";
+import { invalidateSdkConfigForOrganization } from "@/lib/sdk/invalidate-site-config";
 
 // ---------------------------------------------------------------------------
 // POST /api/vendors/[id]/purposes
@@ -94,6 +95,7 @@ export async function POST(
       .values({ vendorId: vendor.id, purposeId, processingRole })
       .returning();
 
+    await invalidateSdkConfigForOrganization(organization.id);
     return NextResponse.json({ success: true, vendorPurpose: link }, { status: 201 });
   } catch (error) {
     logger.error("Attach vendor purpose failed", { error });

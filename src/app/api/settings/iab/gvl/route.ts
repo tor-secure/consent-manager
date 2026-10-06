@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { roles } from "@/db/schema/roles";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { getCurrentGvl, syncOfficialGvl } from "@/lib/signals/iab-gvl-sync";
+import { invalidateSdkConfigForEveryWebsite } from "@/lib/sdk/invalidate-site-config";
 
 async function requireAdmin() {
   const { isAuthenticated, userId, orgId } = await auth();
@@ -29,5 +30,7 @@ export async function GET() {
 
 export async function POST() {
   if (!(await requireAdmin())) return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
-  return NextResponse.json({ success: true, ...(await syncOfficialGvl()) });
+  const synced = await syncOfficialGvl();
+  await invalidateSdkConfigForEveryWebsite();
+  return NextResponse.json({ success: true, ...synced });
 }

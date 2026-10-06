@@ -8,6 +8,7 @@ import { scanResults } from "@/db/schema/scan-results";
 import { trackers } from "@/db/schema/trackers";
 import { vendors } from "@/db/schema/vendors";
 import { type AutopilotStep, mayApplyAutopilotStep } from "@/lib/intelligence/autopilot-engine";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 export type TrackerRollbackRow = {
   id: string;
@@ -46,6 +47,7 @@ export async function restoreWebsiteTrackers(state: AutopilotRollbackState) {
       })
       .where(and(eq(trackers.id, row.id), eq(trackers.websiteId, state.websiteId)));
   }
+  await invalidateSdkConfigForWebsite(state.websiteId);
 }
 
 export async function applyAutopilotStep(input: {
@@ -59,10 +61,12 @@ export async function applyAutopilotStep(input: {
   }
   if (input.step.id === "map_unclassified") {
     const mutated = await mapUnclassifiedTrackers(input.organizationId, input.websiteId);
+    if (mutated > 0) await invalidateSdkConfigForWebsite(input.websiteId);
     return { applied: true, mutated, message: `Mapped ${mutated} unclassified tracker(s)` };
   }
   if (input.step.id === "complete_coverage") {
     const mutated = await coverUnmatchedScanItems(input.websiteId);
+    if (mutated > 0) await invalidateSdkConfigForWebsite(input.websiteId);
     return { applied: true, mutated, message: `Created ${mutated} tracker record(s) from scan items` };
   }
   return { applied: false, mutated: 0, message: "Step is advisory only" };

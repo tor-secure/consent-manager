@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
-import Script from "next/script";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
 import {
   CONSENT_GURU_SITE_VERIFICATION,
@@ -89,15 +88,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.consentguru.com" />
-      </head>
-      <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <ConsentGuruInstall nonce={nonce} />
-        <Script
+        <script
           id="cmp-theme-bootstrap"
-          strategy="beforeInteractive"
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
+      </head>
+      <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
           <OptionalClerkProvider>{children}</OptionalClerkProvider>

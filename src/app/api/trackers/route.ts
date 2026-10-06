@@ -8,6 +8,7 @@ import { vendors } from "@/db/schema/vendors";
 import { purposes } from "@/db/schema/purposes";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { logger } from "@/lib/logger";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 import {
   authorizeTrackerOrganization,
   loadOwnedPurpose,
@@ -179,6 +180,7 @@ export async function POST(request: Request) {
       },
     });
 
+    await invalidateSdkConfigForWebsite(website.id);
     return NextResponse.json({ success: true, tracker }, { status: 201 });
   } catch (error) {
     logger.error("Tracker create failed", { route: "POST /api/trackers", error });

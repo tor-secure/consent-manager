@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 
-export const SDK_CONFIG_CACHE_CONTROL = "private, no-store, must-revalidate";
+/**
+ * Browser may store the response but must revalidate before reuse.
+ * Not `public`: the body depends on locale, geo, and GPC, and the origin
+ * allowlist is enforced on every request. CDN-Cache-Control stays no-store.
+ */
+export const SDK_CONFIG_CACHE_CONTROL = "private, no-cache";
 
 export function hashPublishedConfig(payload: unknown): string {
   return createHash("sha256").update(stableStringify(payload)).digest("hex");
@@ -31,6 +36,7 @@ export function stableStringify(value: unknown): string {
 export function sdkConfigCacheHeaders(configHash: string): Record<string, string> {
   return {
     "Cache-Control": SDK_CONFIG_CACHE_CONTROL,
+    "CDN-Cache-Control": "no-store",
     ETag: quotedEtag(configHash),
     Vary: "Accept-Language, Sec-GPC",
   };

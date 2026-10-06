@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { authorizeCronRequest, getConfiguredCronSecret } from "@/lib/scanner/cron-auth";
 import { syncOfficialGvl } from "@/lib/signals/iab-gvl-sync";
+import { invalidateSdkConfigForEveryWebsite } from "@/lib/sdk/invalidate-site-config";
 import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
@@ -15,7 +16,9 @@ async function sync(request: Request) {
     return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
   try {
-    return NextResponse.json({ success: true, ...(await syncOfficialGvl()) });
+    const synced = await syncOfficialGvl();
+    await invalidateSdkConfigForEveryWebsite();
+    return NextResponse.json({ success: true, ...synced });
   } catch (error) {
     logger.error("IAB GVL sync failed", { operation: "iab.gvl.sync", error });
     return NextResponse.json({ success: false, message: "GVL sync failed" }, { status: 502 });

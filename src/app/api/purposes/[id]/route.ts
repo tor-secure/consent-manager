@@ -13,6 +13,7 @@ import {
 } from "@/lib/api-auth-helpers";
 import { requireOperatorRole } from "@/lib/org-roles";
 import { creationFailureMessage, isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { invalidateSdkConfigForOrganization } from "@/lib/sdk/invalidate-site-config";
 
 const VALID_STATUSES = ["active", "inactive"] as const;
 const VALID_LEGAL_BASES = [
@@ -155,6 +156,7 @@ export async function PATCH(
         .returning();
     }
 
+    await invalidateSdkConfigForOrganization(authz.organization.id);
     return NextResponse.json({ success: true, purpose });
   } catch (error) {
     logger.error("Purpose update failed", { error });
