@@ -53,6 +53,10 @@ const OVERRIDE_KEYS = new Set([
   "blockPageUntilConsent",
   "title",
   "description",
+  "primaryColor",
+  "backgroundColor",
+  "textColor",
+  "borderRadius",
 ]);
 
 export function pickAbVariant(test: BannerAbTest, random = Math.random): AbTestVariant {

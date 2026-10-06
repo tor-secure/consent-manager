@@ -22,6 +22,8 @@ export type DashboardSectionHub = {
 };
 
 export const consentManagementFeatures: DashboardNavigationItem[] = [
+  { title: "Consent sessions", href: "/dashboard/consent-sessions", description: "Inspect short-lived sessions and their linked consent evidence." },
+  { title: "Privacy events", href: "/dashboard/privacy-events", description: "Review consent and privacy events in timestamp order with provenance." },
   { title: "Consent", href: "/dashboard/consent", description: "Review visitor consent records, proof, and withdrawal history for every site." },
   { title: "Policies", href: "/dashboard/policies", description: "Create, version, and publish consent banners and preference-center policies." },
   { title: "Purposes", href: "/dashboard/purposes", description: "Define processing purposes that map cookies, vendors, and legal bases." },
@@ -31,6 +33,8 @@ export const consentManagementFeatures: DashboardNavigationItem[] = [
 ];
 
 export const discoveryFeatures: DashboardNavigationItem[] = [
+  { title: "Browser crawler", href: "/dashboard/browser-crawler", description: "Run bounded browser crawls and inspect observed page evidence." },
+  { title: "Runtime discovery", href: "/dashboard/discovery/runtime", description: "Inspect sanitized browser-observed requests, resources, cookies, and storage activity." },
   { title: "Scanner", href: "/dashboard/scanner", description: "Scan websites to discover cookies, scripts, and third-party trackers." },
   { title: "Privacy drift", href: "/dashboard/monitoring", description: "Review scan findings when trackers or consent coverage change over time." },
   { title: "Privacy risk", href: "/dashboard/risk", description: "See a risk overview of unmapped trackers, gaps, and high-impact issues." },
