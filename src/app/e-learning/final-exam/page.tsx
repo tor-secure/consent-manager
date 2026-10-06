@@ -10,21 +10,18 @@ export default async function FinalExamPage() {
   const history = await getExamHistory(learner);
   if (history.error) redirect("/e-learning");
   return (
-    <div className="page-wrap space-y-6">
+    <div className="space-y-6 text-[#0B2C4A]">
       <section className="rounded-xl border border-[var(--border)] bg-white p-5">
         <h1 className="text-2xl font-semibold">Final DPDP certification examination</h1>
         <p className="mt-2 text-sm">This is a course examination. It is not a government or legally mandated DPDP certification.</p>
-        <ul className="mt-4 list-disc space-y-1 pl-5 text-sm">
-          <li>{history.questionCount} questions</li>
-          <li>Passing score: {history.passPercent}%</li>
-          <li>Coverage: all 30 modules</li>
-          <li>Estimated time: {history.estimatedMinutes} minutes</li>
-          <li>Answer every question. Submit when you are ready. Retakes are kept as separate attempts.</li>
-          <li className="flex items-center gap-2">
-            Modules completed: {history.completedModules} / 30.
-            {history.unlocked ? <span>Examination available</span> : <LockMark />}
-          </li>
-        </ul>
+        <dl className="mt-4 grid gap-2 text-sm leading-6 sm:grid-cols-2">
+          <div><dt className="text-[#4d6570]">Questions</dt><dd>{history.questionCount}</dd></div>
+          <div><dt className="text-[#4d6570]">Passing score</dt><dd>{history.passPercent}%</dd></div>
+          <div><dt className="text-[#4d6570]">Coverage</dt><dd>All 30 modules</dd></div>
+          <div><dt className="text-[#4d6570]">Estimated time</dt><dd>{history.estimatedMinutes} minutes</dd></div>
+          <div className="sm:col-span-2"><dt className="text-[#4d6570]">Modules completed</dt><dd className="flex items-center gap-2">{history.completedModules} / 30 {history.unlocked ? null : <LockMark />}</dd></div>
+        </dl>
+        <p className="mt-4 text-sm leading-6">Answer every question. Submit when you are ready. Retakes are kept as separate attempts.</p>
       </section>
       {history.attempts.length > 0 ? (
         <section>

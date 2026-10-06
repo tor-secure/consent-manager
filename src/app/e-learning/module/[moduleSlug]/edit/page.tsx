@@ -11,14 +11,13 @@ export default async function EditModulePage({ params }: { params: Promise<{ mod
   const result = await getModuleEditor(learner, moduleSlug);
   if (result.error) notFound();
   return (
-    <div className="page-wrap space-y-6">
+    <div className="space-y-6 text-[#0B2C4A]">
       <h1 className="page-title">Edit module {result.module.moduleNumber}</h1>
       <ModuleEditor
         module={{
           slug: result.module.slug,
           summary: result.module.summary,
           lessonContent: result.module.lessonContent,
-          videoScript: result.module.videoScript,
           videoUrl: result.module.videoUrl,
           videoProvider: result.module.videoProvider,
           status: result.module.status,

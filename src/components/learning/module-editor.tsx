@@ -6,7 +6,6 @@ type EditorModule = {
   slug: string;
   summary: string;
   lessonContent: string;
-  videoScript: string;
   videoUrl: string | null;
   videoProvider: string;
   status: string;
@@ -24,7 +23,6 @@ export function ModuleEditor({ module }: { module: EditorModule }) {
       body: JSON.stringify({
         summary: String(formData.get("summary") ?? ""),
         lessonContent: String(formData.get("lessonContent") ?? ""),
-        videoScript: String(formData.get("videoScript") ?? ""),
         videoUrl: String(formData.get("videoUrl") ?? "") || null,
         videoProvider: String(formData.get("videoProvider") ?? "placeholder"),
         status: String(formData.get("status") ?? "published"),
@@ -40,9 +38,6 @@ export function ModuleEditor({ module }: { module: EditorModule }) {
       </label>
       <label className="block text-sm">Lesson
         <textarea className="mt-1 w-full rounded-lg border px-3 py-2" name="lessonContent" rows={12} defaultValue={module.lessonContent} />
-      </label>
-      <label className="block text-sm">Video script
-        <textarea className="mt-1 w-full rounded-lg border px-3 py-2" name="videoScript" rows={12} defaultValue={module.videoScript} />
       </label>
       <div className="grid gap-3 sm:grid-cols-3">
         <label className="text-sm">Video provider

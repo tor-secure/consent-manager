@@ -10,7 +10,7 @@ export default async function CertificatePage() {
   const result = await getCertificate(learner);
   if (result.error) {
     return (
-      <div className="page-wrap space-y-4">
+      <div className="space-y-4 text-[#0B2C4A]">
         <section className="rounded-xl border border-[var(--border)] bg-white p-6">
           <h1 className="text-2xl font-semibold">Certificate of Completion</h1>
           <p className="mt-3 text-sm">The certificate is available after every module quiz and the final examination are passed.</p>
@@ -29,7 +29,7 @@ export default async function CertificatePage() {
   const certificate = result.certificate;
   const qrSvg = await certificateQrSvg(certificate.verificationUrl);
   return (
-    <div className="page-wrap">
+    <div>
       <CertificateDocument certificate={certificate} qrSvg={qrSvg} />
     </div>
   );

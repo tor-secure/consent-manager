@@ -37,20 +37,18 @@ export function ModuleCards({ modules }: { modules: ModuleCard[] }) {
               : null;
         return (
           <li key={item.slug} className="overflow-hidden rounded-xl border border-[#d5e3e0] bg-white text-[#0B2C4A]">
-            <div className="flex items-start gap-3 p-4">
+            <div className="flex items-center gap-3 px-4 py-3.5">
               <button
                 type="button"
-                className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 text-left"
+                className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left"
                 aria-expanded={open}
                 onClick={() => setOpenSlug(open ? null : item.slug)}
               >
-                <span className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">
-                    Module {String(item.number).padStart(2, "0")}
-                  </p>
-                  <h2 className="mt-1 text-lg font-semibold text-[#0B2C4A]">{item.title}</h2>
+                <span className="w-8 shrink-0 text-sm font-semibold tabular-nums text-[#4d6570]">
+                  {String(item.number).padStart(2, "0")}
                 </span>
-                <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" className={`mt-1 shrink-0 ${open ? "rotate-180" : ""}`}>
+                <h2 className="min-w-0 flex-1 text-base font-semibold leading-6 text-[#0B2C4A]">{item.title}</h2>
+                <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" className={`shrink-0 ${open ? "rotate-180" : ""}`}>
                   <path d="M5 7.5 10 12.5 15 7.5" />
                 </svg>
               </button>
@@ -58,15 +56,15 @@ export function ModuleCards({ modules }: { modules: ModuleCard[] }) {
               {item.unlocked ? (
                 <Link
                   href={`/e-learning/module/${item.slug}`}
-                  className="shrink-0 rounded-lg border border-[#0B2C4A] px-3 py-2 text-sm font-semibold text-[#0B2C4A]"
+                  className="inline-flex h-10 shrink-0 items-center rounded-lg border border-[#0B2C4A] px-3 text-sm font-semibold text-[#0B2C4A]"
                 >
                   {item.status === "completed" ? "Review" : "Continue"}
                 </Link>
               ) : null}
             </div>
             {open ? (
-              <div className="border-t border-[#d5e3e0] px-5 py-4">
-                <p className="line-clamp-5 text-justify text-base leading-7 text-[#0B2C4A]">{item.summary}</p>
+              <div className="border-t border-[#d5e3e0] px-4 py-4 sm:pl-[3.75rem] sm:pr-4">
+                <p className="line-clamp-5 text-justify text-sm leading-6 text-[#0B2C4A]">{item.summary}</p>
                 <p className="mt-3 text-sm text-[#4d6570]">
                   {item.minutes} minutes{statusLine ? ` · ${statusLine}` : ""}
                 </p>

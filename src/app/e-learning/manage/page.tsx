@@ -12,7 +12,7 @@ export default async function ManageCoursePage() {
   const home = await getCourseHome(learner);
   const progress = await listOrgProgress(learner);
   return (
-    <div className="page-wrap space-y-6">
+    <div className="space-y-6 text-[#0B2C4A]">
       <PageHeader title="Manage DPDP training" description="Owner and Admin only. Learners do not see this page." />
       <CourseSettingsForm
         passPercent={home.course.passPercent}

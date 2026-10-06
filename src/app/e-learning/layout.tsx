@@ -12,7 +12,7 @@ export default function ELearningLayout({ children }: { children: ReactNode }) {
       <HomeInteractions />
       <HomeNavbar />
       <main id="main-content" className="py-8">
-        {children}
+        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 sm:px-8">{children}</div>
       </main>
       <HomeFooter />
     </div>

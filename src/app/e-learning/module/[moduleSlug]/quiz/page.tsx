@@ -3,7 +3,7 @@ import { AssessmentRunner } from "@/components/learning/assessment-runner";
 export default async function ModuleQuizPage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
   return (
-    <div className="page-wrap">
+    <div className="text-[#0B2C4A]">
       <AssessmentRunner
         title="Module quiz"
         startPath={`/api/learning/modules/${moduleSlug}/quiz`}

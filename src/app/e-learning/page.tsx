@@ -28,23 +28,18 @@ function CourseFacts({
   };
 }) {
   return (
-    <section className="grid gap-4 rounded-xl border border-[#d5e3e0] bg-white p-5 text-[#0B2C4A] sm:grid-cols-2 lg:grid-cols-4">
-      <p>
-        <span className="block text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Instructor</span>
-        <span className="mt-1 block text-base">{home.course.instructor}</span>
-      </p>
-      <p>
-        <span className="block text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Modules</span>
-        <span className="mt-1 block text-base">{home.course.moduleCount}</span>
-      </p>
-      <p>
-        <span className="block text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Estimated time</span>
-        <span className="mt-1 block text-base">{Math.round(home.course.estimatedMinutes / 60)} hours</span>
-      </p>
-      <p>
-        <span className="block text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Difficulty</span>
-        <span className="mt-1 block text-base">{home.course.difficulty}</span>
-      </p>
+    <section className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#d5e3e0] bg-[#d5e3e0] lg:grid-cols-4">
+      {[
+        ["Instructor", home.course.instructor],
+        ["Modules", String(home.course.moduleCount)],
+        ["Estimated time", `${Math.round(home.course.estimatedMinutes / 60)} hours`],
+        ["Difficulty", home.course.difficulty],
+      ].map(([label, value]) => (
+        <div key={label} className="bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">{label}</p>
+          <p className="mt-1 text-base font-medium leading-6 text-[#0B2C4A]">{value}</p>
+        </div>
+      ))}
     </section>
   );
 }
@@ -55,7 +50,7 @@ export default async function DpdpCoursePage() {
 
   if (!home.enrolled) {
     return (
-      <div className="page-wrap space-y-6 text-[#0B2C4A] [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
+      <div className="space-y-6 text-[#0B2C4A] [&_.page-description]:max-w-none [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
         <PageHeader
           eyebrow="DPDP Act 2023 Training"
           title={home.course.title}
@@ -77,7 +72,7 @@ export default async function DpdpCoursePage() {
       : "/e-learning/final-exam";
 
   return (
-    <div className="page-wrap space-y-6 text-[#0B2C4A] [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
+    <div className="space-y-6 text-[#0B2C4A] [&_.page-description]:max-w-none [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
       <PageHeader
         eyebrow="DPDP Act 2023 Training"
         title={home.course.title}

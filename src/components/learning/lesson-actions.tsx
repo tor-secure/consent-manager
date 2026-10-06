@@ -29,11 +29,11 @@ export function LessonActions({ slug, lessonComplete }: { slug: string; lessonCo
     <div className="space-y-2">
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {lessonComplete ? (
-        <a className="inline-block rounded-lg bg-[var(--foreground)] px-4 py-2 text-sm font-semibold text-white" href={`/e-learning/module/${slug}/quiz`}>
+        <a className="inline-flex h-10 items-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white" href={`/e-learning/module/${slug}/quiz`}>
           Take module quiz
         </a>
       ) : (
-        <button type="button" className="rounded-lg bg-[var(--foreground)] px-4 py-2 text-sm font-semibold text-white" onClick={complete} disabled={pending}>
+        <button type="button" className="inline-flex h-10 items-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white disabled:opacity-60" onClick={complete} disabled={pending}>
           {pending ? "Saving…" : "Mark lesson complete"}
         </button>
       )}

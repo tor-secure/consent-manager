@@ -21,6 +21,7 @@ import {
   type SdkConfigCacheEntry,
   type SdkConfigLoadResult,
 } from "@/lib/sdk/config-cache";
+import { sdkConfigBodyWithFreshPolicyContexts } from "@/lib/policy-context";
 import { nextSdkConfigStore } from "@/lib/sdk/config-cache-next";
 import { loadPublishedSdkConfig } from "@/lib/sdk/load-published-config";
 
@@ -64,7 +65,7 @@ function logCacheSummary(siteKey: string, result: SdkConfigLoadResult) {
 }
 
 function jsonFromEntry(entry: SdkConfigCacheEntry, result: SdkConfigLoadResult) {
-  return NextResponse.json(entry.body, {
+  return NextResponse.json(sdkConfigBodyWithFreshPolicyContexts(entry.body), {
     headers: timingHeaders(result, entry.configHash),
   });
 }
