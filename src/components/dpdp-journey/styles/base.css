@@ -1,0 +1,133 @@
+/* Base rules for the explainer, scoped to `.fyd` so the rest of the site keeps
+   its own. What the standalone page set on `html` and `body` applies here
+   only while a `.fyd` page is in the document. */
+html:has(.fyd) {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* The page measures its own sections; the site's header offset must not
+     shift where a station scrolls to. */
+  scroll-padding-top: 0;
+  color-scheme: light;
+}
+
+html:has(.fyd),
+html:has(.fyd) body {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.fyd {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: var(--t-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Never let the 3D layer trap the page. */
+  overflow-x: clip;
+}
+
+.fyd :where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
+
+.fyd :where(h1, h2, h3, h4, p, figure, ul, ol, dl, blockquote) {
+  margin: 0;
+}
+
+/* The site's reset makes headings inherit; the explainer expects them bold. */
+.fyd :where(h1, h2, h3, h4) {
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.fyd :where(ul, ol) {
+  padding: 0;
+  list-style: none;
+}
+
+.fyd :where(img, svg, canvas) {
+  display: block;
+  max-width: 100%;
+}
+
+.fyd :where(a) {
+  color: inherit;
+  text-decoration-color: var(--hairline-strong);
+  text-underline-offset: 0.2em;
+}
+
+.fyd :where(a:hover) {
+  text-decoration-color: currentColor;
+}
+
+.fyd :where(a, button, [tabindex]):focus-visible {
+  outline: 2px solid var(--c-focus);
+  outline-offset: 3px;
+  border-radius: var(--radius);
+}
+
+.fyd ::selection {
+  background: var(--c-data);
+  color: var(--ink);
+}
+
+.fyd .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fyd .skip-link {
+  position: fixed;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  top: var(--s-3);
+  left: var(--s-3);
+  z-index: 100;
+  padding: var(--s-2) var(--s-4);
+  background: var(--paper-raised);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--radius);
+  font-size: var(--t-small);
+  transform: translateY(-200%);
+  transition: transform var(--dur-fast) var(--ease);
+}
+
+.fyd .skip-link:focus-visible {
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.fyd) {
+    scroll-behavior: auto;
+  }
+
+  .fyd :where(*, *::before, *::after) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Lenis smooths the wheel on desktop; native smooth scrolling must not fight it. */
+html.lenis:has(.fyd),
+html.lenis:has(.fyd) body {
+  height: auto;
+}
+
+html.lenis.lenis-smooth:has(.fyd) {
+  scroll-behavior: auto !important;
+}
+
+html.lenis.lenis-stopped:has(.fyd) {
+  overflow: clip;
+}

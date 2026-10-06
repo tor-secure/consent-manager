@@ -5,6 +5,15 @@ const { spawnSync } = require("node:child_process");
 const root = path.resolve(__dirname, "..");
 const tempRoot = path.join(root, ".tmp");
 const tsc = path.join(root, "node_modules", "typescript", "bin", "tsc");
+const cleanedDirectories = new Set();
+
+function cleanTestDirectory(name) {
+  const target = path.resolve(tempRoot, name);
+  if (path.dirname(target) !== tempRoot) throw new Error("Invalid test output directory");
+  if (cleanedDirectories.has(name)) return;
+  fs.rmSync(target, { recursive: true, force: true });
+  cleanedDirectories.add(name);
+}
 
 function run(command, args) {
   const result = spawnSync(command, args, {
@@ -17,6 +26,7 @@ function run(command, args) {
 }
 
 function compile(outDir, sources, extraArgs = []) {
+  cleanTestDirectory(outDir);
   const configPath = path.join(tempRoot, `tsconfig.${outDir}.json`);
   const rootDirIndex = extraArgs.indexOf("--rootDir");
   const rootDir = rootDirIndex >= 0
@@ -50,12 +60,17 @@ function collectTests(directory) {
 }
 
 function copyCompiled(source, destination) {
+  cleanTestDirectory(destination.split("/")[0]);
   const target = path.join(tempRoot, destination);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(path.join(tempRoot, "compiled", source), target);
 }
 
-fs.rmSync(tempRoot, { recursive: true, force: true });
+// Other harnesses keep logs, browsers, and disposable databases in .tmp.
+// Remove only this runner's generated outputs, never the entire shared folder.
+fs.mkdirSync(tempRoot, { recursive: true });
+cleanTestDirectory("test-libs");
+cleanTestDirectory("consent-manager-e2e");
 
 run(process.execPath, [tsc, "-p", "tsconfig.tests.json"]);
 compile(
@@ -70,10 +85,16 @@ compile(
     "src/lib/scanner/ssrf-guard.ts",
     "src/lib/scanner/tracker-signatures.ts",
     "src/lib/scanner/html-analyser.ts",
+    "src/lib/scanner/browser-crawler.ts",
+    "src/lib/scanner/browser-crawl-core.ts",
+    "src/lib/scanner/safe-browser-proxy-core.ts",
+    "src/lib/scanner/safe-browser-proxy.ts",
     "src/lib/rate-limit.ts",
     "src/lib/api-key-auth-logic.ts",
     "src/lib/consent-evaluation-core.ts",
     "src/lib/policy-context.ts",
+    "src/lib/consent-proof.ts",
+    "src/lib/consent-session-core.ts",
     "src/lib/portable-consent-proof.ts",
     "src/lib/portable-consent-core.ts",
     "src/lib/redaction-core.ts",
@@ -88,6 +109,7 @@ compile(
     "src/lib/sdk/enforcement.ts",
     "src/lib/sdk/public-http.ts",
     "src/lib/sdk/public-origin.ts",
+    "src/lib/runtime-discovery.ts",
     "src/lib/sdk/origin-allowlist.ts",
     "src/lib/ccpa/types.ts",
     "src/lib/ccpa/gpc.ts",
@@ -123,6 +145,10 @@ compile(
     "src/lib/webhooks/secret-crypto.ts",
     "src/lib/billing/stripe.ts",
     "src/lib/intelligence/twin-restore.ts",
+    "src/lib/intelligence/privacy-graph-core.ts",
+    "src/lib/experiments/core.ts",
+    "src/lib/transfer-security-core.ts",
+    "src/lib/discovery-redaction-core.ts",
     "src/lib/tools/assessment-engine.ts",
     "src/lib/tools/access.ts",
     "src/lib/tools/redact.ts",
@@ -140,18 +166,31 @@ copyCompiled("src/lib/security-headers.js", "security-headers/security-headers.j
 copyCompiled("src/lib/scanner/ssrf-guard.js", "scanner-security/ssrf-guard.js");
 copyCompiled("src/lib/scanner/tracker-signatures.js", "scanner-security/tracker-signatures.js");
 copyCompiled("src/lib/scanner/html-analyser.js", "scanner-security/html-analyser.js");
+copyCompiled("src/lib/scanner/browser-crawler.js", "browser-crawler/browser-crawler.js");
+copyCompiled("src/lib/scanner/browser-crawl-core.js", "browser-crawler/browser-crawl-core.js");
+copyCompiled("src/lib/scanner/ssrf-guard.js", "browser-crawler/ssrf-guard.js");
+copyCompiled("src/lib/scanner/safe-browser-proxy-core.js", "browser-crawler/safe-browser-proxy-core.js");
+copyCompiled("src/lib/scanner/safe-browser-proxy.js", "browser-crawler/safe-browser-proxy.js");
 copyCompiled("src/lib/sdk/early-block.js", "sdk/early-block.js");
 copyCompiled("src/lib/rate-limit.js", "rate-limit/rate-limit.js");
 copyCompiled("src/lib/sdk/origin-allowlist.js", "origin-allowlist/origin-allowlist.js");
+copyCompiled("src/lib/runtime-discovery.js", "runtime-discovery/runtime-discovery.js");
 copyCompiled("src/lib/api-key-auth-logic.js", "enforcement/api-key-auth-logic.js");
 copyCompiled("src/lib/consent-evaluation-core.js", "enforcement/consent-evaluation-core.js");
 copyCompiled("src/lib/policy-context.js", "policy-context/policy-context.js");
+copyCompiled("src/lib/consent-proof.js", "consent-security/consent-proof.js");
+copyCompiled("src/lib/consent-session-core.js", "consent-security/consent-session-core.js");
+copyCompiled("src/lib/policy-context.js", "consent-security/policy-context.js");
 copyCompiled("src/lib/portable-consent-proof.js", "portable-redaction/portable-consent-proof.js");
 copyCompiled("src/lib/portable-consent-core.js", "portable-redaction/portable-consent-core.js");
 copyCompiled("src/lib/redaction-core.js", "portable-redaction/redaction-core.js");
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
 copyCompiled("src/lib/billing/stripe.js", "billing/stripe.js");
 copyCompiled("src/lib/intelligence/twin-restore.js", "twin-restore/twin-restore.js");
+copyCompiled("src/lib/intelligence/privacy-graph-core.js", "privacy-graph/privacy-graph-core.js");
+copyCompiled("src/lib/experiments/core.js", "experiments/core.js");
+copyCompiled("src/lib/transfer-security-core.js", "transfer-security/transfer-security-core.js");
+copyCompiled("src/lib/discovery-redaction-core.js", "transfer-security/discovery-redaction-core.js");
 copyCompiled("src/lib/trackers/management.js", "tracker-management/trackers/management.js");
 copyCompiled("src/lib/ccpa/types.js", "tracker-management/ccpa/types.js");
 copyCompiled("src/lib/retention/core.js", "retention/retention/core.js");

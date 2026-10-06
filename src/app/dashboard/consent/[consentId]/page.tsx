@@ -9,9 +9,11 @@ import { CopyButton } from "@/components/sdk/copy-snippet";
 import { PageHeader } from "@/components/ui/page-header";
 
 type ProofPayload = {
-  stored: { alg: string; hash: string; signature: string; signedAt: string } | null;
+  stored: { alg: string; hash: string; signature: string; signedAt: string; proofVersion?: number; keyId?: string } | null;
   currentHash: string;
   verification: { hashMatches: boolean; signatureValid: boolean; intact: boolean };
+  proofVersion?: number;
+  keyId?: string;
 };
 
 type EvidenceResponse = {
@@ -23,7 +25,9 @@ type EvidenceResponse = {
     jurisdiction: string | null;
     website: { name: string; domain: string } | null;
     policyVersion: { policyName: string | null; version: number } | null;
-    proof: ProofPayload;
+    session: { id: string; status: string; decisionCount: number; issuedAt: string; expiresAt: string; revokedAt: string | null } | null;
+    privacyEvents?: Array<{ id: string; eventType: string; provenance: string; occurredAt: string; payload: Record<string, unknown> }>;
+    proof: ProofPayload | null;
   };
 };
 
@@ -81,6 +85,8 @@ export default function ConsentProofPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={intact ? "success" : "danger"}>{intact ? "Intact" : "Not intact"}</Badge>
               <Badge variant="neutral">{data.evidence.status}</Badge>
+              <Badge variant="neutral">Proof v{proof?.proofVersion ?? proof?.stored?.proofVersion ?? 1}</Badge>
+              <Badge variant="neutral">Key {proof?.keyId ?? proof?.stored?.keyId ?? "legacy"}</Badge>
             </div>
             <p className="text-sm text-[var(--muted-foreground)]">
               {data.evidence.website?.name} ({data.evidence.website?.domain}) ·{" "}
@@ -88,6 +94,11 @@ export default function ConsentProofPage() {
                 ? `${data.evidence.policyVersion.policyName ?? "Policy"} v${data.evidence.policyVersion.version}`
                 : "No policy version"}
             </p>
+            <section className="rounded-xl border border-[var(--border)] p-4">
+              <h2 className="font-semibold">Consent session</h2>
+              {data.evidence.session ? <div className="mt-2 space-y-1 text-sm"><p>Session <code className="break-all">{data.evidence.session.id}</code></p><p>Status: <span className="capitalize">{data.evidence.session.status}</span> · {data.evidence.session.decisionCount} decisions</p><p>Issued {new Date(data.evidence.session.issuedAt).toLocaleString()} · expires {new Date(data.evidence.session.expiresAt).toLocaleString()}</p>{data.evidence.session.revokedAt && <p>Revoked {new Date(data.evidence.session.revokedAt).toLocaleString()}</p>}</div> : <p className="mt-2 text-sm text-[var(--muted-foreground)]">No session is linked to this evidence.</p>}
+            </section>
+            <section className="rounded-xl border border-[var(--border)] p-4"><h2 className="font-semibold">Decision evidence</h2><p className="mt-2 text-sm">Policy: {data.evidence.policyVersion?.policyName ?? "Unknown"} v{data.evidence.policyVersion?.version ?? "—"} · jurisdiction: {data.evidence.jurisdiction ?? "Not recorded"}</p><p className="mt-1 text-xs text-[var(--muted-foreground)]">Decision timestamp and purpose/vendor choices are included in the signed evidence.</p></section>
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Consent ID</p>
               <code className="mt-1 block break-all font-mono text-xs">{data.evidence.consentId}</code>
@@ -119,6 +130,7 @@ export default function ConsentProofPage() {
                 This record was stored before proofs were signed. New consents include a hash and HMAC.
               </p>
             )}
+            <section className="border-t border-[var(--border)] pt-4"><h2 className="font-semibold">Privacy event history</h2>{data.evidence.privacyEvents?.length ? <ol className="mt-3 space-y-2">{data.evidence.privacyEvents.map((event) => <li key={event.id} className="rounded-lg bg-[var(--muted)] p-3 text-sm"><span className="font-medium">{event.eventType}</span><span className="text-[var(--muted-foreground)]"> · {event.provenance} · {new Date(event.occurredAt).toLocaleString()}</span></li>)}</ol> : <p className="mt-2 text-sm text-[var(--muted-foreground)]">No structured privacy events for this session.</p>}</section>
           </CardContent>
         </Card>
       )}

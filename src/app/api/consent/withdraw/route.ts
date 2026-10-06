@@ -1,10 +1,14 @@
 import { after, NextResponse } from "next/server";
-import { desc, eq, and, sql } from "drizzle-orm";
+import { desc, eq, and, sql, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
+import { consentSessions } from "@/db/schema/consent-sessions";
+import { experiments, experimentEvents } from "@/db/schema/experiments";
+import { privacyEvents } from "@/db/schema/privacy-events";
+import { secureTransferEnvelopes, transferAuthorizations } from "@/db/schema/transfer-security";
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
 import { logger } from "@/lib/logger";
@@ -98,6 +102,7 @@ export async function POST(request: Request) {
         status: consentRecords.status,
         stateVersion: consentRecords.stateVersion,
         policyVersionId: consentRecords.policyVersionId,
+        metadata: consentRecords.metadata,
       })
       .from(consentRecords)
       .where(
@@ -166,6 +171,26 @@ export async function POST(request: Request) {
         throw new Error("CONSENT_STATE_CONFLICT");
       }
       withdrawn = updated;
+
+      const [activeSession] = await tx.select({ id: consentSessions.id }).from(consentSessions).where(and(eq(consentSessions.consentRecordId, record.id), eq(consentSessions.status, "active"))).limit(1);
+      if (activeSession) await tx.update(consentSessions).set({ status: "revoked", revokedAt: now, updatedAt: now }).where(eq(consentSessions.id, activeSession.id));
+      const allTransferAuthorizations = await tx.select({ id: transferAuthorizations.id }).from(transferAuthorizations).where(and(eq(transferAuthorizations.organizationId, record.organizationId), eq(transferAuthorizations.websiteId, websiteId), eq(transferAuthorizations.consentRecordId, record.id)));
+      const revokedAuthorizations = await tx.update(transferAuthorizations).set({ state: "revoked", revokedAt: now, updatedAt: now }).where(and(eq(transferAuthorizations.organizationId, record.organizationId), eq(transferAuthorizations.websiteId, websiteId), eq(transferAuthorizations.consentRecordId, record.id), inArray(transferAuthorizations.state, ["active", "consumed"]))).returning({ id: transferAuthorizations.id, transferId: transferAuthorizations.transferId, recipientVendorId: transferAuthorizations.recipientVendorId, purposeId: transferAuthorizations.purposeId, sessionId: transferAuthorizations.sessionId });
+      if (allTransferAuthorizations.length) await tx.update(secureTransferEnvelopes).set({ status: "revoked" }).where(and(eq(secureTransferEnvelopes.organizationId, record.organizationId), eq(secureTransferEnvelopes.status, "ready"), inArray(secureTransferEnvelopes.authorizationId, allTransferAuthorizations.map((item) => item.id))));
+      if (revokedAuthorizations.length) {
+        await tx.insert(privacyEvents).values(revokedAuthorizations.map((item) => ({ organizationId: record.organizationId, websiteId, sessionId: item.sessionId, eventType: "transfer.authorization_revoked", provenance: "observed", payload: { authorizationId: item.id, transferId: item.transferId, recipientVendorId: item.recipientVendorId, purposeId: item.purposeId, reason: "consent_withdrawn" }, occurredAt: now })));
+      }
+      await tx.insert(privacyEvents).values({ organizationId: record.organizationId, websiteId, sessionId: activeSession?.id ?? null, eventType: "consent.withdrawn", provenance: "observed", payload: { consentId: record.consentId, policyVersionId: record.policyVersionId, stateVersion: updated.stateVersion }, occurredAt: now });
+      const abTest = record.metadata && typeof record.metadata === "object" ? (record.metadata as Record<string, unknown>).abTest as Record<string, unknown> | undefined : undefined;
+      const experimentId = typeof abTest?.experimentId === "string" ? abTest.experimentId : null;
+      const variantId = typeof abTest?.variantId === "string" ? abTest.variantId : null;
+      if (experimentId && variantId) {
+        const [experiment] = await tx.select({ id: experiments.id }).from(experiments).where(and(eq(experiments.id, experimentId), eq(experiments.organizationId, record.organizationId), eq(experiments.websiteId, website.id))).limit(1);
+        if (experiment) {
+          await tx.insert(experimentEvents).values({ organizationId: record.organizationId, websiteId: website.id, experimentId, sessionId: activeSession?.id ?? null, eventId: `withdraw-${record.id}-${updated.stateVersion}`, eventType: "withdrawal", variantId, occurredAt: now }).onConflictDoNothing();
+          await tx.insert(privacyEvents).values({ organizationId: record.organizationId, websiteId: website.id, sessionId: activeSession?.id ?? null, eventType: "experiment.event", provenance: "observed", payload: { experimentId, variantId, eventType: "withdrawal", consentId }, occurredAt: now });
+        }
+      }
 
       if (priorEvidence) {
         const snapshot = buildWithdrawalEvidenceSnapshot({

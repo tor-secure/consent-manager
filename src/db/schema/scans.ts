@@ -5,6 +5,7 @@ import {
   varchar,
   text,
   integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 import { websites } from "./websites";
@@ -47,6 +48,13 @@ export const scans = pgTable("scans", {
   itemsDetected: integer("items_detected")
     .notNull()
     .default(0),
+
+  pagesDiscovered: integer("pages_discovered").notNull().default(0),
+  resourcesObserved: integer("resources_observed").notNull().default(0),
+  progress: integer("progress").notNull().default(0),
+  crawlConfig: jsonb("crawl_config").$type<Record<string, unknown>>().notNull().default({}),
+  retryCount: integer("retry_count").notNull().default(0),
+  cancelRequestedAt: timestamp("cancel_requested_at", { withTimezone: true }),
 
   errorMessage: text("error_message"),
 
