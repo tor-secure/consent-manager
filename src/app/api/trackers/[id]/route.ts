@@ -22,6 +22,7 @@ import {
   TRACKER_AUDIT_ACTIONS,
 } from "@/lib/trackers/management";
 import { eq } from "drizzle-orm";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 export async function GET(
   _request: Request,
@@ -170,6 +171,7 @@ export async function PATCH(
       });
     }
 
+    await invalidateSdkConfigForWebsite(owned.website.id);
     return NextResponse.json({ success: true, tracker, policyImpact });
   } catch (error) {
     logger.error("Tracker update failed", { route: "PATCH /api/trackers/[id]", error });
@@ -217,6 +219,7 @@ export async function DELETE(
       },
     });
 
+    await invalidateSdkConfigForWebsite(owned.website.id);
     return NextResponse.json({ success: true, tracker });
   } catch (error) {
     logger.error("Tracker archive failed", { route: "DELETE /api/trackers/[id]", error });

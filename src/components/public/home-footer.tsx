@@ -86,6 +86,7 @@ const footerColumns = [
       { label: "News", href: "/news" },
       { label: "E-learning", href: "/e-learning" },
       { label: "DPDP tools", href: "/tools" },
+      { label: "DPO-as-a-Service", href: "/dpo-as-service" },
     ],
   },
   {

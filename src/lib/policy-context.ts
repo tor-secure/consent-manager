@@ -23,7 +23,6 @@ export type PolicyContextClaims = {
   jurisdiction: string;
   locale: string;
   variantId: string | null;
-  experimentId?: string | null;
   noticeHash: string;
   issuedAt: string;
   expiresAt: string;
@@ -223,7 +222,6 @@ function validClaims(value: unknown): value is PolicyContextClaims {
     claims.locale.length <= 35 &&
     (claims.variantId === null ||
       (typeof claims.variantId === "string" && claims.variantId.length <= 40)) &&
-    (claims.experimentId === undefined || claims.experimentId === null || (typeof claims.experimentId === "string" && UUID_RE.test(claims.experimentId))) &&
     typeof claims.noticeHash === "string" &&
     HASH_RE.test(claims.noticeHash) &&
     Number.isFinite(issuedAt) &&
@@ -295,6 +293,49 @@ export function verifyPolicyContextEnvelope(
     claims: tokenResult.claims,
     noticeSnapshot: typedSnapshot,
   };
+}
+
+export function reissuePolicyContext(value: unknown, now = new Date()): SignedPolicyContext | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const envelope = value as Record<string, unknown>;
+  if (!validClaims(envelope.claims)) return null;
+  const snapshot = envelope.noticeSnapshot;
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+  const claims = envelope.claims;
+  return issuePolicyContext(
+    {
+      organizationId: claims.organizationId,
+      websiteId: claims.websiteId,
+      siteKey: claims.siteKey,
+      policyId: claims.policyId,
+      policyVersionId: claims.policyVersionId,
+      policyVersionNumber: claims.policyVersionNumber,
+      jurisdiction: claims.jurisdiction,
+      locale: claims.locale,
+      variantId: claims.variantId,
+      noticeSnapshot: snapshot as PolicyNoticeSnapshot,
+    },
+    { now },
+  );
+}
+
+/** Fresh notice tokens for the HTTP response. The cached body is left unchanged. */
+export function sdkConfigBodyWithFreshPolicyContexts(
+  body: Record<string, unknown>,
+  now = new Date(),
+): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...body };
+  const policyContext = reissuePolicyContext(body.policyContext, now);
+  if (policyContext) next.policyContext = policyContext;
+  const stored = body.policyContexts;
+  if (stored && typeof stored === "object" && !Array.isArray(stored)) {
+    const contexts: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(stored)) {
+      contexts[key] = reissuePolicyContext(value, now) ?? value;
+    }
+    next.policyContexts = contexts;
+  }
+  return next;
 }
 
 export function policyContextMatchesScope(

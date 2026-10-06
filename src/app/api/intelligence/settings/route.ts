@@ -10,6 +10,7 @@ import { websites } from "@/db/schema/websites";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { negotiationOfferSchema, publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
 import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 const roiSchema = z.object({
   kind: z.literal("roi"),
@@ -98,6 +99,7 @@ export async function PUT(request: Request) {
         target: negotiationConfigurations.websiteId,
         set: { enabled: parsed.data.enabled, offers: safeOffers, updatedByUserId: ctx.user.id, updatedAt: new Date() },
       });
+    await invalidateSdkConfigForWebsite(site.id);
   }
   await db.insert(auditLogs).values({
     organizationId: ctx.organization.id,

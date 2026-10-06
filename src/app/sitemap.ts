@@ -29,6 +29,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/disclaimer`, lastModified: new Date(), changeFrequency: "yearly", priority: 0.4 },
     { url: `${SITE_URL}/faqs`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/dpo-as-service`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
     ...SEO_LANDINGS.map((page) => ({
       url: `${SITE_URL}${page.path}`,
       lastModified: new Date(),

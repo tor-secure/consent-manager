@@ -12,6 +12,7 @@ import {
   parseConsentIntegrations,
   serializeConsentIntegrations,
 } from "@/lib/signals/consent-integrations";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -138,6 +139,7 @@ export async function PUT(
       description: "Updated website regulation and consent integrations",
     });
 
+    await invalidateSdkConfigForWebsite(authz.website.id);
     return NextResponse.json({
       success: true,
       defaultRegulationKey,

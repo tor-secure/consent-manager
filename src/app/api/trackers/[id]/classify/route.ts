@@ -11,6 +11,7 @@ import {
   trackerMutationLimit,
 } from "@/lib/trackers/http";
 import { trackerPublishedPolicyImpact } from "@/lib/trackers/policy-impact";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 import {
   ESSENTIAL_CONFIRMATION_TEXT,
   auditActionsForChange,
@@ -121,6 +122,7 @@ export async function POST(
       });
     }
 
+    await invalidateSdkConfigForWebsite(owned.website.id);
     return NextResponse.json({
       success: true,
       tracker,

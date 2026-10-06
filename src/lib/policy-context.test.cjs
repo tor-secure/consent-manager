@@ -8,6 +8,7 @@ const {
   policyContextMatchesScope,
   policyContextMatchesVersion,
   verifyPolicyContextEnvelope,
+  sdkConfigBodyWithFreshPolicyContexts,
 } = require("../../.tmp/policy-context/policy-context.js");
 
 const ids = {
@@ -122,6 +123,38 @@ assert.equal(
   }),
   false,
 );
+
+{
+  const issuedAt = new Date("2020-01-01T00:00:00.000Z");
+  const servedAt = new Date("2028-01-01T00:00:00.000Z");
+  const cached = issuePolicyContext(
+    {
+      organizationId: ids.organizationA,
+      websiteId: ids.websiteA,
+      siteKey: "site_policy_context_test",
+      policyId: ids.policyA,
+      policyVersionId: ids.version1,
+      policyVersionNumber: 1,
+      jurisdiction: "gdpr",
+      locale: "en-GB",
+      variantId: null,
+      noticeSnapshot,
+    },
+    { now: issuedAt, ttlMs: 60_000, contextId: ids.context1 },
+  );
+  const cachedBody = {
+    success: true,
+    policyContext: cached,
+    policyContexts: { "variant-a": cached },
+  };
+  const served = sdkConfigBodyWithFreshPolicyContexts(cachedBody, servedAt);
+  assert.equal(cachedBody.policyContext.token, cached.token);
+  assert.notEqual(served.policyContext.token, cached.token);
+  assert.equal(verifyPolicyContextEnvelope(cached, servedAt).ok, false);
+  assert.equal(verifyPolicyContextEnvelope(served.policyContext, servedAt).ok, true);
+  assert.equal(verifyPolicyContextEnvelope(served.policyContexts["variant-a"], servedAt).ok, true);
+  assert.equal(served.policyContext.claims.policyVersionId, ids.version1);
+}
 
 {
   const previousNodeEnv = process.env.NODE_ENV;

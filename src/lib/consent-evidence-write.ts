@@ -85,8 +85,6 @@ export function buildWithdrawalEvidenceSnapshot(input: {
       signals: input.prior.signals,
       evidenceHash: proof.hash,
       evidenceSignature: proof.signature,
-      proofVersion: proof.proofVersion,
-      proofKeyId: proof.keyId,
       consentedAt: input.withdrawnAt,
     },
     payload,

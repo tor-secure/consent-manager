@@ -26,6 +26,7 @@ export default function robots(): MetadataRoute.Robots {
           "/disclaimer",
           "/faqs",
           "/pricing",
+          "/dpo-as-service",
           ...SEO_PUBLIC_PATHS,
         ],
         disallow: [

@@ -80,23 +80,25 @@ export function RightsRequestTracker({
   const [tracked, setTracked] = useState<TrackedRequest | null>(null);
 
   useEffect(() => {
+    setTicket(initialTicket);
+    setEmail(initialEmail);
+  }, [initialTicket, initialEmail]);
+
+  useEffect(() => {
     if (!autoLookup || !initialTicket.trim() || !initialEmail.trim()) return;
     let cancelled = false;
-    Promise.resolve().then(() => {
-      if (cancelled) return;
-      setTracking(true);
-      setError(null);
-      return lookupRequest(initialTicket, initialEmail)
-        .then((request) => {
-          if (!cancelled) setTracked(request);
-        })
-        .catch((err: unknown) => {
-          if (!cancelled) setError(err instanceof Error ? err.message : "Request not found");
-        })
-        .finally(() => {
-          if (!cancelled) setTracking(false);
-        });
-    });
+    setTracking(true);
+    setError(null);
+    lookupRequest(initialTicket, initialEmail)
+      .then((request) => {
+        if (!cancelled) setTracked(request);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Request not found");
+      })
+      .finally(() => {
+        if (!cancelled) setTracking(false);
+      });
     return () => {
       cancelled = true;
     };

@@ -1,707 +1,180 @@
 import { NextResponse } from "next/server";
-import { eq, and, inArray, desc } from "drizzle-orm";
 
-import { db } from "@/db";
-import { organizations } from "@/db/schema/organizations";
-import { websites } from "@/db/schema/websites";
-import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
-import { policyPurposes } from "@/db/schema/policy-purposes";
-import { purposes } from "@/db/schema/purposes";
-import { vendorPurposes } from "@/db/schema/vendor-purposes";
-import { vendors } from "@/db/schema/vendors";
-import { trackers } from "@/db/schema/trackers";
-import { parseBannerConfig, resolveTranslation, toPublicBannerConfig, applyResolvedNotice, overlayEntityText, noticeRootFromConfig } from "@/lib/banner-config";
-import { localizePurposeCopy } from "@/lib/i18n/indian-entity-translations";
-import { applyAbOverrides, parseBannerAbTest } from "@/lib/intelligence/ab-test";
-import { DEFAULT_BANNER_LOCALES, resolveRequestedLocale } from "@/lib/i18n/locale-registry";
-import type { TrackerRule } from "@/lib/sdk/enforcement";
+import { logger } from "@/lib/logger";
+import { parseSecGpcHeader, readSecGpcHeaderValue } from "@/lib/ccpa/gpc";
+import { countryFromRequestHeaders } from "@/lib/analytics/client-hints";
+import { regionFromRequestHeaders } from "@/lib/regulations/geo";
+import { sdkConfigCacheHeaders } from "@/lib/policy/lifecycle-core";
+import { getClientIp, rateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { consumeRateLimit } from "@/lib/rate-limit-store";
 import {
   isValidSiteKey,
   publicCorsHeaders,
   publicOptionsResponse,
 } from "@/lib/sdk/public-http";
-import { etagMatches, hashForPublishedVersion, hashPublishedConfig, sdkConfigCacheHeaders } from "@/lib/policy/lifecycle-core";
-import { logger } from "@/lib/logger";
-import { resolveWebsiteConsentContext } from "@/lib/regulations/resolve-website-consent";
-import { publicRegulationSummary } from "@/lib/regulations/engine";
-import { countryFromRequestHeaders } from "@/lib/analytics/client-hints";
-import { regionFromRequestHeaders } from "@/lib/regulations/geo";
-import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
-import { toPublicGoogleConsentConfig } from "@/lib/signals/google-consent-mode";
-import { buildIabSignalSnapshot, getIabRegistration } from "@/lib/signals/iab-adapter";
-import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
-import { negotiationConfigurations } from "@/db/schema/intelligence";
-import { publicNegotiationOffers } from "@/lib/intelligence/negotiation-offers";
-import {
-  buildPolicyNoticeSnapshot,
-  issuePolicyContext,
-} from "@/lib/policy-context";
-import { childProtectionActive, parseChildProtectionConfig } from "@/lib/children/config";
 import { sdkOriginGuard } from "@/lib/sdk/origin-allowlist";
-import { publicChildSnapshot } from "@/lib/children/service";
-import { parseGpcFromRequest } from "@/lib/ccpa/gpc";
-import { californiaRuntimeApplies } from "@/lib/ccpa/types";
-import { resolveTrackerCcpaClassification } from "@/lib/ccpa/enforcement";
-import { parseComplianceDeclarations } from "@/lib/compliance/evaluate";
-import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
-import { experiments } from "@/db/schema/experiments";
-import { promoteDueExperiments } from "@/lib/experiments/lifecycle";
+import {
+  loadSdkConfig,
+  normalizeSdkConfigDimensions,
+  sdkConfigCacheKey,
+  sdkConfigCacheMetrics,
+  type SdkConfigCacheEntry,
+  type SdkConfigLoadResult,
+} from "@/lib/sdk/config-cache";
+import { sdkConfigBodyWithFreshPolicyContexts } from "@/lib/policy-context";
+import { nextSdkConfigStore } from "@/lib/sdk/config-cache-next";
+import { loadPublishedSdkConfig } from "@/lib/sdk/load-published-config";
 
-// GET /api/sdk/[siteKey]/config
-// Public, CORS-enabled endpoint.
-// Optional query param: ?lang=<locale>
-// Precedence is implemented in resolveRequestedLocale. Resolved notice text is
-// merged into bannerConfig so the SDK displays visitor-facing copy in that language.
-// English root fields remain the fallback. Locale is independent of jurisdiction.
+const corsHeaders = publicCorsHeaders("GET, OPTIONS");
+
+function timingHeaders(result: SdkConfigLoadResult, configHash: string) {
+  return {
+    ...corsHeaders,
+    ...sdkConfigCacheHeaders(configHash),
+    "X-SDK-Config-Cache": result.outcome,
+    "Server-Timing": [
+      `cache;dur=${result.cacheReadMs.toFixed(2)}`,
+      `build;dur=${result.buildMs.toFixed(2)}`,
+      `total;dur=${result.totalMs.toFixed(2)}`,
+    ].join(", "),
+    "Access-Control-Expose-Headers": "Server-Timing, X-SDK-Config-Cache",
+  };
+}
+
+function logCacheSummary(siteKey: string, result: SdkConfigLoadResult) {
+  const metrics = sdkConfigCacheMetrics();
+  if (result.outcome !== "hit" || metrics.requests % 100 === 0) {
+    logger.info("SDK config cache", {
+      operation: "sdk.config.cache",
+      siteKey,
+      outcome: result.outcome,
+      cacheReadMs: Math.round(result.cacheReadMs),
+      buildMs: Math.round(result.buildMs),
+      totalMs: Math.round(result.totalMs),
+      requests: metrics.requests,
+      hits: metrics.hits,
+      misses: metrics.misses,
+      fallbacks: metrics.fallbacks,
+      databaseBuilds: metrics.databaseBuilds,
+      hitRatio: Number(metrics.hitRatio.toFixed(4)),
+      p50: metrics.total?.p50 ?? null,
+      p95: metrics.total?.p95 ?? null,
+      p99: metrics.total?.p99 ?? null,
+    });
+  }
+}
+
+function jsonFromEntry(entry: SdkConfigCacheEntry, result: SdkConfigLoadResult) {
+  return NextResponse.json(sdkConfigBodyWithFreshPolicyContexts(entry.body), {
+    headers: timingHeaders(result, entry.configHash),
+  });
+}
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ siteKey: string }> },
 ) {
+  const pendingHeaders = {
+    ...corsHeaders,
+    ...sdkConfigCacheHeaders("pending"),
+  };
   try {
     const { siteKey } = await params;
-
-    const corsHeaders = {
-      ...publicCorsHeaders("GET, OPTIONS"),
-      ...sdkConfigCacheHeaders("pending"),
-    };
-
     const trimmedKey = siteKey?.trim() ?? "";
-    const configLimit = await consumeRateLimit({
-      key: `sdk-config:${getClientIp(request)}:${trimmedKey || "invalid"}`,
-      limit: 120,
-      windowMs: 60_000,
-    });
-    if (!configLimit.allowed) return rateLimitResponse(configLimit, corsHeaders);
-
     if (!trimmedKey) {
       return NextResponse.json(
         { success: false, message: "siteKey is required" },
-        { status: 400, headers: corsHeaders },
+        { status: 400, headers: pendingHeaders },
       );
     }
     if (!isValidSiteKey(trimmedKey)) {
       return NextResponse.json(
         { success: false, message: "Invalid siteKey" },
-        { status: 400, headers: corsHeaders },
+        { status: 400, headers: pendingHeaders },
       );
     }
+
+    const admission = rateLimit({
+      key: `sdk-config:${getClientIp(request)}:${trimmedKey}`,
+      limit: 120,
+      windowMs: 60_000,
+    });
+    if (!admission.allowed) return rateLimitResponse(admission, pendingHeaders);
 
     const url = new URL(request.url);
-    const countryHint = url.searchParams.get("country") || countryFromRequestHeaders(request.headers);
-    const regionHint = url.searchParams.get("region") || regionFromRequestHeaders(request.headers);
-
-    // Resolve website by siteKey — siteKey is globally unique.
-    const [website] = await db
-      .select({
-        id: websites.id,
-        organizationId: websites.organizationId,
-        domain: websites.domain,
-        defaultLanguage: websites.defaultLanguage,
-        defaultRegion: websites.defaultRegion,
-        defaultRegulationKey: websites.defaultRegulationKey,
-        consentIntegrations: websites.consentIntegrations,
-        iabRegistration: websites.iabRegistration,
-        childProtection: websites.childProtection,
-        status: websites.status,
-        verified: websites.verified,
-      })
-      .from(websites)
-      .where(
-        and(eq(websites.siteKey, trimmedKey), eq(websites.status, "active")),
-      )
-      .limit(1);
-
-    if (!website) {
-      return NextResponse.json(
-        { success: false, message: "Website not found" },
-        { status: 404, headers: corsHeaders },
-      );
-    }
-
-    const originError = sdkOriginGuard(request, website, corsHeaders);
-    if (originError) return originError;
-
-    const childConfig = parseChildProtectionConfig(website.childProtection);
-    const needsChildSnapshot =
-      childProtectionActive(childConfig) || childConfig.ageAssuranceRequired;
-
-    // Everything below only depends on the website row, so fetch it in one
-    // round-trip batch. The banner paints from a local visual cache first.
-    const [resolved, orgRow, trackerRows, negotiation, childSnapshot, publishedVersions] = await Promise.all([
-      resolveWebsiteConsentContext({
-        websiteId: website.id,
-        organizationId: website.organizationId,
-        websiteDefaultRegion: website.defaultRegion,
-        defaultRegulationKey: website.defaultRegulationKey,
-        country: countryHint,
-        region: regionHint,
-      }),
-      // Organization grievance contact for the public notice
-      // (DPDP Rules 2025 Rule 3(1)(d)).
-      db
-        .select({
-          grievanceOfficerName:  organizations.grievanceOfficerName,
-          grievanceOfficerEmail: organizations.grievanceOfficerEmail,
-          grievancePortalUrl:    organizations.grievancePortalUrl,
-          dpoName:               organizations.dpoName,
-          dpoEmail:              organizations.dpoEmail,
-        })
-        .from(organizations)
-        .where(eq(organizations.id, website.organizationId))
-        .limit(1)
-        .then((rows) => rows[0]),
-      // Tracker rules for client-side enforcement.
-      db
-        .select({
-          id: trackers.id,
-          name: trackers.name,
-          type: trackers.type,
-          domain: trackers.domain,
-          identifier: trackers.identifier,
-          purposeId: trackers.purposeId,
-          vendorId: trackers.vendorId,
-          isEssential: trackers.isEssential,
-          status: trackers.status,
-          category: trackers.category,
-          cookieNames: trackers.cookieNames,
-          storageTypes: trackers.storageTypes,
-          localStorageKeys: trackers.localStorageKeys,
-          sessionStorageKeys: trackers.sessionStorageKeys,
-          indexedDbNames: trackers.indexedDbNames,
-          scriptUrlPatterns: trackers.scriptUrlPatterns,
-          iframeUrlPatterns: trackers.iframeUrlPatterns,
-          pixelUrlPatterns: trackers.pixelUrlPatterns,
-          party: trackers.party,
-          duration: trackers.duration,
-          deletionBehavior: trackers.deletionBehavior,
-          ccpaSale: trackers.ccpaSale,
-          ccpaShare: trackers.ccpaShare,
-          ccpaSensitivePi: trackers.ccpaSensitivePi,
-        })
-        .from(trackers)
-        .where(
-          and(
-            eq(trackers.websiteId, website.id),
-            eq(trackers.status, "active"),
-          ),
-        )
-        .orderBy(trackers.name),
-      db
-        .select({
-          enabled: negotiationConfigurations.enabled,
-          offers: negotiationConfigurations.offers,
-        })
-        .from(negotiationConfigurations)
-        .where(eq(negotiationConfigurations.websiteId, website.id))
-        .limit(1)
-        .then(
-          (rows): { enabled: boolean; offers: unknown } | undefined => rows[0],
-          (error) => {
-            logger.warn("SDK config skipped negotiation offers", {
-              route: "GET /api/sdk/[siteKey]/config",
-              operation: "sdk.config.negotiation",
-              error,
-            });
-            return undefined;
-          },
-        ),
-      needsChildSnapshot
-        ? publicChildSnapshot({
-            organizationId: website.organizationId,
-            websiteId: website.id,
-          }).catch((error): null => {
-            logger.warn("SDK config skipped child-protection snapshot", {
-              route: "GET /api/sdk/[siteKey]/config",
-              operation: "sdk.config.child",
-              error,
-            });
-            return null;
-          })
-        : Promise.resolve(null),
-      db
-        .select({
-          policyId: consentPolicyVersions.policyId,
-          id: consentPolicyVersions.id,
-          version: consentPolicyVersions.version,
-          isPublished: consentPolicyVersions.isPublished,
-          configuration: consentPolicyVersions.configuration,
-          processingSnapshot: consentPolicyVersions.processingSnapshot,
-          configHash: consentPolicyVersions.configHash,
-        })
-        .from(consentPolicyVersions)
-        .innerJoin(
-          consentPolicies,
-          eq(consentPolicyVersions.policyId, consentPolicies.id),
-        )
-        .where(
-          and(
-            eq(consentPolicies.websiteId, website.id),
-            eq(consentPolicyVersions.isPublished, true),
-          ),
-        ),
-    ]);
-
-    if (!resolved.selectedPolicy) {
-      return NextResponse.json(
-        { success: false, message: "No active consent policy found for this website" },
-        { status: 404, headers: corsHeaders },
-      );
-    }
-
-    const policy = {
-      id: resolved.selectedPolicy.id,
-      name: resolved.selectedPolicy.name,
-    };
-
-    // Only the latest published version may be shown to external visitors.
-    const latestVersion = publishedVersions
-      .filter((row) => row.policyId === policy.id)
-      .reduce<(typeof publishedVersions)[number] | undefined>((latest, row) => {
-        if (!latest || row.version > latest.version) return row;
-        return latest;
-      }, undefined);
-
-    if (!latestVersion) {
-      return NextResponse.json(
-        { success: false, message: "No published policy version found" },
-        { status: 404, headers: corsHeaders },
-      );
-    }
-
-    await promoteDueExperiments(new Date(), { websiteId: website.id, policyVersionId: latestVersion.id });
-    const experimentRows = await db.select().from(experiments).where(and(
-      eq(experiments.organizationId, website.organizationId),
-      eq(experiments.websiteId, website.id),
-      eq(experiments.policyVersionId, latestVersion.id),
-    )).orderBy(desc(experiments.updatedAt)).limit(20);
-    const firstClassExperiment = experimentRows.find((row) => row.status === "RUNNING")
-      ?? experimentRows.find((row) => row.status === "SCHEDULED")
-      ?? experimentRows[0]
-      ?? null;
-    const configHash = hashPublishedConfig({
-        base: latestVersion.configHash || hashForPublishedVersion({
-        id: latestVersion.id,
-        configuration: latestVersion.configuration,
-        processingSnapshot: latestVersion.processingSnapshot,
-        }),
-        experiment: firstClassExperiment ? { id: firstClassExperiment.id, status: firstClassExperiment.status, variants: firstClassExperiment.variants, allocation: firstClassExperiment.allocation, updatedAt: firstClassExperiment.updatedAt.toISOString() } : null,
-      });
-    const cacheHeaders = {
-      ...publicCorsHeaders("GET, OPTIONS"),
-      ...sdkConfigCacheHeaders(configHash),
-    };
-    if (etagMatches(request.headers.get("if-none-match"), configHash)) {
-      return new NextResponse(null, { status: 304, headers: cacheHeaders });
-    }
-
-    const grievance = {
-      grievanceOfficerName:  orgRow?.grievanceOfficerName  ?? null,
-      grievanceOfficerEmail: orgRow?.grievanceOfficerEmail ?? null,
-      grievancePortalUrl:    orgRow?.grievancePortalUrl    ?? null,
-      dpoName:               orgRow?.dpoName               ?? null,
-      dpoEmail:              orgRow?.dpoEmail              ?? null,
-    };
-
-    const bannerConfig = toPublicBannerConfig(
-      parseBannerConfig(latestVersion.configuration as Record<string, unknown>),
-    );
-    const legacyAbTest = parseBannerAbTest(
-      latestVersion.configuration &&
-        typeof latestVersion.configuration === "object" &&
-        !Array.isArray(latestVersion.configuration)
-        ? (latestVersion.configuration as Record<string, unknown>).abTest
-        : null,
-    );
-    const abTest = firstClassExperiment
-      ? {
-          enabled: firstClassExperiment.status === "RUNNING",
-          experimentId: firstClassExperiment.id,
-          controlVariantId: firstClassExperiment.controlVariantId,
-          variants: firstClassExperiment.variants,
-        }
-      : legacyAbTest;
-
-    const requestedLang = resolveRequestedLocale({
+    const gpcHeader = parseSecGpcHeader(readSecGpcHeaderValue(request.headers));
+    const dimensions = normalizeSdkConfigDimensions({
+      siteKey: trimmedKey,
       queryLang: url.searchParams.get("lang"),
       acceptLanguage: request.headers.get("accept-language"),
-      websiteDefault: website.defaultLanguage,
-      bannerDefault: bannerConfig.language,
-      supportedLocales: bannerConfig.supportedLocales,
+      country: url.searchParams.get("country") || countryFromRequestHeaders(request.headers),
+      region: url.searchParams.get("region") || regionFromRequestHeaders(request.headers),
+      gpc: gpcHeader === "valid_1" ? "valid_1" : gpcHeader === "invalid" ? "invalid" : "absent",
+    });
+    const cacheKey = sdkConfigCacheKey(dimensions);
+    const gpcActive = gpcHeader === "valid_1";
+
+    const result = await loadSdkConfig({
+      key: cacheKey,
+      siteKey: trimmedKey,
+      store: nextSdkConfigStore,
+      loader: async () => {
+        const sharedLimit = await consumeRateLimit({
+          key: `sdk-config:${getClientIp(request)}:${trimmedKey}`,
+          limit: 120,
+          windowMs: 60_000,
+        });
+        if (!sharedLimit.allowed) {
+          return {
+            ok: false,
+            failure: { status: 429, message: "Too many requests" },
+          };
+        }
+        return loadPublishedSdkConfig({
+          dimensions,
+          gpcHeader,
+          gpcActive,
+          queryLang: url.searchParams.get("lang"),
+          acceptLanguage: request.headers.get("accept-language"),
+        });
+      },
     });
 
-    const resolvedNotice = resolveTranslation(bannerConfig, requestedLang);
-    const localizedConfig = applyResolvedNotice(bannerConfig, resolvedNotice);
-    const noticeRoot = noticeRootFromConfig(bannerConfig);
-    const supportedLocales = bannerConfig.supportedLocales?.length
-      ? bannerConfig.supportedLocales
-      : DEFAULT_BANNER_LOCALES;
+    logCacheSummary(trimmedKey, result);
 
-    const integrations = parseConsentIntegrations(website.consentIntegrations);
-
-    // Purposes and vendors attached to this version, plus the GVL when TCF is
-    // on. All three depend only on the version id, so run them together.
-    const [versionPurposes, vendorRows, currentGvl] = await Promise.all([
-      db
-        .select({
-          id: purposes.id,
-          key: purposes.key,
-          name: purposes.name,
-          description: purposes.description,
-          isRequired: purposes.isRequired,
-          // DPDP Rule 3 enrichment — included in the SDK payload so the
-          // Preference Center can display retention period and data categories.
-          dataCategories:  purposes.dataCategories,
-          retentionPeriod: purposes.retentionPeriod,
-          legalBasis:      purposes.legalBasis,
-          iabTcfPurposeId: purposes.iabTcfPurposeId,
-          iabGppPurposeId: purposes.iabGppPurposeId,
-        })
-        .from(policyPurposes)
-        .innerJoin(purposes, eq(policyPurposes.purposeId, purposes.id))
-        .where(eq(policyPurposes.policyVersionId, latestVersion.id))
-        .orderBy(purposes.name),
-      // Vendors linked through the purposes attached to this version.
-      db
-        .select({
-          id: vendors.id,
-          name: vendors.name,
-          domain: vendors.domain,
-          privacyPolicyUrl: vendors.privacyPolicyUrl,
-          iabVendorId: vendors.iabVendorId,
-          role: vendors.role,
-          ccpaSale: vendors.ccpaSale,
-          ccpaShare: vendors.ccpaShare,
-          ccpaSensitivePi: vendors.ccpaSensitivePi,
-        })
-        .from(policyPurposes)
-        .innerJoin(vendorPurposes, eq(vendorPurposes.purposeId, policyPurposes.purposeId))
-        .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
-        .where(eq(policyPurposes.policyVersionId, latestVersion.id))
-        .orderBy(vendors.name),
-      integrations.iabTcf.enabled
-        ? getCurrentGvl().catch((error): null => {
-            logger.warn("SDK config skipped IAB GVL cache", {
-              route: "GET /api/sdk/[siteKey]/config",
-              operation: "sdk.config.gvl",
-              error,
-            });
-            return null;
-          })
-        : Promise.resolve(null),
-    ]);
-
-    const resolvedVendors = [
-      ...new Map(vendorRows.map((vendor) => [vendor.id, vendor])).values(),
-    ];
-
-    // Build purposeKey map: purposeId → key (for human-readable enforcement logs).
-    // Version purposes already carry their keys; only look up trackers that
-    // point at purposes outside this version.
-    const purposeKeyMap = new Map(versionPurposes.map((p) => [p.id, p.key]));
-    const missingPurposeIds = [
-      ...new Set(
-        trackerRows
-          .map((t) => t.purposeId)
-          .filter((id): id is string => Boolean(id) && !purposeKeyMap.has(id as string)),
-      ),
-    ];
-    if (missingPurposeIds.length > 0) {
-      const purposeKeyRows = await db
-        .select({ id: purposes.id, key: purposes.key })
-        .from(purposes)
-        .where(inArray(purposes.id, missingPurposeIds));
-      for (const row of purposeKeyRows) purposeKeyMap.set(row.id, row.key);
+    if (result.failure) {
+      if (result.failure.status === 429) {
+        return rateLimitResponse(
+          {
+            allowed: false,
+            limit: 120,
+            remaining: 0,
+            resetAt: Date.now() + 60_000,
+            retryAfterSeconds: 60,
+          },
+          pendingHeaders,
+        );
+      }
+      return NextResponse.json(
+        { success: false, message: result.failure.message },
+        { status: result.failure.status, headers: pendingHeaders },
+      );
     }
 
-    const vendorById = new Map(resolvedVendors.map((vendor) => [vendor.id, vendor]));
-    const trackerRules: TrackerRule[] = trackerRows.map((t) => {
-      const vendor = t.vendorId ? vendorById.get(t.vendorId) : null;
-      const ccpa = resolveTrackerCcpaClassification({
-        trackerSale: t.ccpaSale,
-        trackerShare: t.ccpaShare,
-        trackerSensitive: t.ccpaSensitivePi,
-        vendorSale: vendor?.ccpaSale,
-        vendorShare: vendor?.ccpaShare,
-        vendorSensitive: vendor?.ccpaSensitivePi,
-      });
-      return {
-        id: t.id,
-        name: t.name,
-        type: t.type as TrackerRule["type"],
-        domain: t.domain,
-        identifier: t.identifier,
-        purposeKey: t.purposeId ? (purposeKeyMap.get(t.purposeId) ?? null) : null,
-        purposeId: t.purposeId,
-        vendorId: t.vendorId,
-        isEssential: t.isEssential,
-        status: t.status,
-        category: t.category,
-        cookieNames: t.cookieNames,
-        storageTypes: t.storageTypes,
-        localStorageKeys: t.localStorageKeys,
-        sessionStorageKeys: t.sessionStorageKeys,
-        indexedDbNames: t.indexedDbNames,
-        scriptUrlPatterns: t.scriptUrlPatterns,
-        iframeUrlPatterns: t.iframeUrlPatterns,
-        pixelUrlPatterns: t.pixelUrlPatterns,
-        party: t.party as TrackerRule["party"],
-        duration: t.duration,
-        deletionBehavior: t.deletionBehavior,
-        ccpaSale: ccpa.ccpaSale,
-        ccpaShare: ccpa.ccpaShare,
-        ccpaSensitivePi: ccpa.ccpaSensitivePi,
-      };
-    });
-
-    const purposeMappings = versionPurposes.map((purpose) =>
-      purpose.iabTcfPurposeId ?? integrations.iabTcf.purposeMappings[purpose.id]).filter(Number.isInteger);
-    const vendorMappings = resolvedVendors.map((vendor) =>
-      vendor.iabVendorId ?? integrations.iabTcf.vendorMappings[vendor.id]).filter(Number.isInteger);
-    const mappingComplete =
-      purposeMappings.length === versionPurposes.length &&
-      vendorMappings.length === resolvedVendors.length;
-    const legalSections: Record<string, number[]> = {
-      gdpr: [2], uk_gdpr: [2], ccpa: [7, 8], vcdpa: [7, 9], cpa: [7, 10], ucpa: [7, 11],
-    };
-    const applicableSections = resolved.legalEngine.ux.iabGpp
-      ? (legalSections[resolved.regulation?.key ?? ""] ?? []).filter((id) =>
-          integrations.iabGpp.sectionIds.length === 0 || integrations.iabGpp.sectionIds.includes(id))
-      : [];
-    const iab = buildIabSignalSnapshot({
-      tcf: integrations.iabTcf,
-      gpp: integrations.iabGpp,
-      gvlVersion: currentGvl?.version ?? null,
-      mappingComplete,
-      applicableSections,
-      registration: getIabRegistration(process.env, website.iabRegistration),
-    });
-    const legalBannerConfig = {
-      ...localizedConfig,
-      showRejectAll: resolved.legalEngine.ux.rejectAllRecommended || localizedConfig.showRejectAll,
-      showCustomize: resolved.legalEngine.ux.preferenceCenterRequired && localizedConfig.showCustomize,
-      consentModel: resolved.legalEngine.ux.consentModel,
-    };
-    const negotiationOffers = publicNegotiationOffers({
-      enabled: negotiation?.enabled ?? false,
-      offers: negotiation?.offers ?? [],
-      requiredPurposeKeys: versionPurposes.filter((purpose) => purpose.isRequired).map((purpose) => purpose.key),
-    });
-    const purposeRoot = versionPurposes.map((purpose) => ({
-      id: purpose.id,
-      key: purpose.key,
-      name: purpose.name,
-      description: purpose.description,
-      legalBasis: purpose.legalBasis,
-    }));
-    const publicPurposes = versionPurposes.map((purpose) => {
-      const localized = localizePurposeCopy(
-        { key: purpose.key, name: purpose.name, description: purpose.description },
-        resolvedNotice.resolvedLocale,
-        resolvedNotice.purposes[purpose.key],
+    if (!result.entry || result.entry.siteKey !== trimmedKey || result.entry.organizationId.length === 0) {
+      return NextResponse.json(
+        { success: false, message: "Failed to load SDK configuration" },
+        { status: 500, headers: pendingHeaders },
       );
-      return {
-        ...purpose,
-        iabTcfPurposeId:
-          purpose.iabTcfPurposeId ??
-          integrations.iabTcf.purposeMappings[purpose.id] ??
-          null,
-        name: localized.name,
-        description: localized.description,
-      };
-    });
-    const publicVendors = resolvedVendors.map((vendor) => {
-      const overlay = overlayEntityText(
-        {
-          key: vendor.domain || vendor.id,
-          name: vendor.name,
-          description: null,
-        },
-        resolvedNotice.vendors,
-      );
-      return {
-        ...vendor,
-        iabVendorId:
-          vendor.iabVendorId ??
-          integrations.iabTcf.vendorMappings[vendor.id] ??
-          null,
-        name: overlay.name,
-      };
-    });
-    const jurisdiction = resolved.regulation?.key ?? "unknown";
-    const noticeSnapshot = buildPolicyNoticeSnapshot({
-      policy: {
-        id: policy.id,
-        name: policy.name,
-        versionId: latestVersion.id,
-        version: latestVersion.version,
-      },
-      jurisdiction,
-      locale: resolvedNotice.resolvedLocale,
-      variantId: null,
-      bannerConfig: legalBannerConfig as unknown as Record<string, unknown>,
-      purposes: publicPurposes,
-      vendors: publicVendors,
-      grievance,
-    });
-    const policyContext = issuePolicyContext({
-      organizationId: website.organizationId,
-      websiteId: website.id,
-      siteKey: trimmedKey,
-      policyId: policy.id,
-      policyVersionId: latestVersion.id,
-      policyVersionNumber: latestVersion.version,
-      jurisdiction,
-      locale: resolvedNotice.resolvedLocale,
-      variantId: null,
-      noticeSnapshot,
-    });
-    const policyContexts = Object.fromEntries(
-      abTest?.enabled
-        ? abTest.variants.map((variant) => {
-            const variantSnapshot = buildPolicyNoticeSnapshot({
-              ...noticeSnapshot,
-              variantId: variant.id,
-              bannerConfig: applyAbOverrides(
-                legalBannerConfig as unknown as Record<string, unknown>,
-                variant.overrides,
-              ),
-            });
-            return [
-              variant.id,
-              issuePolicyContext({
-                organizationId: website.organizationId,
-                websiteId: website.id,
-                siteKey: trimmedKey,
-                policyId: policy.id,
-                policyVersionId: latestVersion.id,
-                policyVersionNumber: latestVersion.version,
-                jurisdiction,
-                locale: resolvedNotice.resolvedLocale,
-                variantId: variant.id,
-                ...(firstClassExperiment ? { experimentId: firstClassExperiment.id } : {}),
-                noticeSnapshot: variantSnapshot,
-              }),
-            ];
-          })
-        : [],
-    );
+    }
 
-    const childView = childSnapshot?.view;
-    const childNotice = !childView?.enabled
-      ? null
-      : childView.ageStatus === "unknown" || childView.ageStatus === "expired"
-        ? "Some optional features require age verification."
-        : childView.guardianRequired && childView.guardianStatus !== "verified"
-          ? "A parent or guardian must approve these optional features."
-          : childView.restrictedProcessingAllowed
-            ? "Age was recorded. A self-declaration is not verified assurance."
-            : "Some optional features remain restricted.";
-
-    return NextResponse.json(
-      {
-        success: true,
-        websiteId: website.id,
-        policy: {
-          id: policy.id,
-          name: policy.name,
-          versionId: latestVersion.id,
-          version: latestVersion.version,
-          isPublished: latestVersion.isPublished,
-          configHash,
-          selection: resolved.selection.reason,
-        },
-        bannerConfig: legalBannerConfig,
-        abTest,
-        experiment: firstClassExperiment ? { id: firstClassExperiment.id, name: firstClassExperiment.name, status: firstClassExperiment.status, controlVariantId: firstClassExperiment.controlVariantId } : null,
-        resolvedLanguage: resolvedNotice.resolvedLocale,
-        policyContext,
-        policyContexts,
-        purposes: publicPurposes,
-        purposeRoot,
-        vendors: publicVendors,
-        trackerRules,
-        trackerEnforcement: integrations.trackerEnforcement,
-        noticeRoot,
-        locale: {
-          resolved: resolvedNotice.resolvedLocale,
-          direction: resolvedNotice.direction,
-          default: bannerConfig.language || "en",
-          supported: supportedLocales,
-          language: website.defaultLanguage,
-          region: website.defaultRegion ?? "",
-        },
-        jurisdiction: {
-          country: resolved.geo.country,
-          region: resolved.geo.region,
-          source: resolved.geo.source,
-        },
-        regulation: publicRegulationSummary(resolved.regulation),
-        legalEngine: {
-          confidence: resolved.legalEngine.confidence,
-          source: resolved.legalEngine.regulationSource,
-          policyReason: resolved.legalEngine.policyReason,
-          ux: resolved.legalEngine.ux,
-          reasoning: resolved.legalEngine.reasoning,
-          alternatives: resolved.legalEngine.alternatives.map((row) => ({
-            key: row.key,
-            label: row.label,
-            score: row.score,
-          })),
-          disclaimer: resolved.legalEngine.disclaimer,
-        },
-        signals: {
-          googleConsentMode: toPublicGoogleConsentConfig(integrations.googleConsentMode),
-          iabTcf: iab.tcf,
-          iabGpp: iab.gpp,
-        },
-        negotiation: {
-          enabled: negotiationOffers.length > 0,
-          offers: negotiationOffers,
-          disclosure: "Optional alternatives. Declining keeps the standard preference choices available.",
-        },
-        grievance,
-        california: (() => {
-          const gpc = parseGpcFromRequest(request.headers, null);
-          const declarations = parseComplianceDeclarations(
-            legalBannerConfig as unknown as Record<string, unknown>,
-            {},
-          );
-          const enabled = californiaRuntimeApplies({
-            regulationKey: resolved.regulation?.key ?? website.defaultRegulationKey,
-            country: resolved.geo.country,
-            region: resolved.geo.region,
-          });
-          return {
-            enabled,
-            gpcRuntime: true,
-            gpcHeader: gpc.header,
-            gpcRecognized: gpc.active && enabled,
-            doNotSellEnabled: declarations.doNotSellEnabled,
-            doNotShareEnabled: declarations.doNotShareEnabled,
-            limitSensitivePiEnabled: declarations.limitSensitivePiEnabled,
-          };
-        })(),
-        childProtection: {
-          enabled: childConfig.enabled || childConfig.childDirected || childConfig.ageAssuranceRequired,
-          childDirected: childConfig.childDirected,
-          ageAssuranceRequired: childConfig.ageAssuranceRequired,
-          minimumAge: childConfig.minimumAge,
-          guardianConsentRequired: childConfig.guardianConsentRequired,
-          restrictedPurposeKeys: childConfig.restrictedPurposeKeys,
-          minimumAssurance: childConfig.minimumAssurance,
-          ageStatus: childView?.ageStatus ?? "unknown",
-          guardianStatus: childView?.guardianStatus ?? "none",
-          guardianRequired: childView?.guardianRequired ?? childConfig.guardianConsentRequired,
-          restrictedProcessingAllowed: childView?.restrictedProcessingAllowed ?? false,
-          selfDeclarationIsNotVerified: true,
-          notice: childNotice,
-        },
-        ageContext: childSnapshot?.ageContext ?? null,
-      },
-      { headers: cacheHeaders },
+    const originError = sdkOriginGuard(
+      request,
+      { domain: result.entry.domain, verified: result.entry.verified },
+      timingHeaders(result, result.entry.configHash),
     );
+    if (originError) return originError;
+    return jsonFromEntry(result.entry, result);
   } catch (error) {
     logger.error("SDK config load failed", {
       route: "GET /api/sdk/[siteKey]/config",
@@ -710,12 +183,11 @@ export async function GET(
     });
     return NextResponse.json(
       { success: false, message: "Failed to load SDK configuration" },
-      { status: 500, headers: publicCorsHeaders("GET, OPTIONS") },
+      { status: 500, headers: corsHeaders },
     );
   }
 }
 
-// Handle CORS preflight from browser SDK.
 export async function OPTIONS() {
   return publicOptionsResponse("GET, OPTIONS");
 }

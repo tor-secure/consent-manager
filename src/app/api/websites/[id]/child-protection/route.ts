@@ -6,6 +6,7 @@ import { websites } from "@/db/schema/websites";
 import { childProtectionActive, childProtectionIsComplete, parseChildProtectionConfig } from "@/lib/children/config";
 import { resolveActiveMembership, resolveLocalOrganization, resolveLocalUser } from "@/lib/api-auth-helpers";
 import { auth } from "@clerk/nextjs/server";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 async function authorizeWebsite(websiteId: string) {
   const { isAuthenticated, userId, orgId } = await auth();
@@ -73,5 +74,6 @@ export async function PUT(
     .update(websites)
     .set({ childProtection: parsed, updatedAt: new Date() })
     .where(and(eq(websites.id, authz.website.id), eq(websites.organizationId, authz.organization.id)));
+  await invalidateSdkConfigForWebsite(authz.website.id);
   return NextResponse.json({ success: true, childProtection: parsed });
 }

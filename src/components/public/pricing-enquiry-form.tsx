@@ -54,11 +54,8 @@ function InvisibleRecaptcha({
   const widgetIdRef = useRef<number | null>(null);
   const onTokenRef = useRef(onToken);
   const onErrorRef = useRef(onError);
-
-  useEffect(() => {
-    onTokenRef.current = onToken;
-    onErrorRef.current = onError;
-  }, [onError, onToken]);
+  onTokenRef.current = onToken;
+  onErrorRef.current = onError;
 
   useImperativeHandle(ref, () => ({
     execute() {

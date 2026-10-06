@@ -9,8 +9,9 @@ import { integrations } from "@/db/schema/integrations";
 import { websiteIntegrations } from "@/db/schema/website-integrations";
 import { auditLogs } from "@/db/schema/audit-logs";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership } from "@/lib/api-auth-helpers";
-import { applyIntegrationRuntime, runtimeKindForIntegration, serializeRuntime } from "@/lib/integrations/runtime";
 import { requireOperatorRole } from "@/lib/org-roles";
+import { applyIntegrationRuntime, runtimeKindForIntegration, serializeRuntime } from "@/lib/integrations/runtime";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 // POST /api/integrations/connect
 // Body: { integrationId: string; websiteId: string }
@@ -154,6 +155,7 @@ export async function POST(request: Request) {
         .update(websites)
         .set({ consentIntegrations: serializeRuntime(next), updatedAt: new Date() })
         .where(eq(websites.id, website.id));
+      await invalidateSdkConfigForWebsite(website.id);
     }
 
     await db.insert(auditLogs).values({

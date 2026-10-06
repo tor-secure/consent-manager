@@ -34,6 +34,15 @@ export type BootstrapResult = BootstrapContext | BootstrapContextNoOrg;
 
 const LOGIN_TOUCH_MS = 60 * 60 * 1000;
 
+function isUniqueViolation(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < 4 && current && typeof current === "object"; depth += 1) {
+    if ("code" in current && (current as { code?: string }).code === "23505") return true;
+    current = (current as { cause?: unknown }).cause;
+  }
+  return false;
+}
+
 function rethrowBootstrapDbError(error: unknown): never {
   if (isDatabaseUnreachableError(error)) {
     throw new Error(
@@ -152,21 +161,48 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
   let localUser = existingUserRows[0];
 
   if (!localUser) {
-    [localUser] = await db
-      .insert(users)
-      .values({
-        clerkUserId: userId,
-        email,
-        name,
-        avatarUrl,
-        status: "active",
-        timezone: "UTC",
-        locale: "en",
-        metadata: {},
-        lastLoginAt: new Date(),
-        emailVerifiedAt: isEmailVerified ? new Date() : null,
-      })
-      .returning(userCoreSelect);
+    const [sameEmail] = await db.select(userCoreSelect).from(users).where(eq(users.email, email)).limit(1);
+    if (sameEmail) {
+      [localUser] = await db
+        .update(users)
+        .set({
+          clerkUserId: userId,
+          name,
+          avatarUrl,
+          lastLoginAt: new Date(),
+          emailVerifiedAt: isEmailVerified ? (sameEmail.emailVerifiedAt ?? new Date()) : sameEmail.emailVerifiedAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, sameEmail.id))
+        .returning(userCoreSelect);
+    } else {
+      try {
+        [localUser] = await db
+          .insert(users)
+          .values({
+            clerkUserId: userId,
+            email,
+            name,
+            avatarUrl,
+            status: "active",
+            timezone: "UTC",
+            locale: "en",
+            metadata: {},
+            lastLoginAt: new Date(),
+            emailVerifiedAt: isEmailVerified ? new Date() : null,
+          })
+          .returning(userCoreSelect);
+      } catch (error) {
+        if (!isUniqueViolation(error)) throw error;
+        const [linked] = await db.select(userCoreSelect).from(users).where(eq(users.email, email)).limit(1);
+        if (!linked) throw error;
+        [localUser] = await db
+          .update(users)
+          .set({ clerkUserId: userId, name, avatarUrl, lastLoginAt: new Date(), updatedAt: new Date() })
+          .where(eq(users.id, linked.id))
+          .returning(userCoreSelect);
+      }
+    }
   } else {
     const profileChanged =
       localUser.email !== email ||

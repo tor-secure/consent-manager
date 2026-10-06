@@ -1,38 +1,105 @@
 import type { Metadata } from "next";
-import { SkipLink } from "@/components/ui/skip-link";
-import { HomeFooter } from "@/components/public/home-footer";
-import { HomeInteractions } from "@/components/public/home-interactions";
-import { HomeNavbar } from "@/components/public/home-navbar";
-import { DpdpCourse } from "@/components/e-learning/dpdp-course";
+import Link from "next/link";
 
-import { socialMetadata, INDEXABLE_ROBOTS, pageAlternates } from "@/lib/site-metadata";
+import { EnrollButton } from "@/components/learning/enroll-button";
+import { ModuleCards } from "@/components/learning/module-cards";
+import { PageHeader } from "@/components/ui/page-header";
+import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
+import { learnerPageContext } from "@/lib/learning/page-context";
+import { getCourseHome } from "@/lib/learning/service";
 
-const elearningTitle = "E-learning — DPDP Act";
-const elearningDescription =
-  "Ten modules on India’s Digital Personal Data Protection Act. Sign in to learn; progress stays in your browser.";
+const title = "E-learning — DPDP Act";
+const description =
+  "Thirty-module DPDP Act 2023 training with quizzes, a final examination, and a certificate of completion.";
 
 export const metadata: Metadata = {
-  title: elearningTitle,
-  description: elearningDescription,
+  title,
+  description,
   robots: INDEXABLE_ROBOTS,
   alternates: pageAlternates("/e-learning"),
-  ...socialMetadata({
-    title: `${elearningTitle} — Consent Guru`,
-    description: elearningDescription,
-    path: "/e-learning",
-  }),
+  ...socialMetadata({ title: `${title} — Consent Guru`, description, path: "/e-learning" }),
 };
 
-export default function ELearningPage() {
+function CourseFacts({
+  home,
+}: {
+  home: {
+    course: { instructor: string; moduleCount: number; estimatedMinutes: number; difficulty: string };
+  };
+}) {
   return (
-    <div className="public-page min-h-screen bg-white text-[#111827]">
-      <SkipLink />
-      <HomeInteractions />
-      <HomeNavbar />
-      <main id="main-content">
-        <DpdpCourse />
-      </main>
-      <HomeFooter />
+    <section className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-[#d5e3e0] bg-[#d5e3e0] lg:grid-cols-4">
+      {[
+        ["Instructor", home.course.instructor],
+        ["Modules", String(home.course.moduleCount)],
+        ["Estimated time", `${Math.round(home.course.estimatedMinutes / 60)} hours`],
+        ["Difficulty", home.course.difficulty],
+      ].map(([label, value]) => (
+        <div key={label} className="bg-white px-4 py-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">{label}</p>
+          <p className="mt-1 text-base font-medium leading-6 text-[#0B2C4A]">{value}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+export default async function DpdpCoursePage() {
+  const learner = await learnerPageContext();
+  const home = await getCourseHome(learner);
+
+  if (!home.enrolled) {
+    return (
+      <div className="space-y-6 text-[#0B2C4A] [&_.page-description]:max-w-none [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
+        <PageHeader
+          eyebrow="DPDP Act 2023 Training"
+          title={home.course.title}
+          description={home.course.description}
+          action={<EnrollButton moduleCount={home.course.moduleCount} />}
+        />
+        <CourseFacts home={home} />
+        <p className="text-base leading-7 text-[#0B2C4A]">{home.course.disclaimer}</p>
+        <ModuleCards modules={home.modules} />
+      </div>
+    );
+  }
+
+  const current = home.modules.find((item) => item.status === "in_progress" || item.status === "available");
+  const continueHref = home.progress.certificateEligible
+    ? "/e-learning/certificate"
+    : current
+      ? `/e-learning/module/${current.slug}`
+      : "/e-learning/final-exam";
+
+  return (
+    <div className="space-y-6 text-[#0B2C4A] [&_.page-description]:max-w-none [&_.page-description]:text-base [&_.page-description]:leading-7 [&_.page-description]:text-[#0B2C4A]">
+      <PageHeader
+        eyebrow="DPDP Act 2023 Training"
+        title={home.course.title}
+        description={home.course.description}
+        action={
+          <Link href={continueHref} className="rounded-lg bg-[#0B2C4A] px-4 py-2 text-sm font-semibold text-white">
+            {home.progress.certificateEligible ? "View certificate" : "Continue learning"}
+          </Link>
+        }
+      />
+      <CourseFacts home={home} />
+      <section aria-label="Course progress">
+        <p className="text-base font-semibold text-[#0B2C4A]">
+          {home.progress.completedModules} / {home.progress.totalModules} modules completed · {home.progress.completionPercentage}%
+        </p>
+        <div className="mt-2 h-2 rounded-full bg-slate-200" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={home.progress.completionPercentage} aria-label="Course completion">
+          <div className="h-2 rounded-full bg-[#00C4A7]" style={{ width: `${home.progress.completionPercentage}%` }} />
+        </div>
+      </section>
+      <p className="text-base leading-7 text-[#0B2C4A]">{home.course.disclaimer}</p>
+      <p className="text-sm leading-6 text-[#0B2C4A]">Last reviewed {home.course.lastReviewedOn}. Content version is stored with the course so later legal updates do not require an application rewrite.</p>
+      {learner.operator ? (
+        <Link href="/e-learning/manage" className="text-sm font-medium text-[#0B2C4A] underline">
+          Manage course content and learner progress
+        </Link>
+      ) : null}
+      <ModuleCards modules={home.modules} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   siteVerificationToken,
   verifyWebsiteDomain,
 } from "@/lib/website-domain-verify";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 async function requireOwnedWebsite(websiteId: string, organizationId: string) {
   const [website] = await db
@@ -131,6 +132,7 @@ export async function POST(
       and(eq(websites.id, website.id), eq(websites.organizationId, authContext.organization.id)),
     );
 
+  await invalidateSdkConfigForWebsite(website.id);
   return NextResponse.json({
     success: true,
     verified: true,

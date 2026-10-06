@@ -20,6 +20,7 @@ import { parseVendorPatch } from "@/lib/processing/parse";
 import { writeProcessingAudit } from "@/lib/processing/service";
 import { PROCESSING_AUDIT_ACTIONS } from "@/lib/processing/types";
 import { isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { invalidateSdkConfigForOrganization } from "@/lib/sdk/invalidate-site-config";
 
 export async function GET(
   _request: Request,
@@ -184,6 +185,7 @@ export async function PATCH(
     });
   }
 
+  await invalidateSdkConfigForOrganization(authz.organization.id);
   return NextResponse.json({ success: true, vendor: updated });
   } catch (error) {
     logger.error("Vendor update failed", { error });
@@ -228,5 +230,6 @@ export async function DELETE(
     description: `Archived vendor ${updated.name}`,
   });
 
+  await invalidateSdkConfigForOrganization(authz.organization.id);
   return NextResponse.json({ success: true, vendor: updated, archived: true });
 }

@@ -12,6 +12,7 @@ import { auditLogs } from "@/db/schema/audit-logs";
 
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
 import { organizationCoreSelect, organizationSettingsSelect } from "@/lib/schema-selects";
+import { invalidateSdkConfigForOrganization } from "@/lib/sdk/invalidate-site-config";
 
 const AUTHORIZED_ROLES = ["Owner", "Admin"] as const;
 const VALID_REGIONS    = ["IN","EU","US","UK","AU","CA","SG","AE"] as const;
@@ -239,6 +240,7 @@ export async function PUT(request: Request) {
       metadata: { changes: auditChanges },
     });
 
+    await invalidateSdkConfigForOrganization(organization.id);
     return NextResponse.json({ success: true, organization: updated });
   } catch (error) {
     logger.error("Organization settings update failed", { error });

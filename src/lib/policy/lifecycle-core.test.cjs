@@ -20,7 +20,9 @@ const {
   stickyUnitInterval,
 } = require(compiled);
 
-assert.equal(SDK_CONFIG_CACHE_CONTROL.includes("no-store"), true);
+assert.equal(SDK_CONFIG_CACHE_CONTROL.includes("private"), true);
+assert.equal(SDK_CONFIG_CACHE_CONTROL.includes("no-cache"), true);
+assert.equal(SDK_CONFIG_CACHE_CONTROL.includes("no-store"), false);
 assert.equal(quotedEtag("abc"), '"abc"');
 assert.equal(etagMatches('"abc"', "abc"), true);
 assert.equal(etagMatches('W/"abc"', "abc"), true);

@@ -11,6 +11,7 @@ import {
   resolveActiveMembership,
 } from "@/lib/api-auth-helpers";
 import { requireOperatorRole } from "@/lib/org-roles";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 
 // Allowed environment values — validated server-side, never trusted from body.
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
@@ -152,6 +153,7 @@ export async function PUT(
       )
       .returning();
 
+    await invalidateSdkConfigForWebsite(id);
     return NextResponse.json({ success: true, website: updated });
   } catch (error) {
     logger.error("Website update failed", { error });

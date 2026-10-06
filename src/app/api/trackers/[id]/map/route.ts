@@ -14,6 +14,7 @@ import {
   vendorMappingError,
 } from "@/lib/trackers/http";
 import { trackerPublishedPolicyImpact } from "@/lib/trackers/policy-impact";
+import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
 import {
   auditActionsForChange,
   isUuid,
@@ -118,6 +119,7 @@ export async function POST(
       });
     }
 
+    await invalidateSdkConfigForWebsite(owned.website.id);
     return NextResponse.json({ success: true, tracker, policyImpact });
   } catch (error) {
     logger.error("Tracker map failed", { route: "POST /api/trackers/[id]/map", error });

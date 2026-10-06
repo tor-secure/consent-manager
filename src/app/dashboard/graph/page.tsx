@@ -6,8 +6,6 @@ import { loadConsentGraph } from "@/lib/intelligence/graph-snapshot";
 import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 import { PageHeader } from "@/components/ui/page-header";
 import { NeedsWebsiteEmpty } from "@/components/intelligence/needs-website-empty";
-import { loadPrivacyGraph } from "@/lib/intelligence/privacy-graph";
-import { PrivacyGraphExplorer } from "@/components/intelligence/privacy-graph-explorer";
 
 export default async function ConsentGraphPage({
   searchParams,
@@ -21,7 +19,6 @@ export default async function ConsentGraphPage({
   const snapshot = websiteId
     ? await loadConsentGraph(context.organization.id, websiteId)
     : null;
-  const privacyGraph = websiteId ? await loadPrivacyGraph(context.organization.id, websiteId) : null;
 
   const purposeMap = new Map(snapshot?.purposes.map((row) => [row.id, row]) ?? []);
   const vendorMap = new Map(snapshot?.vendors.map((row) => [row.id, row]) ?? []);
@@ -30,8 +27,8 @@ export default async function ConsentGraphPage({
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
         eyebrow={<SectionEyebrow href="/dashboard/intelligence">Intelligence</SectionEyebrow>}
-        title="Privacy Graph"
-        description="Provenance-aware relationships across configured consent controls and browser-observed evidence."
+        title="Consent dependency graph"
+        description="How purposes, vendors, and trackers connect for this website. Unmapped trackers stay blocked by default."
       />
 
       {sites.length === 0 ? (
@@ -45,7 +42,6 @@ export default async function ConsentGraphPage({
             </Card>
           ) : (
             <div className="space-y-4">
-              {privacyGraph ? <Card><CardContent className="p-5"><PrivacyGraphExplorer websiteId={websiteId!} nodes={privacyGraph.nodes} edges={privacyGraph.edges} /></CardContent></Card> : null}
               <Card>
                 <CardContent className="p-5">
                   <h2 className="text-base font-semibold">Purposes</h2>

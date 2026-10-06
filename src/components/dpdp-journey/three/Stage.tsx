@@ -47,7 +47,8 @@ export function Stage() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [])
 
-  if (lost) return null
+  // Wait for the stylesheet: the stage is drawn in the page's own colours.
+  if (lost || !colors) return null
 
   return (
     <div className="stage" aria-hidden="true" data-ready={ready || undefined}>

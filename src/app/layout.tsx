@@ -2,8 +2,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
-import Script from "next/script";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
 import {
   CONSENT_GURU_SITE_VERIFICATION,
@@ -23,6 +23,16 @@ import {
 } from "@/lib/site-metadata";
 import { graphSchema, organizationSchema, websiteSchema } from "@/lib/structured-data";
 import "./globals.css";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -73,20 +83,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en-IN"
       suppressHydrationWarning
-      className="h-full antialiased"
+      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.consentguru.com" />
-      </head>
-      <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <ConsentGuruInstall nonce={nonce} />
-        <Script
+        <script
           id="cmp-theme-bootstrap"
-          strategy="beforeInteractive"
           nonce={nonce}
           dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP_SCRIPT }}
         />
+      </head>
+      <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
           <OptionalClerkProvider>{children}</OptionalClerkProvider>
