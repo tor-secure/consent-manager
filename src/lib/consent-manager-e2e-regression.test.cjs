@@ -1781,14 +1781,8 @@ async function testDynamicTrackerAndIframeEnforcement() {
     "https://analytics.example/after-confirmation.js",
   );
 
-  browser.window.sessionStorage.setItem("cmp_consent_session_token", "A".repeat(64));
   await browser.window.CMP.withdrawConsent();
   await flush();
-  assert.equal(
-    browser.window.sessionStorage.getItem("cmp_consent_session_token"),
-    null,
-    "withdrawal must discard its revoked session token before a later re-consent",
-  );
   const futureTracker = appendResource(
     browser,
     "script",

@@ -1,5 +1,5 @@
 import { after, NextResponse } from "next/server";
-import { eq, and, inArray, sql, desc } from "drizzle-orm";
+import { eq, and, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -8,7 +8,6 @@ import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { consentRecords } from "@/db/schema/consent-records";
 import { consentDecisions } from "@/db/schema/consent-decisions";
 import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
-import { transferAuthorizations, secureTransferEnvelopes } from "@/db/schema/transfer-security";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { purposes } from "@/db/schema/purposes";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
@@ -55,11 +54,7 @@ import {
   policyContextMatchesScope,
   verifyPolicyContextEnvelope,
 } from "@/lib/policy-context";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { consentSessions } from "@/db/schema/consent-sessions";
-import { experiments, experimentEvents } from "@/db/schema/experiments";
-import { privacyEvents } from "@/db/schema/privacy-events";
-import { hashConsentSessionToken, consentSessionIsActive } from "@/lib/consent-session-core";
+import { createHash } from "node:crypto";
 import { parseConsentIntegrations } from "@/lib/signals/consent-integrations";
 import { decodeGppSections, encodeGppString, encodeTcString, getIabRegistration } from "@/lib/signals/iab-adapter";
 import { getCurrentGvl } from "@/lib/signals/iab-gvl-sync";
@@ -293,13 +288,6 @@ export async function POST(request: Request) {
       typeof body.abVariant === "string" && body.abVariant.trim()
         ? body.abVariant.trim().slice(0, 40)
         : null;
-    const submittedExperimentId = typeof body.experimentId === "string" && body.experimentId.trim() ? body.experimentId.trim() : null;
-    if (submittedExperimentId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(submittedExperimentId)) {
-      return NextResponse.json({ success: false, code: "EXPERIMENT_INVALID", message: "Invalid experiment identifier" }, { status: 400, headers: CORS_HEADERS });
-    }
-    if (submittedExperimentId !== (policyContext.experimentId ?? null)) {
-      return NextResponse.json({ success: false, code: "EXPERIMENT_CONTEXT_MISMATCH", message: "Experiment does not match the signed policy context" }, { status: 409, headers: CORS_HEADERS });
-    }
     if (submittedVariant !== policyContext.variantId) {
       return NextResponse.json(
         {
@@ -403,7 +391,6 @@ export async function POST(request: Request) {
           policyVersionId: policyContext.policyVersionId,
           noticeHash: policyContext.noticeHash,
           variantId: submittedVariant,
-          experimentId: submittedExperimentId,
           submission,
         }),
         "utf8",
@@ -584,31 +571,6 @@ export async function POST(request: Request) {
     const now = new Date();
     const expiresAt = computeExpiry(bannerConfig.consentExpireDays);
     const consentId = isNew ? generateConsentId() : String(rawConsentId).trim();
-    const presentedSessionToken = typeof body.sessionToken === "string" ? body.sessionToken.trim() : "";
-    if (presentedSessionToken && !/^[A-Za-z0-9_-]{40,128}$/.test(presentedSessionToken)) return NextResponse.json({ success: false, code: "CONSENT_SESSION_INVALID", message: "Invalid consent session token" }, { status: 400, headers: CORS_HEADERS });
-    const sessionToken = presentedSessionToken || randomBytes(32).toString("base64url");
-    const sessionTokenHash = hashConsentSessionToken(sessionToken);
-    const [presentedSession] = presentedSessionToken
-      ? await db.select().from(consentSessions).where(and(
-          eq(consentSessions.tokenHash, sessionTokenHash),
-          eq(consentSessions.organizationId, website.organizationId),
-          eq(consentSessions.websiteId, website.id),
-        )).limit(1)
-      : [];
-    if (presentedSessionToken && presentedSession && (!consentSessionIsActive(presentedSession, now) || presentedSession.policyVersionId !== contextVersion.id)) {
-      return NextResponse.json({ success: false, code: "CONSENT_SESSION_INVALID", message: "Consent session is expired or invalid" }, { status: 409, headers: CORS_HEADERS });
-    }
-
-    const [consentExperiment] = submittedExperimentId ? await db.select().from(experiments).where(and(
-      eq(experiments.id, submittedExperimentId),
-      eq(experiments.organizationId, website.organizationId),
-      eq(experiments.websiteId, website.id),
-      eq(experiments.policyVersionId, contextVersion.id),
-    )).limit(1) : [];
-    if (submittedExperimentId && (!consentExperiment || !submittedVariant || !consentExperiment.variants.some((variant) => variant.id === submittedVariant))) {
-      return NextResponse.json({ success: false, code: "EXPERIMENT_VARIANT_MISMATCH", message: "Experiment variant does not match the presented policy context" }, { status: 409, headers: CORS_HEADERS });
-    }
-    const consentSessionId = presentedSession?.id ?? randomUUID();
     const declarations = parseComplianceDeclarations(
       bannerConfig as unknown as Record<string, unknown>,
       {},
@@ -720,11 +682,10 @@ export async function POST(request: Request) {
       consentExpireDays:   bannerConfig.consentExpireDays,
       defaultConsent:      bannerConfig.defaultConsent,
       choice:              submission.choice,
-      sessionId:           consentSessionId,
       iab:                 iabEvidence,
       capturedAt:          now.toISOString(),
       cryptoProof: createConsentCryptoProof({
-        v: 2,
+        v: 1,
         consentId,
         websiteId: website.id,
         policyVersionId: contextVersion.id,
@@ -737,7 +698,6 @@ export async function POST(request: Request) {
           granted: row.granted,
         })),
         consentedAt: now.toISOString(),
-        sessionId: consentSessionId,
       }, now),
       },
       buildAnalyticsHints({
@@ -755,9 +715,7 @@ export async function POST(request: Request) {
         : null,
     );
     const abVariant = submittedVariant ?? "";
-    if (consentExperiment && abVariant) {
-      evidenceMetadata.abTest = { experimentId: consentExperiment.id, variantId: abVariant };
-    } else if (abConfigured && abVariant && abConfigured.variants.some((row) => row.id === abVariant)) {
+    if (abConfigured && abVariant && abConfigured.variants.some((row) => row.id === abVariant)) {
       evidenceMetadata.abTest = { variantId: abVariant };
     }
     const evidenceDecisions = decisionRows.map((row) => ({
@@ -910,72 +868,6 @@ export async function POST(request: Request) {
         );
       }
 
-      const allTransferAuthorizations = await tx.select({ id: transferAuthorizations.id }).from(transferAuthorizations).where(and(eq(transferAuthorizations.organizationId, website.organizationId), eq(transferAuthorizations.websiteId, website.id), eq(transferAuthorizations.consentRecordId, savedRecord.id)));
-      const staleTransferAuthorizations = await tx.update(transferAuthorizations).set({ state: "revoked", revokedAt: now, updatedAt: now }).where(and(eq(transferAuthorizations.organizationId, website.organizationId), eq(transferAuthorizations.websiteId, website.id), eq(transferAuthorizations.consentRecordId, savedRecord.id), inArray(transferAuthorizations.state, ["active", "consumed"]))).returning({ id: transferAuthorizations.id, transferId: transferAuthorizations.transferId, recipientVendorId: transferAuthorizations.recipientVendorId, purposeId: transferAuthorizations.purposeId, sessionId: transferAuthorizations.sessionId });
-      if (allTransferAuthorizations.length) await tx.update(secureTransferEnvelopes).set({ status: "revoked" }).where(and(eq(secureTransferEnvelopes.organizationId, website.organizationId), eq(secureTransferEnvelopes.status, "ready"), inArray(secureTransferEnvelopes.authorizationId, allTransferAuthorizations.map((item) => item.id))));
-      if (staleTransferAuthorizations.length) {
-        await tx.insert(privacyEvents).values(staleTransferAuthorizations.map((item) => ({ organizationId: website.organizationId, websiteId: website.id, sessionId: item.sessionId, eventType: "transfer.authorization_revoked", provenance: "observed", payload: { authorizationId: item.id, transferId: item.transferId, recipientVendorId: item.recipientVendorId, purposeId: item.purposeId, reason: "consent_decision_changed" }, occurredAt: now })));
-      }
-
-      const sessionExpiresAt = new Date(Math.min(now.getTime() + 30 * 60_000, expiresAt.getTime()));
-      if (presentedSession) {
-        const [advanced] = await tx.update(consentSessions).set({
-          consentRecordId: savedRecord.id,
-          decisionCount: sql`${consentSessions.decisionCount} + ${decisionRows.length}`,
-          updatedAt: now,
-        }).where(and(
-          eq(consentSessions.id, presentedSession.id),
-          eq(consentSessions.status, "active"),
-          eq(consentSessions.decisionCount, presentedSession.decisionCount),
-          sql`${consentSessions.expiresAt} > ${now}`,
-        )).returning({ id: consentSessions.id });
-        if (!advanced) throw new Error("CONSENT_SESSION_REPLAY");
-      } else {
-        await tx.insert(consentSessions).values({
-          id: consentSessionId,
-          organizationId: website.organizationId,
-          websiteId: website.id,
-          consentRecordId: savedRecord.id,
-          policyVersionId: contextVersion.id,
-          tokenHash: sessionTokenHash,
-          status: "active",
-          decisionCount: decisionRows.length,
-          expiresAt: sessionExpiresAt,
-          metadata: { consentId, stateVersion: savedRecord.stateVersion },
-        });
-      }
-      await tx.insert(privacyEvents).values({
-        organizationId: website.organizationId,
-        websiteId: website.id,
-        sessionId: consentSessionId,
-        eventType: isNew ? (submission.choice === "reject-all" ? "consent.rejected" : "consent.granted") : "consent.changed",
-        provenance: "observed",
-        payload: { consentId, policyVersionId: contextVersion.id, stateVersion: savedRecord.stateVersion, decisionCount: decisionRows.length, choice: submission.choice },
-        occurredAt: now,
-      });
-      if (consentExperiment && submittedVariant) {
-        await tx.insert(experimentEvents).values({
-          organizationId: website.organizationId,
-          websiteId: website.id,
-          experimentId: consentExperiment.id,
-          sessionId: consentSessionId,
-          eventId: `consent-${savedRecord.id}-${savedRecord.stateVersion}`,
-          eventType: "consent_decision",
-          variantId: submittedVariant,
-          choice: submission.choice,
-          occurredAt: now,
-        }).onConflictDoNothing();
-        await tx.insert(privacyEvents).values({
-          organizationId: website.organizationId,
-          websiteId: website.id,
-          sessionId: consentSessionId,
-          eventType: "experiment.event",
-          provenance: "observed",
-          payload: { experimentId: consentExperiment.id, variantId: submittedVariant, eventType: "consent_decision", choice: submission.choice, consentId },
-          occurredAt: now,
-        });
-      }
-
       const [insertedEvidence] = await tx
         .insert(consentEvidenceSnapshots)
         .values({
@@ -1003,8 +895,6 @@ export async function POST(request: Request) {
           signals: iabEvidence,
           evidenceHash: historicalEvidenceProof.hash,
           evidenceSignature: historicalEvidenceProof.signature,
-          proofVersion: historicalEvidenceProof.proofVersion,
-          proofKeyId: historicalEvidenceProof.keyId,
           consentedAt: now,
         })
         .returning({ id: consentEvidenceSnapshots.id });
@@ -1038,15 +928,12 @@ export async function POST(request: Request) {
             )
             .limit(1)
         : [];
-      const [priorSession] = prior.consentRecordId ? await db.select({ id: consentSessions.id }).from(consentSessions).where(and(eq(consentSessions.consentRecordId, prior.consentRecordId), eq(consentSessions.organizationId, website.organizationId))).orderBy(desc(consentSessions.createdAt)).limit(1) : [];
       return NextResponse.json(
         {
           success: true,
           confirmed: true,
           idempotent: true,
           consentId: prior.consentId,
-          sessionId: priorSession?.id ?? null,
-          sessionToken: presentedSessionToken || undefined,
           status: prior.status,
           stateVersion: prior.stateVersion,
           choice: prior.choice,
@@ -1124,8 +1011,6 @@ export async function POST(request: Request) {
         success: true,
         confirmed: true,
         consentId: savedRecord.consentId,
-        sessionId: consentSessionId,
-        sessionToken,
         status: overallStatus,
         stateVersion: savedRecord.stateVersion,
         choice: submission.choice,
@@ -1150,8 +1035,6 @@ export async function POST(request: Request) {
               alg: (evidenceMetadata.cryptoProof as { alg: string }).alg,
               hash: (evidenceMetadata.cryptoProof as { hash: string }).hash,
               signedAt: (evidenceMetadata.cryptoProof as { signedAt: string }).signedAt,
-              proofVersion: (evidenceMetadata.cryptoProof as { proofVersion?: number }).proofVersion,
-              keyId: (evidenceMetadata.cryptoProof as { keyId?: string }).keyId,
             }
           : null,
         signals: iabEvidence,

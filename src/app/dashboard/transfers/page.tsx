@@ -7,7 +7,6 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { TransferSecurityConsole } from "@/components/vendors/transfer-security-console";
 
 export default async function TransfersPage() {
   const { organization: localOrg } = await requireDashboardContext();
@@ -92,7 +91,6 @@ export default async function TransfersPage() {
       </Card>
 
       <ProcessingActivityForm vendors={orgVendors} websites={orgWebsites} purposes={orgPurposes} />
-      <TransferSecurityConsole transfers={transferRows} vendors={orgVendors} activities={activityRows} purposes={orgPurposes} />
     </div>
   );
 }

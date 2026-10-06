@@ -235,7 +235,6 @@ ${apiBaseLine}
   var _stateVersion = 0;
   var _replaceMissingConsent = false;
   var _abVariantId = null;
-  var _experimentId = null;
   var _listeners   = [];
   var _explicitLang = '';
   var _pcLastFocus = null;
@@ -483,16 +482,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function applyAssignedAbTest(data) {
     _abVariantId = null;
-    _experimentId = data && data.abTest && typeof data.abTest.experimentId === 'string' ? data.abTest.experimentId : null;
     if (!data || !data.bannerConfig || !data.abTest || !data.abTest.enabled) return data;
     var variants = data.abTest.variants;
     if (!variants || variants.length < 2) return data;
-    var isFirstClass = !!_experimentId;
-    var storeKey = isFirstClass ? 'cmp_experiment_' + _experimentId : 'cmp_ab_' + SITE_KEY;
+    var storeKey = 'cmp_ab_' + SITE_KEY;
     var id = null;
     var i;
     var selected = null;
-    try { id = isFirstClass ? sessionStorage.getItem(storeKey) : (localStorage.getItem(storeKey) || sessionStorage.getItem(storeKey)); } catch (eAb) {}
+    try { id = localStorage.getItem(storeKey) || sessionStorage.getItem(storeKey); } catch (eAb) {}
     for (i = 0; i < variants.length; i++) {
       if (variants[i] && variants[i].id === id) { selected = variants[i]; break; }
     }
@@ -501,23 +498,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       for (i = 0; i < variants.length; i++) total += Math.max(0, Number(variants[i].weight) || 0);
       var unit = 0;
       try {
-        var seed;
-        if (isFirstClass) {
-          var visitorKey = sessionStorage.getItem('cmp_experiment_visitor');
-          if (!visitorKey) {
-            var visitorBytes = new Uint8Array(24);
-            window.crypto.getRandomValues(visitorBytes);
-            visitorKey = '';
-            for (var visitorIndex = 0; visitorIndex < visitorBytes.length; visitorIndex++) visitorKey += ('0' + visitorBytes[visitorIndex].toString(16)).slice(-2);
-            sessionStorage.setItem('cmp_experiment_visitor', visitorKey);
-          }
-          seed = _experimentId + ':' + visitorKey;
-        } else {
-          seed = SITE_KEY + ':' + (localStorage.getItem('cmp_vid') || '');
-        }
+        var seed = SITE_KEY + ':' + (localStorage.getItem('cmp_vid') || '');
         var h = 2166136261;
         for (i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
-        unit = isFirstClass ? ((h >>> 0) % 100) / 100 : (h >>> 0) / 4294967296;
+        unit = (h >>> 0) / 4294967296;
       } catch (eHash) { unit = Math.random(); }
       if (total <= 0) {
         selected = variants[Math.min(variants.length - 1, Math.floor(unit * variants.length))];
@@ -529,13 +513,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         }
         if (!selected) selected = variants[variants.length - 1];
       }
-      try { if (selected && selected.id) { if (isFirstClass) sessionStorage.setItem(storeKey, selected.id); else { localStorage.setItem(storeKey, selected.id); sessionStorage.setItem(storeKey, selected.id); } } } catch (eStore) {}
+      try { if (selected && selected.id) { localStorage.setItem(storeKey, selected.id); sessionStorage.setItem(storeKey, selected.id); } } catch (eStore) {}
     }
     if (!selected) return data;
     _abVariantId = selected.id;
-    if (isFirstClass) trackExperimentEvent('assignment', selected.id, true);
     var overrides = selected.overrides || {};
-    var keys = ['layout','position','showRejectAll','showAcceptAll','showCustomize','showCloseButton','overlayEnabled','blockPageUntilConsent','title','description','primaryColor','backgroundColor','textColor','borderRadius'];
+    var keys = ['layout','position','showRejectAll','showAcceptAll','showCustomize','showCloseButton','overlayEnabled','blockPageUntilConsent','title','description'];
     for (i = 0; i < keys.length; i++) {
       if (Object.prototype.hasOwnProperty.call(overrides, keys[i])) {
         data.bannerConfig[keys[i]] = overrides[keys[i]];
@@ -543,41 +526,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
     if (data.bannerConfig.layout === 'dialog') data.bannerConfig.position = 'center';
     return data;
-  }
-
-  function experimentVisitorKey() {
-    try {
-      var key = sessionStorage.getItem('cmp_experiment_visitor');
-      if (key) return key;
-      var bytes = new Uint8Array(24);
-      window.crypto.getRandomValues(bytes);
-      key = '';
-      for (var i = 0; i < bytes.length; i++) key += ('0' + bytes[i].toString(16)).slice(-2);
-      sessionStorage.setItem('cmp_experiment_visitor', key);
-      return key;
-    } catch (e) { return ''; }
-  }
-
-  function trackExperimentEvent(eventType, variantId, stableEvent) {
-    if (!_experimentId || !variantId || !API_BASE) return;
-    try {
-      var visitorKey = experimentVisitorKey();
-      if (!visitorKey) return;
-      var eventStorageKey = 'cmp_experiment_event_' + _experimentId + '_' + eventType;
-      var eventId = stableEvent ? sessionStorage.getItem(eventStorageKey) : null;
-      if (!eventId) {
-        eventId = newSubmissionId();
-        if (stableEvent) sessionStorage.setItem(eventStorageKey, eventId);
-      }
-      var body = { experimentId: _experimentId, variantId: variantId, eventId: eventId, eventType: eventType, visitorKey: visitorKey };
-      var token = sessionStorage.getItem('cmp_consent_session_token');
-      if (token) body.sessionToken = token;
-      window.fetch(API_BASE + '/api/sdk/' + encodeURIComponent(SITE_KEY) + '/experiment-events', {
-        method: 'POST', mode: 'cors', keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      }).catch(function() {});
-    } catch (e) {}
   }
 
 
@@ -1974,6 +1922,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
     if (current.vendorIds.length) {
       if (!storedVendors.length) {
+        if (stored.choice === 'accept-all') return false;
         return true;
       }
       var knownV = {};
@@ -2273,7 +2222,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       policyContext: _policyContext,
       language: (_config && _config.resolvedLanguage) || detectRequestedLang() || 'en',
       abVariant: _abVariantId || undefined,
-      experimentId: _experimentId || undefined,
       gpc: navigatorGpc() ? true : undefined,
       submission: {
         choice: job.choice,
@@ -2281,17 +2229,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         vendorDecisions: job.vendorDecisions || []
       }
     };
-    try {
-      var consentSessionToken = window.sessionStorage.getItem('cmp_consent_session_token');
-      if (!consentSessionToken && window.crypto && window.crypto.getRandomValues) {
-        var sessionBytes = new Uint8Array(32);
-        window.crypto.getRandomValues(sessionBytes);
-        consentSessionToken = '';
-        for (var sessionIndex = 0; sessionIndex < sessionBytes.length; sessionIndex++) consentSessionToken += ('0' + sessionBytes[sessionIndex].toString(16)).slice(-2);
-        window.sessionStorage.setItem('cmp_consent_session_token', consentSessionToken);
-      }
-      if (consentSessionToken) body.sessionToken = consentSessionToken;
-    } catch (eSession) {}
     var controller = null;
     var timeoutId = null;
     try {
@@ -2337,7 +2274,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     function applyConfirmedConsent(data) {
       if (timeoutId) window.clearTimeout(timeoutId);
       _retryJob = null;
-      try { if (typeof data.sessionToken === 'string' && data.sessionToken) window.sessionStorage.setItem('cmp_consent_session_token', data.sessionToken); } catch (eSessionWrite) {}
       var applied = saveConsent(
         data.consentId,
         data.decisions,
@@ -3464,10 +3400,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         b.style.cssText = base + 'font-weight:600;background:transparent;border:1.5px solid ' + (cfg.primaryColor || '#171717')
           + ';color:' + (cfg.primaryColor || '#171717') + ';';
       }
-      b.addEventListener('click', function(event) {
-        if (_experimentId) trackExperimentEvent('interaction', _abVariantId, false);
-        onclick(event);
-      });
+      b.addEventListener('click', onclick);
       b.setAttribute('data-cmp-submit-control', 'true');
       _submitButtons.push(b);
       return b;
@@ -3560,7 +3493,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
 
     cmpMountRoot().appendChild(banner);
-    if (_experimentId && _abVariantId) trackExperimentEvent('impression', _abVariantId, true);
     ensureFocusStyles();
     _bannerEscapeCloses = !cfg.blockPageUntilConsent || !!cfg.showCloseButton;
     try { _bannerLastFocus = document.activeElement || null; } catch (eBannerFocus) { _bannerLastFocus = null; }
@@ -4255,7 +4187,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   window.CMP = {
     getConsent: getConsent,
-    getExperiment: function() { return { experimentId: _experimentId, variantId: _abVariantId }; },
     getPreferenceSnapshot: function() {
       var stored = loadStoredConsent() || {};
       var purposes = ((_config && _config.purposes) || []).map(function(p) {
@@ -4524,9 +4455,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           _confirmedRevision = revision;
           _stateVersion = result.data.stateVersion;
           _consentId = null;
-          // The server revokes the consent session with this withdrawal. A
-          // later re-consent must begin with a fresh replay-resistant token.
-          try { window.sessionStorage.removeItem('cmp_consent_session_token'); } catch (eSessionClear) {}
           _tcString = null;
           _gppString = null;
           _gppSections = {};
@@ -4673,10 +4601,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         if ((bannerOpen || pcOpen) && _policyContext) {
           var incomingContext = presentedPolicyContext(data);
           if (incomingContext && !samePresentedPolicy(_policyContext, incomingContext)) {
-            // Keep the configuration and signed context that produced the UI
-            // already on screen. The visitor must submit against the notice
-            // they actually saw; a subsequent banner opening can use the new
-            // published policy.
+            _config = nextConfig;
+            _configRevision = nextRevision;
+            _reconsentNotice = 'This consent policy has changed. Please review your choices.';
+            rememberPolicyContext(incomingContext);
+            showBannerWhenReady();
           } else if (incomingContext) {
             rememberPolicyContext(incomingContext);
           }
@@ -5026,56 +4955,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       applyLoadedConfig(data, true);
     })
     .catch(function(err) { warn('Failed to initialise CMP: ' + err); scheduleConfigRefresh(); });
-
-  // Runtime Discovery is intentionally observational. It starts after the CMP
-  // bootstrap and does not alter the banner, grants, or enforcement decisions.
-  // Its transport uses the original fetch so its own report cannot be observed.
-  (function installRuntimeDiscovery() {
-    if (window.__CMP_RUNTIME_DISCOVERY__) return;
-    window.__CMP_RUNTIME_DISCOVERY__ = true;
-    var nativeFetch = window.fetch;
-    var queue = [], flushTimer = null, seen = {};
-    var sensitiveName = /(?:^|[^a-z0-9])(?:authorization|auth|cookie|credential|csrf|email|phone|address|password|passwd|secret|session|token|jwt|bearer|api[_-]?key|access[_-]?key|user[_-]?id|account[_-]?id|ssn)(?:$|[^a-z0-9])/i;
-    function safePath(path) { return String(path || '/').split('/').map(function(part) { var decoded = part; try { decoded = decodeURIComponent(part); } catch (e) { return '[redacted]'; } if (sensitiveName.test(decoded) || decoded.indexOf('@') >= 0 || /^[0-9]{7,}$/.test(decoded) || /^[a-f0-9]{24,}$/i.test(decoded) || /^(?=.*[a-z])(?=.*[0-9])[A-Za-z0-9_-]{20,}$/i.test(decoded) || /^[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{8,}(?:\.[A-Za-z0-9_-]{8,})?$/.test(decoded)) return '[redacted]'; return encodeURIComponent(decoded).slice(0, 80); }).join('/').slice(0, 512) || '/'; }
-    function safeStorageKey(value) { var key = String(value || '').trim().slice(0, 255); return sensitiveName.test(key) ? '[redacted]' : key; }
-    function cleanUrl(value) {
-      try { var u = new URL(String(value), window.location.href); if (u.protocol !== 'http:' && u.protocol !== 'https:') return null; u.username = ''; u.password = ''; u.pathname = safePath(u.pathname); u.search = ''; u.hash = ''; return u; } catch (e) { return null; }
-    }
-    function id() { try { return crypto.randomUUID(); } catch (e) { return String(Date.now()) + '-' + Math.random().toString(36).slice(2); } }
-    function consentState() {
-      var state = {};
-      try { var consent = window.CMP && window.CMP.getConsent && window.CMP.getConsent(); var decisions = consent && consent.decisions; if (Array.isArray(decisions)) for (var i = 0; i < decisions.length && i < 100; i++) { var d = decisions[i]; if (d && (d.purposeId || d.purposeKey)) state[String(d.purposeId || d.purposeKey).slice(0, 120)] = d.granted === true; } } catch (e) {}
-      return state;
-    }
-    function currentPage() { var u = cleanUrl(window.location.href); return u ? u.href : window.location.origin + '/'; }
-    function emit(type, target, extra) {
-      var u = target ? cleanUrl(target) : null;
-      var page = cleanUrl(window.location.href); if (!page) return;
-      var key = type + '|' + (u ? u.href : '') + '|' + (extra && extra.storageKey ? extra.storageKey : '');
-      var now = Date.now(); if (seen[key] && now - seen[key] < 1000) return; seen[key] = now;
-      var navigationType;
-      try { var navigationEntries = window.performance && window.performance.getEntriesByType ? window.performance.getEntriesByType('navigation') : []; navigationType = navigationEntries[0] && navigationEntries[0].type || undefined; } catch (eNavigation) {}
-      queue.push({ eventId: id(), type: type, pageUrl: page.href, pageOrigin: page.host, destinationHost: u ? u.host : undefined, resourcePath: u ? u.pathname.slice(0, 512) : undefined, resourceType: extra && extra.resourceType || undefined, requestMethod: extra && extra.requestMethod || undefined, initiator: extra && extra.initiator ? safePath(extra.initiator) : undefined, navigationType: navigationType, storageKey: extra && extra.storageKey ? safeStorageKey(extra.storageKey) : undefined, consentState: consentState(), observedAt: new Date().toISOString() });
-      if (queue.length >= 20) flush(); else if (!flushTimer) flushTimer = window.setTimeout(flush, 4000);
-    }
-    function flush() {
-      if (flushTimer) { window.clearTimeout(flushTimer); flushTimer = null; }
-      if (!queue.length || !SITE_KEY || !API_BASE) return;
-      var batch = queue.splice(0, 100);
-      nativeFetch(API_BASE + '/api/sdk/' + encodeURIComponent(SITE_KEY) + '/discovery', { method: 'POST', mode: 'cors', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ schemaVersion: 1, observations: batch }) }).catch(function() { /* Discovery must never affect host-page requests. */ });
-    }
-    window.fetch = function(input, init) { var url = typeof input === 'string' ? input : (input && input.url); if (url && String(url).indexOf('/api/sdk/') === -1) emit('fetch', url, { requestMethod: String((init && init.method) || (input && input.method) || 'GET').toUpperCase().slice(0, 12) }); return nativeFetch.apply(this, arguments); };
-    try { var xo = XMLHttpRequest.prototype.open, xs = XMLHttpRequest.prototype.send; XMLHttpRequest.prototype.open = function(method, url) { this.__cmpDiscovery = { method: String(method || 'GET').toUpperCase().slice(0, 12), url: url }; return xo.apply(this, arguments); }; XMLHttpRequest.prototype.send = function() { var info = this.__cmpDiscovery; if (info) emit('xhr', info.url, { requestMethod: info.method }); return xs.apply(this, arguments); }; } catch (e) {}
-    try { var beacon = navigator.sendBeacon; navigator.sendBeacon = function(url) { emit('beacon', url, { requestMethod: 'POST' }); return beacon.apply(this, arguments); }; } catch (e) {}
-    try { var imageSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src'); if (imageSrc && imageSrc.set) Object.defineProperty(HTMLImageElement.prototype, 'src', { configurable: true, get: imageSrc.get, set: function(value) { emit('resource', value, { resourceType: 'image' }); return imageSrc.set.call(this, value); } }); } catch (e) {}
-    try { var cookie = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie'); if (cookie && cookie.set) Object.defineProperty(Document.prototype, 'cookie', { configurable: true, get: cookie.get, set: function(value) { var name = String(value || '').split('=')[0].trim(); if (name) emit('cookie', null, { storageKey: safeStorageKey(name) }); return cookie.set.call(document, value); } }); } catch (e) {}
-    function patchStorage(storage, type) { try { var set = storage.setItem; storage.setItem = function(key) { emit(type, null, { storageKey: safeStorageKey(key) }); return set.apply(this, arguments); }; } catch (e) {} }
-    patchStorage(window.localStorage, 'local_storage'); patchStorage(window.sessionStorage, 'session_storage');
-    function resource(entry) { if (entry && entry.name) emit('performance', entry.name, { resourceType: String(entry.initiatorType || 'other').slice(0, 32) }); }
-    try { var existing = performance.getEntriesByType('resource'); for (var r = 0; r < existing.length; r++) resource(existing[r]); var po = new PerformanceObserver(function(list) { list.getEntries().forEach(resource); }); po.observe({ type: 'resource', buffered: true }); } catch (e) {}
-    try { new MutationObserver(function(records) { records.forEach(function(record) { for (var n = 0; n < record.addedNodes.length; n++) { var node = record.addedNodes[n]; if (!node || node.nodeType !== 1) continue; var src = node.src || node.href; if (src) emit('resource', src, { resourceType: String(node.tagName || 'other').toLowerCase().slice(0, 32) }); } }); }).observe(document.documentElement, { childList: true, subtree: true }); } catch (e) {}
-    window.addEventListener('pagehide', flush); document.addEventListener('visibilitychange', function() { if (document.visibilityState === 'hidden') flush(); });
-  })();
 
 })(window, document);
 `.trim();

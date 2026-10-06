@@ -5,20 +5,12 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/browser-crawls",
-      "schedule": "*/5 * * * *"
-    },
-    {
       "path": "/api/cron/iab-gvl",
       "schedule": "0 3 * * *"
     },
     {
       "path": "/api/cron/policies",
       "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/experiments",
-      "schedule": "* * * * *"
     }
   ]
 }

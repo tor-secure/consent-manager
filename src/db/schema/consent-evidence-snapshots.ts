@@ -83,10 +83,6 @@ export const consentEvidenceSnapshots = pgTable(
 
     evidenceSignature: varchar("evidence_signature", { length: 64 }).notNull(),
 
-    proofVersion: integer("proof_version").notNull().default(1),
-
-    proofKeyId: varchar("proof_key_id", { length: 64 }).notNull().default("legacy"),
-
     consentedAt: timestamp("consented_at", { withTimezone: true }).notNull(),
 
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

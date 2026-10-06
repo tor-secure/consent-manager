@@ -98,7 +98,7 @@ function purposes(extra = false) {
 }
 
 function configFor(websiteId, siteKey, state) {
-  const config = {
+  return {
     success: true,
     websiteId,
     policy: {
@@ -161,15 +161,6 @@ function configFor(websiteId, siteKey, state) {
       },
     },
   };
-  if (state.experiment) {
-    config.experiment = { id: state.experiment.id, status: "RUNNING" };
-    config.abTest = { enabled: true, experimentId: state.experiment.id, controlVariantId: "control", variants: state.experiment.variants };
-    config.policyContexts = Object.fromEntries(state.experiment.variants.map((variant) => [variant.id, {
-      token: `ctx-${siteKey}-${state.policyVersionId}-${variant.id}`,
-      claims: { websiteId, policyVersionId: state.policyVersionId, organizationId: websiteId === IDS.websiteA ? IDS.orgA : IDS.orgB, variantId: variant.id },
-    }]));
-  }
-  return config;
 }
 
 function decisionsFor(body, state) {
@@ -209,9 +200,8 @@ function createStore() {
     extraPurpose: false,
     extraVendor: false,
     forceExpired: false,
-    experiment: null,
   };
-  return { records, state, experimentEvents: [], runtimeObservations: [] };
+  return { records, state };
 }
 
 function readBody(req) {
@@ -274,24 +264,6 @@ function startServer(sdkScript, localeScript, embedSnippet) {
         send(res, 200, configFor(websiteId, siteKey, store.state));
         return;
       }
-      const experimentEventsMatch = url.pathname.match(/^\/api\/sdk\/([^/]+)\/experiment-events$/);
-      if (experimentEventsMatch && req.method === "POST") {
-        const body = await readBody(req);
-        if (!store.state.experiment || body.experimentId !== store.state.experiment.id || !store.state.experiment.variants.some((variant) => variant.id === body.variantId)) {
-          send(res, 409, { success: false, message: "Experiment not active" });
-          return;
-        }
-        if (!store.experimentEvents.some((event) => event.eventId === body.eventId)) store.experimentEvents.push(body);
-        send(res, 200, { success: true });
-        return;
-      }
-      const discoveryMatch = url.pathname.match(/^\/api\/sdk\/([^/]+)\/discovery$/);
-      if (discoveryMatch && req.method === "POST") {
-        const body = await readBody(req);
-        if (Array.isArray(body.observations)) store.runtimeObservations.push(...body.observations);
-        send(res, 200, { success: true });
-        return;
-      }
       if (url.pathname === "/api/consent/record" && req.method === "POST") {
         const body = await readBody(req);
         const websiteId = body.websiteId;
@@ -321,8 +293,6 @@ function startServer(sdkScript, localeScript, embedSnippet) {
             ? "accepted"
             : "rejected";
           existing.updatedAt = new Date().toISOString();
-          existing.experimentId = body.experimentId || null;
-          existing.variantId = body.abVariant || null;
           send(res, 200, confirmed(existing));
           return;
         }
@@ -338,8 +308,6 @@ function startServer(sdkScript, localeScript, embedSnippet) {
           consentedAt: new Date().toISOString(),
           expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
           withdrawnAt: null,
-          experimentId: body.experimentId || null,
-          variantId: body.abVariant || null,
         };
         created.status = created.decisions.some((row) => row.granted && row.purposeId !== IDS.essential)
           ? "accepted"
@@ -411,17 +379,7 @@ function startServer(sdkScript, localeScript, embedSnippet) {
           organizationId: row.organizationId,
           status: row.status,
           stateVersion: row.stateVersion,
-          experimentId: row.experimentId || null,
-          variantId: row.variantId || null,
         })));
-        return;
-      }
-      if (url.pathname === "/__test/experiment-events") {
-        send(res, 200, store.experimentEvents);
-        return;
-      }
-      if (url.pathname === "/__test/runtime-observations") {
-        send(res, 200, store.runtimeObservations);
         return;
       }
       if (url.pathname === "/analytics.js" || url.pathname === "/app.js") {
@@ -595,6 +553,10 @@ async function readState(page) {
 
 function counts(network, category) {
   return network.filter((entry) => entry.category === category && entry.category !== "probe");
+}
+
+function probes(network, name) {
+  return network.filter((entry) => entry.url.includes(`/__probe/${name}`));
 }
 
 async function resetFixture(origin) {
@@ -986,51 +948,6 @@ async function runChromeSuite(browser, origin, report) {
   }
 
   {
-    const experimentId = "eeeeeee1-eeee-4eee-8eee-eeeeeeeeeee1";
-    const experiment = {
-      id: experimentId,
-      variants: [
-        { id: "control", label: "Control", weight: 50, overrides: { layout: "bar" } },
-        { id: "treatment", label: "Treatment", weight: 50, overrides: { layout: "dialog", position: "center" } },
-      ],
-    };
-    try {
-      const seed = await fetch(`${origin}/__test/state`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ experiment }) });
-      if (!seed.ok) throw new Error("Could not seed experiment fixture");
-      const session = await openFresh(browser, origin, "/fixture?case=main");
-      try {
-        await waitForBanner(session.page);
-        const firstAssignment = await session.page.evaluate(() => window.CMP.getExperiment());
-        await session.page.waitForFunction(async () => {
-          const response = await fetch("/__test/experiment-events");
-          const rows = await response.json();
-          return rows.some((row) => row.eventType === "assignment") && rows.some((row) => row.eventType === "impression");
-        });
-        await session.page.reload({ waitUntil: "domcontentloaded" });
-        await waitForBanner(session.page);
-        const secondAssignment = await session.page.evaluate(() => window.CMP.getExperiment());
-        await session.page.getByRole("button", { name: "Accept all" }).click();
-        await session.page.waitForFunction(() => {
-          const raw = Object.keys(localStorage).find((key) => key.startsWith("cmp_consent_"));
-          return raw && JSON.parse(localStorage.getItem(raw) || "{}").serverConfirmed === true;
-        });
-        const records = await session.page.evaluate(async () => (await fetch("/__test/records")).json());
-        const events = await session.page.evaluate(async () => (await fetch("/__test/experiment-events")).json());
-        const saved = records[records.length - 1];
-        const stable = firstAssignment.experimentId === experimentId && firstAssignment.variantId && JSON.stringify(firstAssignment) === JSON.stringify(secondAssignment);
-        const hasObservedEvents = ["assignment", "impression", "interaction"].every((type) => events.some((event) => event.eventType === type && event.variantId === firstAssignment.variantId));
-        add({ test: "Experiment SDK assignment and consent evidence", browser: "Chrome", expected: "A stable variant is assigned, observed, and attached to the consent decision", actual: { firstAssignment, secondAssignment, observedEventTypes: [...new Set(events.map((event) => event.eventType))], savedExperimentId: saved && saved.experimentId, savedVariantId: saved && saved.variantId }, result: stable && hasObservedEvents && saved?.experimentId === experimentId && saved?.variantId === firstAssignment.variantId ? "PASS" : "FAIL" });
-      } finally {
-        await session.context.close();
-      }
-    } catch (error) {
-      add({ test: "Experiment SDK assignment and consent evidence", browser: "Chrome", expected: "Stable assignment and event recording", actual: error.message, result: "FAIL" });
-    } finally {
-      await fetch(`${origin}/__test/state`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ experiment: null }) });
-    }
-  }
-
-  {
     const context = await browser.newContext();
     const page = await context.newPage();
     const started = Date.now();
@@ -1041,32 +958,6 @@ async function runChromeSuite(browser, origin, report) {
   }
 
   report.performance.samples = await collectPerformanceSamples(browser, origin, 5);
-
-  {
-    const session = await openFresh(browser, origin, "/fixture?case=redaction");
-    try {
-      await waitForBanner(session.page);
-      await session.page.evaluate(async () => {
-        document.cookie = "session_token=COOKIE_SECRET; path=/";
-        localStorage.setItem("auth_token", "STORAGE_SECRET");
-        sessionStorage.setItem("session_token", "SESSION_SECRET");
-        const form = document.createElement("input"); form.type = "password"; form.value = "FORM_SECRET"; document.body.appendChild(form);
-        await fetch("/__probe/private?access_token=QUERY_SECRET");
-        window.dispatchEvent(new Event("pagehide"));
-      });
-      await session.page.waitForFunction(async () => (await (await fetch("/__test/runtime-observations")).json()).some((row) => row.type === "fetch"));
-      const observations = await session.page.evaluate(async () => (await fetch("/__test/runtime-observations")).json());
-      const serialized = JSON.stringify(observations);
-      const safeKeys = observations.filter((row) => row.storageKey === "[redacted]").length >= 2;
-      const safeUrl = observations.some((row) => row.type === "fetch" && row.resourcePath === "/__probe/private");
-      const noSecrets = !["COOKIE_SECRET", "STORAGE_SECRET", "SESSION_SECRET", "FORM_SECRET", "QUERY_SECRET", "access_token", "session_token", "auth_token"].some((secret) => serialized.includes(secret));
-      add({ test: "Runtime discovery excludes sensitive values", browser: "Chrome", expected: "Cookies, storage values, form values, and query secrets are absent from evidence", actual: { observations: observations.length, safeKeys, safeUrl, noSecrets }, result: safeKeys && safeUrl && noSecrets ? "PASS" : "FAIL" });
-    } catch (error) {
-      add({ test: "Runtime discovery excludes sensitive values", browser: "Chrome", expected: "Sensitive values are redacted", actual: error.message, result: "FAIL" });
-    } finally {
-      await session.context.close();
-    }
-  }
 }
 
 async function granular(browser, origin, add, label, analyticsOn, marketingOn) {
@@ -1274,7 +1165,7 @@ async function launchAvailable() {
   for (const [name, factory] of [
     ["Chrome", () => chromium.launch({ channel: "chrome", headless: true })],
     ["Edge", () => chromium.launch({ channel: "msedge", headless: true })],
-    ["Firefox", () => firefox.launch({ headless: true })],
+    ["Firefox", () => firefox.launch({ executablePath: "C:\\Program Files\\Mozilla Firefox\\firefox.exe", headless: true })],
   ]) {
     try {
       const browser = await factory();
@@ -1287,10 +1178,6 @@ async function launchAvailable() {
 }
 
 async function realTenantProbe(report) {
-  if (process.env.CMP_SKIP_REAL_TENANT_PROBE === "1") {
-    report.tenants = { result: "NOT VERIFIED", reason: "The live database probe was explicitly skipped; fixture tenant-isolation checks still ran." };
-    return;
-  }
   const envPath = path.join(root, ".env");
   if (!fs.existsSync(envPath)) {
     report.tenants = { result: "NOT VERIFIED", reason: "No .env database configuration was available." };
@@ -1429,6 +1316,12 @@ async function realTenantProbe(report) {
     await sql.end({ timeout: 5 }).catch(() => {});
     if (child) child.kill();
   }
+}
+
+function pickTwoOrgs(rows) {
+  const first = rows.find((row) => row.consent_id);
+  const second = rows.find((row) => row.consent_id && row.organization_id !== first?.organization_id);
+  return [first, second];
 }
 
 async function waitForHttp(url) {
