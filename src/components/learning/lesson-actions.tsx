@@ -41,7 +41,7 @@ export function LessonActions({
   return (
     <div className="flex flex-col items-start gap-2 sm:items-end">
       {lessonComplete ? (
-        <Link className={quizPassed ? secondaryBtn : primaryBtn} href={`/e-learning/module/${slug}/quiz`}>
+        <Link className={quizPassed ? secondaryBtn : primaryBtn} href={`/e-learning/module/${slug}/quiz`} prefetch>
           {quizPassed ? "Retake module quiz" : "Take module quiz"}
         </Link>
       ) : (

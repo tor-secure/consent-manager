@@ -1,16 +1,14 @@
-import { MODULES_01_10 } from "./modules-01-10";
-import { MODULES_11_20 } from "./modules-11-20";
-import { MODULES_21_30 } from "./modules-21-30";
-import { buildLesson, buildScript, type CatalogModule } from "./question";
+import { PROGRAMME_MODULES } from "./programme";
+import type { CatalogModule } from "./question";
 import { COURSE_SLUG, MODULE_COUNT } from "./engine";
 
-export const COURSE_CONTENT_VERSION = "2026-10-02";
-export const COURSE_LAST_REVIEWED = "2026-10-02";
+export const COURSE_CONTENT_VERSION = "2026-10-07-pdf";
+export const COURSE_LAST_REVIEWED = "";
 
 export const COURSE_DISCLAIMER =
-  "This course is educational. It is not legal advice, a government certification, or a statement that Consent Guru is a Consent Manager registered with the Data Protection Board. Check the Digital Personal Data Protection Act, 2023, the Digital Personal Data Protection Rules, 2025, and the Official Gazette before you rely on a compliance decision. Content last reviewed on 2 October 2026.";
+  "Legal status note: The Digital Personal Data Protection Rules, 2025 were notified by the Ministry of Electronics and Information Technology on 13 November 2025. The Act and Rules have a phased commencement structure. References in this programme should therefore be read subject to the applicable commencement date. This training material is educational in nature and should be read with the official Gazette notifications and the final statutory text.";
 
-export const COURSE_CATALOG: CatalogModule[] = [...MODULES_01_10, ...MODULES_11_20, ...MODULES_21_30];
+export const COURSE_CATALOG: CatalogModule[] = PROGRAMME_MODULES;
 
 export function assertCatalogShape(): void {
   if (COURSE_CATALOG.length !== MODULE_COUNT) {
@@ -35,11 +33,11 @@ export function assertCatalogShape(): void {
 }
 
 export function lessonText(courseModule: CatalogModule): string {
-  return buildLesson(courseModule);
+  return courseModule.lesson.join("\n\n");
 }
 
 export function scriptText(courseModule: CatalogModule): string {
-  return buildScript(courseModule);
+  return courseModule.lesson.join("\n\n");
 }
 
 export { COURSE_SLUG };

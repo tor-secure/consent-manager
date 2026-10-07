@@ -1023,4 +1023,5 @@ CREATE TABLE IF NOT EXISTS "learning_events" (
   "created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 CREATE INDEX IF NOT EXISTS "learning_events_org_created_idx" ON "learning_events" ("organization_id", "created_at");
+CREATE INDEX IF NOT EXISTS "learning_events_learner_action_idx" ON "learning_events" ("organization_id", "user_id", "course_id", "action");
 

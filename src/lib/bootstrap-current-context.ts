@@ -9,6 +9,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { organizations } from "@/db/schema/organizations";
 import { memberships } from "@/db/schema/memberships";
+import { roles } from "@/db/schema/roles";
 import {
   organizationCoreSelect,
   toOrganizationRow,
@@ -22,6 +23,7 @@ export type BootstrapContext = {
   user: typeof users.$inferSelect;
   organization: typeof organizations.$inferSelect;
   membership: typeof memberships.$inferSelect;
+  roleName: string;
 };
 
 export type BootstrapContextNoOrg = {
@@ -41,6 +43,11 @@ function isUniqueViolation(error: unknown): boolean {
     current = (current as { cause?: unknown }).cause;
   }
   return false;
+}
+
+async function roleNameFor(roleId: string): Promise<string> {
+  const [row] = await db.select({ name: roles.name }).from(roles).where(eq(roles.id, roleId)).limit(1);
+  return row?.name ?? "Member";
 }
 
 function rethrowBootstrapDbError(error: unknown): never {
@@ -108,6 +115,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
         user: userCoreSelect,
         organization: organizationCoreSelect,
         membership: getTableColumns(memberships),
+        roleName: roles.name,
       })
       .from(users)
       .innerJoin(organizations, eq(organizations.clerkOrganizationId, orgId))
@@ -118,6 +126,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
           eq(memberships.organizationId, organizations.id),
         ),
       )
+      .leftJoin(roles, eq(roles.id, memberships.roleId))
       .where(eq(users.clerkUserId, userId))
       .limit(1);
 
@@ -126,6 +135,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
         user: hot.user,
         organization: toOrganizationRow(hot.organization),
         membership: hot.membership,
+        roleName: hot.roleName ?? "Member",
       };
     }
   }
@@ -264,6 +274,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
           user: localUser,
           organization: toOrganizationRow(existingOrg),
           membership: existingMembership,
+          roleName: await roleNameFor(existingMembership.roleId),
         };
       }
 
@@ -276,6 +287,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
         user: localUser,
         organization: toOrganizationRow(existingOrg),
         membership,
+        roleName: await roleNameFor(membership.roleId),
       };
     }
   }
@@ -334,6 +346,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
         user: localUser,
         organization: toOrganizationRow(existingOrg),
         membership: existingMembership,
+        roleName: await roleNameFor(existingMembership.roleId),
       };
     }
 
@@ -346,6 +359,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
       user: localUser,
       organization: toOrganizationRow(existingOrg),
       membership,
+      roleName: await roleNameFor(membership.roleId),
     };
   }
 
@@ -396,6 +410,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
     user: localUser,
     organization: toOrganizationRow(organization),
     membership,
+    roleName: OWNER_ROLE,
   };
 }
 

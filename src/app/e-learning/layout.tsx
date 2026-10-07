@@ -14,7 +14,7 @@ export default function ELearningLayout({ children }: { children: ReactNode }) {
         <HomeNavbar />
       </div>
       <main id="main-content" className="py-6 sm:py-8 print:py-0">
-        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 sm:px-8 print:max-w-none print:px-0">{children}</div>
+        <div className="mx-auto w-full min-w-0 max-w-none px-4 sm:px-6 lg:px-8 print:max-w-none print:px-0">{children}</div>
       </main>
       <div className="print:hidden">
         <HomeFooter />

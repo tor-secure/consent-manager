@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import { Suspense } from "react";
 
 import { LessonActions } from "@/components/learning/lesson-actions";
 import { LockMark } from "@/components/learning/lock-mark";
-import { ModuleNav } from "@/components/learning/module-nav";
+import { ModuleReading } from "@/components/learning/module-reading";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusChip, StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
-import { VideoPlayer } from "@/components/learning/video-player";
 import { learnerPageContext } from "@/lib/learning/page-context";
-import { getCourseHome, getModuleForLearner } from "@/lib/learning/service";
+import { getCourseHome, getModuleForLearner, warmLearningCatalog } from "@/lib/learning/service";
+import { ModulePagerSkeleton } from "./loading";
 
 function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
@@ -30,28 +30,6 @@ function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
         ))}
       </ol>
     </nav>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section className={`${card} p-5 sm:p-6`}>
-      <h2 className="text-lg font-semibold text-[#0B2C4A]">{title}</h2>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-function BulletList({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-2.5">
-      {items.map((item) => (
-        <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
-          <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-          <span className="min-w-0 flex-1 text-justify">{item}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -88,16 +66,17 @@ function Steps({ lessonComplete, quizPassed }: { lessonComplete: boolean; quizPa
 
 export default async function ModulePage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
+  const catalogReady = warmLearningCatalog();
   const learner = await learnerPageContext();
+  const homePromise = getCourseHome(learner);
   const result = await getModuleForLearner(learner, moduleSlug);
+  await catalogReady;
   if (result.error === "not_enrolled") redirect("/e-learning");
   if (result.error === "not_found") notFound();
 
-  const home = await getCourseHome(learner);
-  const modules = home.enrolled ? home.modules : [];
-  const progress = home.enrolled ? home.progress : null;
-
   if (result.error === "locked") {
+    const home = await homePromise;
+    const modules = home.enrolled ? home.modules : [];
     const prerequisite = modules.find((item) => item.number === result.prerequisiteNumber);
     return (
       <div className="space-y-6 text-[#0B2C4A]">
@@ -119,7 +98,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
           </div>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {prerequisite ? (
-              <Link href={`/e-learning/module/${prerequisite.slug}`} className={primaryBtn}>
+              <Link href={`/e-learning/module/${prerequisite.slug}`} prefetch className={primaryBtn}>
                 Go to Module {pad(prerequisite.number)}
               </Link>
             ) : null}
@@ -133,28 +112,12 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
   }
 
   const courseModule = result.module;
-  const index = modules.findIndex((item) => item.slug === courseModule.slug);
-  const previous = index > 0 ? modules[index - 1] : null;
-  const next = index >= 0 && index < modules.length - 1 ? modules[index + 1] : null;
   const status = courseModule.quizPassed ? "completed" : "in_progress";
 
   return (
     <div className="space-y-5 text-[#0B2C4A]">
       <Breadcrumb items={[{ label: "E-learning", href: "/e-learning" }, { label: `Module ${pad(courseModule.number)}` }]} />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-        {progress ? (
-          <div className="lg:order-2">
-            <ModuleNav
-              modules={modules}
-              currentSlug={courseModule.slug}
-              completed={progress.completedModules}
-              total={progress.totalModules}
-              percentage={progress.completionPercentage}
-            />
-          </div>
-        ) : null}
-        <article className="min-w-0 space-y-5 lg:order-1">
-          <VideoPlayer video={courseModule.video} />
+      <article className="min-w-0 space-y-5">
           <header className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm font-semibold tabular-nums text-[#4d6570]">Module {pad(courseModule.number)} of {result.progress.total}</p>
@@ -162,36 +125,10 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
             </div>
             <h1 className="text-2xl font-semibold leading-tight sm:text-[1.75rem]">{courseModule.title}</h1>
             <p className="text-sm text-[#4d6570]">{courseModule.minutes} minutes</p>
-            <p className="max-w-3xl text-justify text-base leading-7 text-[#36505c]">{courseModule.summary}</p>
           </header>
           <Steps lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
 
-          <Section title="Learning objectives">
-            <BulletList items={courseModule.objectives} />
-          </Section>
-          <Section title="Lesson">
-            <div className="max-w-3xl space-y-4">
-              {courseModule.lesson.split("\n\n").map((paragraph, paragraphIndex) => (
-                <p key={`${courseModule.slug}-lesson-${paragraphIndex}`} className="text-justify text-base leading-7 text-[#0B2C4A]">
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </Section>
-          <Section title="Key concepts">
-            <BulletList items={courseModule.concepts} />
-          </Section>
-          <div className="grid gap-5 xl:grid-cols-2">
-            <Section title="Practical example">
-              <p className="text-justify text-base leading-7">{courseModule.example}</p>
-            </Section>
-            <Section title="Case study">
-              <p className="text-justify text-base leading-7">{courseModule.caseStudy}</p>
-            </Section>
-          </div>
-          <Section title="Key takeaways">
-            <BulletList items={courseModule.takeaways} />
-          </Section>
+          <ModuleReading objectives={courseModule.objectives} lesson={courseModule.lesson} video={courseModule.video} />
 
           <section aria-label="Module actions" className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}>
             <div>
@@ -209,45 +146,63 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
             <LessonActions slug={courseModule.slug} lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
           </section>
 
-          <nav aria-label="Module navigation" className="grid gap-3 sm:grid-cols-2">
-            {previous ? (
-              <Link href={`/e-learning/module/${previous.slug}`} className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Previous</span>
-                <span className="mt-0.5 text-sm font-semibold">
-                  {pad(previous.number)} · {previous.title}
-                </span>
-              </Link>
-            ) : (
-              <span className="hidden sm:block" />
-            )}
-            {next ? (
-              next.unlocked ? (
-                <Link href={`/e-learning/module/${next.slug}`} className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
-                  <span className="mt-0.5 text-sm font-semibold">
-                    {pad(next.number)} · {next.title}
-                  </span>
-                </Link>
-              ) : (
-                <div className={`flex min-h-16 items-center justify-end gap-3 rounded-xl border border-dashed border-[#d5e3e0] bg-[#fbfdfc] px-4 py-3 text-right text-[#4d6570]`} aria-label={`Next module ${next.number} is locked`}>
-                  <span className="flex flex-col">
-                    <span className="text-xs font-semibold uppercase tracking-wide">Next · locked</span>
-                    <span className="mt-0.5 text-sm font-semibold">
-                      {pad(next.number)} · {next.title}
-                    </span>
-                  </span>
-                  <StatusIcon status="locked" size={20} />
-                </div>
-              )
-            ) : (
-              <Link href="/e-learning/final-exam" className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right hover:border-[#0B2C4A]`}>
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
-                <span className="mt-0.5 text-sm font-semibold">Final examination</span>
-              </Link>
-            )}
-          </nav>
+          <Suspense fallback={<ModulePagerSkeleton />}>
+            <ModulePager homePromise={homePromise} currentSlug={courseModule.slug} />
+          </Suspense>
         </article>
-      </div>
     </div>
+  );
+}
+
+async function ModulePager({
+  homePromise,
+  currentSlug,
+}: {
+  homePromise: ReturnType<typeof getCourseHome>;
+  currentSlug: string;
+}) {
+  const home = await homePromise;
+  const modules = home.enrolled ? home.modules : [];
+  const index = modules.findIndex((item) => item.slug === currentSlug);
+  const previous = index > 0 ? modules[index - 1] : null;
+  const next = index >= 0 && index < modules.length - 1 ? modules[index + 1] : null;
+  return (
+    <nav aria-label="Module navigation" className="grid gap-3 sm:grid-cols-2">
+      {previous ? (
+        <Link href={`/e-learning/module/${previous.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Previous</span>
+          <span className="mt-0.5 text-sm font-semibold">
+            {pad(previous.number)} Â· {previous.title}
+          </span>
+        </Link>
+      ) : (
+        <span className="hidden sm:block" />
+      )}
+      {next ? (
+        next.unlocked ? (
+          <Link href={`/e-learning/module/${next.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
+            <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
+            <span className="mt-0.5 text-sm font-semibold">
+              {pad(next.number)} Â· {next.title}
+            </span>
+          </Link>
+        ) : (
+          <div className="flex min-h-16 items-center justify-end gap-3 rounded-xl border border-dashed border-[#d5e3e0] bg-[#fbfdfc] px-4 py-3 text-right text-[#4d6570]" aria-label={`Next module ${next.number} is locked`}>
+            <span className="flex flex-col">
+              <span className="text-xs font-semibold uppercase tracking-wide">Next Â· locked</span>
+              <span className="mt-0.5 text-sm font-semibold">
+                {pad(next.number)} Â· {next.title}
+              </span>
+            </span>
+            <StatusIcon status="locked" size={20} />
+          </div>
+        )
+      ) : (
+        <Link href="/e-learning/final-exam" className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right hover:border-[#0B2C4A]`}>
+          <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
+          <span className="mt-0.5 text-sm font-semibold">Final examination</span>
+        </Link>
+      )}
+    </nav>
   );
 }

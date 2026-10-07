@@ -1,7 +1,9 @@
 import "server-only";
 
 import { randomBytes } from "node:crypto";
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { after } from "next/server";
+import { cache } from "react";
+import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema/audit-logs";
@@ -66,7 +68,8 @@ type PublicQuestion = {
   options: PublicOption[];
 };
 
-const COURSE_TITLE = "DPDP Act 2023 — Complete Data Protection & Privacy Training";
+const COURSE_TITLE = "Digital Personal Data Protection Act, 2023 and Digital Personal Data Protection Rules, 2025";
+const COURSE_DESCRIPTION = "30-Module Professional E-Learning Programme";
 
 export async function enrollInCourse(ctx: LearnerContext) {
   const course = await ensureCatalog();
@@ -80,7 +83,8 @@ export async function enrollInCourse(ctx: LearnerContext) {
 
 export async function getCourseHome(ctx: LearnerContext) {
   const course = await ensureCatalog();
-  const [enrollment, modules] = await Promise.all([activeEnrollment(ctx, course.id), publishedModules(course.id)]);
+  const [state, modules] = await Promise.all([loadLearnerCourseState(ctx, course.id), publishedModuleSummaries(course.id)]);
+  const enrollment = state.enrollment;
   if (!enrollment) {
     return {
       enrolled: false as const,
@@ -94,13 +98,9 @@ export async function getCourseHome(ctx: LearnerContext) {
       })),
     };
   }
-  const [passed, lessonDone, exam, certificate] = await Promise.all([
-    passedModuleNumbers(enrollment.id),
-    lessonCompletionSet(enrollment.id),
-    latestExam(enrollment.id),
-    certificateFor(enrollment.id),
-  ]);
-  const completed = courseCompleted({ passedModuleNumbers: passed, examPassed: Boolean(exam?.passed) });
+  const passed = state.passed;
+  const lessonDone = state.lessons;
+  const completed = courseCompleted({ passedModuleNumbers: passed, examPassed: state.examPassed });
   return {
     enrolled: true as const,
     course: publicCourse(course),
@@ -111,11 +111,11 @@ export async function getCourseHome(ctx: LearnerContext) {
       totalModules: MODULE_COUNT,
       completionPercentage: completionPercentage(passed.size),
       currentModuleNumber: currentModule(passed),
-      examPassed: Boolean(exam?.passed),
-      examPercentage: exam?.percentage ?? null,
+      examPassed: state.examPassed,
+      examPercentage: state.examPercentage,
       completedAt: enrollment.completedAt,
       certificateEligible: completed,
-      certificateCode: certificate?.certificateCode ?? null,
+      certificateCode: state.certificateCode,
     },
     modules: modules.map((courseModule) => {
       const unlocked = moduleUnlocked(courseModule.moduleNumber, passed);
@@ -138,11 +138,15 @@ export async function getCourseHome(ctx: LearnerContext) {
 
 export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
   const course = await ensureCatalog();
-  const enrollment = await activeEnrollment(ctx, course.id);
+  const [state, courseModule] = await Promise.all([
+    loadLearnerCourseState(ctx, course.id),
+    learnerModuleBySlug(course.id, slug),
+  ]);
+  const enrollment = state.enrollment;
   if (!enrollment) return { error: "not_enrolled" as const };
-  const courseModule = await moduleBySlug(course.id, slug);
+  const passed = state.passed;
+  const lessonDone = state.lessons;
   if (!courseModule || courseModule.status !== "published") return { error: "not_found" as const };
-  const passed = await passedModuleNumbers(enrollment.id);
   if (!moduleUnlocked(courseModule.moduleNumber, passed)) {
     return {
       error: "locked" as const,
@@ -153,20 +157,12 @@ export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
       totalModules: MODULE_COUNT,
     };
   }
-  await touchEnrollment(enrollment.id);
-  await recordEvent(ctx, course.id, "module_opened", courseModule.id);
-  const lessonDone = await lessonCompletionSet(enrollment.id);
-  const attempts = await db
-    .select({
-      id: learningQuizAttempts.id,
-      attemptNumber: learningQuizAttempts.attemptNumber,
-      percentage: learningQuizAttempts.percentage,
-      passed: learningQuizAttempts.passed,
-      submittedAt: learningQuizAttempts.submittedAt,
-    })
-    .from(learningQuizAttempts)
-    .where(and(eq(learningQuizAttempts.enrollmentId, enrollment.id), eq(learningQuizAttempts.moduleId, courseModule.id)))
-    .orderBy(desc(learningQuizAttempts.attemptNumber));
+  after(() =>
+    Promise.all([
+      touchEnrollment(enrollment.id),
+      recordEvent(ctx, course.id, "module_opened", courseModule.id),
+    ]),
+  );
   return {
     error: null,
     course: { slug: COURSE_SLUG, title: course.title, passPercent: course.passPercent },
@@ -187,16 +183,8 @@ export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
         title: `Module ${String(courseModule.moduleNumber).padStart(2, "0")} — ${courseModule.title}`,
         minutes: courseModule.estimatedMinutes,
       },
-      script: courseModule.videoScript,
       lessonComplete: lessonDone.has(courseModule.id),
       quizPassed: passed.has(courseModule.moduleNumber),
-      attempts: attempts.map((attempt) => ({
-        id: attempt.id,
-        number: attempt.attemptNumber,
-        percentage: attempt.percentage,
-        passed: attempt.passed,
-        submitted: Boolean(attempt.submittedAt),
-      })),
     },
     progress: { completed: passed.size, total: MODULE_COUNT },
   };
@@ -428,13 +416,31 @@ export async function getExamHistory(ctx: LearnerContext) {
 export async function getCertificate(ctx: LearnerContext) {
   const course = await ensureCatalog();
   const enrollment = await activeEnrollment(ctx, course.id);
-  if (!enrollment) return { error: "not_eligible" as const };
-  const certificate = await certificateFor(enrollment.id);
-  if (!certificate) return { error: "not_eligible" as const };
-  return { error: null, certificate: publicCertificate(certificate, await courseMinutes(certificate.courseId)) };
+  if (!enrollment) {
+    return { error: "not_eligible" as const, enrolled: false as const, moduleCount: MODULE_COUNT, progress: null };
+  }
+  const [certificate, passed, exam] = await Promise.all([
+    certificateFor(enrollment.id),
+    passedModuleNumbers(enrollment.id),
+    latestExam(enrollment.id),
+  ]);
+  if (!certificate) {
+    return {
+      error: "not_eligible" as const,
+      enrolled: true as const,
+      moduleCount: MODULE_COUNT,
+      progress: {
+        completedModules: passed.size,
+        totalModules: MODULE_COUNT,
+        examPassed: Boolean(exam?.passed),
+        examPercentage: exam?.percentage ?? null,
+      },
+    };
+  }
+  return { error: null, certificate: publicCertificate(certificate, course.estimatedMinutes) };
 }
 
-export async function verifyCertificate(code: string) {
+export const verifyCertificate = cache(async function verifyCertificate(code: string) {
   if (isDemoCertificateCode(code)) return demoCertificate();
   const [row] = await db
     .select()
@@ -442,8 +448,10 @@ export async function verifyCertificate(code: string) {
     .where(eq(learningCertificates.certificateCode, code.trim()))
     .limit(1);
   if (!row) return null;
-  return publicCertificate(row, await courseMinutes(row.courseId));
-}
+  const course = await ensureCatalog();
+  const minutes = course.id === row.courseId ? course.estimatedMinutes : await courseMinutes(row.courseId);
+  return publicCertificate(row, minutes);
+});
 
 export async function updateModuleContent(
   ctx: LearnerContext,
@@ -476,6 +484,7 @@ export async function updateModuleContent(
       updatedAt: new Date(),
     })
     .where(eq(learningModules.id, courseModule.id));
+  clearLearningContentCache();
   return { ok: true as const };
 }
 
@@ -492,7 +501,7 @@ export async function updateCourseSettings(
     .update(learningCourses)
     .set({ passPercent, examPassPercent, examQuestionCount, updatedAt: new Date() })
     .where(eq(learningCourses.id, course.id));
-  cachedCourse = null;
+  clearLearningContentCache();
   return { ok: true as const, passPercent, examPassPercent, examQuestionCount };
 }
 
@@ -572,38 +581,113 @@ export async function listOrgProgress(ctx: LearnerContext) {
     .from(learningEnrollments)
     .innerJoin(users, eq(users.id, learningEnrollments.userId))
     .where(and(eq(learningEnrollments.organizationId, ctx.organizationId), eq(learningEnrollments.courseId, course.id)));
-  const progress = [];
-  for (const row of rows) {
-    const passed = await passedModuleNumbers(row.enrollmentId);
-    progress.push({
+  const counts = new Map<string, number>();
+  if (rows.length > 0) {
+    const passedRows = await db
+      .select({
+        enrollmentId: learningQuizAttempts.enrollmentId,
+        completed: sql<number>`cast(count(distinct ${learningModules.moduleNumber}) as int)`,
+      })
+      .from(learningQuizAttempts)
+      .innerJoin(learningModules, eq(learningModules.id, learningQuizAttempts.moduleId))
+      .where(
+        and(
+          inArray(
+            learningQuizAttempts.enrollmentId,
+            rows.map((row) => row.enrollmentId),
+          ),
+          eq(learningQuizAttempts.passed, true),
+        ),
+      )
+      .groupBy(learningQuizAttempts.enrollmentId);
+    for (const row of passedRows) counts.set(row.enrollmentId, Number(row.completed));
+  }
+  return {
+    error: null,
+    progress: rows.map((row) => ({
       userId: row.userId,
       name: row.name,
-      completedModules: passed.size,
+      completedModules: counts.get(row.enrollmentId) ?? 0,
       startedAt: row.startedAt,
       completedAt: row.completedAt,
-    });
-  }
-  return { error: null, progress };
+    })),
+  };
 }
+
+type ModuleSummary = {
+  id: string;
+  moduleNumber: number;
+  slug: string;
+  title: string;
+  summary: string;
+  estimatedMinutes: number;
+};
+
+type LearnerModuleRow = {
+  id: string;
+  moduleNumber: number;
+  slug: string;
+  title: string;
+  summary: string;
+  estimatedMinutes: number;
+  learningObjectives: string[];
+  lessonContent: string;
+  keyConcepts: string[];
+  practicalExample: string;
+  caseStudy: string;
+  keyTakeaways: string[];
+  videoUrl: string | null;
+  videoProvider: string;
+  status: string;
+};
 
 const COURSE_CACHE_TTL_MS = 60_000;
 let cachedCourse: { row: typeof learningCourses.$inferSelect; expiresAt: number } | null = null;
+let cachedSummaries: { courseId: string; rows: ModuleSummary[]; expiresAt: number } | null = null;
+const lessonCache = new Map<string, { row: LearnerModuleRow; expiresAt: number }>();
 let catalogShapeChecked = false;
+
+function clearLearningContentCache() {
+  cachedCourse = null;
+  cachedSummaries = null;
+  lessonCache.clear();
+}
+
+let catalogInflight: Promise<typeof learningCourses.$inferSelect> | null = null;
 
 async function ensureCatalog() {
   if (cachedCourse && cachedCourse.expiresAt > Date.now()) return cachedCourse.row;
-  if (!catalogShapeChecked) {
-    assertCatalogShape();
-    catalogShapeChecked = true;
+  if (!catalogInflight) {
+    catalogInflight = (async () => {
+      if (!catalogShapeChecked) {
+        assertCatalogShape();
+        catalogShapeChecked = true;
+      }
+      const course = await loadOrSeedCatalog();
+      cachedCourse = { row: course, expiresAt: Date.now() + COURSE_CACHE_TTL_MS };
+      return course;
+    })().finally(() => {
+      catalogInflight = null;
+    });
   }
-  const course = await loadOrSeedCatalog();
-  cachedCourse = { row: course, expiresAt: Date.now() + COURSE_CACHE_TTL_MS };
-  return course;
+  return catalogInflight;
+}
+
+/** Start course and module-list reads so they overlap the sign-in lookup. */
+export function warmLearningCatalog() {
+  return ensureCatalog().then((course) => publishedModuleSummaries(course.id));
 }
 
 async function loadOrSeedCatalog() {
   const [existing] = await db.select().from(learningCourses).where(eq(learningCourses.slug, COURSE_SLUG)).limit(1);
-  if (existing) return existing;
+  if (existing) {
+    if (existing.contentVersion !== COURSE_CONTENT_VERSION) {
+      await refreshCatalogContent(existing.id);
+      const [updated] = await db.select().from(learningCourses).where(eq(learningCourses.id, existing.id)).limit(1);
+      return updated ?? existing;
+    }
+    return existing;
+  }
   return db.transaction(async (tx) => {
     const [again] = await tx.select().from(learningCourses).where(eq(learningCourses.slug, COURSE_SLUG)).limit(1);
     if (again) return again;
@@ -613,8 +697,7 @@ async function loadOrSeedCatalog() {
       .values({
         slug: COURSE_SLUG,
         title: COURSE_TITLE,
-        description:
-          "A 30-module workplace course on India's Digital Personal Data Protection Act, 2023, the phased commencement in G.S.R. 843(E), and practical preparation for the duties that commence later.",
+        description: COURSE_DESCRIPTION,
         disclaimer: COURSE_DISCLAIMER,
         instructor: "Consent Guru",
         difficulty: "Foundation to applied",
@@ -648,30 +731,137 @@ async function loadOrSeedCatalog() {
           keyTakeaways: courseModule.takeaways,
           status: "published",
           sortOrder: courseModule.number,
-          publishedAt: new Date("2026-10-02T00:00:00.000Z"),
+          publishedAt: new Date("2026-10-07T00:00:00.000Z"),
         })
         .returning();
+      await insertModuleQuestions(tx, course.id, row.id, courseModule);
+    }
+    return course;
+  });
+}
+
+type CatalogWriter = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function insertModuleQuestions(
+  tx: CatalogWriter,
+  courseId: string,
+  moduleId: string,
+  courseModule: (typeof COURSE_CATALOG)[number],
+) {
+  let order = 0;
+  for (const question of [...courseModule.quiz, ...courseModule.exam]) {
+    order += 1;
+    const [saved] = await tx
+      .insert(learningQuestions)
+      .values({
+        courseId,
+        moduleId,
+        questionKey: question.key,
+        bank: question.bank,
+        questionType: question.type,
+        prompt: question.prompt,
+        explanation: question.explanation,
+        points: 1,
+        difficulty: question.difficulty,
+        sortOrder: order,
+      })
+      .returning();
+    await tx.insert(learningQuestionOptions).values(
+      question.options.map((option, index) => ({
+        questionId: saved.id,
+        label: option.label,
+        isCorrect: option.correct,
+        sortOrder: index + 1,
+      })),
+    );
+  }
+}
+
+async function refreshCatalogContent(courseId: string) {
+  const minutes = COURSE_CATALOG.reduce((sum, courseModule) => sum + courseModule.minutes, 0);
+  await db.transaction(async (tx) => {
+    await tx
+      .update(learningCourses)
+      .set({
+        title: COURSE_TITLE,
+        description: COURSE_DESCRIPTION,
+        disclaimer: COURSE_DISCLAIMER,
+        estimatedMinutes: minutes,
+        contentVersion: COURSE_CONTENT_VERSION,
+        lastReviewedOn: COURSE_LAST_REVIEWED,
+        updatedAt: new Date(),
+      })
+      .where(eq(learningCourses.id, courseId));
+    for (const courseModule of COURSE_CATALOG) {
+      await tx
+        .update(learningModules)
+        .set({ slug: `refresh-${courseModule.number}` })
+        .where(and(eq(learningModules.courseId, courseId), eq(learningModules.moduleNumber, courseModule.number)));
+    }
+    for (const courseModule of COURSE_CATALOG) {
+      const [row] = await tx
+        .update(learningModules)
+        .set({
+          slug: courseModule.slug,
+          title: courseModule.title,
+          summary: courseModule.summary,
+          learningObjectives: courseModule.objectives,
+          estimatedMinutes: courseModule.minutes,
+          videoScript: scriptText(courseModule),
+          lessonContent: lessonText(courseModule),
+          keyConcepts: courseModule.concepts,
+          practicalExample: courseModule.example,
+          caseStudy: courseModule.caseStudy,
+          keyTakeaways: courseModule.takeaways,
+          updatedAt: new Date(),
+        })
+        .where(and(eq(learningModules.courseId, courseId), eq(learningModules.moduleNumber, courseModule.number)))
+        .returning({ id: learningModules.id });
+      if (!row) throw new Error(`Missing module ${courseModule.number}`);
+      const existing = await tx
+        .select({ id: learningQuestions.id, questionKey: learningQuestions.questionKey })
+        .from(learningQuestions)
+        .where(eq(learningQuestions.moduleId, row.id));
+      const desired = [...courseModule.quiz, ...courseModule.exam];
+      const desiredKeys = new Set(desired.map((question) => question.key));
+      const removable = existing.filter((question) => !desiredKeys.has(question.questionKey)).map((question) => question.id);
+      if (removable.length > 0) {
+        await tx.delete(learningQuestions).where(inArray(learningQuestions.id, removable));
+      }
       let order = 0;
-      for (const question of [...courseModule.quiz, ...courseModule.exam]) {
+      for (const question of desired) {
         order += 1;
-        const [saved] = await tx
-          .insert(learningQuestions)
-          .values({
-            courseId: course.id,
-            moduleId: row.id,
-            questionKey: question.key,
-            bank: question.bank,
-            questionType: question.type,
-            prompt: question.prompt,
-            explanation: question.explanation,
-            points: 1,
-            difficulty: question.difficulty,
-            sortOrder: order,
-          })
-          .returning();
+        const found = existing.find((item) => item.questionKey === question.key);
+        const values = {
+          bank: question.bank,
+          questionType: question.type,
+          prompt: question.prompt,
+          explanation: question.explanation,
+          difficulty: question.difficulty,
+          sortOrder: order,
+          updatedAt: new Date(),
+        };
+        const questionId = found
+          ? found.id
+          : (
+              await tx
+                .insert(learningQuestions)
+                .values({
+                  courseId,
+                  moduleId: row.id,
+                  questionKey: question.key,
+                  points: 1,
+                  ...values,
+                })
+                .returning({ id: learningQuestions.id })
+            )[0].id;
+        if (found) {
+          await tx.update(learningQuestions).set(values).where(eq(learningQuestions.id, found.id));
+        }
+        await tx.delete(learningQuestionOptions).where(eq(learningQuestionOptions.questionId, questionId));
         await tx.insert(learningQuestionOptions).values(
           question.options.map((option, index) => ({
-            questionId: saved.id,
+            questionId,
             label: option.label,
             isCorrect: option.correct,
             sortOrder: index + 1,
@@ -679,8 +869,8 @@ async function loadOrSeedCatalog() {
         );
       }
     }
-    return course;
   });
+  clearLearningContentCache();
 }
 
 async function findEnrollment(ctx: LearnerContext, courseId: string) {
@@ -731,11 +921,115 @@ async function learnerHasEntered(ctx: LearnerContext, courseId: string, enrollme
   return Boolean(enrolled || lesson || quiz);
 }
 
-async function activeEnrollment(ctx: LearnerContext, courseId: string) {
+const activeEnrollment = cache(async function activeEnrollment(ctx: LearnerContext, courseId: string) {
   const enrollment = await findEnrollment(ctx, courseId);
   if (!enrollment || !(await learnerHasEntered(ctx, courseId, enrollment.id))) return null;
   return enrollment;
-}
+});
+
+type LearnerCourseState = {
+  enrollment: {
+    id: string;
+    startedAt: Date;
+    lastAccessedAt: Date;
+    completedAt: Date | null;
+  } | null;
+  passed: Set<number>;
+  lessons: Set<string>;
+  examPassed: boolean;
+  examPercentage: number | null;
+  certificateCode: string | null;
+};
+
+const loadLearnerCourseState = cache(async function loadLearnerCourseState(
+  ctx: LearnerContext,
+  courseId: string,
+): Promise<LearnerCourseState> {
+  const empty: LearnerCourseState = {
+    enrollment: null,
+    passed: new Set(),
+    lessons: new Set(),
+    examPassed: false,
+    examPercentage: null,
+    certificateCode: null,
+  };
+  const result = await db.execute(sql`
+    SELECT jsonb_build_object(
+      'id', e.id,
+      'startedAt', e.started_at,
+      'lastAccessedAt', e.last_accessed_at,
+      'completedAt', e.completed_at,
+      'entered', (
+        EXISTS (
+          SELECT 1 FROM learning_events ev
+          WHERE ev.organization_id = e.organization_id
+            AND ev.user_id = e.user_id
+            AND ev.course_id = e.course_id
+            AND ev.action = 'course_enrolled'
+        )
+        OR EXISTS (SELECT 1 FROM learning_lesson_completions c WHERE c.enrollment_id = e.id)
+        OR EXISTS (SELECT 1 FROM learning_quiz_attempts q WHERE q.enrollment_id = e.id)
+      ),
+      'passed', COALESCE((
+        SELECT jsonb_agg(DISTINCT m.module_number)
+        FROM learning_quiz_attempts qa
+        INNER JOIN learning_modules m ON m.id = qa.module_id
+        WHERE qa.enrollment_id = e.id AND qa.passed IS TRUE
+      ), '[]'::jsonb),
+      'lessons', COALESCE((
+        SELECT jsonb_agg(c.module_id)
+        FROM learning_lesson_completions c
+        WHERE c.enrollment_id = e.id
+      ), '[]'::jsonb),
+      'examPassed', ex.passed,
+      'examPercentage', ex.percentage,
+      'certificateCode', cert.certificate_code
+    ) AS payload
+    FROM learning_enrollments e
+    LEFT JOIN LATERAL (
+      SELECT passed, percentage
+      FROM learning_exam_attempts
+      WHERE enrollment_id = e.id AND submitted_at IS NOT NULL
+      ORDER BY submitted_at DESC
+      LIMIT 1
+    ) ex ON true
+    LEFT JOIN learning_certificates cert ON cert.enrollment_id = e.id
+    WHERE e.organization_id = ${ctx.organizationId}::uuid
+      AND e.user_id = ${ctx.userId}::uuid
+      AND e.course_id = ${courseId}::uuid
+    LIMIT 1
+  `);
+  const payload = (result as unknown as { payload?: unknown }[])[0]?.payload;
+  if (!payload || typeof payload !== "object") return empty;
+  const row = payload as Record<string, unknown>;
+  if (row.entered !== true || typeof row.id !== "string") return empty;
+  const passed = new Set<number>();
+  if (Array.isArray(row.passed)) {
+    for (const value of row.passed) {
+      const number = Number(value);
+      if (Number.isFinite(number)) passed.add(number);
+    }
+  }
+  const lessons = new Set<string>();
+  if (Array.isArray(row.lessons)) {
+    for (const value of row.lessons) {
+      if (typeof value === "string") lessons.add(value);
+    }
+  }
+  return {
+    enrollment: {
+      id: row.id,
+      startedAt: new Date(String(row.startedAt)),
+      lastAccessedAt: new Date(String(row.lastAccessedAt)),
+      completedAt: row.completedAt ? new Date(String(row.completedAt)) : null,
+    },
+    passed,
+    lessons,
+    examPassed: row.examPassed === true,
+    examPercentage: row.examPercentage == null ? null : Number(row.examPercentage),
+    certificateCode: typeof row.certificateCode === "string" ? row.certificateCode : null,
+  };
+});
 
 async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
   const existing = await findEnrollment(ctx, courseId);
@@ -764,13 +1058,55 @@ async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
   return row;
 }
 
-async function publishedModules(courseId: string) {
-  return db
-    .select()
+const publishedModuleSummaries = cache(async function publishedModuleSummaries(courseId: string) {
+  if (cachedSummaries && cachedSummaries.courseId === courseId && cachedSummaries.expiresAt > Date.now()) {
+    return cachedSummaries.rows;
+  }
+  const rows = await db
+    .select({
+      id: learningModules.id,
+      moduleNumber: learningModules.moduleNumber,
+      slug: learningModules.slug,
+      title: learningModules.title,
+      summary: learningModules.summary,
+      estimatedMinutes: learningModules.estimatedMinutes,
+    })
     .from(learningModules)
     .where(and(eq(learningModules.courseId, courseId), eq(learningModules.status, "published")))
     .orderBy(asc(learningModules.moduleNumber));
-}
+  cachedSummaries = { courseId, rows, expiresAt: Date.now() + COURSE_CACHE_TTL_MS };
+  return rows;
+});
+
+const learnerModuleBySlug = cache(async function learnerModuleBySlug(courseId: string, slug: string) {
+  const key = `${courseId}:${slug}`;
+  const hit = lessonCache.get(key);
+  if (hit && hit.expiresAt > Date.now()) return hit.row;
+  const [row] = await db
+    .select({
+      id: learningModules.id,
+      moduleNumber: learningModules.moduleNumber,
+      slug: learningModules.slug,
+      title: learningModules.title,
+      summary: learningModules.summary,
+      estimatedMinutes: learningModules.estimatedMinutes,
+      learningObjectives: learningModules.learningObjectives,
+      lessonContent: learningModules.lessonContent,
+      keyConcepts: learningModules.keyConcepts,
+      practicalExample: learningModules.practicalExample,
+      caseStudy: learningModules.caseStudy,
+      keyTakeaways: learningModules.keyTakeaways,
+      videoUrl: learningModules.videoUrl,
+      videoProvider: learningModules.videoProvider,
+      status: learningModules.status,
+    })
+    .from(learningModules)
+    .where(and(eq(learningModules.courseId, courseId), eq(learningModules.slug, slug)))
+    .limit(1);
+  if (!row) return null;
+  lessonCache.set(key, { row, expiresAt: Date.now() + COURSE_CACHE_TTL_MS });
+  return row;
+});
 
 async function moduleBySlug(courseId: string, slug: string) {
   const [row] = await db
@@ -781,22 +1117,22 @@ async function moduleBySlug(courseId: string, slug: string) {
   return row ?? null;
 }
 
-async function passedModuleNumbers(enrollmentId: string) {
+const passedModuleNumbers = cache(async function passedModuleNumbers(enrollmentId: string) {
   const rows = await db
-    .select({ moduleNumber: learningModules.moduleNumber })
+    .selectDistinct({ moduleNumber: learningModules.moduleNumber })
     .from(learningQuizAttempts)
     .innerJoin(learningModules, eq(learningModules.id, learningQuizAttempts.moduleId))
     .where(and(eq(learningQuizAttempts.enrollmentId, enrollmentId), eq(learningQuizAttempts.passed, true)));
   return new Set(rows.map((row) => row.moduleNumber));
-}
+});
 
-async function lessonCompletionSet(enrollmentId: string) {
+const lessonCompletionSet = cache(async function lessonCompletionSet(enrollmentId: string) {
   const rows = await db
     .select({ moduleId: learningLessonCompletions.moduleId })
     .from(learningLessonCompletions)
     .where(eq(learningLessonCompletions.enrollmentId, enrollmentId));
   return new Set(rows.map((row) => row.moduleId));
-}
+});
 
 async function requireUnlockedModule(ctx: LearnerContext, enrollmentId: string, courseId: string, slug: string) {
   const courseModule = await moduleBySlug(courseId, slug);
@@ -997,9 +1333,12 @@ async function ownedQuizAttempt(ctx: LearnerContext, attemptId: string) {
 
 async function latestExam(enrollmentId: string) {
   const [row] = await db
-    .select()
+    .select({
+      passed: learningExamAttempts.passed,
+      percentage: learningExamAttempts.percentage,
+    })
     .from(learningExamAttempts)
-    .where(and(eq(learningExamAttempts.enrollmentId, enrollmentId), eq(learningExamAttempts.passed, true)))
+    .where(and(eq(learningExamAttempts.enrollmentId, enrollmentId), isNotNull(learningExamAttempts.submittedAt)))
     .orderBy(desc(learningExamAttempts.submittedAt))
     .limit(1);
   return row ?? null;

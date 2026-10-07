@@ -9,8 +9,7 @@ import { getCourseHome, listOrgProgress } from "@/lib/learning/service";
 export default async function ManageCoursePage() {
   const learner = await learnerPageContext();
   if (!learner.operator) notFound();
-  const home = await getCourseHome(learner);
-  const progress = await listOrgProgress(learner);
+  const [home, progress] = await Promise.all([getCourseHome(learner), listOrgProgress(learner)]);
   return (
     <div className="space-y-6 text-[#0B2C4A]">
       <PageHeader title="Manage DPDP training" description="Owner and Admin only. Learners do not see this page." />

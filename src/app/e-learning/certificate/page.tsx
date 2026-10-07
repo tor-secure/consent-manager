@@ -8,19 +8,18 @@ import { card, eyebrow, primaryBtn, secondaryBtn, textLink } from "@/components/
 import { certificateGrade } from "@/lib/learning/grade";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { certificateQrSvg } from "@/lib/learning/qr-svg";
-import { getCertificate, getCourseHome } from "@/lib/learning/service";
+import { getCertificate } from "@/lib/learning/service";
 
 export default async function CertificatePage() {
   const learner = await learnerPageContext();
   const result = await getCertificate(learner);
 
   if (result.error) {
-    const home = await getCourseHome(learner);
-    const progress = home.enrolled ? home.progress : null;
+    const progress = result.progress;
     const completed = progress?.completedModules ?? 0;
-    const total = progress?.totalModules ?? home.course.moduleCount;
+    const total = progress?.totalModules ?? result.moduleCount;
     const modulesDone = completed >= total;
-    const nextStep = !home.enrolled
+    const nextStep = !result.enrolled
       ? { href: "/e-learning", label: "Enroll in the course" }
       : modulesDone
         ? { href: "/e-learning/final-exam", label: "Take the final exam" }

@@ -313,5 +313,13 @@ export const learningEvents = pgTable(
     resourceId: uuid("resource_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
-  (table) => [index("learning_events_org_created_idx").on(table.organizationId, table.createdAt)],
+  (table) => [
+    index("learning_events_org_created_idx").on(table.organizationId, table.createdAt),
+    index("learning_events_learner_action_idx").on(
+      table.organizationId,
+      table.userId,
+      table.courseId,
+      table.action,
+    ),
+  ],
 );

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { certificateGrade } from "@/lib/learning/grade";
 
-import templateImage from "../../../public/certification/dpdp_certificate_template.png";
+import templateImage from "../../../public/certification/dpdp-foundation-certificate.png";
 
 export type CertificateDocumentData = {
   learnerName: string;
@@ -22,7 +22,7 @@ function formatDate(value: Date | string): string {
   });
 }
 
-/** Field positions are percentages of the 1496×1051 template artwork. */
+/** Field positions are percentages of the 1496×1051 foundation template. */
 export function CertificateDocument({
   certificate,
   qrSvg,
@@ -45,24 +45,24 @@ export function CertificateDocument({
 
       <p className="sr-only">
         Consent Guru certification of completion. This certifies that {certificate.learnerName} has completed Consent Guru&apos;s online
-        training on DPDP Act (Basic Level). Grade {certificateGrade(certificate.scorePercent)}. Completed on {formatDate(certificate.completedAt)}. Certificate
+        training on DPDP Act (Foundation Certification). Grade {certificateGrade(certificate.scorePercent)}. Completed on {formatDate(certificate.completedAt)}. Certificate
         ID {certificate.certificateCode}.
       </p>
 
       <div aria-hidden="true">
-        <p className="absolute left-1/2 top-[35.6%] w-[72%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-[4.1cqw] font-semibold leading-none tracking-tight">
+        <p className="absolute left-1/2 top-[35.5%] w-[70%] -translate-x-1/2 -translate-y-1/2 truncate text-center text-[3.6cqw] font-bold leading-none tracking-tight">
           {certificate.learnerName}
         </p>
 
-        <p className="absolute left-1/2 top-[60.2%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[2.6cqw] font-semibold leading-none">
+        <p className="absolute left-1/2 top-[61.8%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[2.8cqw] font-bold leading-none">
           {certificateGrade(certificate.scorePercent)}
         </p>
 
-        <p className="absolute left-[33.8%] top-[71.4%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[1.75cqw] font-semibold leading-none">
+        <p className="absolute left-[33.6%] top-[71.6%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[1.65cqw] font-semibold leading-none">
           {formatDate(certificate.completedAt)}
         </p>
 
-        <p className="absolute left-[75.1%] top-[71.4%] w-[30%] -translate-x-1/2 -translate-y-1/2 break-all text-center text-[1.6cqw] font-semibold leading-tight tabular-nums">
+        <p className="absolute left-[75.1%] top-[71.6%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[1.55cqw] font-semibold leading-none tabular-nums">
           {certificate.certificateCode}
         </p>
       </div>
@@ -70,7 +70,7 @@ export function CertificateDocument({
       <a
         href={certificate.verificationUrl}
         aria-label="Verify this certificate"
-        className="absolute left-[83.9%] top-[76.2%] block w-[11%] bg-white p-[0.35cqw] [&_svg]:block [&_svg]:h-auto [&_svg]:w-full"
+        className="absolute left-[84.1%] top-[75.6%] block w-[11%] bg-white p-[0.25cqw] [&_svg]:block [&_svg]:h-auto [&_svg]:w-full"
         dangerouslySetInnerHTML={{ __html: qrSvg }}
       />
     </article>

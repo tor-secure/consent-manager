@@ -9,7 +9,7 @@ import { StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, pad, primaryBtn, secondaryBtn, textLink } from "@/components/learning/ui";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { learnerPageContext } from "@/lib/learning/page-context";
-import { getCourseHome } from "@/lib/learning/service";
+import { getCourseHome, warmLearningCatalog } from "@/lib/learning/service";
 
 const title = "E-learning — DPDP Act";
 const description =
@@ -28,7 +28,6 @@ type CourseInfo = {
   description: string;
   instructor: string;
   moduleCount: number;
-  estimatedMinutes: number;
   difficulty: string;
   passPercent: number;
   examQuestionCount: number;
@@ -37,7 +36,7 @@ type CourseInfo = {
 function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode; note?: ReactNode }) {
   const facts = [
     ["Modules", String(course.moduleCount)],
-    ["Duration", `About ${Math.round(course.estimatedMinutes / 60)} hours`],
+    ["Duration", "30 days, 15 min a day"],
     ["Level", course.difficulty],
     ["Instructor", course.instructor],
   ];
@@ -109,8 +108,10 @@ function AchievementCard({
 }
 
 export default async function DpdpCoursePage() {
+  const catalogReady = warmLearningCatalog();
   const learner = await learnerPageContext();
   const home = await getCourseHome(learner);
+  await catalogReady;
 
   if (!home.enrolled) {
     return (
@@ -150,7 +151,7 @@ export default async function DpdpCoursePage() {
       <Hero
         course={home.course}
         action={
-          <Link href={primary.href} className={primaryBtn}>
+          <Link href={primary.href} {...(primary.href.includes("/module/") ? { prefetch: true } : {})} className={primaryBtn}>
             {primary.label}
           </Link>
         }
@@ -169,11 +170,11 @@ export default async function DpdpCoursePage() {
                 {current.minutes} minutes · {current.lessonComplete ? "Lesson done. Pass the quiz to unlock the next module." : "Watch the video and read the lesson."}
               </p>
               <div className="mt-5 flex flex-wrap gap-3">
-                <Link href={`/e-learning/module/${current.slug}`} className={primaryBtn}>
+                <Link href={`/e-learning/module/${current.slug}`} prefetch className={primaryBtn}>
                   {current.lessonComplete ? "Go to module" : "Resume module"}
                 </Link>
                 {current.lessonComplete ? (
-                  <Link href={`/e-learning/module/${current.slug}/quiz`} className={secondaryBtn}>
+                  <Link href={`/e-learning/module/${current.slug}/quiz`} prefetch className={secondaryBtn}>
                     Take the quiz
                   </Link>
                 ) : null}

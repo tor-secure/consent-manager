@@ -32,18 +32,34 @@ const MODULE_DRIVE_FILE_IDS: Record<number, string> = {
   30: "1jYwMLfHG7G8zTFqyB-favS--oU1-RTvk",
 };
 
+export function moduleDriveFileId(moduleNumber: number): string | null {
+  return MODULE_DRIVE_FILE_IDS[moduleNumber] ?? null;
+}
+
 export function moduleDrivePreviewUrl(moduleNumber: number): string | null {
-  const fileId = MODULE_DRIVE_FILE_IDS[moduleNumber];
+  const fileId = moduleDriveFileId(moduleNumber);
   if (!fileId) return null;
   return `https://drive.google.com/file/d/${fileId}/preview`;
 }
 
-/** Use a saved https video when one exists. Otherwise play the published Drive lesson. */
+/** Direct file URL. Browsers cannot play this cross-origin, so the lesson route streams it. */
+export function moduleDriveMediaUrl(fileId: string): string {
+  return `https://drive.usercontent.google.com/download?id=${fileId}&export=download`;
+}
+
+function driveFileId(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+  return match?.[1] ?? null;
+}
+
+/** Use a saved https video when one exists. Drive previews play as the file itself. */
 export function lessonVideo(moduleNumber: number, storedProvider: string, storedUrl: string | null): { provider: string; url: string | null } {
-  if (storedUrl && storedProvider !== "placeholder") {
-    return { provider: storedProvider, url: storedUrl };
+  const storedIsFile = Boolean(storedUrl && storedProvider !== "placeholder" && !storedUrl.includes("drive.google.com"));
+  if (storedIsFile) return { provider: storedProvider, url: storedUrl };
+  const fileId = driveFileId(storedUrl) ?? moduleDriveFileId(moduleNumber);
+  if (fileId && moduleDriveFileId(moduleNumber) === fileId) {
+    return { provider: "mp4", url: `/api/learning/video/${moduleNumber}` };
   }
-  const driveUrl = moduleDrivePreviewUrl(moduleNumber);
-  if (driveUrl) return { provider: "embed", url: driveUrl };
   return { provider: storedProvider, url: storedUrl };
 }

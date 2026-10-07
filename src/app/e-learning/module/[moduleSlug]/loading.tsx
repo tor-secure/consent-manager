@@ -2,12 +2,15 @@ function Bar({ className }: { className: string }) {
   return <div className={`rounded-md bg-[#e3ecea] motion-safe:animate-pulse ${className}`} />;
 }
 
+export function ModulePagerSkeleton() {
+  return <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true"><Bar className="h-16 w-full rounded-xl" /><Bar className="h-16 w-full rounded-xl" /></div>;
+}
+
 export default function ModuleLoading() {
   return (
     <div className="space-y-5" role="status" aria-label="Loading the module">
       <Bar className="h-4 w-40" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start">
-        <div className="min-w-0 space-y-5">
+      <div className="min-w-0 space-y-5">
           <div className="aspect-video w-full rounded-xl bg-[#d9e4e2] motion-safe:animate-pulse" />
           <Bar className="h-4 w-32" />
           <Bar className="h-8 w-3/4" />
@@ -23,14 +26,6 @@ export default function ModuleLoading() {
             <Bar className="h-4 w-4/5" />
           </div>
         </div>
-        <div className="hidden space-y-2 rounded-xl border border-[#d5e3e0] bg-white p-4 lg:block">
-          <Bar className="h-4 w-40" />
-          <Bar className="h-1.5 w-full" />
-          {Array.from({ length: 10 }, (_, index) => (
-            <Bar key={index} className="h-9 w-full rounded-lg" />
-          ))}
-        </div>
-      </div>
       <span className="sr-only">Loading…</span>
     </div>
   );
