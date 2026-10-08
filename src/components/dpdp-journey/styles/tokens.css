@@ -37,6 +37,13 @@
   --c-focus: #0e7490;
   --c-brand: #00c4a7; /* ConsentGuru's own accent, for actions */
 
+  /* Anything the reader can press. ConsentGuru's teal marks it out from the
+     text around it; the label stays in the brand's navy so it reads. */
+  --c-action: #00c4a7;
+  --c-action-strong: #00a88f;
+  --c-action-wash: #e6f9f5;
+  --c-action-ink: #0b2c4a;
+
   /* Washes: the same hues at reading-surface strength. */
   --wash-data: rgb(0 180 216 / 0.08);
   --wash-withdraw: rgb(220 38 38 / 0.06);

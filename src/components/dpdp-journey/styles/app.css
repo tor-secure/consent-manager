@@ -96,26 +96,6 @@
   color: var(--ink-muted);
 }
 
-/* ------------------------------------------------------------- progress ---- */
-/* The header is the ConsentGuru navbar. Along its lower edge, the journey's
-   progress: a hairline in the data's colour. */
-.fyd .progress {
-  position: fixed;
-  inset: calc(var(--header-h) - 2px) 0 auto;
-  z-index: 51;
-  height: 2px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.fyd .progress > span {
-  display: block;
-  height: 100%;
-  background: var(--c-data);
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
 /* ---------------------------------------------------------------- route ---- */
 .fyd .route {
   display: none;
@@ -356,7 +336,10 @@
   display: inline-flex;
   align-items: center;
   gap: var(--s-2);
-  color: var(--c-data-ink);
+  padding: 2px var(--s-2);
+  border-radius: 999px;
+  background: var(--c-action-wash);
+  color: var(--c-action-ink);
   white-space: nowrap;
 }
 
@@ -365,7 +348,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--c-data);
+  background: var(--c-action-strong);
 }
 
 .fyd .control__dot::after {
@@ -373,7 +356,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: var(--c-data);
+  background: var(--c-action-strong);
   animation: fyd-live-ping 1.8s var(--ease) infinite;
 }
 
@@ -401,12 +384,12 @@
 .fyd .control[data-untried] :is(.chip, .switch) {
   border-color: transparent;
   background:
-    linear-gradient(var(--paper-raised), var(--paper-raised)) padding-box,
+    linear-gradient(var(--c-action-wash), var(--c-action-wash)) padding-box,
     conic-gradient(
         from var(--sweep),
-        var(--hairline-strong) 0deg 200deg,
-        var(--c-data) 290deg,
-        var(--hairline-strong) 360deg
+        var(--c-action) 0deg 200deg,
+        var(--c-action-ink) 290deg,
+        var(--c-action) 360deg
       )
       border-box;
   animation: fyd-option-sweep 2.4s linear infinite;
@@ -423,8 +406,8 @@
 @media (prefers-reduced-motion: reduce) {
   .fyd .control[data-untried] :is(.chip, .switch) {
     animation: none;
-    background: var(--paper-raised);
-    border-color: var(--c-data);
+    background: var(--c-action-wash);
+    border-color: var(--c-action);
   }
 
   .fyd .control__dot::after {
@@ -442,20 +425,22 @@
   position: relative;
   min-height: 44px;
   padding: 0 var(--s-4);
-  border: 1px solid var(--hairline-strong);
+  border: 1.5px solid var(--c-action);
   border-radius: 999px;
-  background: var(--paper-raised);
-  color: var(--ink);
+  background: var(--c-action-wash);
+  color: var(--c-action-ink);
   font: inherit;
   font-size: var(--t-small);
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
   isolation: isolate;
-  transition: border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  box-shadow: var(--shadow-near);
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
 }
 
-.fyd .chip:hover {
-  border-color: var(--ink-muted);
+.fyd .chip:not([aria-pressed='true']):hover {
+  background: var(--c-action);
+  border-color: var(--c-action-strong);
 }
 
 .fyd .chip:active {
@@ -464,10 +449,10 @@
 
 .fyd .chip__fill {
   position: absolute;
-  inset: -1px;
+  inset: -1.5px;
   z-index: -1;
   border-radius: inherit;
-  background: var(--ink);
+  background: var(--c-action-ink);
 }
 
 .fyd .chip[data-tone='grant'] .chip__fill {
@@ -530,19 +515,29 @@
   gap: var(--s-3);
   min-height: 44px;
   padding: 0 var(--s-3);
-  border: 1px solid var(--hairline);
+  border: 1.5px solid var(--c-action);
   border-radius: var(--radius-lg);
-  background: var(--paper-raised);
-  color: var(--ink);
+  background: var(--c-action-wash);
+  color: var(--c-action-ink);
   font: inherit;
   font-size: var(--t-small);
-  font-weight: 600;
+  font-weight: 650;
   text-align: left;
   cursor: pointer;
+  box-shadow: var(--shadow-near);
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.fyd .switch:not([aria-disabled='true']):hover {
+  border-color: var(--c-action-strong);
+  background: #cdf3ec;
 }
 
 .fyd .switch[aria-disabled='true'] {
   cursor: not-allowed;
+  border-color: var(--hairline-strong);
+  background: var(--paper-sunken);
+  box-shadow: none;
 }
 
 .fyd .switch__track {
@@ -552,7 +547,7 @@
   height: 1.4rem;
   padding: 3px;
   border-radius: 999px;
-  background: var(--hairline-strong);
+  background: #9fb7b3;
   transition: background var(--dur-fast) var(--ease);
 }
 
@@ -620,8 +615,14 @@
 }
 
 .fyd .button--quiet {
-  border-color: transparent;
-  color: var(--ink-soft);
+  border: 1.5px solid var(--c-action);
+  background: var(--c-action-wash);
+  color: var(--c-action-ink);
+}
+
+.fyd .button--quiet:hover {
+  background: var(--c-action);
+  border-color: var(--c-action-strong);
 }
 
 .fyd .button .arrow {
@@ -760,15 +761,16 @@
   height: 44px;
   display: grid;
   place-items: center;
-  border: 1px solid var(--hairline);
+  border: 1.5px solid var(--c-action);
   border-radius: 50%;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--c-action-wash);
+  color: var(--c-action-ink);
   cursor: pointer;
 }
 
 .fyd .sheet__close:hover {
-  border-color: var(--ink);
+  background: var(--c-action);
+  border-color: var(--c-action-strong);
 }
 
 .fyd .sheet__body {
@@ -1072,23 +1074,29 @@
   }
 
   .fyd .route a[aria-current] .route__label {
-    color: var(--ink);
+    color: var(--c-action-ink);
   }
 
   .fyd .route__dot {
     position: relative;
     width: 12px;
     height: 12px;
-    border: 1.5px solid var(--ink-muted);
+    border: 1.5px solid var(--c-action-strong);
     border-radius: 3px;
+    background: var(--c-action-wash);
     transform: rotate(45deg);
+    transition: background var(--dur-fast) var(--ease);
+  }
+
+  .fyd .route a:hover .route__dot {
+    background: var(--c-action);
   }
 
   .fyd .route__fill {
     position: absolute;
     inset: -1.5px;
     border-radius: 3px;
-    background: var(--c-data);
+    background: var(--c-action-ink);
   }
 
   .fyd .sheet__panel {

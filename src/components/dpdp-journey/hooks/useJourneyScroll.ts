@@ -49,7 +49,6 @@ export function useJourneyScroll() {
       lenis = new Lenis({ autoRaf: true, lerp: 0.11, wheelMultiplier: 0.9 })
     }
 
-    const meter = document.querySelector<HTMLElement>('[data-progress]')
     const frame = document.querySelector<HTMLElement>('.stage-window')
     const heroFrame = document.querySelector<HTMLElement>('.hero__visual')
     const heroWords = document.querySelector<HTMLElement>('.hero__inner')
@@ -107,10 +106,6 @@ export function useJourneyScroll() {
       // the two do not tangle; the model itself stays in view.
       const reading = phone.matches && active >= 0 && cardTops[active] - y < journey.window.y + journey.window.height - 24
       if (reading !== root.hasAttribute('data-reading')) root.toggleAttribute('data-reading', reading)
-
-      const total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight)
-      journey.progress = clamp01(y / total)
-      if (meter) meter.style.transform = `scaleX(${journey.progress})`
 
       if (active !== useChoices.getState().active) useChoices.getState().setActive(active)
       wakeJourney()
