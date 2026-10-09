@@ -14,6 +14,9 @@ const nextConfig: NextConfig = {
     return [
       { source: "/blog", destination: "/blogs", permanent: true },
       { source: "/blog/:slug", destination: "/blogs/:slug", permanent: true },
+      { source: "/cookie-consent-management", destination: "/cookie-consent-manager", permanent: true },
+      { source: "/dpdp-consent-management", destination: "/dpdp", permanent: true },
+      { source: "/consent-management-software", destination: "/consent-management-platform", permanent: true },
     ];
   },
   async headers() {
@@ -36,6 +39,26 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/e2e-customer-:file.html",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/e-learning/module/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/e-learning/manage",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/e-learning/certificate",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/e-learning/final-exam",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      {
+        source: "/learning/:path*",
         headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
       },
     ];

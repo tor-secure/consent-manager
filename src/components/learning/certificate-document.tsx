@@ -22,6 +22,12 @@ function formatDate(value: Date | string): string {
   });
 }
 
+function validUntil(value: Date | string): string {
+  const date = new Date(value);
+  date.setFullYear(date.getFullYear() + 1);
+  return formatDate(date);
+}
+
 /** Field positions are percentages of the 1496×1051 foundation template. */
 export function CertificateDocument({
   certificate,
@@ -45,7 +51,7 @@ export function CertificateDocument({
 
       <p className="sr-only">
         Consent Guru certification of completion. This certifies that {certificate.learnerName} has completed Consent Guru&apos;s online
-        training on DPDP Act (Foundation Certification). Grade {certificateGrade(certificate.scorePercent)}. Completed on {formatDate(certificate.completedAt)}. Certificate
+        training on DPDP Act (Foundation Certification). Grade {certificateGrade(certificate.scorePercent)}. Completed on {formatDate(certificate.completedAt)}. Valid for one year, until {validUntil(certificate.completedAt)}. Certificate
         ID {certificate.certificateCode}.
       </p>
 
@@ -60,6 +66,10 @@ export function CertificateDocument({
 
         <p className="absolute left-[33.6%] top-[71.6%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[1.65cqw] font-semibold leading-none">
           {formatDate(certificate.completedAt)}
+        </p>
+        <p className="absolute left-[18%] top-[75.6%] w-[31%] -translate-y-1/2 text-center text-[1.2cqw] font-semibold leading-tight">
+          Valid for one year
+          <span className="mt-[0.35cqw] block font-medium">until {validUntil(certificate.completedAt)}</span>
         </p>
 
         <p className="absolute left-[75.1%] top-[71.6%] -translate-x-1/2 -translate-y-1/2 whitespace-nowrap text-center text-[1.55cqw] font-semibold leading-none tabular-nums">

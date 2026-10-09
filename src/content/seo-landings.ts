@@ -1,3 +1,5 @@
+import { SEO_TOPIC_PAGES } from "@/content/seo-topic-pages";
+
 export type SeoBlock = { title: string; body: string };
 export type SeoLink = { href: string; label: string; text: string };
 export type SeoFaq = { question: string; answer: string };
@@ -21,6 +23,8 @@ export type SeoLanding = {
   technical?: SeoBlock[];
   faqs: SeoFaq[];
   related: SeoLink[];
+  /** Question and a short answer, shown before the longer explanation. */
+  directAnswer?: SeoFaq;
   software?: boolean;
 };
 
@@ -29,13 +33,18 @@ const product = (name: string, path: string) => ({ name, path });
 export const SEO_LANDINGS: SeoLanding[] = [
   {
     path: "/consent-management-platform",
-    title: "Consent Management Platform Overview",
+    title: "Consent Management Platform",
     description:
-      "A consent management platform for collecting choices, storing consent records, and applying them to cookies, tags, and privacy preferences.",
+      "Consent management software to collect choices, store consent records, and apply them to cookies, tags, and privacy preferences.",
     kicker: "Product",
     h1: "A consent management platform for recorded choices",
     lede:
-      "Consent Guru helps organizations present a choice, store the consent record, and apply that choice to cookies, tags, and later privacy requests.",
+      "Consent Guru is consent management software that helps organizations present a choice, store the consent record, and apply that choice to cookies, tags, and later privacy requests.",
+    directAnswer: {
+      question: "What is a Consent Management Platform?",
+      answer:
+        "A Consent Management Platform (CMP) is software that helps organizations collect, manage, store, communicate, and enforce user consent and privacy preferences across digital experiences. Consent Guru is that kind of platform. Using it does not by itself make an organization legally compliant.",
+    },
     breadcrumb: [product("Consent management platform", "/consent-management-platform")],
     problemTitle: "A banner is not a system of record",
     problem: [
@@ -80,21 +89,29 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "Can consent records be audited?", answer: "Yes. Decisions keep a consent identifier, timestamp, locale, and policy snapshot. Workspace audit logs also record configuration and access changes." },
     ],
     related: [
-      { href: "/consent-management", label: "User consent management", text: "How collection, withdrawal, and consent logs fit together." },
-      { href: "/cookie-consent-manager", label: "Cookie consent manager", text: "Cookies, categories, and scanner findings." },
+      { href: "/consent-management", label: "Consent management", text: "How collection, withdrawal, and consent logs fit together." },
+      { href: "/consent-records", label: "Consent records", text: "Identifiers, notice snapshots, and receipts." },
+      { href: "/cookie-consent-manager", label: "Cookie consent management", text: "Cookies, categories, and scanner findings." },
+      { href: "/dpdp", label: "DPDP consent management", text: "Purpose-bound notices for India’s DPDP Act." },
+      { href: "/enterprise-consent-management", label: "Enterprise consent management", text: "Multiple sites, roles, and an API." },
       { href: "/pricing", label: "Platform pricing", text: "Silver, Gold, and Platinum plans are quoted after an enquiry." },
     ],
     software: true,
   },
   {
     path: "/cookie-consent-manager",
-    title: "Cookie Consent Manager",
+    title: "Cookie Consent Management",
     description:
-      "Cookie consent software for banner choices, cookie categories, scans, and first-party and third-party cookie controls.",
+      "Cookie consent management for banner choices, cookie categories, scans, and first-party and third-party cookie controls.",
     kicker: "Cookies",
-    h1: "Cookie consent manager for sites that need a record",
+    h1: "Cookie consent management for sites that need a record",
     lede:
       "Use Consent Guru to present cookie choices, group them into purposes, and keep a consent record of what the visitor selected.",
+    directAnswer: {
+      question: "What is cookie consent management?",
+      answer:
+        "Cookie consent management is how a website asks for a choice about cookies and similar trackers, stores that choice, and applies it so optional cookies and scripts follow what the person allowed. Someone on your team still maps findings to purposes and publishes the policy.",
+    },
     breadcrumb: [product("Product", "/consent-management-platform"), product("Cookie consent manager", "/cookie-consent-manager")],
     problemTitle: "Cookie lists drift from the banner",
     problem: [
@@ -136,6 +153,8 @@ export const SEO_LANDINGS: SeoLanding[] = [
     ],
     related: [
       { href: "/cookie-banner", label: "Cookie banner", text: "How the banner presents accept, reject, and purpose choices." },
+      { href: "/consent-enforcement", label: "Consent enforcement", text: "How a recorded cookie choice reaches mapped scripts." },
+      { href: "/privacy-preference-center", label: "Cookie preference center", text: "Where a person reopens and changes cookie choices." },
       { href: "/google-consent-mode", label: "Google Consent Mode", text: "Map purposes to Google’s consent signals when you enable it." },
       { href: "/blogs/cookie-consent-best-practices", label: "Cookie consent guide", text: "A longer explanation of practical cookie-consent design." },
     ],
@@ -147,6 +166,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
       "Publish a customizable cookie consent banner with accept, reject, and purpose choices, tied to a preference center and SDK.",
     kicker: "Banner",
     h1: "A cookie banner tied to a published policy",
+    directAnswer: {
+      question: "What is a cookie consent banner?",
+      answer:
+        "A cookie consent banner is the notice a website shows so a person can accept, reject, or choose purposes before optional cookies and trackers run. In Consent Guru the banner is the published policy, not a separate snippet you edit in every template.",
+    },
     lede:
       "Consent Guru’s cookie consent banner presents the notice you publish and writes the visitor’s choice into a consent record.",
     breadcrumb: [product("Product", "/consent-management-platform"), product("Cookie banner", "/cookie-banner")],
@@ -201,6 +225,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
       "Open a privacy preference center where people review purposes, update cookie preferences, and withdraw an earlier consent choice.",
     kicker: "Preferences",
     h1: "A privacy preference center people can reopen",
+    directAnswer: {
+      question: "What is a privacy preference center?",
+      answer:
+        "A privacy preference center is where a person reviews the purposes they were asked about and changes or withdraws an earlier choice. The banner collects the first decision. The center is how that decision stays reversible.",
+    },
     lede:
       "The preference center is where a person reviews consent preferences after the banner, including cookie categories and purpose-level choices.",
     breadcrumb: [product("Product", "/consent-management-platform"), product("Privacy preference center", "/privacy-preference-center")],
@@ -243,18 +272,23 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "What is consent logging?", answer: "Consent logging is the practice of storing the decision, when it happened, and which notice version was shown, so the organization can explain it later." },
     ],
     related: [
-      { href: "/consent-management", label: "Consent records", text: "What is stored when a preference changes." },
+      { href: "/consent-records", label: "Consent records", text: "What is stored when a preference changes." },
       { href: "/privacy-center/consent-preferences", label: "Manage preferences", text: "Consent Guru’s own preference page." },
       { href: "/blogs/preference-centers-and-consent-managers", label: "Preference center article", text: "Why the center has to match the banner." },
     ],
   },
   {
     path: "/consent-management",
-    title: "User Consent Management",
+    title: "Consent Management",
     description:
-      "User consent management for collecting choices, tracking consent status, and keeping consent records, logs, and withdrawal history.",
+      "Consent management for collecting choices, tracking consent status, and keeping consent records, logs, and withdrawal history.",
     kicker: "Consent",
-    h1: "User consent management with a history",
+    h1: "Consent management with a record of each choice",
+    directAnswer: {
+      question: "What is consent management?",
+      answer:
+        "Consent management is the practice of presenting a privacy choice, recording what the person decided, letting them change or withdraw that choice, and applying the current choice to the systems that process their data.",
+    },
     lede:
       "Collect a choice once, keep the consent log, and let the person withdraw without losing the audit trail of what was agreed.",
     breadcrumb: [product("Product", "/consent-management-platform"), product("Consent management", "/consent-management")],
@@ -301,7 +335,10 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "Does withdrawal delete the old record?", answer: "No. The current choice updates, and historical consent evidence is kept according to your retention settings and any legal hold." },
     ],
     related: [
+      { href: "/consent-records", label: "Consent records", text: "Logs, receipts, and the audit trail behind a choice." },
+      { href: "/consent-enforcement", label: "Consent enforcement", text: "Apply the current record to mapped scripts." },
       { href: "/consent-analytics", label: "Consent analytics", text: "Rates and outcomes across recorded choices." },
+      { href: "/consent-management-platform", label: "Consent management platform", text: "The product that runs this lifecycle." },
       { href: "/consent-api", label: "Consent management API", text: "Keys, records, and webhooks for your stack." },
       { href: "/security", label: "Security and evidence", text: "How records, signatures, and retention are handled." },
     ],
@@ -315,6 +352,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
     h1: "Consent analytics for the choices you record",
     lede:
       "See how often people allow, refuse, or withdraw purposes, and use that reporting alongside the consent records themselves.",
+    directAnswer: {
+      question: "What is consent analytics?",
+      answer:
+        "Consent analytics summarizes the choices a property has recorded, such as granted, denied, and withdrawn, so a team can see patterns. The chart is not a legal determination, and it does not replace the consent record for a specific person.",
+    },
     breadcrumb: [product("Product", "/consent-management-platform"), product("Consent analytics", "/consent-analytics")],
     problemTitle: "A consent rate without a definition is not a report",
     problem: [
@@ -421,6 +463,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
       "Privacy compliance software for consent, cookie choices, preference centers, and request workflows across GDPR, CCPA/CPRA, and DPDP.",
     kicker: "Solutions",
     h1: "Privacy compliance software for consent operations",
+    directAnswer: {
+      question: "What is privacy management software?",
+      answer:
+        "Privacy management software helps an organization run privacy operations: notices, consent and preference choices, vendor limits, records, and rights requests. It does not replace a legal judgment about which law applies or whether a processing activity is allowed.",
+    },
     lede:
       "Consent Guru helps teams operate consent, cookie choices, and privacy requests. It does not replace a legal assessment of which duties apply.",
     breadcrumb: [product("Privacy compliance", "/privacy-compliance")],
@@ -456,6 +503,7 @@ export const SEO_LANDINGS: SeoLanding[] = [
     considerations: [
       "Using this privacy management platform does not, by itself, make an organization compliant. Duties depend on your role, your data, and the statute.",
       "Significant Data Fiduciary status under India’s DPDP Act is a government designation. The product does not decide it.",
+      "The same workspace can be configured for other frameworks you choose to support, including LGPD, PIPEDA, POPIA, and PDPA-style notices. The articles linked below explain the differences. They are not a claim that one banner satisfies every statute.",
     ],
     faqs: [
       { question: "What is privacy compliance software?", answer: "It is tooling that helps an organization implement privacy processes such as notices, consent, vendor limits, and rights requests. It is not a legal opinion." },
@@ -465,7 +513,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
     related: [
       { href: "/gdpr", label: "GDPR consent", text: "Consent collection, records, and withdrawal in a GDPR context." },
       { href: "/ccpa", label: "CCPA and CPRA", text: "Opt-out preferences and sale or sharing signals." },
-      { href: "/dpdp", label: "DPDP Act", text: "Consent management for India’s data protection law." },
+      { href: "/dpdp-compliance", label: "DPDP compliance", text: "Operational steps for India’s data protection law." },
+      { href: "/blogs/lgpd-brazil-consent-requirements", label: "LGPD", text: "Consent notes for Brazil’s general data protection law." },
+      { href: "/blogs/pipeda-canada-meaningful-consent", label: "PIPEDA", text: "Meaningful consent in a Canadian context." },
+      { href: "/blogs/popia-south-africa-consent", label: "POPIA", text: "Consent notes for South Africa." },
+      { href: "/blogs/pdpa-singapore-consent-obligations", label: "Singapore PDPA", text: "Consent obligations under Singapore’s PDPA." },
     ],
   },
   {
@@ -477,6 +529,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
     h1: "Consent management for GDPR programs",
     lede:
       "When your counsel decides that consent is the right basis, Consent Guru helps you collect it, record it, and honor a withdrawal.",
+    directAnswer: {
+      question: "What is GDPR consent management?",
+      answer:
+        "GDPR consent management is the work of asking for a specific, informed choice before processing that relies on consent, recording that choice, and making withdrawal available. The platform helps run that workflow. It does not decide whether consent is the right lawful basis.",
+    },
     breadcrumb: [product("Solutions", "/privacy-compliance"), product("GDPR", "/gdpr")],
     problemTitle: "GDPR consent is specific, and it has to be reversible",
     problem: [
@@ -531,6 +588,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
     h1: "CCPA and CPRA preference management",
     lede:
       "California’s rules emphasize the right to opt out of sale or sharing, including cross-context advertising. Consent Guru helps you present and record that preference.",
+    directAnswer: {
+      question: "What is CCPA consent management?",
+      answer:
+        "In California, the practical work is often a notice and an opt-out of sale or sharing, not a GDPR-style opt-in. CCPA consent management means presenting that preference, recording it, and applying it to the purposes you mapped. A preference center does not, by itself, interpret every Global Privacy Control signal.",
+    },
     breadcrumb: [product("Solutions", "/privacy-compliance"), product("CCPA / CPRA", "/ccpa")],
     problemTitle: "A footer link that no tag reads is not an opt-out",
     problem: [
@@ -585,6 +647,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
     h1: "Consent management for India’s DPDP Act",
     lede:
       "The Digital Personal Data Protection Act, 2023 expects consent to be specific and purpose-bound. Consent Guru helps you operate that consent, without offering a compliance guarantee.",
+    directAnswer: {
+      question: "What is a Consent Management Platform for DPDP?",
+      answer:
+        "For the DPDP Act, a consent management platform helps a Data Fiduciary present a purpose-bound notice, record the Data Principal’s choice, support withdrawal, and keep evidence of that workflow. It is software. It is not, by itself, a Consent Manager registered with the Data Protection Board.",
+    },
     breadcrumb: [product("Solutions", "/privacy-compliance"), product("DPDP", "/dpdp")],
     problemTitle: "India’s law treats consent as a recorded, reversible choice",
     problem: [
@@ -625,7 +692,10 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "Where is the longer explanation?", answer: "The DPDP Act guide walks through concepts, notices, rights, and duties in more detail, and it is also not legal advice." },
     ],
     related: [
+      { href: "/dpdp-compliance", label: "DPDP compliance", text: "How organizations operationalize the duties." },
+      { href: "/dpdp-consent-requirements", label: "DPDP consent requirements", text: "What valid consent and a notice need to cover." },
       { href: "/dpdp-act", label: "DPDP Act guide", text: "A longer explanation of the statute and product fit." },
+      { href: "/consent-records", label: "Consent records", text: "What to keep with a Data Principal’s choice." },
       { href: "/tools", label: "DPDP tools", text: "Preliminary readiness and notice checks." },
       { href: "/blogs/india-dpdp-act-consent-manager", label: "DPDP article", text: "What consent managers need to get right." },
     ],
@@ -963,8 +1033,11 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { href: "/news", label: "News", text: "A feed of privacy reporting from configured sources." },
       { href: "/blogs/what-is-a-consent-management-platform", label: "What is a CMP?", text: "A definition of a consent management platform." },
       { href: "/about", label: "About", text: "Who builds Consent Guru." },
+      { href: "/dpdp-compliance", label: "DPDP compliance", text: "How teams operationalize India’s consent duties." },
+      { href: "/compare", label: "Compare platforms", text: "Questions to ask before you trust a feature matrix." },
     ],
   },
+  ...SEO_TOPIC_PAGES,
 ];
 
 const byPath = new Map(SEO_LANDINGS.map((page) => [page.path, page]));

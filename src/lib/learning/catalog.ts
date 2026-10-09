@@ -2,7 +2,8 @@ import { PROGRAMME_MODULES } from "./programme";
 import type { CatalogModule } from "./question";
 import { COURSE_SLUG, MODULE_COUNT } from "./engine";
 
-export const COURSE_CONTENT_VERSION = "2026-10-07-pdf";
+export const COURSE_CONTENT_VERSION = "2026-10-10-mcq";
+export const MODULE_QUIZ_QUESTION_COUNT = 15;
 export const COURSE_LAST_REVIEWED = "";
 
 export const COURSE_DISCLAIMER =
@@ -19,8 +20,8 @@ export function assertCatalogShape(): void {
   for (const courseModule of COURSE_CATALOG) {
     if (slugs.has(courseModule.slug)) throw new Error(`Duplicate slug ${courseModule.slug}`);
     slugs.add(courseModule.slug);
-    if (courseModule.quiz.length < 5 || courseModule.exam.length < 4) {
-      throw new Error(`Module ${courseModule.number} is missing questions`);
+    if (courseModule.quiz.length !== MODULE_QUIZ_QUESTION_COUNT || courseModule.exam.length !== 0) {
+      throw new Error(`Module ${courseModule.number} question bank is the wrong size`);
     }
     for (const question of [...courseModule.quiz, ...courseModule.exam]) {
       if (keys.has(question.key)) throw new Error(`Duplicate question ${question.key}`);

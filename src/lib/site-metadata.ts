@@ -5,7 +5,7 @@ export const SITE_NAME = "Consent Guru";
 export const DEFAULT_TITLE =
   "Consent Management Platform | Privacy & Cookie Consent Manager";
 export const DEFAULT_DESCRIPTION =
-  "Consent Guru helps teams manage cookie consent, privacy preferences, consent records, and analytics for GDPR, CCPA/CPRA, and the DPDP Act in one workspace.";
+  "Consent Guru is a consent management platform that helps organizations collect digital consent, manage cookie and privacy preferences, store consent records, and run privacy workflows, including DPDP-related consent management.";
 
 export const SHARE_IMAGE_PATH = "/og/consent-guru-share.png";
 export const SHARE_IMAGE_ALT =

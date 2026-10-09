@@ -27,6 +27,10 @@ export function landingMetadata(page: SeoLanding): Metadata {
 
 export function SeoLandingView({ page }: { page: SeoLanding }) {
   const crumbs = [{ name: "Home", path: "/" }, ...page.breadcrumb];
+  const faqItems =
+    page.directAnswer && !page.faqs.some((item) => item.question === page.directAnswer?.question)
+      ? [page.directAnswer, ...page.faqs]
+      : page.faqs;
   const schema = graphSchema([
     webPageSchema({
       path: page.path,
@@ -34,7 +38,7 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
       description: page.description,
     }),
     breadcrumbSchema(crumbs),
-    faqSchema(page.faqs),
+    faqSchema(faqItems),
     ...(page.software ? [softwareApplicationSchema()] : []),
   ]);
 
@@ -83,6 +87,17 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
             </div>
           </div>
         </section>
+
+        {page.directAnswer ? (
+          <section className="border-b border-[#E5E7EB] bg-white" aria-labelledby="direct-answer">
+            <div className="mx-auto max-w-[1200px] px-5 py-10 sm:px-8 sm:py-12">
+              <h2 id="direct-answer" className="max-w-3xl text-xl font-bold tracking-tight text-[#0B2C4A] sm:text-2xl">
+                {page.directAnswer.question}
+              </h2>
+              <p className="mt-3 max-w-3xl text-base leading-7 text-[#111827]">{page.directAnswer.answer}</p>
+            </div>
+          </section>
+        ) : null}
 
         <section className="mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
           <h2 className="max-w-3xl text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-3xl">{page.problemTitle}</h2>

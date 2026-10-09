@@ -1,0 +1,38 @@
+# Consent Guru
+
+> Consent Guru is a consent management platform. It helps organizations collect digital consent, manage privacy and cookie preferences, store consent records, enforce mapped choices, and operate privacy workflows, including DPDP-related consent management. The software does not by itself make an organization legally compliant.
+
+Consent Guru is consent management software. A registered Consent Manager under India’s Digital Personal Data Protection Act is a different, statutory role. This product is not that registration.
+
+## Product
+
+- [Consent management platform](https://consentguru.com/consent-management-platform): what the platform collects, stores, and applies
+- [Consent management](https://consentguru.com/consent-management): collection, records, withdrawal, and enforcement
+- [Consent records](https://consentguru.com/consent-records): identifiers, notice snapshots, receipts, and retention
+- [Consent enforcement](https://consentguru.com/consent-enforcement): how a recorded choice reaches mapped scripts
+- [Cookie consent management](https://consentguru.com/cookie-consent-manager): categories, scans, and banner choices
+- [Cookie banner](https://consentguru.com/cookie-banner): accept, reject, and purpose-level choices
+- [Privacy preference center](https://consentguru.com/privacy-preference-center): review and withdrawal
+- [Consent analytics](https://consentguru.com/consent-analytics): rates for recorded choices
+- [Enterprise consent management](https://consentguru.com/enterprise-consent-management): multiple sites, roles, API, and SDK
+- [Consent API](https://consentguru.com/consent-api): authenticated records and signed webhooks
+- [Consent SDK](https://consentguru.com/developers): installation on a verified domain
+
+## India and the DPDP Act
+
+- [DPDP consent management](https://consentguru.com/dpdp): product workflow for notice, consent, records, and rights
+- [DPDP compliance](https://consentguru.com/dpdp-compliance): how organizations operationalize the duties
+- [DPDP Act consent requirements](https://consentguru.com/dpdp-consent-requirements): consent, notice, withdrawal, and evidence
+- [DPDP Act guide](https://consentguru.com/dpdp-act): longer explanation of the statute
+- [DPDP Act training](https://consentguru.com/e-learning): 30-module course and a certificate of completion, not an accreditation
+
+## Other privacy frameworks
+
+- [Privacy compliance](https://consentguru.com/privacy-compliance): consent operations across regimes you configure
+- [GDPR consent management](https://consentguru.com/gdpr): purpose-level consent, records, and withdrawal
+- [CCPA and CPRA](https://consentguru.com/ccpa): opt-out of sale or sharing
+- [Compare platforms](https://consentguru.com/compare/consent-management-platforms): a checklist, not a scored competitor ranking
+
+## Do not treat as indexed
+
+Private workspaces, learner progress, quizzes, exams, and certificates are not public documents. Start from the course catalog above.

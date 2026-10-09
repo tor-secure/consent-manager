@@ -2,14 +2,13 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { LessonActions } from "@/components/learning/lesson-actions";
 import { LockMark } from "@/components/learning/lock-mark";
 import { ModuleReading } from "@/components/learning/module-reading";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusChip, StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { learnerPageContext } from "@/lib/learning/page-context";
-import { getCourseHome, getModuleForLearner, warmLearningCatalog } from "@/lib/learning/service";
+import { getCourseHome, getModuleForLearner, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
 import { ModulePagerSkeleton } from "./loading";
 
 function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
@@ -67,6 +66,8 @@ function Steps({ lessonComplete, quizPassed }: { lessonComplete: boolean; quizPa
 export default async function ModulePage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
   const catalogReady = warmLearningCatalog();
+  const lessonReady = warmModuleLesson(moduleSlug);
+  lessonReady.catch(() => undefined);
   const learner = await learnerPageContext();
   const homePromise = getCourseHome(learner);
   const result = await getModuleForLearner(learner, moduleSlug);
@@ -128,23 +129,16 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
           </header>
           <Steps lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
 
-          <ModuleReading objectives={courseModule.objectives} lesson={courseModule.lesson} video={courseModule.video} />
-
-          <section aria-label="Module actions" className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}>
-            <div>
-              <p className="text-base font-semibold">
-                {courseModule.quizPassed ? "Module complete" : courseModule.lessonComplete ? "Ready for the quiz" : "Finished the lesson?"}
-              </p>
-              <p className="mt-1 text-justify text-sm text-[#4d6570]">
-                {courseModule.quizPassed
-                  ? "You passed this module quiz. You can retake it at any time."
-                  : courseModule.lessonComplete
-                    ? `Score ${result.course.passPercent}% or more to unlock the next module.`
-                    : "Mark the lesson complete to open the module quiz."}
-              </p>
-            </div>
-            <LessonActions slug={courseModule.slug} lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
-          </section>
+          <ModuleReading
+            moduleNumber={courseModule.number}
+            objectives={courseModule.objectives}
+            lesson={courseModule.lesson}
+            video={courseModule.video}
+            slug={courseModule.slug}
+            lessonComplete={courseModule.lessonComplete}
+            quizPassed={courseModule.quizPassed}
+            passPercent={result.course.passPercent}
+          />
 
           <Suspense fallback={<ModulePagerSkeleton />}>
             <ModulePager homePromise={homePromise} currentSlug={courseModule.slug} />

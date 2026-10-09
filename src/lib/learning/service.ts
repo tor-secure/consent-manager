@@ -32,6 +32,7 @@ import {
   lessonText,
   scriptText,
 } from "@/lib/learning/catalog";
+import { readingSectionIds } from "@/lib/learning/lesson-sections";
 import { lessonVideo, moduleDrivePreviewUrl } from "@/lib/learning/module-videos";
 import {
   CERTIFICATE_PROGRAM_LINE,
@@ -70,6 +71,8 @@ type PublicQuestion = {
 
 const COURSE_TITLE = "Digital Personal Data Protection Act, 2023 and Digital Personal Data Protection Rules, 2025";
 const COURSE_DESCRIPTION = "30-Module Professional E-Learning Programme";
+const COURSE_DIFFICULTY = "Foundation";
+const COURSE_PASS_PERCENT = 60;
 
 export async function enrollInCourse(ctx: LearnerContext) {
   const course = await ensureCatalog();
@@ -79,6 +82,22 @@ export async function enrollInCourse(ctx: LearnerContext) {
   ]);
   if (!already) await recordEvent(ctx, course.id, "course_enrolled", enrollment.id);
   return { enrolled: true as const, moduleCount: MODULE_COUNT };
+}
+
+export async function getPublicCourseCatalog() {
+  const course = await ensureCatalog();
+  const modules = await publishedModuleSummaries(course.id);
+  return {
+    enrolled: false as const,
+    course: publicCourse(course),
+    modules: modules.map((courseModule) => ({
+      number: courseModule.moduleNumber,
+      slug: courseModule.slug,
+      title: courseModule.title,
+      summary: courseModule.summary,
+      minutes: courseModule.estimatedMinutes,
+    })),
+  };
 }
 
 export async function getCourseHome(ctx: LearnerContext) {
@@ -174,10 +193,6 @@ export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
       minutes: courseModule.estimatedMinutes,
       objectives: courseModule.learningObjectives,
       lesson: courseModule.lessonContent,
-      concepts: courseModule.keyConcepts,
-      example: courseModule.practicalExample,
-      caseStudy: courseModule.caseStudy,
-      takeaways: courseModule.keyTakeaways,
       video: {
         ...lessonVideo(courseModule.moduleNumber, courseModule.videoProvider, courseModule.videoUrl),
         title: `Module ${String(courseModule.moduleNumber).padStart(2, "0")} — ${courseModule.title}`,
@@ -190,12 +205,30 @@ export async function getModuleForLearner(ctx: LearnerContext, slug: string) {
   };
 }
 
-export async function completeLesson(ctx: LearnerContext, slug: string) {
+export async function completeLesson(
+  ctx: LearnerContext,
+  slug: string,
+  options?: { visitedSectionIds?: string[]; skipSectionCheck?: boolean },
+) {
   const course = await ensureCatalog();
   const enrollment = await activeEnrollment(ctx, course.id);
   if (!enrollment) return { error: "not_enrolled" as const };
   const courseModule = await requireUnlockedModule(ctx, enrollment.id, course.id, slug);
   if ("error" in courseModule) return courseModule;
+  if (!options?.skipSectionCheck) {
+    const done = await lessonCompletionSet(enrollment.id);
+    if (!done.has(courseModule.id)) {
+      const lesson = await learnerModuleBySlug(course.id, slug);
+      const expected = readingSectionIds(lesson?.lessonContent ?? "");
+      const seen = new Set(options?.visitedSectionIds ?? []);
+      if (expected.some((id) => !seen.has(id))) {
+        return {
+          error: "sections_required" as const,
+          message: "Open every section of the lesson before marking it complete.",
+        };
+      }
+    }
+  }
   await db
     .insert(learningLessonCompletions)
     .values({
@@ -219,8 +252,13 @@ export async function startQuiz(ctx: LearnerContext, slug: string) {
   if (!lessonDone.has(courseModule.id)) {
     return { error: "lesson_required" as const, message: "Mark the lesson complete before the quiz." };
   }
-  const open = await openQuizAttempt(enrollment.id, courseModule.id);
-  const attempt = open ?? (await createQuizAttempt(ctx, enrollment.id, course.id, courseModule.id));
+  const existingQuiz = await openQuizAttempt(enrollment.id, courseModule.id);
+  const openQuiz =
+    existingQuiz && (await attemptStillMatches(existingQuiz.questionIds)) ? existingQuiz : null;
+  if (existingQuiz && !openQuiz) {
+    await db.delete(learningQuizAttempts).where(eq(learningQuizAttempts.id, existingQuiz.id));
+  }
+  const attempt = openQuiz ?? (await createQuizAttempt(ctx, enrollment.id, course.id, courseModule.id));
   const questions = await publicQuestions(attempt.questionIds);
   await recordEvent(ctx, course.id, "quiz_started", attempt.id);
   return {
@@ -236,6 +274,9 @@ export async function submitQuiz(ctx: LearnerContext, attemptId: string, answers
   const attempt = await ownedQuizAttempt(ctx, attemptId);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return { error: "already_submitted" as const };
+  if (missingAnswers(attempt.questionIds, answers)) {
+    return { error: "incomplete" as const, message: "Answer every question before you submit." };
+  }
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.passPercent);
   await db.transaction(async (tx) => {
@@ -286,12 +327,17 @@ export async function startExam(ctx: LearnerContext) {
   if (passed.size < MODULE_COUNT) {
     return { error: "locked" as const, message: "Complete all 30 modules before the final examination.", completed: passed.size };
   }
-  const open = await db
+  const [existingExam] = await db
     .select()
     .from(learningExamAttempts)
     .where(and(eq(learningExamAttempts.enrollmentId, enrollment.id), sql`${learningExamAttempts.submittedAt} is null`))
     .limit(1);
-  const attempt = open[0] ?? (await createExamAttempt(ctx, enrollment.id, course));
+  const openExam =
+    existingExam && (await attemptStillMatches(existingExam.questionIds)) ? existingExam : null;
+  if (existingExam && !openExam) {
+    await db.delete(learningExamAttempts).where(eq(learningExamAttempts.id, existingExam.id));
+  }
+  const attempt = openExam ?? (await createExamAttempt(ctx, enrollment.id, course));
   await recordEvent(ctx, course.id, "final_exam_started", attempt.id);
   return {
     error: null,
@@ -317,6 +363,9 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
     .limit(1);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return { error: "already_submitted" as const };
+  if (missingAnswers(attempt.questionIds, answers)) {
+    return { error: "incomplete" as const, message: "Answer every question before you submit." };
+  }
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.examPassPercent);
   const passedModules = await passedModuleNumbers(attempt.enrollmentId);
@@ -632,10 +681,6 @@ type LearnerModuleRow = {
   estimatedMinutes: number;
   learningObjectives: string[];
   lessonContent: string;
-  keyConcepts: string[];
-  practicalExample: string;
-  caseStudy: string;
-  keyTakeaways: string[];
   videoUrl: string | null;
   videoProvider: string;
   status: string;
@@ -678,13 +723,36 @@ export function warmLearningCatalog() {
   return ensureCatalog().then((course) => publishedModuleSummaries(course.id));
 }
 
+/** Start the lesson row before sign-in finishes. The row is public course content. */
+export function warmModuleLesson(slug: string) {
+  return ensureCatalog().then((course) => learnerModuleBySlug(course.id, slug));
+}
+
 async function loadOrSeedCatalog() {
-  const [existing] = await db.select().from(learningCourses).where(eq(learningCourses.slug, COURSE_SLUG)).limit(1);
+  const [row] = await db.select().from(learningCourses).where(eq(learningCourses.slug, COURSE_SLUG)).limit(1);
+  let existing = row;
   if (existing) {
     if (existing.contentVersion !== COURSE_CONTENT_VERSION) {
       await refreshCatalogContent(existing.id);
       const [updated] = await db.select().from(learningCourses).where(eq(learningCourses.id, existing.id)).limit(1);
-      return updated ?? existing;
+      existing = updated ?? existing;
+    }
+    if (existing.difficulty !== COURSE_DIFFICULTY || existing.passPercent !== COURSE_PASS_PERCENT || existing.examPassPercent !== COURSE_PASS_PERCENT) {
+      await db
+        .update(learningCourses)
+        .set({
+          difficulty: COURSE_DIFFICULTY,
+          passPercent: COURSE_PASS_PERCENT,
+          examPassPercent: COURSE_PASS_PERCENT,
+          updatedAt: new Date(),
+        })
+        .where(eq(learningCourses.id, existing.id));
+      existing = {
+        ...existing,
+        difficulty: COURSE_DIFFICULTY,
+        passPercent: COURSE_PASS_PERCENT,
+        examPassPercent: COURSE_PASS_PERCENT,
+      };
     }
     return existing;
   }
@@ -700,10 +768,10 @@ async function loadOrSeedCatalog() {
         description: COURSE_DESCRIPTION,
         disclaimer: COURSE_DISCLAIMER,
         instructor: "Consent Guru",
-        difficulty: "Foundation to applied",
-        passPercent: 80,
+        difficulty: COURSE_DIFFICULTY,
+        passPercent: COURSE_PASS_PERCENT,
         examQuestionCount: 50,
-        examPassPercent: 80,
+        examPassPercent: COURSE_PASS_PERCENT,
         estimatedMinutes: minutes,
         contentVersion: COURSE_CONTENT_VERSION,
         lastReviewedOn: COURSE_LAST_REVIEWED,
@@ -786,6 +854,9 @@ async function refreshCatalogContent(courseId: string) {
         title: COURSE_TITLE,
         description: COURSE_DESCRIPTION,
         disclaimer: COURSE_DISCLAIMER,
+        difficulty: COURSE_DIFFICULTY,
+        passPercent: COURSE_PASS_PERCENT,
+        examPassPercent: COURSE_PASS_PERCENT,
         estimatedMinutes: minutes,
         contentVersion: COURSE_CONTENT_VERSION,
         lastReviewedOn: COURSE_LAST_REVIEWED,
@@ -1092,10 +1163,6 @@ const learnerModuleBySlug = cache(async function learnerModuleBySlug(courseId: s
       estimatedMinutes: learningModules.estimatedMinutes,
       learningObjectives: learningModules.learningObjectives,
       lessonContent: learningModules.lessonContent,
-      keyConcepts: learningModules.keyConcepts,
-      practicalExample: learningModules.practicalExample,
-      caseStudy: learningModules.caseStudy,
-      keyTakeaways: learningModules.keyTakeaways,
       videoUrl: learningModules.videoUrl,
       videoProvider: learningModules.videoProvider,
       status: learningModules.status,
@@ -1199,7 +1266,7 @@ async function createExamAttempt(
     .select({ id: learningQuestions.id, moduleNumber: learningModules.moduleNumber })
     .from(learningQuestions)
     .innerJoin(learningModules, eq(learningModules.id, learningQuestions.moduleId))
-    .where(and(eq(learningQuestions.courseId, course.id), eq(learningQuestions.bank, "final")));
+    .where(and(eq(learningQuestions.courseId, course.id), eq(learningQuestions.bank, "module")));
   const selected = selectExamQuestions({ bank, count: course.examQuestionCount });
   if (!examCoversEveryModule(selected) || selected.length < course.examQuestionCount) {
     throw new Error("Final exam bank does not cover every module");
@@ -1221,6 +1288,12 @@ async function createExamAttempt(
     })
     .returning();
   return created;
+}
+
+async function attemptStillMatches(questionIds: string[]): Promise<boolean> {
+  if (questionIds.length === 0) return false;
+  const questions = await publicQuestions(questionIds);
+  return questions.length === questionIds.length && questions.every((question) => question.options.length > 0);
 }
 
 async function publicQuestions(ids: string[]): Promise<PublicQuestion[]> {
@@ -1414,8 +1487,13 @@ function httpsVideoUrl(value: string | null): string | null {
 }
 
 function clampPercent(value: number): number {
-  if (!Number.isFinite(value)) return 80;
+  if (!Number.isFinite(value)) return COURSE_PASS_PERCENT;
   return Math.min(100, Math.max(1, Math.round(value)));
+}
+
+function missingAnswers(ids: string[], answers: SubmittedAnswer[]) {
+  const byQuestion = new Map(answers.map((answer) => [answer.questionId, answer.optionIds]));
+  return ids.some((id) => (byQuestion.get(id) ?? []).length === 0);
 }
 
 function certificateCode(): string {

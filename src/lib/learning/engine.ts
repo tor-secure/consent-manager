@@ -112,8 +112,9 @@ export type ExamCandidate = {
 };
 
 /**
- * Picks an exam that includes every module at least once, then fills the
- * remaining seats round-robin so one module cannot crowd out the others.
+ * Picks the exam from the module question bank. Every module appears at
+ * least once, then the remaining seats rotate through a shuffled module
+ * order so one module cannot crowd out the others. The result is shuffled.
  */
 export function selectExamQuestions<T extends ExamCandidate>(input: {
   bank: T[];
@@ -138,10 +139,14 @@ export function selectExamQuestions<T extends ExamCandidate>(input: {
     selected.push(next);
   }
 
-  let cursor = 1;
+  const moduleOrder = shuffle(
+    Array.from({ length: MODULE_COUNT }, (_, index) => index + 1),
+    random,
+  );
+  let cursor = 0;
   let idle = 0;
   while (selected.length < input.count && idle < MODULE_COUNT) {
-    const list = byModule.get(cursor) ?? [];
+    const list = byModule.get(moduleOrder[cursor] ?? 1) ?? [];
     const next = list.find((question) => !used.has(question.id));
     if (next) {
       used.add(next.id);
@@ -150,7 +155,7 @@ export function selectExamQuestions<T extends ExamCandidate>(input: {
     } else {
       idle += 1;
     }
-    cursor = cursor === MODULE_COUNT ? 1 : cursor + 1;
+    cursor = (cursor + 1) % MODULE_COUNT;
   }
 
   shuffle(selected, random);

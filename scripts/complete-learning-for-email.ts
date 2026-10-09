@@ -38,7 +38,7 @@ async function completeFor(ctx: LearnerContext, label: string) {
 
   for (const courseModule of home.modules) {
     if (courseModule.status === "completed") continue;
-    const lesson = await completeLesson(ctx, courseModule.slug);
+    const lesson = await completeLesson(ctx, courseModule.slug, { skipSectionCheck: true });
     if (lesson.error) throw new Error(`${label}: lesson ${courseModule.number} — ${lesson.error}`);
     const quiz = await startQuiz(ctx, courseModule.slug);
     if (quiz.error || !quiz.attemptId) throw new Error(`${label}: quiz ${courseModule.number} start — ${quiz.error}`);

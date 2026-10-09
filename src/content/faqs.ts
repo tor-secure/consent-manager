@@ -25,6 +25,26 @@ export const FAQS: FaqItem[] = [
       "A Consent Management Platform helps organisations obtain, record, manage, communicate, and enforce users' choices regarding the processing of personal data, cookies, trackers, and other technologies.",
   },
   {
+    question: "What is DPDP compliance?",
+    answer:
+      "DPDP compliance means handling digital personal data in line with India’s Digital Personal Data Protection Act, 2023. That includes a lawful ground, a clear notice where consent is used, a way to withdraw consent, and a way for people to exercise Data Principal rights. Consent Guru can help operate notices, purpose-level consent, withdrawal, consent records, and Data Principal requests. Using the product does not by itself make an organisation compliant.",
+  },
+  {
+    question: "What is consent under the DPDP Act?",
+    answer:
+      "Consent is a free, specific, informed, unconditional, and unambiguous indication that the Data Principal agrees to processing of their personal data for a specified purpose, given by a clear affirmative action. It is limited to the personal data necessary for that purpose. Some processing can instead rely on a legitimate use the Act lists.",
+  },
+  {
+    question: "What is a Data Principal?",
+    answer:
+      "The Data Principal is the individual to whom the personal data relates. For a child, or for a person with a disability who has a lawful guardian, the parent or lawful guardian acts in that role.",
+  },
+  {
+    question: "What is consent evidence?",
+    answer:
+      "Consent evidence is the retained record of a choice and the notice that was shown: an identifier, the time, the purposes, and a snapshot of the policy version. A later withdrawal updates the current choice. It does not erase that history unless your retention rules, and any legal hold, say so.",
+  },
+  {
     question: "What types of consent can ConsentGuru manage?",
     answer:
       "ConsentGuru supports granular consent management for cookies, categories, purposes, vendors, and other processing activities. It also provides workflows for withdrawal, consent evidence, and purpose-level controls.",

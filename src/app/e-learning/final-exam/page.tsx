@@ -86,7 +86,7 @@ export default async function FinalExamPage() {
       ) : (
         <AssessmentRunner
           title={history.attempts.length > 0 ? "Start a new attempt" : "Start the examination"}
-          intro="Answer every question, then submit. Each retake is saved as a separate attempt."
+          intro="Fifty questions are drawn at random from the module quizzes, including every module. Answer every question, then submit. Each retake draws a new set."
           questionCount={history.questionCount}
           defaultPassPercent={history.passPercent}
           startPath="/api/learning/exam"

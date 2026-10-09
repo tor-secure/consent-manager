@@ -3,11 +3,19 @@ import { notFound, redirect } from "next/navigation";
 
 import { AssessmentRunner } from "@/components/learning/assessment-runner";
 import { pad, secondaryBtn } from "@/components/learning/ui";
+import { MODULE_QUIZ_QUESTION_COUNT } from "@/lib/learning/catalog";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { getCourseHome } from "@/lib/learning/service";
 
-export default async function ModuleQuizPage({ params }: { params: Promise<{ moduleSlug: string }> }) {
+export default async function ModuleQuizPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ moduleSlug: string }>;
+  searchParams: Promise<{ start?: string }>;
+}) {
   const { moduleSlug } = await params;
+  const { start } = await searchParams;
   const learner = await learnerPageContext();
   const home = await getCourseHome(learner);
   if (!home.enrolled) redirect("/e-learning");
@@ -49,12 +57,14 @@ export default async function ModuleQuizPage({ params }: { params: Promise<{ mod
       </header>
       <AssessmentRunner
         title="Module quiz"
-        intro={`Check your understanding of Module ${courseModule.number}. Passing unlocks the next module.`}
+        intro={`Fifteen questions on Module ${courseModule.number}. Passing unlocks the next module.`}
+        questionCount={MODULE_QUIZ_QUESTION_COUNT}
         defaultPassPercent={home.course.passPercent}
         startPath={`/api/learning/modules/${moduleSlug}/quiz`}
         submitBasePath="/api/learning/quizzes"
         onPassedHref={passedHref}
         passedLabel={passedLabel}
+        autoStart={start === "1"}
       />
     </div>
   );

@@ -5,7 +5,7 @@ export const CONSENT_GURU_SITE_KEY =
   "site_e3c370ebf04a1ba38b238f8c8cd6a302f176db55b463e6db";
 export const CONSENT_GURU_SITE_VERIFICATION = "b5b1db72c2d9b326d0c1221c8547fe1c";
 export const CONSENT_GURU_ORIGIN = "https://www.consentguru.com";
-export const CONSENT_GURU_SDK_SRC = `${CONSENT_GURU_ORIGIN}/api/sdk/script`;
+export const CONSENT_GURU_SDK_SRC = "/api/sdk/script";
 
 function scriptBody(snippet: string): string {
   return snippet.replace(/^\s*<script>\s*/i, "").replace(/\s*<\/script>\s*$/i, "");

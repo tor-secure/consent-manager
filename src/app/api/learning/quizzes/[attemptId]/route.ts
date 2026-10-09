@@ -14,7 +14,7 @@ export async function POST(request: Request, context: { params: Promise<{ attemp
   }
   const result = await submitQuiz(learner, attemptId, body.answers);
   if (result.error) {
-    const status = result.error === "already_submitted" ? 409 : 404;
+    const status = result.error === "already_submitted" ? 409 : result.error === "incomplete" ? 400 : 404;
     return NextResponse.json(result, { status });
   }
   return NextResponse.json(result);
