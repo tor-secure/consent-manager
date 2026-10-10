@@ -1,9 +1,8 @@
-export type CertificateGrade = "A" | "B" | "C" | "D";
+export type CertificateGrade = "A+" | "A" | "B";
 
-/** Bands sit inside the passing range (80–100) so every issued certificate gets a meaningful letter. */
+/** Final-exam bands. 50 and above is a pass. 80 is A, and 90 is A+. */
 export function certificateGrade(scorePercent: number): CertificateGrade {
-  if (scorePercent >= 95) return "A";
-  if (scorePercent >= 90) return "B";
-  if (scorePercent >= 85) return "C";
-  return "D";
+  if (scorePercent >= 90) return "A+";
+  if (scorePercent >= 80) return "A";
+  return "B";
 }

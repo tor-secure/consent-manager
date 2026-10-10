@@ -5,8 +5,10 @@
 
 export const COURSE_SLUG = "dpdp-act-2023";
 export const DEFAULT_PASS_PERCENT = 80;
-export const DEFAULT_EXAM_QUESTION_COUNT = 50;
 export const MODULE_COUNT = 30;
+/** Two questions from each module. */
+export const EXAM_QUESTIONS_PER_MODULE = 2;
+export const DEFAULT_EXAM_QUESTION_COUNT = MODULE_COUNT * EXAM_QUESTIONS_PER_MODULE;
 
 export type QuestionType = "single" | "multi" | "boolean";
 
@@ -112,9 +114,9 @@ export type ExamCandidate = {
 };
 
 /**
- * Picks the exam from the module question bank. Every module appears at
- * least once, then the remaining seats rotate through a shuffled module
- * order so one module cannot crowd out the others. The result is shuffled.
+ * Picks the exam from the module question bank. Each module contributes the
+ * same number of questions (two when the exam is 60). Questions inside a
+ * module are chosen at random, then the whole paper is shuffled.
  */
 export function selectExamQuestions<T extends ExamCandidate>(input: {
   bank: T[];
@@ -122,44 +124,37 @@ export function selectExamQuestions<T extends ExamCandidate>(input: {
   random?: () => number;
 }): T[] {
   const random = input.random ?? Math.random;
+  if (input.count % MODULE_COUNT !== 0) return [];
+  const perModule = input.count / MODULE_COUNT;
   const byModule = new Map<number, T[]>();
   for (const question of input.bank) {
     const list = byModule.get(question.moduleNumber) ?? [];
     list.push(question);
     byModule.set(question.moduleNumber, list);
   }
-  for (const list of byModule.values()) shuffle(list, random);
 
   const selected: T[] = [];
-  const used = new Set<string>();
   for (let moduleNumber = 1; moduleNumber <= MODULE_COUNT; moduleNumber += 1) {
-    const next = byModule.get(moduleNumber)?.find((question) => !used.has(question.id));
-    if (!next) continue;
-    used.add(next.id);
-    selected.push(next);
+    const list = shuffle([...(byModule.get(moduleNumber) ?? [])], random);
+    if (list.length < perModule) return [];
+    selected.push(...list.slice(0, perModule));
   }
 
-  const moduleOrder = shuffle(
-    Array.from({ length: MODULE_COUNT }, (_, index) => index + 1),
-    random,
-  );
-  let cursor = 0;
-  let idle = 0;
-  while (selected.length < input.count && idle < MODULE_COUNT) {
-    const list = byModule.get(moduleOrder[cursor] ?? 1) ?? [];
-    const next = list.find((question) => !used.has(question.id));
-    if (next) {
-      used.add(next.id);
-      selected.push(next);
-      idle = 0;
-    } else {
-      idle += 1;
-    }
-    cursor = (cursor + 1) % MODULE_COUNT;
-  }
+  return shuffle(selected, random);
+}
 
-  shuffle(selected, random);
-  return selected.slice(0, input.count);
+/** True when every module contributes the same number of questions. */
+export function examDrawIsBalanced(moduleNumbers: readonly number[], count: number): boolean {
+  if (count % MODULE_COUNT !== 0 || moduleNumbers.length !== count) return false;
+  const perModule = count / MODULE_COUNT;
+  const seen = new Map<number, number>();
+  for (const moduleNumber of moduleNumbers) {
+    seen.set(moduleNumber, (seen.get(moduleNumber) ?? 0) + 1);
+  }
+  for (let moduleNumber = 1; moduleNumber <= MODULE_COUNT; moduleNumber += 1) {
+    if (seen.get(moduleNumber) !== perModule) return false;
+  }
+  return true;
 }
 
 export function examCoversEveryModule(questions: ExamCandidate[]): boolean {

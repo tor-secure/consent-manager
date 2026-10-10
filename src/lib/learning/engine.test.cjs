@@ -5,6 +5,7 @@ const {
   completionPercentage,
   courseCompleted,
   examCoversEveryModule,
+  examDrawIsBalanced,
   isPassingScore,
   moduleUnlocked,
   percentageFromCounts,
@@ -75,15 +76,20 @@ for (let moduleNumber = 1; moduleNumber <= 30; moduleNumber += 1) {
     bank.push({ id: `m${moduleNumber}-e${copy}`, moduleNumber });
   }
 }
-const exam = selectExamQuestions({ bank, count: 50, random: () => 0.2 });
-assert.equal(exam.length, 50);
+const exam = selectExamQuestions({ bank, count: 60, random: () => 0.2 });
+assert.equal(exam.length, 60);
 assert.equal(examCoversEveryModule(exam), true);
+assert.equal(examDrawIsBalanced(exam.map((item) => item.moduleNumber), 60), true);
+const grouped = exam.every((item, index) => item.moduleNumber === Math.floor(index / 2) + 1);
+assert.equal(grouped, false);
 const thin = selectExamQuestions({
   bank: bank.filter((item) => item.moduleNumber !== 7),
-  count: 50,
+  count: 60,
   random: () => 0.2,
 });
+assert.equal(thin.length, 0);
 assert.equal(examCoversEveryModule(thin), false);
+assert.equal(examDrawIsBalanced(thin.map((item) => item.moduleNumber), 60), false);
 
 const fakeScore = scoreSubmission({
   questions: [question("q1", 1, ["a"])],

@@ -79,9 +79,11 @@ export function AssessmentRunner({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<Result | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const questionHeading = useRef<HTMLLegendElement>(null);
+  const questionHeading = useRef<HTMLHeadingElement>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
   const autoStarted = useRef(false);
   const advanceTimer = useRef<number | null>(null);
+  const submitting = useRef(false);
   const shellRef = useRef<HTMLDivElement>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -92,6 +94,10 @@ export function AssessmentRunner({
   useEffect(() => {
     if (result) resultHeading.current?.focus();
   }, [result]);
+
+  useEffect(() => {
+    if (remaining === 0 && attemptId && !result) submitButton.current?.scrollIntoView({ block: "nearest" });
+  }, [remaining, attemptId, result]);
 
   useEffect(() => {
     function onFullscreenChange() {
@@ -186,7 +192,12 @@ export function AssessmentRunner({
   }, []);
 
   async function submit() {
-    if (!attemptId || remaining > 0) return;
+    if (!attemptId || remaining > 0 || submitting.current) return;
+    submitting.current = true;
+    if (advanceTimer.current) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -197,19 +208,20 @@ export function AssessmentRunner({
           answers: questions.map((question) => ({ questionId: question.id, optionIds: answers[question.id] ?? [] })),
         }),
       });
-      const body = await response.json();
+      const body = (await response.json().catch(() => null)) as (Result & { message?: string }) | null;
       if (response.status === 401) {
         setError({ message: "Your session expired. Sign in again. Your answers were not submitted.", action: "submit" });
         return;
       }
-      if (!response.ok) {
-        setError({ message: body.message ?? "Submission failed. Your answers are still here.", action: "submit" });
+      if (body && typeof body.percentage === "number" && Array.isArray(body.review)) {
+        setResult(body);
         return;
       }
-      setResult(body);
+      setError({ message: body?.message ?? "Submission failed. Your answers are still here.", action: "submit" });
     } catch {
       setError({ message: "Network error. Your answers were not confirmed. Try submitting again.", action: "submit" });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
@@ -343,7 +355,13 @@ export function AssessmentRunner({
         <p className="mt-2 max-w-2xl text-justify text-base leading-7 text-[#36505c]">
           The questions stay hidden until the quiz fills the screen. Your answers are kept. Press Escape or leave this tab and you will need to return here before you can continue.
         </p>
-        <button type="button" className={`${primaryBtn} mt-6`} onClick={enterFullscreen}>
+        {loading ? <p className="mt-4 text-sm font-semibold text-[#0B2C4A]">Submitting your answers…</p> : null}
+        {error ? (
+          <div className="mt-4">
+            <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : enterFullscreen} retryLabel={error.action === "submit" ? "Submit again" : undefined} />
+          </div>
+        ) : null}
+        <button type="button" className={`${primaryBtn} mt-6`} onClick={enterFullscreen} disabled={loading}>
           {answered > 0 ? "Return to fullscreen" : "Enter fullscreen"}
         </button>
       </section>
@@ -414,11 +432,11 @@ export function AssessmentRunner({
         </ol>
       </div>
 
-      <fieldset className={`${card} p-5 sm:p-6`}>
-        <legend ref={questionHeading} tabIndex={-1} className="float-left w-full text-lg font-semibold leading-7 text-[#0B2C4A] focus:outline-none">
+      <div className={`${card} p-5 sm:p-6`}>
+        <h2 ref={questionHeading} tabIndex={-1} className="text-lg font-semibold leading-7 text-[#0B2C4A] focus:outline-none">
           {current.prompt}
-        </legend>
-        <p className="clear-both pt-1 text-sm text-[#4d6570]">
+        </h2>
+        <p className="pt-1 text-sm text-[#4d6570]">
           {multi ? "Select all that apply, then use the arrow for the next question." : "Select one answer. The next question opens on its own."}
         </p>
         <div className="mt-4 space-y-2">
@@ -443,11 +461,11 @@ export function AssessmentRunner({
             );
           })}
         </div>
-      </fieldset>
+      </div>
 
       {error ? <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : startInFullscreen} retryLabel={error.action === "submit" ? "Submit again" : undefined} /> : null}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-3 rounded-xl border border-[#d5e3e0] bg-[#f3f7f6]/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           <button type="button" className={secondaryBtn} onClick={() => goTo(index - 1)} disabled={index === 0}>
             <ArrowIcon direction="left" />
@@ -459,7 +477,7 @@ export function AssessmentRunner({
           </button>
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
-          <button type="button" className={primaryBtn} onClick={submit} disabled={loading || remaining > 0} aria-busy={loading} aria-describedby="submit-hint">
+          <button ref={submitButton} type="button" className={primaryBtn} onClick={submit} disabled={loading || remaining > 0} aria-busy={loading} aria-describedby="submit-hint">
             {loading ? "Submitting…" : "Submit answers"}
           </button>
           <p id="submit-hint" className="text-xs text-[#4d6570]">

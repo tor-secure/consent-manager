@@ -80,6 +80,9 @@ export default async function CertificatePage() {
           <Link href={certificate.verificationPath} className={secondaryBtn}>
             Verification page
           </Link>
+          <Link href="/" className={secondaryBtn}>
+            Homepage
+          </Link>
         </div>
       </section>
       <CertificateDocument certificate={certificate} qrSvg={qrSvg} />

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { AssessmentRunner } from "@/components/learning/assessment-runner";
 import { pad, secondaryBtn } from "@/components/learning/ui";
-import { MODULE_QUIZ_QUESTION_COUNT } from "@/lib/learning/catalog";
+import { MODULE_QUIZ_DRAW_COUNT } from "@/lib/learning/catalog";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { getCourseHome } from "@/lib/learning/service";
 
@@ -57,8 +57,8 @@ export default async function ModuleQuizPage({
       </header>
       <AssessmentRunner
         title="Module quiz"
-        intro={`Fifteen questions on Module ${courseModule.number}. Passing unlocks the next module.`}
-        questionCount={MODULE_QUIZ_QUESTION_COUNT}
+        intro={`Five questions drawn at random from Module ${courseModule.number}. Passing unlocks the next module.`}
+        questionCount={MODULE_QUIZ_DRAW_COUNT}
         defaultPassPercent={home.course.passPercent}
         startPath={`/api/learning/modules/${moduleSlug}/quiz`}
         submitBasePath="/api/learning/quizzes"

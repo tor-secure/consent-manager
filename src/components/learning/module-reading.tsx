@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { LessonActions } from "@/components/learning/lesson-actions";
+import { StatusIcon } from "@/components/learning/status-icon";
 import { VideoPlayer } from "@/components/learning/video-player";
 import { card } from "@/components/learning/ui";
 import { PDF_SECTION_HEADINGS, readingSectionIds } from "@/lib/learning/lesson-sections";
@@ -124,6 +125,24 @@ function RichText({ label, text }: { label?: string; text: string }) {
   );
 }
 
+const FINISHED_STORAGE_PREFIX = "cg-lesson-finished:";
+
+function storedFinished(slug: string, sectionIds: string[]): string[] {
+  try {
+    const raw = localStorage.getItem(`${FINISHED_STORAGE_PREFIX}${slug}`);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    if (!Array.isArray(parsed)) return [];
+    const known = new Set(sectionIds);
+    return parsed.filter((id): id is string => typeof id === "string" && known.has(id));
+  } catch {
+    return [];
+  }
+}
+
+function sectionUnlocked(sections: ReadingSection[], finished: string[], index: number) {
+  return sections.slice(0, index).every((section) => finished.includes(section.id));
+}
+
 function SectionBody({ sectionId, paragraphs }: { sectionId: string; paragraphs: string[] }) {
   const units = mergeLines(paragraphs).flatMap(splitUnits);
   if (LIST_SECTIONS.has(sectionId)) {
@@ -188,16 +207,36 @@ export function ModuleReading({
   const sections = useMemo(() => sectionsFromLesson(moduleNumber, objectives, lesson), [moduleNumber, objectives, lesson]);
   const requiredIds = useMemo(() => readingSectionIds(lesson), [lesson]);
   const [selectedId, setSelectedId] = useState(sections[0]?.id ?? "video");
-  const [visited, setVisited] = useState<string[]>(() => (sections[0] ? [sections[0].id] : []));
+  const [finished, setFinished] = useState<string[]>([]);
   const selected = sections.find((section) => section.id === selectedId) ?? sections[0];
 
   useEffect(() => {
-    setVisited((current) => (current.includes(selectedId) ? current : [...current, selectedId]));
-  }, [selectedId]);
+    const stored = storedFinished(slug, sections.map((section) => section.id));
+    if (stored.length === 0) return;
+    setFinished(stored);
+    const nextIndex = sections.findIndex((section, index) => sectionUnlocked(sections, stored, index) && !stored.includes(section.id));
+    if (nextIndex >= 0) setSelectedId(sections[nextIndex].id);
+    else if (sections.every((section) => stored.includes(section.id))) setSelectedId(sections[sections.length - 1].id);
+  }, [sections, slug]);
+
+  function markFinished(id: string) {
+    if (finished.includes(id)) return;
+    const next = [...finished, id];
+    try {
+      localStorage.setItem(`${FINISHED_STORAGE_PREFIX}${slug}`, JSON.stringify(next));
+    } catch {
+      // Progress still applies for this visit if storage is unavailable.
+    }
+    setFinished(next);
+    const index = sections.findIndex((section) => section.id === id);
+    const following = sections[index + 1];
+    if (following) setSelectedId(following.id);
+  }
 
   if (!selected) return null;
 
-  const opened = requiredIds.filter((id) => visited.includes(id)).length;
+  const finishedCount = requiredIds.filter((id) => finished.includes(id)).length;
+  const selectedFinished = finished.includes(selected.id);
 
   return (
     <>
@@ -205,51 +244,68 @@ export function ModuleReading({
       <ol className="lesson-scroll max-h-80 overflow-y-auto rounded-xl border border-[#d5e3e0] bg-white lg:h-full lg:max-h-none lg:min-h-0" aria-label="Lesson sections">
         {sections.map((section, index) => {
           const active = section.id === selected.id;
-          const seen = visited.includes(section.id);
+          const done = finished.includes(section.id);
+          const unlocked = sectionUnlocked(sections, finished, index);
           return (
             <li key={section.id} className="border-b border-[#d5e3e0] last:border-b-0">
               <button
                 type="button"
                 aria-pressed={active}
-                onClick={() => setSelectedId(section.id)}
-                className={`flex w-full items-center gap-3 px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#00C4A7] ${
-                  active ? "bg-[#E6F9F5]" : "hover:bg-[#f7fbfa]"
+                aria-disabled={!unlocked}
+                disabled={!unlocked}
+                onClick={() => {
+                  if (unlocked) setSelectedId(section.id);
+                }}
+                className={`flex w-full items-center gap-3 px-3 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#00C4A7] disabled:cursor-not-allowed ${
+                  active ? "bg-[#E6F9F5]" : unlocked ? "hover:bg-[#f7fbfa]" : "bg-[#f7fbfa]"
                 }`}
               >
-                <span className="w-6 shrink-0 text-xs font-semibold tabular-nums text-[#4d6570]">{String(index + 1).padStart(2, "0")}</span>
-                <span className={`min-w-0 flex-1 text-sm leading-5 text-[#0B2C4A] ${active ? "font-semibold" : ""}`}>{section.title}</span>
-                {seen ? <span className="sr-only">Opened</span> : <span className="sr-only">Not opened</span>}
+                <span className={`w-6 shrink-0 text-xs font-semibold tabular-nums ${unlocked ? "text-[#4d6570]" : "text-[#8aa0a8]"}`}>{String(index + 1).padStart(2, "0")}</span>
+                <span className={`min-w-0 flex-1 text-sm leading-5 ${unlocked ? "text-[#0B2C4A]" : "text-[#8aa0a8]"} ${active ? "font-semibold" : ""}`}>{section.title}</span>
+                {done ? <StatusIcon status="completed" size={18} /> : unlocked ? <span className="sr-only">Not finished</span> : <StatusIcon status="locked" size={18} />}
               </button>
             </li>
           );
         })}
       </ol>
 
-      <div
-        className={
-          selected.id === "video"
-            ? "flex h-full min-h-[16rem] items-center justify-center overflow-hidden rounded-xl border border-[#d5e3e0] bg-[#0f172a] lg:min-h-0"
-            : "lesson-scroll min-h-0 overflow-y-auto rounded-xl border border-[#d5e3e0] bg-white lg:h-full"
-        }
-      >
-        {selected.id === "video" ? (
-          <div className="@container flex h-full w-full items-center justify-center overflow-hidden">
-            <div className="relative aspect-video w-full max-h-full overflow-hidden lg:w-[min(100%,calc(100cqh*16/9))]">
-              <div className="absolute inset-0">
-                <VideoPlayer video={video} />
+      <div className="flex h-full min-h-[16rem] flex-col overflow-hidden rounded-xl border border-[#d5e3e0] bg-white lg:min-h-0">
+        <div
+          className={
+            selected.id === "video"
+              ? "flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-[#0f172a]"
+              : "lesson-scroll min-h-0 flex-1 overflow-y-auto"
+          }
+        >
+          {selected.id === "video" ? (
+            <div className="@container flex h-full w-full items-center justify-center overflow-hidden">
+              <div className="relative aspect-video w-full max-h-full overflow-hidden lg:w-[min(100%,calc(100cqh*16/9))]">
+                <div className="absolute inset-0">
+                  <VideoPlayer video={video} />
+                </div>
               </div>
             </div>
-          </div>
-        ) : (
-          <article className="p-5 text-left sm:p-6">
-            <h2 className="text-lg font-semibold text-[#0B2C4A]">{selected.title}</h2>
-            {selected.id === "glossary" ? (
-              <GlossaryBody moduleNumber={moduleNumber} />
-            ) : (
-              <SectionBody sectionId={selected.id} paragraphs={selected.paragraphs} />
-            )}
-          </article>
-        )}
+          ) : (
+            <article className="p-5 text-left sm:p-6">
+              <h2 className="text-lg font-semibold text-[#0B2C4A]">{selected.title}</h2>
+              {selected.id === "glossary" ? (
+                <GlossaryBody moduleNumber={moduleNumber} />
+              ) : (
+                <SectionBody sectionId={selected.id} paragraphs={selected.paragraphs} />
+              )}
+            </article>
+          )}
+        </div>
+        <label className={`flex items-center gap-3 border-t border-[#d5e3e0] px-4 py-3 text-sm font-semibold text-[#0B2C4A] ${selectedFinished ? "" : "cursor-pointer"}`}>
+          <input
+            type="checkbox"
+            checked={selectedFinished}
+            disabled={selectedFinished}
+            onChange={() => markFinished(selected.id)}
+            className="h-5 w-5 rounded border-[#0B2C4A] accent-[#00C4A7] disabled:opacity-100"
+          />
+          Finished
+        </label>
       </div>
     </div>
     <section aria-label="Module actions" className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between`}>
@@ -262,17 +318,17 @@ export function ModuleReading({
             ? "You passed this module quiz. You can retake it at any time."
             : lessonComplete
               ? `Score ${passPercent}% or more to unlock the next module.`
-              : opened === requiredIds.length
+              : finishedCount === requiredIds.length
                 ? "Mark the lesson complete to open the module quiz."
-                : `Open every section before you mark the lesson complete. ${requiredIds.length - opened} still to open.`}
+                : `Finish each section in order. ${requiredIds.length - finishedCount} still to finish.`}
         </p>
       </div>
       <LessonActions
         slug={slug}
         lessonComplete={lessonComplete}
         quizPassed={quizPassed}
-        sectionsReady={opened === requiredIds.length}
-        sectionIds={requiredIds.filter((id) => visited.includes(id))}
+        sectionsReady={finishedCount === requiredIds.length}
+        sectionIds={requiredIds.filter((id) => finished.includes(id))}
       />
     </section>
     </>

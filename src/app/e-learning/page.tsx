@@ -8,7 +8,7 @@ import { ModuleCards } from "@/components/learning/module-cards";
 import { VerifyCertificateForm } from "@/components/learning/verify-certificate-form";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusIcon } from "@/components/learning/status-icon";
-import { card, eyebrow, pad, primaryBtn, secondaryBtn, textLink } from "@/components/learning/ui";
+import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { JsonLd } from "@/components/seo/json-ld";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-data";
@@ -39,9 +39,9 @@ type CourseInfo = {
 
 const courseHighlights = [
   "30 modules, about 15 minutes each",
-  "A video, a lesson, and a 15-question quiz in every module",
+  "A video, a lesson, and a 5-question quiz in every module",
   "Modules unlock in order, and your progress is saved",
-  "A 50-question final exam drawn from the module questions",
+  "A 60-question final exam: two questions from each module, in a random order",
   "A certificate when you pass",
 ];
 
@@ -96,14 +96,14 @@ function Hero({ course, action, note, pitch }: { course: CourseInfo; action: Rea
   );
 }
 
-function BeforeYouStart({ disclaimer, passPercent }: { disclaimer: string; passPercent: number }) {
+function BeforeYouStart({ disclaimer, passPercent, examPassPercent }: { disclaimer: string; passPercent: number; examPassPercent: number }) {
   const body = disclaimer.replace(/^Legal status note:\s*/, "");
   const [status, educational] = body.split(/(?=This training material)/);
   const prerequisites = [
     "A Consent Guru account, so your progress, quizzes, and certificate stay with you.",
     "No earlier DPDP module. This foundation programme begins with privacy, data protection, and the terms used in the Act.",
     "About 15 minutes a day for 30 days.",
-    `A score of ${passPercent}% or more on each module quiz and on the final exam.`,
+    `A score of ${passPercent}% or more on each module quiz. The final exam passes at ${examPassPercent}%.`,
   ];
   return (
     <section aria-labelledby="before-you-start" className={`${card} space-y-6 p-6 sm:p-8`}>
@@ -205,7 +205,7 @@ export default async function DpdpCoursePage() {
       <div className="space-y-8 text-[#0B2C4A]">
         <JsonLd id="dpdp-course-jsonld" data={courseLd} />
         <Hero course={home.course} pitch action={<EnrollButton moduleCount={home.course.moduleCount} />} />
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} />
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
         <VerifyCertificate />
         <section aria-labelledby="curriculum-heading" className="space-y-4">
           <div>
@@ -213,7 +213,7 @@ export default async function DpdpCoursePage() {
               Curriculum
             </h2>
             <p className="mt-1 text-sm text-[#4d6570]">
-              {home.course.moduleCount} modules, each with a video, a lesson, and a 15-question quiz. Sign in to enrol. Lessons stay private to your account.
+              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Sign in to enrol. Lessons stay private to your account.
             </p>
           </div>
           <ModuleCards modules={home.modules} />
@@ -246,13 +246,13 @@ export default async function DpdpCoursePage() {
           pitch
           action={<EnrollButton moduleCount={home.course.moduleCount} />}
         />
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} />
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
         <VerifyCertificate />
         <section aria-labelledby="curriculum-heading" className="space-y-4">
           <div>
             <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">Curriculum</h2>
             <p className="mt-1 text-sm text-[#4d6570]">
-              {home.course.moduleCount} modules, each with a video, a lesson, and a 15-question quiz. Modules unlock in order. The final exam is 50 questions drawn from those quizzes.
+              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Modules unlock in order. The final exam is {home.course.examQuestionCount} questions: two from each module, in a random order.
             </p>
           </div>
           <ModuleCards modules={home.modules} />
@@ -286,7 +286,7 @@ export default async function DpdpCoursePage() {
       />
 
       {progress.completedModules === 0 && !current?.lessonComplete ? (
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} />
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
       ) : null}
       <VerifyCertificate />
 
@@ -321,7 +321,7 @@ export default async function DpdpCoursePage() {
               <p className="mt-2 text-sm text-[#4d6570]">
                 {progress.certificateEligible
                   ? "Your certificate of completion is ready."
-                  : `Pass the final examination with ${home.course.passPercent}% or more to earn your certificate.`}
+                  : `Pass the final examination with ${home.course.examPassPercent}% or more to earn your certificate.`}
               </p>
               <div className="mt-5">
                 <Link href={primary.href} className={primaryBtn}>
@@ -376,7 +376,7 @@ export default async function DpdpCoursePage() {
             done={progress.examPassed}
             locked={!allModulesDone}
             state={progress.examPassed ? `Passed with ${progress.examPercentage}%` : allModulesDone ? "Ready to take" : "Locked"}
-            detail={`${home.course.examQuestionCount} questions across all modules.`}
+            detail={`${home.course.examQuestionCount} questions: two from each module, in a random order.`}
             action={
               allModulesDone && !progress.examPassed ? (
                 <Link href="/e-learning/final-exam" className={secondaryBtn}>
@@ -401,14 +401,6 @@ export default async function DpdpCoursePage() {
           />
         </div>
       </section>
-
-      {learner.operator ? (
-        <p>
-          <Link href="/e-learning/manage" className={textLink}>
-            Manage course content and learner progress
-          </Link>
-        </p>
-      ) : null}
 
       {progress.completedModules === 0 && !current?.lessonComplete ? null : (
         <Disclaimer text={home.course.disclaimer} reviewed={home.course.lastReviewedOn} />

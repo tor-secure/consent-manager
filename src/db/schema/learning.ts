@@ -25,7 +25,7 @@ export const learningCourses = pgTable(
     instructor: varchar("instructor", { length: 160 }).notNull(),
     difficulty: varchar("difficulty", { length: 40 }).notNull(),
     passPercent: integer("pass_percent").notNull().default(80),
-    examQuestionCount: integer("exam_question_count").notNull().default(50),
+    examQuestionCount: integer("exam_question_count").notNull().default(60),
     examPassPercent: integer("exam_pass_percent").notNull().default(80),
     estimatedMinutes: integer("estimated_minutes").notNull(),
     contentVersion: varchar("content_version", { length: 40 }).notNull(),

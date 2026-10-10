@@ -13,7 +13,7 @@ export const PDF_SECTION_HEADINGS = new Set([
   "Module Summary",
 ]);
 
-/** Section ids the learner must open before a lesson can be marked complete. */
+/** Section ids the learner must finish, in order, before a lesson can be marked complete. */
 export function readingSectionIds(lesson: string): string[] {
   const headings: string[] = [];
   for (const block of lesson.split("\n\n")) {

@@ -4,14 +4,18 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 const offices = [
   {
     region: "United States",
-    places: [{ city: "United States", address: "3324 Ingram Dr, Haymarket, VA 20169" }],
+    places: [{ city: "Virginia", address: "3324 Ingram Dr, Haymarket, VA 20169" }],
   },
   {
-    region: "Bangalore",
+    region: "India",
     places: [
       {
         city: "Bangalore",
         address: "2nd Floor, #108, 27th Main Road, Sector 2, HSR Layout, Bengaluru-560102 Karnataka, India",
+      },
+      {
+        city: "Mangalore",
+        address: "Manasa Tower, #9, II Floor, PVS Junction, Mangaluru, Karnataka 575003, India",
       },
     ],
   },
@@ -30,15 +34,6 @@ const offices = [
       {
         city: "Jeddah",
         address: "7834 Awn Bin Jafar, Ash Sharafiyah Dist., Unit No 39 Jeddah 22234 - 4932, KSA",
-      },
-    ],
-  },
-  {
-    region: "Mangalore",
-    places: [
-      {
-        city: "Mangalore",
-        address: "Manasa Tower, #9, II Floor, PVS Junction, Mangaluru, Karnataka 575003",
       },
     ],
   },
@@ -169,7 +164,7 @@ export function HomeFooter() {
 
           <div className="mt-12 border-t border-white/10 pt-8">
             <h2 className="text-sm font-semibold text-white">Offices</h2>
-            <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {offices.map((office) => (
                 <li key={office.region} className="flex items-start gap-3 text-left">
                   <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#00C4A7]">

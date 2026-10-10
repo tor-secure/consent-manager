@@ -32,37 +32,6 @@ function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   );
 }
 
-function Steps({ lessonComplete, quizPassed }: { lessonComplete: boolean; quizPassed: boolean }) {
-  const steps = [
-    { label: "Watch the video", done: lessonComplete },
-    { label: "Read and mark complete", done: lessonComplete },
-    { label: "Pass the quiz", done: quizPassed },
-  ];
-  const activeIndex = steps.findIndex((step) => !step.done);
-  return (
-    <ol aria-label="Module steps" className="grid gap-2 sm:grid-cols-3">
-      {steps.map((step, index) => {
-        const active = index === activeIndex;
-        return (
-          <li
-            key={step.label}
-            aria-current={active ? "step" : undefined}
-            className={`flex min-h-12 items-center gap-3 rounded-lg border px-3 py-2 text-sm ${
-              step.done ? "border-[#bfe9e0] bg-[#E6F9F5]" : active ? "border-[#0B2C4A] bg-white font-semibold" : "border-[#d5e3e0] bg-white text-[#4d6570]"
-            }`}
-          >
-            <StatusIcon status={step.done ? "completed" : active ? "in_progress" : "available"} size={20} />
-            <span>
-              <span className="sr-only">Step {index + 1}: </span>
-              {step.label}
-            </span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 export default async function ModulePage({ params }: { params: Promise<{ moduleSlug: string }> }) {
   const { moduleSlug } = await params;
   const catalogReady = warmLearningCatalog();
@@ -127,7 +96,6 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
             <h1 className="text-2xl font-semibold leading-tight sm:text-[1.75rem]">{courseModule.title}</h1>
             <p className="text-sm text-[#4d6570]">{courseModule.minutes} minutes</p>
           </header>
-          <Steps lessonComplete={courseModule.lessonComplete} quizPassed={courseModule.quizPassed} />
 
           <ModuleReading
             moduleNumber={courseModule.number}
