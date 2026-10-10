@@ -54,6 +54,9 @@ export default async function FinalExamPage() {
             </div>
           ))}
         </dl>
+        <p className="mt-4 text-sm leading-6 text-[#36505c]">
+          Below {history.passPercent}% is not a pass. {history.passPercent}–79 is B, 80–89 is A, and 90–100 is A+.
+        </p>
         {passedAttempt ? (
           <div className="mt-5 flex flex-col gap-3 rounded-lg border border-[#bfe9e0] bg-[#E6F9F5] px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm font-semibold">You passed with {passedAttempt.percentage}%. Your certificate is ready.</p>
@@ -86,7 +89,7 @@ export default async function FinalExamPage() {
       ) : (
         <AssessmentRunner
           title={history.attempts.length > 0 ? "Start a new attempt" : "Start the examination"}
-          intro="Answer every question, then submit. Each retake is saved as a separate attempt."
+          intro={`Two questions are drawn at random from each of the ${total} modules, ${history.questionCount} in total. The order is shuffled. Answer every question, then submit. Each retake draws a new set.`}
           questionCount={history.questionCount}
           defaultPassPercent={history.passPercent}
           startPath="/api/learning/exam"

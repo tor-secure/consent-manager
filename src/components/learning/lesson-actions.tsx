@@ -10,10 +10,14 @@ export function LessonActions({
   slug,
   lessonComplete,
   quizPassed = false,
+  sectionsReady = false,
+  sectionIds = [],
 }: {
   slug: string;
   lessonComplete: boolean;
   quizPassed?: boolean;
+  sectionsReady?: boolean;
+  sectionIds?: string[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -24,13 +28,18 @@ export function LessonActions({
     setPending(true);
     setError(null);
     try {
-      const response = await fetch(`/api/learning/modules/${slug}/lesson`, { method: "POST" });
+      const response = await fetch(`/api/learning/modules/${slug}/lesson`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionIds }),
+      });
+      const body = (await response.json().catch(() => null)) as { message?: string } | null;
       if (!response.ok) {
-        setError("The lesson could not be marked complete. Try again.");
+        setError(body?.message ?? "The lesson could not be marked complete. Try again.");
         return;
       }
       setJustCompleted(true);
-      router.refresh();
+      router.push(`/e-learning/module/${slug}/quiz?start=1`);
     } catch {
       setError("Network error. Check your connection and try again.");
     } finally {
@@ -45,12 +54,12 @@ export function LessonActions({
           {quizPassed ? "Retake module quiz" : "Take module quiz"}
         </Link>
       ) : (
-        <button type="button" className={primaryBtn} onClick={complete} disabled={pending} aria-busy={pending}>
+        <button type="button" className={primaryBtn} onClick={complete} disabled={pending || !sectionsReady} aria-busy={pending}>
           {pending ? "Saving…" : "Mark lesson complete"}
         </button>
       )}
       <div aria-live="polite" className="text-sm">
-        {justCompleted && lessonComplete ? <p className="font-medium text-[#065f52]">Lesson marked complete. The quiz is open.</p> : null}
+        {justCompleted ? <p className="font-medium text-[#065f52]">Lesson marked complete. Opening the quiz.</p> : null}
       </div>
       {error ? (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">

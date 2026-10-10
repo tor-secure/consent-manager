@@ -3,30 +3,39 @@ import { BrandLogo } from "@/components/brand/brand-logo";
 
 const offices = [
   {
-    city: "Ajman",
+    region: "United States",
+    places: [{ city: "Virginia", address: "3324 Ingram Dr, Haymarket, VA 20169" }],
+  },
+  {
+    region: "India",
+    places: [
+      {
+        city: "Bangalore",
+        address: "2nd Floor, #108, 27th Main Road, Sector 2, HSR Layout, Bengaluru-560102 Karnataka, India",
+      },
+      {
+        city: "Mangalore",
+        address: "Manasa Tower, #9, II Floor, PVS Junction, Mangaluru, Karnataka 575003, India",
+      },
+    ],
+  },
+  {
     region: "United Arab Emirates",
-    address: "FL.H-01418 B1 Building Ajman Free Zone, Ajman, United Arab Emirates",
+    places: [
+      {
+        city: "Ajman",
+        address: "FL.H-01418 B1 Building Ajman Free Zone, Ajman, United Arab Emirates",
+      },
+    ],
   },
   {
-    city: "Mangaluru",
-    region: "India",
-    address: "Manasa Tower, #9, II Floor, PVS Junction, Mangaluru, Karnataka 575003",
-  },
-  {
-    city: "Bengaluru",
-    region: "India",
-    address:
-      "2nd Floor, #108, 27th Main Road, Sector 2, HSR Layout, Bengaluru-560102 Karnataka, India",
-  },
-  {
-    city: "Jeddah",
-    region: "Saudi Arabia",
-    address: "7834 Awn Bin Jafar, Ash Sharafiyah Dist., Unit No 39 Jeddah 22234 - 4932, KSA",
-  },
-  {
-    city: "Al-Jubail",
-    region: "Saudi Arabia",
-    address: "Prince Mashoor Street, Behind Max, Al Marqb District, Al-Jubail 35514, Saudi Arabia",
+    region: "Kingdom of Saudi Arabia",
+    places: [
+      {
+        city: "Jeddah",
+        address: "7834 Awn Bin Jafar, Ash Sharafiyah Dist., Unit No 39 Jeddah 22234 - 4932, KSA",
+      },
+    ],
   },
 ];
 
@@ -48,21 +57,25 @@ const footerColumns = [
   {
     title: "Product",
     links: [
+      { label: "Consent platform", href: "/consent-management-platform" },
       { label: "Consent management", href: "/consent-management" },
-      { label: "Cookie manager", href: "/cookie-consent-manager" },
-      { label: "Cookie banner", href: "/cookie-banner" },
+      { label: "Consent records", href: "/consent-records" },
+      { label: "Consent enforcement", href: "/consent-enforcement" },
+      { label: "Cookie consent", href: "/cookie-consent-manager" },
       { label: "Preference center", href: "/privacy-preference-center" },
-      { label: "Consent analytics", href: "/consent-analytics" },
+      { label: "Enterprise", href: "/enterprise-consent-management" },
       { label: "Pricing", href: "/pricing" },
     ],
   },
   {
     title: "Compliance",
     links: [
+      { label: "DPDP compliance", href: "/dpdp-compliance" },
+      { label: "DPDP consent requirements", href: "/dpdp-consent-requirements" },
+      { label: "DPDP Act guide", href: "/dpdp-act" },
+      { label: "E-learning", href: "/e-learning" },
       { label: "GDPR consent", href: "/gdpr" },
       { label: "CCPA and CPRA", href: "/ccpa" },
-      { label: "DPDP Act", href: "/dpdp" },
-      { label: "DSAR requests", href: "/dsar" },
       { label: "Privacy compliance", href: "/privacy-compliance" },
     ],
   },
@@ -84,7 +97,7 @@ const footerColumns = [
       { label: "Guides", href: "/resources#guides" },
       { label: "FAQs", href: "/faqs" },
       { label: "News", href: "/news" },
-      { label: "E-learning", href: "/e-learning" },
+      { label: "Compare platforms", href: "/compare/consent-management-platforms" },
       { label: "DPDP tools", href: "/tools" },
       { label: "DPO-as-a-Service", href: "/dpo-as-service" },
     ],
@@ -115,8 +128,8 @@ export function HomeFooter() {
                 <BrandLogo tone="on-dark" height={42} />
               </Link>
               <p className="mt-4 text-left text-sm leading-6 text-white/60">
-                The all-in-one consent management platform that helps businesses collect, manage and
-                analyze user consent while staying compliant with global privacy laws.
+                Consent management software for organizations that collect choices, keep consent records,
+                and run privacy workflows, including DPDP-related consent.
               </p>
               <p className="mt-5 text-sm text-white/55">
                 <Link href="/sign-up" className="font-medium text-white hover:underline">
@@ -151,18 +164,24 @@ export function HomeFooter() {
 
           <div className="mt-12 border-t border-white/10 pt-8">
             <h2 className="text-sm font-semibold text-white">Offices</h2>
-            <ul className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+            <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {offices.map((office) => (
-                <li key={office.city} className="flex items-start gap-3 text-left">
+                <li key={office.region} className="flex items-start gap-3 text-left">
                   <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-[#00C4A7]">
                     <LocationPin />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-white">
-                      {office.city}
-                      <span className="ml-1.5 font-medium text-white/50">{office.region}</span>
-                    </p>
-                    <p className="mt-1 text-sm leading-6 text-white/55">{office.address}</p>
+                    <p className="text-sm font-semibold text-white">{office.region}</p>
+                    <ul className="mt-2 space-y-3">
+                      {office.places.map((place) => (
+                        <li key={place.city}>
+                          {place.city === office.region ? null : (
+                            <p className="text-sm font-medium text-white/80">{place.city}</p>
+                          )}
+                          <p className="mt-0.5 text-sm leading-6 text-white/55">{place.address}</p>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </li>
               ))}

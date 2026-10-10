@@ -1296,6 +1296,21 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
+  // Auth widgets are application infrastructure, not trackers. Rewriting them
+  // before hydration (type=text/plain, src removed) breaks the host page.
+  function isApplicationInfrastructure(url, node) {
+    if (node && node.getAttribute && node.getAttribute('data-clerk-js-script') != null) return true;
+    var value = String(url || '').toLowerCase();
+    if (!value) return false;
+    return (
+      value.indexOf('clerk.accounts.dev') !== -1 ||
+      value.indexOf('clerk.accounts.com') !== -1 ||
+      value.indexOf('.clerk.com') !== -1 ||
+      value.indexOf('://clerk.com') !== -1 ||
+      value.indexOf('clerk.browser.js') !== -1
+    );
+  }
+
   function nodeResource(node) {
     if (!node || !node.tagName) return null;
     var tag = String(node.tagName).toLowerCase();
@@ -1327,6 +1342,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!resource) return { action: 'ignore', resource: null, rule: null, reason: 'not-managed' };
     if (isCmpInternalResource(resource.url)) {
       return { action: 'allow', resource: resource, rule: null, reason: 'cmp-internal' };
+    }
+    if (isApplicationInfrastructure(resource.url, node)) {
+      return { action: 'allow', resource: resource, rule: null, reason: 'application-infrastructure' };
     }
     var purposeKey = node.getAttribute && node.getAttribute('data-cmp-purpose');
     if (purposeKey) {
@@ -1538,7 +1556,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function shouldBlockNetworkUrl(url, kind) {
-    if (isCmpInternalResource(url)) return false;
+    if (isCmpInternalResource(url) || isApplicationInfrastructure(url, null)) return false;
     var rule = findTrackerRule(url, kind === 'fetch' ? 'pixel' : kind);
     if (rule) return isBlocked(rule);
     if (!isThirdPartyResource(url)) return false;

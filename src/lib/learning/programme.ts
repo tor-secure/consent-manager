@@ -1,5 +1,6 @@
+import mcqBank from "./mcq-bank.json";
 import programme from "./programme-modules.json";
-import { bool, type CatalogModule, type CatalogQuestion } from "./question";
+import { single, type CatalogModule, type CatalogQuestion } from "./question";
 
 type ProgrammeModule = {
   number: number;
@@ -21,61 +22,30 @@ type ProgrammeModule = {
   keyConcept: string;
 };
 
-const PDF_HEADINGS = new Set([
-  "Learning Objectives",
-  "Introduction",
-  "Key Concept",
-  "Sections / Rules Applicable",
-  "Real-Life and Corporate Examples",
-  "Cybersecurity Angle",
-  "Do's",
-  "Don'ts",
-  "Practical Checklist",
-  "Case Study",
-  "What Should the Organisation Do?",
-  "5-Question Knowledge Check",
-  "Module Summary",
-]);
+type McqChapter = {
+  number: number;
+  title: string;
+  questions: Array<{ prompt: string; options: [string, string, string, string]; answer: "A" | "B" | "C" | "D" }>;
+};
 
-function pdfStatements(module: ProgrammeModule): string[] {
-  const seen = new Set<string>();
-  const statements: string[] = [];
-  const add = (text: string) => {
-    const value = text.replace(/\s+/g, " ").trim();
-    if (value.length < 20 || PDF_HEADINGS.has(value) || value.endsWith("?")) return;
-    const key = value.toLowerCase();
-    if (seen.has(key)) return;
-    seen.add(key);
-    statements.push(value);
-  };
-  for (const block of [
-    ...module.lesson,
-    module.keyConcept,
-    module.example,
-    module.caseStudy,
-    module.summary,
-    module.orgAction,
-    ...module.dos,
-    ...module.donts,
-    ...module.checklist,
-    ...module.objectives,
-  ]) {
-    for (const sentence of block.split(/(?<=[.!?])\s+/)) add(sentence);
-  }
-  if (statements.length < 10) throw new Error(`Module ${module.number} does not have 10 PDF sentences`);
-  return statements;
-}
+const ANSWER_LETTERS = ["A", "B", "C", "D"] as const;
 
 function questionsFor(module: ProgrammeModule): { quiz: CatalogQuestion[]; exam: CatalogQuestion[] } {
+  const chapter = (mcqBank as McqChapter[]).find((item) => item.number === module.number);
+  if (!chapter || chapter.questions.length !== 15) {
+    throw new Error(`Module ${module.number} is missing its 15-question bank`);
+  }
   const pad = String(module.number).padStart(2, "0");
-  const statements = pdfStatements(module);
-  const quiz = statements.slice(0, 6).map((statement, index) =>
-    bool(`m${pad}-q${index + 1}`, "module", statement, true, ""),
+  const quiz = chapter.questions.map((question, index) =>
+    single(
+      `m${pad}-q${String(index + 1).padStart(2, "0")}`,
+      "module",
+      question.prompt,
+      question.options.map((label, optionIndex) => [label, ANSWER_LETTERS[optionIndex] === question.answer]),
+      "",
+    ),
   );
-  const exam = statements.slice(6, 10).map((statement, index) =>
-    bool(`m${pad}-e${index + 1}`, "final", statement, true, ""),
-  );
-  return { quiz, exam };
+  return { quiz, exam: [] };
 }
 
 export const PROGRAMME_MODULES: CatalogModule[] = (programme as ProgrammeModule[]).map((module) => {

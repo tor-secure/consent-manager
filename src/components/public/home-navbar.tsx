@@ -55,7 +55,16 @@ const navItems: NavEntry[] = [
   { type: "link", label: "Pricing", href: "/pricing" },
   { type: "link", label: "Tools", href: "/tools" },
   { type: "link", label: "About", href: "/about" },
-  { type: "link", label: "DPDP Act", href: "/dpdp-act" },
+  {
+    type: "group",
+    label: "DPDP Act",
+    href: "/dpdp-act",
+    items: [
+      { label: "DPDP Act", href: "/dpdp-act" },
+      { label: "DPDP compliance", href: "/dpdp-compliance" },
+      { label: "E-learning", href: "/e-learning" },
+    ],
+  },
   {
     type: "group",
     label: "Company",
@@ -64,8 +73,7 @@ const navItems: NavEntry[] = [
       { label: "Blogs", href: "/blogs" },
       { label: "News", href: "/news" },
       { label: "FAQs", href: "/faqs" },
-      { label: "DPDP Act", href: "/dpdp-act" },
-      { label: "E learning", href: "/e-learning" },
+      { label: "Compare platforms", href: "/compare" },
     ],
   },
 ];

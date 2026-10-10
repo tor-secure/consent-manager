@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusIcon } from "@/components/learning/status-icon";
@@ -28,6 +28,14 @@ type Result = {
   nextModuleUnlocked?: boolean;
 };
 
+function ArrowIcon({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" className="h-5 w-5 fill-none stroke-current stroke-2">
+      <path d={direction === "left" ? "M12.5 4.5 7 10l5.5 5.5" : "M7.5 4.5 13 10l-5.5 5.5"} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ErrorBox({ message, onRetry, retryLabel }: { message: string; onRetry?: () => void; retryLabel?: string }) {
   return (
     <div role="alert" className="flex flex-col gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 sm:flex-row sm:items-center sm:justify-between">
@@ -49,7 +57,8 @@ export function AssessmentRunner({
   passedLabel = "Continue",
   intro,
   questionCount,
-  defaultPassPercent = 80,
+  defaultPassPercent = 60,
+  autoStart = false,
 }: {
   startPath: string;
   submitBasePath: string;
@@ -59,6 +68,7 @@ export function AssessmentRunner({
   intro?: string;
   questionCount?: number;
   defaultPassPercent?: number;
+  autoStart?: boolean;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ message: string; action: "start" | "submit" } | null>(null);
@@ -69,7 +79,13 @@ export function AssessmentRunner({
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<Result | null>(null);
   const resultHeading = useRef<HTMLHeadingElement>(null);
-  const questionHeading = useRef<HTMLLegendElement>(null);
+  const questionHeading = useRef<HTMLHeadingElement>(null);
+  const submitButton = useRef<HTMLButtonElement>(null);
+  const autoStarted = useRef(false);
+  const advanceTimer = useRef<number | null>(null);
+  const submitting = useRef(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const current = questions[index];
   const answered = useMemo(() => questions.filter((question) => (answers[question.id] ?? []).length > 0).length, [answers, questions]);
@@ -78,6 +94,34 @@ export function AssessmentRunner({
   useEffect(() => {
     if (result) resultHeading.current?.focus();
   }, [result]);
+
+  useEffect(() => {
+    if (remaining === 0 && attemptId && !result) submitButton.current?.scrollIntoView({ block: "nearest" });
+  }, [remaining, attemptId, result]);
+
+  useEffect(() => {
+    function onFullscreenChange() {
+      setFullscreen(document.fullscreenElement === shellRef.current);
+    }
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", onFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (!result || !document.fullscreenElement) return;
+    void document.exitFullscreen().catch(() => undefined);
+  }, [result]);
+
+  function enterFullscreen() {
+    const node = shellRef.current;
+    if (!node || document.fullscreenElement === node) return;
+    void node.requestFullscreen().catch(() => setFullscreen(false));
+  }
+
+  function startInFullscreen() {
+    enterFullscreen();
+    void begin();
+  }
 
   async function begin() {
     setLoading(true);
@@ -106,26 +150,54 @@ export function AssessmentRunner({
     }
   }
 
-  function toggle(question: Question, optionId: string) {
-    setAnswers((currentAnswers) => {
-      const selected = currentAnswers[question.id] ?? [];
-      const next =
-        question.type === "multi"
-          ? selected.includes(optionId)
-            ? selected.filter((id) => id !== optionId)
-            : [...selected, optionId]
-          : [optionId];
-      return { ...currentAnswers, [question.id]: next };
-    });
-  }
+  useEffect(() => {
+    if (!autoStart || autoStarted.current) return;
+    autoStarted.current = true;
+    void begin();
+    // Open the questions immediately after the lesson is marked complete.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
 
   function goTo(nextIndex: number) {
+    if (advanceTimer.current) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
     setIndex(Math.min(questions.length - 1, Math.max(0, nextIndex)));
     requestAnimationFrame(() => questionHeading.current?.focus());
   }
 
+  function toggle(question: Question, optionId: string) {
+    const single = question.type !== "multi";
+    setAnswers((currentAnswers) => {
+      const selected = currentAnswers[question.id] ?? [];
+      const next = single
+        ? [optionId]
+        : selected.includes(optionId)
+          ? selected.filter((id) => id !== optionId)
+          : [...selected, optionId];
+      return { ...currentAnswers, [question.id]: next };
+    });
+    if (!single) return;
+    const questionIndex = questions.findIndex((item) => item.id === question.id);
+    if (questionIndex < 0 || questionIndex >= questions.length - 1) return;
+    if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    advanceTimer.current = window.setTimeout(() => goTo(questionIndex + 1), 280);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    };
+  }, []);
+
   async function submit() {
-    if (!attemptId) return;
+    if (!attemptId || remaining > 0 || submitting.current) return;
+    submitting.current = true;
+    if (advanceTimer.current) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -136,25 +208,27 @@ export function AssessmentRunner({
           answers: questions.map((question) => ({ questionId: question.id, optionIds: answers[question.id] ?? [] })),
         }),
       });
-      const body = await response.json();
+      const body = (await response.json().catch(() => null)) as (Result & { message?: string }) | null;
       if (response.status === 401) {
         setError({ message: "Your session expired. Sign in again. Your answers were not submitted.", action: "submit" });
         return;
       }
-      if (!response.ok) {
-        setError({ message: body.message ?? "Submission failed. Your answers are still here.", action: "submit" });
+      if (body && typeof body.percentage === "number" && Array.isArray(body.review)) {
+        setResult(body);
         return;
       }
-      setResult(body);
+      setError({ message: body?.message ?? "Submission failed. Your answers are still here.", action: "submit" });
     } catch {
       setError({ message: "Network error. Your answers were not confirmed. Try submitting again.", action: "submit" });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   }
 
+  let view: ReactNode;
   if (result) {
-    return (
+    view = (
       <section className="space-y-5" aria-labelledby="assessment-result">
         <div className={`${card} p-6 sm:p-8`}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
@@ -184,7 +258,7 @@ export function AssessmentRunner({
                 {passedLabel}
               </a>
             ) : (
-              <button type="button" className={primaryBtn} onClick={begin} disabled={loading}>
+              <button type="button" className={primaryBtn} onClick={startInFullscreen} disabled={loading}>
                 {loading ? "Starting…" : "Retry"}
               </button>
             )}
@@ -239,10 +313,15 @@ export function AssessmentRunner({
         </ol>
       </section>
     );
-  }
-
-  if (!attemptId || !current) {
-    return (
+  } else if (!attemptId || !current) {
+    if (autoStart && !error) {
+      view = (
+        <section className={`${card} p-6 sm:p-8`} aria-live="polite">
+          <h2 className="text-xl font-semibold text-[#0B2C4A]">{loading ? "Loading the quiz…" : title}</h2>
+          <p className="mt-2 text-sm text-[#4d6570]">The questions open as soon as the lesson is marked complete.</p>
+        </section>
+      );
+    } else view = (
       <section className={`${card} p-6 sm:p-8`} aria-labelledby="assessment-start">
         <p className={eyebrow}>Assessment</p>
         <h2 id="assessment-start" className="mt-2 text-xl font-semibold text-[#0B2C4A]">
@@ -255,33 +334,73 @@ export function AssessmentRunner({
             Pass mark <span className="font-semibold">{passPercent}%</span>
           </li>
           <li className="rounded-lg bg-[#f3f7f6] px-3 py-2">Answers shown after you submit</li>
+          <li className="rounded-lg bg-[#f3f7f6] px-3 py-2 sm:col-span-3">The quiz runs in fullscreen. Leave it and the questions are hidden.</li>
         </ul>
         {error ? (
           <div className="mt-4">
-            <ErrorBox message={error.message} onRetry={begin} />
+            <ErrorBox message={error.message} onRetry={startInFullscreen} />
           </div>
         ) : null}
-        <button type="button" className={`${primaryBtn} mt-6`} onClick={begin} disabled={loading} aria-busy={loading}>
-          {loading ? "Starting…" : "Start"}
+        <button type="button" className={`${primaryBtn} mt-6`} onClick={startInFullscreen} disabled={loading} aria-busy={loading}>
+          {loading ? "Starting…" : "Start in fullscreen"}
         </button>
       </section>
     );
-  }
-
+  } else if (!fullscreen) {
+    view = (
+      <section className={`${card} p-6 sm:p-8`} aria-labelledby="fullscreen-required">
+        <h2 id="fullscreen-required" className="text-xl font-semibold text-[#0B2C4A]">
+          Fullscreen is required
+        </h2>
+        <p className="mt-2 max-w-2xl text-justify text-base leading-7 text-[#36505c]">
+          The questions stay hidden until the quiz fills the screen. Your answers are kept. Press Escape or leave this tab and you will need to return here before you can continue.
+        </p>
+        {loading ? <p className="mt-4 text-sm font-semibold text-[#0B2C4A]">Submitting your answers…</p> : null}
+        {error ? (
+          <div className="mt-4">
+            <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : enterFullscreen} retryLabel={error.action === "submit" ? "Submit again" : undefined} />
+          </div>
+        ) : null}
+        <button type="button" className={`${primaryBtn} mt-6`} onClick={enterFullscreen} disabled={loading}>
+          {answered > 0 ? "Return to fullscreen" : "Enter fullscreen"}
+        </button>
+      </section>
+    );
+  } else {
   const selected = answers[current.id] ?? [];
   const multi = current.type === "multi";
   const last = index === questions.length - 1;
 
-  return (
+  view = (
     <section className="space-y-4" aria-label={title}>
       <div className={`${card} p-4 sm:p-5`}>
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-sm font-semibold text-[#0B2C4A]">
-            Question {index + 1} of {questions.length}
-          </p>
-          <p className="text-sm text-[#4d6570]" aria-live="polite">
-            {answered} of {questions.length} answered
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d5e3e0] bg-white text-[#0B2C4A] hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7] disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => goTo(index - 1)}
+            disabled={index === 0}
+            aria-label="Previous question"
+          >
+            <ArrowIcon direction="left" />
+          </button>
+          <div className="min-w-0 text-center">
+            <p className="text-sm font-semibold text-[#0B2C4A]">
+              Question {index + 1} of {questions.length}
+            </p>
+            <p className="text-sm text-[#4d6570]" aria-live="polite">
+              {answered} of {questions.length} answered
+            </p>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#d5e3e0] bg-white text-[#0B2C4A] hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7] disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => goTo(index + 1)}
+            disabled={last}
+            aria-label="Next question"
+          >
+            <ArrowIcon direction="right" />
+          </button>
         </div>
         <div className="mt-2">
           <ProgressBar value={(answered / questions.length) * 100} label="Questions answered" size="sm" showValue={false} />
@@ -313,11 +432,13 @@ export function AssessmentRunner({
         </ol>
       </div>
 
-      <fieldset className={`${card} p-5 sm:p-6`}>
-        <legend ref={questionHeading} tabIndex={-1} className="float-left w-full text-lg font-semibold leading-7 text-[#0B2C4A] focus:outline-none">
+      <div className={`${card} p-5 sm:p-6`}>
+        <h2 ref={questionHeading} tabIndex={-1} className="text-lg font-semibold leading-7 text-[#0B2C4A] focus:outline-none">
           {current.prompt}
-        </legend>
-        <p className="clear-both pt-1 text-sm text-[#4d6570]">{multi ? "Select all that apply." : "Select one answer."}</p>
+        </h2>
+        <p className="pt-1 text-sm text-[#4d6570]">
+          {multi ? "Select all that apply, then use the arrow for the next question." : "Select one answer. The next question opens on its own."}
+        </p>
         <div className="mt-4 space-y-2">
           {current.options.map((option) => {
             const isSelected = selected.includes(option.id);
@@ -340,23 +461,23 @@ export function AssessmentRunner({
             );
           })}
         </div>
-      </fieldset>
+      </div>
 
-      {error ? <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : begin} retryLabel={error.action === "submit" ? "Submit again" : undefined} /> : null}
+      {error ? <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : startInFullscreen} retryLabel={error.action === "submit" ? "Submit again" : undefined} /> : null}
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-0 z-10 flex flex-col-reverse gap-3 rounded-xl border border-[#d5e3e0] bg-[#f3f7f6]/95 px-4 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-2">
           <button type="button" className={secondaryBtn} onClick={() => goTo(index - 1)} disabled={index === 0}>
+            <ArrowIcon direction="left" />
             Previous
           </button>
-          {!last ? (
-            <button type="button" className={secondaryBtn} onClick={() => goTo(index + 1)}>
-              Next
-            </button>
-          ) : null}
+          <button type="button" className={secondaryBtn} onClick={() => goTo(index + 1)} disabled={last}>
+            Next
+            <ArrowIcon direction="right" />
+          </button>
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
-          <button type="button" className={primaryBtn} onClick={submit} disabled={loading || remaining > 0} aria-busy={loading} aria-describedby="submit-hint">
+          <button ref={submitButton} type="button" className={primaryBtn} onClick={submit} disabled={loading || remaining > 0} aria-busy={loading} aria-describedby="submit-hint">
             {loading ? "Submitting…" : "Submit answers"}
           </button>
           <p id="submit-hint" className="text-xs text-[#4d6570]">
@@ -365,5 +486,15 @@ export function AssessmentRunner({
         </div>
       </div>
     </section>
+  );
+  }
+
+  return (
+    <div
+      ref={shellRef}
+      className={fullscreen ? "h-full overflow-y-auto bg-[#f3f7f6] px-4 py-6 text-[#0B2C4A] sm:px-8" : undefined}
+    >
+      <div className={fullscreen ? "mx-auto max-w-3xl" : undefined}>{view}</div>
+    </div>
   );
 }

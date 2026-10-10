@@ -12,9 +12,7 @@ export const DPO_KICKER = "DPO-as-a-Service";
 export const regulations = [
   { name: "GDPR", note: "EU / EEA" },
   { name: "DPDP Act", note: "India" },
-  { name: "CCPA / CPRA", note: "California" },
-  { name: "LGPD", note: "Brazil" },
-  { name: "Other frameworks", note: "Where they apply to you" },
+  { name: "PDPL", note: "Saudi Arabia" },
 ];
 
 export const problems = [

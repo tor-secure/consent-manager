@@ -63,7 +63,30 @@ export function softwareApplicationSchema() {
     url: SITE_URL,
     description: DEFAULT_DESCRIPTION,
     image: `${SITE_URL}${SHARE_IMAGE_PATH}`,
+    featureList: [
+      "Purpose-level consent collection",
+      "Cookie consent banner and privacy preference center",
+      "Consent records, receipts, and evidence snapshots",
+      "Consent enforcement for mapped scripts and trackers",
+      "Consent analytics",
+      "Consent API, SDK, and signed webhooks",
+      "Workflows for DPDP, GDPR, and CCPA/CPRA preference models",
+    ],
     provider: { "@id": ORGANIZATION_ID },
+  };
+}
+
+export function courseSchema(input: { name: string; description: string }) {
+  return {
+    "@type": "Course",
+    "@id": `${SITE_URL}/e-learning#course`,
+    name: input.name,
+    description: input.description,
+    url: `${SITE_URL}/e-learning`,
+    inLanguage: "en-IN",
+    provider: { "@id": ORGANIZATION_ID },
+    educationalCredentialAwarded: "Certificate of completion",
+    timeRequired: "P30D",
   };
 }
 

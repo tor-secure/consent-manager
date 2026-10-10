@@ -1,33 +1,21 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
+import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
 import { primaryBtn } from "@/components/learning/ui";
 
 export function EnrollButton({ moduleCount }: { moduleCount: number }) {
-  const router = useRouter();
-  const [saving, setSaving] = useState(false);
-  const [refreshing, startRefresh] = useTransition();
+  const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
-  const pending = saving || refreshing;
 
-  async function enroll() {
+  function enroll() {
     if (pending) return;
-    setSaving(true);
     setError("");
-    try {
-      const response = await fetch("/api/learning/enroll", { method: "POST" });
-      if (!response.ok) {
-        setError("Enrollment could not be saved. Try again.");
-        return;
-      }
-      startRefresh(() => router.refresh());
-    } catch {
-      setError("Network error. Check your connection and try again.");
-    } finally {
-      setSaving(false);
-    }
+    startTransition(async () => {
+      const result = await enrollInDpdpCourse();
+      if (result.error) setError(result.error);
+    });
   }
 
   return (
@@ -43,7 +31,7 @@ export function EnrollButton({ moduleCount }: { moduleCount: number }) {
         {pending ? (
           <>
             <span aria-hidden="true" className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white motion-safe:animate-spin" />
-            {saving ? "Enrolling…" : "Opening course…"}
+            Enrolling…
           </>
         ) : (
           "Enroll"

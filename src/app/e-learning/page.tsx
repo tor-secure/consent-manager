@@ -1,19 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { auth } from "@clerk/nextjs/server";
 
 import { EnrollButton } from "@/components/learning/enroll-button";
 import { ModuleCards } from "@/components/learning/module-cards";
+import { VerifyCertificateForm } from "@/components/learning/verify-certificate-form";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusIcon } from "@/components/learning/status-icon";
-import { card, eyebrow, pad, primaryBtn, secondaryBtn, textLink } from "@/components/learning/ui";
+import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { JsonLd } from "@/components/seo/json-ld";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
+import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-data";
 import { learnerPageContext } from "@/lib/learning/page-context";
-import { getCourseHome, warmLearningCatalog } from "@/lib/learning/service";
+import { getCourseHome, getPublicCourseCatalog, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
 
-const title = "E-learning — DPDP Act";
+const title = "DPDP Act Training";
 const description =
-  "Thirty-module DPDP Act 2023 training with quizzes, a final examination, and a certificate of completion.";
+  "A 30-module course on the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025. Passing earns a certificate of completion from Consent Guru, not a government or university accreditation.";
 
 export const metadata: Metadata = {
   title,
@@ -33,7 +37,15 @@ type CourseInfo = {
   examQuestionCount: number;
 };
 
-function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode; note?: ReactNode }) {
+const courseHighlights = [
+  "30 modules, about 15 minutes each",
+  "A video, a lesson, and a 5-question quiz in every module",
+  "Modules unlock in order, and your progress is saved",
+  "A 60-question final exam: two questions from each module, in a random order",
+  "A certificate when you pass",
+];
+
+function Hero({ course, action, note, pitch }: { course: CourseInfo; action: ReactNode; note?: ReactNode; pitch?: boolean }) {
   const facts = [
     ["Modules", String(course.moduleCount)],
     ["Duration", "30 days, 15 min a day"],
@@ -46,9 +58,23 @@ function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode;
         <div className="min-w-0">
           <p className={eyebrow}>DPDP Act 2023 training</p>
           <h1 className="mt-2 max-w-3xl text-2xl font-semibold leading-tight text-[#0B2C4A] sm:text-[2rem] sm:leading-[1.2]">
-            {course.title}
+            {pitch ? "DPDP Act training" : course.title}
           </h1>
-          <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#36505c]">{course.description}</p>
+          <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
+            {pitch
+              ? "A 30-module course on the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025. Plan on about 15 minutes a day. Passing earns a certificate of completion from Consent Guru. It is not a government, university, or Data Protection Board accreditation."
+              : course.description}
+          </p>
+          {pitch ? (
+            <ul className="mt-4 max-w-3xl space-y-2">
+              {courseHighlights.map((item) => (
+                <li key={item} className="flex gap-3 text-[15px] leading-6 text-[#0B2C4A]">
+                  <span aria-hidden="true" className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
         <div className="flex flex-col items-start gap-2 lg:items-end">
           {action}
@@ -66,6 +92,58 @@ function Hero({ course, action, note }: { course: CourseInfo; action: ReactNode;
           </div>
         ))}
       </dl>
+    </section>
+  );
+}
+
+function BeforeYouStart({ disclaimer, passPercent, examPassPercent }: { disclaimer: string; passPercent: number; examPassPercent: number }) {
+  const body = disclaimer.replace(/^Legal status note:\s*/, "");
+  const [status, educational] = body.split(/(?=This training material)/);
+  const prerequisites = [
+    "A Consent Guru account, so your progress, quizzes, and certificate stay with you.",
+    "No earlier DPDP module. This foundation programme begins with privacy, data protection, and the terms used in the Act.",
+    "About 15 minutes a day for 30 days.",
+    `A score of ${passPercent}% or more on each module quiz. The final exam passes at ${examPassPercent}%.`,
+  ];
+  return (
+    <section aria-labelledby="before-you-start" className={`${card} space-y-6 p-6 sm:p-8`}>
+      <div>
+        <h2 id="before-you-start" className="text-xl font-semibold text-[#0B2C4A]">Before you start</h2>
+        <p className="mt-2 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
+          Read this before you enrol. It is the note from the first page of the programme, with what you need in place to begin.
+        </p>
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-[#0B2C4A]">Prerequisites</h3>
+        <ul className="mt-3 max-w-3xl space-y-2.5">
+          {prerequisites.map((item) => (
+            <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
+              <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
+              <span className="min-w-0 flex-1 text-justify">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h3 className="text-base font-semibold text-[#0B2C4A]">Disclaimer</h3>
+        <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#0B2C4A]">
+          <strong className="font-semibold">Legal status note: </strong>
+          {status}
+        </p>
+        {educational ? <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#0B2C4A]">{educational}</p> : null}
+      </div>
+    </section>
+  );
+}
+
+function VerifyCertificate() {
+  return (
+    <section aria-labelledby="verify-certificate" className={`${card} p-6 sm:p-8`}>
+      <h2 id="verify-certificate" className="text-xl font-semibold text-[#0B2C4A]">Verify a certificate</h2>
+      <p className="mt-2 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
+        Enter the certificate ID printed on a Consent Guru DPDP certificate. A valid certificate is good for one year from the date it was issued.
+      </p>
+      <VerifyCertificateForm />
     </section>
   );
 }
@@ -109,34 +187,83 @@ function AchievementCard({
 
 export default async function DpdpCoursePage() {
   const catalogReady = warmLearningCatalog();
-  const learner = await learnerPageContext();
-  const home = await getCourseHome(learner);
-  await catalogReady;
-
-  if (!home.enrolled) {
+  const session = await auth();
+  if (!session.userId) {
+    const home = await getPublicCourseCatalog();
+    await catalogReady;
+    const courseLd = graphSchema([
+      courseSchema({
+        name: home.course.title || "DPDP Act training",
+        description,
+      }),
+      breadcrumbSchema([
+        { name: "Home", path: "/" },
+        { name: "DPDP Act training", path: "/e-learning" },
+      ]),
+    ]);
     return (
       <div className="space-y-8 text-[#0B2C4A]">
-        <Hero
-          course={home.course}
-          action={<EnrollButton moduleCount={home.course.moduleCount} />}
-          note={<p className="text-sm text-[#4d6570]">Your progress is saved to your account.</p>}
-        />
+        <JsonLd id="dpdp-course-jsonld" data={courseLd} />
+        <Hero course={home.course} pitch action={<EnrollButton moduleCount={home.course.moduleCount} />} />
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
+        <VerifyCertificate />
         <section aria-labelledby="curriculum-heading" className="space-y-4">
           <div>
-            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">Curriculum</h2>
+            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">
+              Curriculum
+            </h2>
             <p className="mt-1 text-sm text-[#4d6570]">
-              {home.course.moduleCount} modules, each with a video, a lesson, and a quiz. Modules unlock in order.
+              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Sign in to enrol. Lessons stay private to your account.
             </p>
           </div>
           <ModuleCards modules={home.modules} />
         </section>
-        <Disclaimer text={home.course.disclaimer} reviewed={home.course.lastReviewedOn} />
+      </div>
+    );
+  }
+
+  const learner = await learnerPageContext();
+  const home = await getCourseHome(learner);
+  await catalogReady;
+
+  const courseLd = graphSchema([
+    courseSchema({
+      name: home.course.title || "DPDP Act training",
+      description,
+    }),
+    breadcrumbSchema([
+      { name: "Home", path: "/" },
+      { name: "DPDP Act training", path: "/e-learning" },
+    ]),
+  ]);
+
+  if (!home.enrolled) {
+    return (
+      <div className="space-y-8 text-[#0B2C4A]">
+        <JsonLd id="dpdp-course-jsonld" data={courseLd} />
+        <Hero
+          course={home.course}
+          pitch
+          action={<EnrollButton moduleCount={home.course.moduleCount} />}
+        />
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
+        <VerifyCertificate />
+        <section aria-labelledby="curriculum-heading" className="space-y-4">
+          <div>
+            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">Curriculum</h2>
+            <p className="mt-1 text-sm text-[#4d6570]">
+              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Modules unlock in order. The final exam is {home.course.examQuestionCount} questions: two from each module, in a random order.
+            </p>
+          </div>
+          <ModuleCards modules={home.modules} />
+        </section>
       </div>
     );
   }
 
   const { progress } = home;
   const current = home.modules.find((item) => item.status === "in_progress" || item.status === "available");
+  if (current) warmModuleLesson(current.slug).catch(() => undefined);
   const allModulesDone = progress.completedModules >= progress.totalModules;
   const primary = progress.certificateEligible
     ? { href: "/e-learning/certificate", label: "View certificate" }
@@ -148,6 +275,7 @@ export default async function DpdpCoursePage() {
 
   return (
     <div className="space-y-8 text-[#0B2C4A]">
+      <JsonLd id="dpdp-course-jsonld" data={courseLd} />
       <Hero
         course={home.course}
         action={
@@ -156,6 +284,11 @@ export default async function DpdpCoursePage() {
           </Link>
         }
       />
+
+      {progress.completedModules === 0 && !current?.lessonComplete ? (
+        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
+      ) : null}
+      <VerifyCertificate />
 
       <section aria-labelledby="continue-heading" className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className={`${card} flex flex-col p-6`}>
@@ -188,7 +321,7 @@ export default async function DpdpCoursePage() {
               <p className="mt-2 text-sm text-[#4d6570]">
                 {progress.certificateEligible
                   ? "Your certificate of completion is ready."
-                  : `Pass the final examination with ${home.course.passPercent}% or more to earn your certificate.`}
+                  : `Pass the final examination with ${home.course.examPassPercent}% or more to earn your certificate.`}
               </p>
               <div className="mt-5">
                 <Link href={primary.href} className={primaryBtn}>
@@ -243,7 +376,7 @@ export default async function DpdpCoursePage() {
             done={progress.examPassed}
             locked={!allModulesDone}
             state={progress.examPassed ? `Passed with ${progress.examPercentage}%` : allModulesDone ? "Ready to take" : "Locked"}
-            detail={`${home.course.examQuestionCount} questions across all modules.`}
+            detail={`${home.course.examQuestionCount} questions: two from each module, in a random order.`}
             action={
               allModulesDone && !progress.examPassed ? (
                 <Link href="/e-learning/final-exam" className={secondaryBtn}>
@@ -269,15 +402,9 @@ export default async function DpdpCoursePage() {
         </div>
       </section>
 
-      {learner.operator ? (
-        <p>
-          <Link href="/e-learning/manage" className={textLink}>
-            Manage course content and learner progress
-          </Link>
-        </p>
-      ) : null}
-
-      <Disclaimer text={home.course.disclaimer} reviewed={home.course.lastReviewedOn} />
+      {progress.completedModules === 0 && !current?.lessonComplete ? null : (
+        <Disclaimer text={home.course.disclaimer} reviewed={home.course.lastReviewedOn} />
+      )}
     </div>
   );
 }

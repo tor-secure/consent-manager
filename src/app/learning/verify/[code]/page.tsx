@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CertificateDocument } from "@/components/learning/certificate-document";
+import { secondaryBtn } from "@/components/learning/ui";
 import { certificateQrSvg } from "@/lib/learning/qr-svg";
 import { verifyCertificate } from "@/lib/learning/service";
 
@@ -36,8 +37,8 @@ export default async function VerifyCertificatePage({ params }: PageProps) {
             {certificate.learnerName} is {certificate.programLine}. Certificate ID {certificate.certificateCode}.
           </p>
         </div>
-        <Link href="/" className="text-sm font-semibold text-[#0B2C4A] underline decoration-[#00C4A7] underline-offset-4">
-          Consent Guru
+        <Link href="/" className={secondaryBtn}>
+          Homepage
         </Link>
       </div>
       <CertificateDocument certificate={certificate} qrSvg={qrSvg} />

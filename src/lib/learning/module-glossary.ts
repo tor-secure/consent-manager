@@ -1,0 +1,386 @@
+/** Glossary and organisation action for each module, from DPDP_30_Modules_Glossary_Organisation_Do.pdf. */
+
+export type GlossaryTerm = { term: string; definition: string };
+
+export type ModuleGlossary = {
+  terms: GlossaryTerm[];
+  before: string;
+  organisationAction: string;
+};
+
+export const MODULE_GLOSSARIES: Record<number, ModuleGlossary> = {
+  1: {
+    terms: [
+      { term: "Privacy", definition: "Appropriate control over information relating to an individual." },
+      { term: "Data Protection", definition: "The legal, organisational and procedural framework for responsible handling of personal data." },
+      { term: "Cybersecurity", definition: "Technical and operational measures used to protect information and systems." },
+      { term: "Personal Data", definition: "Information relating to an identifiable individual." },
+      { term: "Data Lifecycle", definition: "The journey of data from collection through use, storage, sharing, retention and deletion." },
+      { term: "Data Inventory", definition: "A structured record of what personal data an organisation holds and where it is located." },
+    ],
+    before: "Before this module, the learner should have a basic understanding of personal information, digital systems, databases, information security and how organisations collect and use customer, employee or citizen information.",
+    organisationAction: "The organisation should begin by understanding what personal data it collects, where that data is stored, why it is processed, who can access it and how long it is retained. It should establish a basic data inventory, identify responsible owners, map important data flows and connect privacy requirements with cybersecurity controls such as access management, MFA, encryption, logging and incident response. Privacy should be treated as an organisational responsibility involving business, Legal, HR, IT, cybersecurity and management rather than as an issue belonging only to the IT department.",
+  },
+  2: {
+    terms: [
+      { term: "Act", definition: "The primary legislation establishing the DPDP legal framework." },
+      { term: "Rules", definition: "Detailed rules providing operational requirements under the Act." },
+      { term: "Commencement", definition: "The date from which a particular provision becomes legally operative." },
+      { term: "Notification", definition: "Formal Government publication of a legal instrument or commencement decision." },
+      { term: "Compliance Tracker", definition: "A record linking legal requirements with owners, controls, dates and evidence." },
+      { term: "Legal-Control Matrix", definition: "A mapping between statutory requirements and organisational controls." },
+    ],
+    before: "Learners should understand the basic concepts of legislation, rules, statutory provisions and organisational compliance.",
+    organisationAction: "The organisation should maintain a live register of the DPDP Act and Rules, identify the commencement status of each applicable provision and translate legal requirements into specific policies, processes, technical controls and evidence. Instead of waiting for a provision to become operational, management should establish a phased implementation roadmap, assign responsibility to appropriate teams, monitor Government notifications and periodically test whether controls are ready before their relevant commencement dates.",
+  },
+  3: {
+    terms: [
+      { term: "Data Principal", definition: "The individual to whom personal data relates." },
+      { term: "Data Fiduciary", definition: "The person who determines the purpose and means of processing personal data." },
+      { term: "Data Processor", definition: "A person who processes personal data on behalf of a Data Fiduciary." },
+      { term: "Processing", definition: "Operations performed on personal data, including collection, storage, use, sharing, retrieval and deletion." },
+      { term: "Personal Data Breach", definition: "A breach involving compromise of personal data." },
+      { term: "Consent Manager", definition: "An entity providing consent-management functions under the framework." },
+      { term: "Significant Data Fiduciary", definition: "A Data Fiduciary subject to additional obligations under the Act." },
+    ],
+    before: "Learners should understand the basic distinction between an individual, an organisation, a vendor and personal information.",
+    organisationAction: "The organisation should establish one common privacy vocabulary and ensure that Legal, business, HR, IT, cybersecurity and procurement teams use statutory terminology consistently. Every major processing activity should be mapped to the relevant Data Principal, Data Fiduciary, Data Processor, purpose and data category. This classification should become the foundation for contracts, access controls, rights management, breach response, retention and compliance reporting.",
+  },
+  4: {
+    terms: [
+      { term: "Applicability", definition: "Whether the DPDP framework applies to a particular processing activity." },
+      { term: "Territorial Scope", definition: "The geographical circumstances in which the Act applies." },
+      { term: "Processing in India", definition: "Processing activities falling within the statutory scope connected with India." },
+      { term: "Offering Goods or Services", definition: "A relevant connection for certain processing outside India." },
+      { term: "Exemption", definition: "A statutory circumstance in which specified provisions do not apply or apply differently." },
+      { term: "Cross-Border Processing", definition: "Processing involving systems, people or infrastructure across jurisdictions." },
+    ],
+    before: "Learners should understand processing activities, data location, individuals' location and basic concepts of territorial jurisdiction.",
+    organisationAction: "The organisation should assess DPDP applicability for each significant processing activity rather than relying only on server location or corporate headquarters. It should document where the Data Principal is located, where data is collected and processed, which services are offered, where processors and support personnel are located and whether a specific statutory exemption applies. Every exemption or non-applicability decision should be documented with its legal basis, factual assumptions and review date.",
+  },
+  5: {
+    terms: [
+      { term: "Personal Data", definition: "Information relating to an identifiable individual." },
+      { term: "Digital Personal Data", definition: "Personal data in digital form." },
+      { term: "Direct Identification", definition: "Identification using information such as a name, mobile number or account identifier." },
+      { term: "Indirect Identification", definition: "Identification through combinations of information." },
+      { term: "Data Minimisation", definition: "Limiting collection to information that is justified for the relevant purpose." },
+      { term: "Data Discovery", definition: "Finding personal data across databases, applications, files and other repositories." },
+    ],
+    before: "Learners should understand basic databases, applications, identifiers and the difference between structured and unstructured information.",
+    organisationAction: "The organisation should identify personal data throughout its entire digital environment, including production databases, applications, cloud platforms, spreadsheets, logs, analytics systems, backups and employee-held copies. For every important category, it should document the purpose, source, users, recipients, retention period and safeguards. Unnecessary fields, permissions and duplicated copies should be removed, while masking, tokenisation or other appropriate controls should be considered where they reduce exposure without affecting legitimate business needs.",
+  },
+  6: {
+    terms: [
+      { term: "Data Principal", definition: "The individual to whom personal data relates." },
+      { term: "Right to Access", definition: "The applicable right to obtain information concerning personal data and processing." },
+      { term: "Correction", definition: "Updating or correcting inaccurate or incomplete personal data." },
+      { term: "Erasure", definition: "Removal of personal data where the applicable conditions permit it." },
+      { term: "Grievance Redressal", definition: "A mechanism through which an individual can raise a complaint." },
+      { term: "Nomination", definition: "The statutory mechanism allowing a Data Principal to nominate another individual in accordance with the framework." },
+      { term: "Identity Verification", definition: "Establishing that the person making a request is the legitimate Data Principal." },
+    ],
+    before: "Learners should understand personal data, Data Fiduciary and basic customer-service/request-management processes.",
+    organisationAction: "The organisation should create secure, visible and trackable mechanisms through which Data Principals can exercise their applicable rights. Each request should be authenticated appropriately, classified, routed to the correct business or processor, investigated, answered securely and supported by an auditable record of the decision. Rights management should be integrated with data discovery, retention rules, processor management and cybersecurity so that responding to a legitimate request does not itself create a privacy or security incident.",
+  },
+  7: {
+    terms: [
+      { term: "Purpose", definition: "The reason for which personal data is processed." },
+      { term: "Means", definition: "The manner and mechanisms through which processing is carried out." },
+      { term: "Data Fiduciary", definition: "The entity determining the purpose and means of processing." },
+      { term: "Accountability", definition: "Responsibility for ensuring that processing complies with applicable requirements." },
+      { term: "Lawful Processing", definition: "Processing carried out through an applicable legal route." },
+      { term: "Processor Management", definition: "Governance of organisations processing data on behalf of the Fiduciary." },
+    ],
+    before: "Learners should understand the difference between a business owner, service provider and technology vendor.",
+    organisationAction: "The organisation should clearly identify who acts as the Data Fiduciary for each major processing activity and assign accountable owners for the associated obligations. It should document processing purposes, applicable legal routes, processors, security safeguards, retention requirements, rights mechanisms and evidence. Outsourcing should never be treated as a transfer of accountability; management should retain visibility over the entire processing chain and regularly verify that contractual commitments are reflected in actual technical and operational controls.",
+  },
+  8: {
+    terms: [
+      { term: "Data Processor", definition: "A person processing personal data on behalf of a Data Fiduciary." },
+      { term: "Processor Agreement", definition: "Contractual provisions governing the processor's processing responsibilities." },
+      { term: "Subprocessor", definition: "A third party engaged by a processor to perform processing activities." },
+      { term: "Due Diligence", definition: "Assessment performed before and during a vendor relationship." },
+      { term: "Least Privilege", definition: "Providing only the access necessary to perform an assigned function." },
+      { term: "Exit Management", definition: "Processes for access removal, data return or deletion when a relationship ends." },
+    ],
+    before: "Learners should understand outsourcing, cloud services, vendor contracts and basic access-control concepts.",
+    organisationAction: "The organisation should maintain a complete processor inventory and assess each processor according to the data handled, access provided, processing purpose, security posture and subcontracting arrangements. Contracts should clearly establish relevant responsibilities, while technical controls should enforce least privilege, MFA, monitoring, secure interfaces and timely access revocation. Processor governance should continue throughout the relationship and conclude with verified data return or deletion and closure of unnecessary access.",
+  },
+  9: {
+    terms: [
+      { term: "Consent", definition: "A legally recognised permission for processing meeting statutory requirements." },
+      { term: "Free", definition: "Consent should not be improperly constrained." },
+      { term: "Specific", definition: "Consent should relate to a defined purpose." },
+      { term: "Informed", definition: "The individual should understand the relevant processing." },
+      { term: "Unambiguous", definition: "The individual's decision should be clear." },
+      { term: "Affirmative Action", definition: "A clear action indicating the individual's decision." },
+      { term: "Withdrawal", definition: "Reversal of previously provided consent." },
+      { term: "Consent Evidence", definition: "Records demonstrating what was presented and what decision was made." },
+    ],
+    before: "Learners should understand notices, user interfaces, permissions and the distinction between agreeing to a service and consenting to a particular processing purpose.",
+    organisationAction: "The organisation should review every consent mechanism to ensure that the purpose is clearly defined, the information presented is understandable and the individual's affirmative action can be reliably demonstrated. Consent records should preserve relevant notice versions, timestamps, purpose information and withdrawal status. Withdrawal should be practical and should propagate through relevant systems and processors, subject to applicable legal requirements for continued processing.",
+  },
+  10: {
+    terms: [
+      { term: "Notice", definition: "Information provided to a Data Principal about relevant processing." },
+      { term: "Standalone Notice", definition: "A notice capable of being understood independently." },
+      { term: "Plain Language", definition: "Language that an ordinary user can reasonably understand." },
+      { term: "Purpose", definition: "The reason for processing." },
+      { term: "Transparency", definition: "Clear communication about processing." },
+      { term: "Informed Consent", definition: "Consent made after the individual receives relevant information." },
+    ],
+    before: "Learners should understand consent and basic principles of communicating information to customers or users.",
+    organisationAction: "The organisation should review and redesign privacy notices so that they clearly identify relevant personal data, purposes and applicable mechanisms for exercising rights, withdrawing consent and raising complaints. Notices should be consistent across websites, applications, forms and APIs, and the organisation should verify that actual technical behaviour matches what the notice says. Notices should also be version-controlled so that the organisation can demonstrate what information was presented at a particular point in time.",
+  },
+  11: {
+    terms: [
+      { term: "Legitimate Use", definition: "A statutory route permitting specified processing without relying on consent under Section 6." },
+      { term: "Specified Circumstance", definition: "The particular statutory condition supporting the processing." },
+      { term: "Purpose Limitation", definition: "Restricting processing to the relevant purpose." },
+      { term: "Function Creep", definition: "Gradual expansion of data use beyond the original purpose." },
+      { term: "Secondary Use", definition: "Use of already collected information for another purpose." },
+      { term: "Purpose Register", definition: "Record of processing purposes and their applicable legal basis." },
+    ],
+    before: "Learners should understand consent, lawful processing, purpose limitation and the distinction between primary and secondary uses.",
+    organisationAction: "The organisation should create a legitimate-use register identifying the exact statutory circumstance, processing purpose, data involved, responsible owner, recipients, retention period and safeguards. Business teams should not assume that possession of personal data automatically permits a new use. Every material secondary use should undergo an appropriate privacy and legal review to prevent function creep and to ensure that security, retention and accountability obligations continue to be addressed.",
+  },
+  12: {
+    terms: [
+      { term: "Accountability", definition: "Demonstrable responsibility for compliant processing." },
+      { term: "Reasonable Security Safeguards", definition: "Appropriate technical and organisational measures to protect personal data." },
+      { term: "Accuracy", definition: "Maintaining relevant personal data appropriately where required." },
+      { term: "Retention", definition: "Keeping data for an appropriate period." },
+      { term: "Erasure", definition: "Removing data when applicable requirements are satisfied." },
+      { term: "Grievance Mechanism", definition: "Process for receiving and addressing complaints." },
+      { term: "Evidence", definition: "Records demonstrating that controls operate in practice." },
+    ],
+    before: "Learners should understand the Data Fiduciary, Data Processor, security, retention and rights concepts covered in earlier modules.",
+    organisationAction: "The organisation should build an enterprise privacy-control framework covering data inventory, purposes, processors, security safeguards, accuracy, retention, erasure, contact mechanisms, rights and grievances. Each obligation should have a named owner, documented process, appropriate technical control and evidence demonstrating operation. Management should periodically review whether the controls actually work rather than relying solely on policies, contracts or statements of intent.",
+  },
+  13: {
+    terms: [
+      { term: "Child", definition: "An individual falling within the statutory definition of a child." },
+      { term: "Parental Consent", definition: "Consent obtained through the mechanism prescribed for processing children's data." },
+      { term: "Verifiable Consent", definition: "A process designed to establish the required parental authorisation." },
+      { term: "Age Assurance", definition: "Measures used to establish or assess age." },
+      { term: "Tracking", definition: "Monitoring an individual's activity or behaviour." },
+      { term: "Targeted Advertising", definition: "Advertising directed using information about an individual's characteristics or behaviour." },
+    ],
+    before: "Learners should understand personal data, consent, Data Principal rights and basic digital-platform practices such as accounts, tracking and advertising.",
+    organisationAction: "The organisation should identify services that may be used by children and build child-specific privacy controls into product design rather than adding them after deployment. It should establish appropriate age-assurance and parental-verification mechanisms, restrict prohibited or inappropriate tracking and advertising practices, minimise the information collected and ensure that access is limited to authorised personnel. Child safety should be integrated with privacy, cybersecurity, product design and governance rather than treated as a separate compliance exercise.",
+  },
+  14: {
+    terms: [
+      { term: "Significant Data Fiduciary (SDF)", definition: "A Data Fiduciary subject to additional statutory obligations." },
+      { term: "Data Protection Officer (DPO)", definition: "The designated privacy accountability role applicable to the relevant organisation." },
+      { term: "Independent Data Auditor", definition: "An auditor responsible for applicable independent assessment." },
+      { term: "DPIA", definition: "Data Protection Impact Assessment." },
+      { term: "Algorithmic Software", definition: "Software using algorithmic processes that may require additional assessment." },
+      { term: "Board Oversight", definition: "Management-level supervision of privacy risk and compliance." },
+    ],
+    before: "Learners should understand the Data Fiduciary, governance, risk management, DPIA and audit concepts.",
+    organisationAction: "An organisation that is or may become a Significant Data Fiduciary should establish enhanced governance covering the DPO, independent audit, DPIA, security, algorithmic due diligence, risk reporting and senior management oversight. Responsibilities should be clearly documented, assessment and audit calendars should be maintained, and significant findings should be escalated to appropriate decision-makers. Where AI or algorithmic systems are used, the organisation should assess privacy, accuracy, security, transparency and potential impacts on Data Principals before and during deployment.",
+  },
+  15: {
+    terms: [
+      { term: "Access Right", definition: "The applicable right to obtain information about personal data and processing." },
+      { term: "Correction", definition: "Updating inaccurate or incomplete information." },
+      { term: "Erasure", definition: "Removal where permitted under the framework." },
+      { term: "Grievance", definition: "A complaint concerning processing or exercise of rights." },
+      { term: "Nomination", definition: "The statutory right to nominate another individual." },
+      { term: "Rights Workflow", definition: "Organisational process for receiving, verifying, processing and responding to requests." },
+    ],
+    before: "Learners should understand the Data Principal and basic identity-verification and customer-request processes.",
+    organisationAction: "The organisation should publish clear mechanisms for Data Principal rights and ensure that requests can be securely authenticated, tracked, investigated and resolved. Rights workflows should connect to databases, processors, retention rules and business owners so that the organisation can locate relevant information and determine what action is legally appropriate. Every request should leave an evidence trail showing the request, verification, decision, communication and any corrective or deletion action taken.",
+  },
+  16: {
+    terms: [
+      { term: "Duty of the Data Principal", definition: "Responsibilities placed on the individual under the statutory framework." },
+      { term: "Authentic Information", definition: "Information that is not knowingly false or misleading." },
+      { term: "Impersonation", definition: "Misrepresenting oneself as another individual." },
+      { term: "Fraudulent Request", definition: "A request made using false identity or deceptive information." },
+      { term: "Abuse of Rights Mechanism", definition: "Misuse of legitimate rights processes." },
+    ],
+    before: "Learners should understand the rights of Data Principals and why identity verification is important in privacy workflows.",
+    organisationAction: "The organisation should design rights and identity-management processes that protect genuine Data Principals while detecting impersonation, fraudulent requests and misuse of privacy mechanisms. Authentication should be proportionate to the sensitivity and risk of the request, and suspicious activity should be escalated through appropriate security processes. The organisation should educate users about responsible use of privacy mechanisms while ensuring that fraud-prevention controls do not unnecessarily obstruct legitimate rights.",
+  },
+  17: {
+    terms: [
+      { term: "Cross-Border Processing", definition: "Processing involving another country or jurisdiction." },
+      { term: "International Data Flow", definition: "Movement or access to personal data across national boundaries." },
+      { term: "Remote Access", definition: "Access to data from another location or country." },
+      { term: "Overseas Processor", definition: "A processor located outside India." },
+      { term: "Data Transfer", definition: "Transmission or making data available across jurisdictions." },
+      { term: "Key Management", definition: "Management and protection of encryption keys." },
+    ],
+    before: "Learners should understand data flows, cloud computing, processors, remote access and basic international technology architecture.",
+    organisationAction: "The organisation should map all international data flows, including cloud hosting, backups, overseas processors, support teams, subprocessors and remote administrative access. It should distinguish physical storage from actual access and processing, assess applicable restrictions and contractual requirements, and document the legal and technical basis for the arrangement. International access should be monitored and appropriately protected through access controls, encryption, logging, privileged-access management and vendor governance.",
+  },
+  18: {
+    terms: [
+      { term: "Statutory Exemption", definition: "A specific legal circumstance in which identified provisions do not apply or apply differently." },
+      { term: "Exempt Processing", definition: "Processing falling within an applicable exemption." },
+      { term: "Legal Basis", definition: "The provision relied upon to justify processing." },
+      { term: "Scope of Exemption", definition: "The precise processing covered by the exemption." },
+      { term: "Research/Archiving/Statistics", definition: "Processing activities addressed within the relevant exemption framework." },
+    ],
+    before: "Learners should understand applicability, processing purposes, statutory provisions and the difference between an exemption and general non-compliance.",
+    organisationAction: "The organisation should document every exemption decision by identifying the precise statutory provision, processing purpose, data involved, people with access, safeguards, retention period and reasoning. Exemptions should be interpreted narrowly and should never be treated as a blanket waiver from privacy or cybersecurity responsibilities. Where the purpose or processing activity changes, the organisation should reassess whether the exemption continues to apply.",
+  },
+  19: {
+    terms: [
+      { term: "Security Safeguard", definition: "A technical or organisational measure protecting personal data." },
+      { term: "Encryption", definition: "Protection of information by transforming it into an encoded form." },
+      { term: "Masking", definition: "Concealing portions of information from unnecessary exposure." },
+      { term: "Tokenisation", definition: "Replacing sensitive information with tokens." },
+      { term: "Access Control", definition: "Restricting access to authorised users." },
+      { term: "Logging", definition: "Recording system and user activities." },
+      { term: "Monitoring", definition: "Observing systems for suspicious or abnormal activity." },
+      { term: "Backup", definition: "A recoverable copy of information or systems." },
+    ],
+    before: "Learners should have basic knowledge of cybersecurity, IAM, authentication, networks, databases and incident response.",
+    organisationAction: "The organisation should perform a structured security-gap assessment against the safeguards relevant to its personal-data environment and verify that controls operate effectively. The security architecture should use layered protection including access control, MFA, encryption, masking or tokenisation where appropriate, logging, monitoring, backups, secure configuration, vulnerability management and incident response. Controls should be risk-based, regularly tested and supported by evidence rather than assumed to be effective simply because a policy exists.",
+  },
+  20: {
+    terms: [
+      { term: "Personal Data Breach", definition: "Unauthorised or accidental compromise affecting personal data." },
+      { term: "Incident", definition: "A security or privacy event requiring investigation." },
+      { term: "Containment", definition: "Actions taken to limit further impact." },
+      { term: "Forensics", definition: "Examination of evidence to understand an incident." },
+      { term: "Impact Assessment", definition: "Determining what data, systems and individuals were affected." },
+      { term: "Notification", definition: "Communication required under the applicable framework." },
+      { term: "Remediation", definition: "Actions taken to correct weaknesses and prevent recurrence." },
+    ],
+    before: "Learners should understand cybersecurity incidents, logging, evidence preservation, containment and basic incident-response processes.",
+    organisationAction: "The organisation should maintain a documented and tested personal-data breach playbook covering detection, triage, containment, evidence preservation, forensic investigation, impact assessment, notification, remediation and lessons learned. The playbook should address not only hacking but also accidental disclosure, lost devices, misconfiguration, insider activity and processor incidents. Responsibilities between Privacy, Legal, Cybersecurity, IT, management and processors should be established in advance and tested through periodic simulations.",
+  },
+  21: {
+    terms: [
+      { term: "Data Protection Board", definition: "The statutory body established under the DPDP framework." },
+      { term: "Inquiry", definition: "Regulatory examination into a matter within the Board's jurisdiction." },
+      { term: "Proceeding", definition: "Formal process through which a regulatory matter is considered." },
+      { term: "Direction", definition: "A requirement issued within the statutory enforcement framework." },
+      { term: "Evidence Register", definition: "Controlled record of relevant documents and technical evidence." },
+      { term: "Regulatory Response", definition: "Organisational process for handling communications from the regulator." },
+    ],
+    before: "Learners should understand the Act, Data Fiduciary obligations, evidence preservation and basic regulatory processes.",
+    organisationAction: "The organisation should establish a regulatory-response process before receiving an inquiry or direction. A designated response team should coordinate Legal, Privacy, Cybersecurity, IT, business and management functions; preserve relevant records; establish a communication protocol; maintain timelines and maintain an evidence register. Regulatory responses should be factual, consistent and supported by contemporaneous records rather than reconstructed after the event.",
+  },
+  22: {
+    terms: [
+      { term: "Consent Manager", definition: "An entity facilitating consent-management functions under the DPDP framework." },
+      { term: "Consent Record", definition: "Evidence of consent-related actions." },
+      { term: "Interoperability", definition: "Ability of systems to exchange and use relevant information." },
+      { term: "Registration", definition: "Formal regulatory status applicable to the Consent Manager framework." },
+      { term: "Consent Dashboard", definition: "A mechanism for managing consent information." },
+      { term: "Consent Withdrawal", definition: "Reversal of previously given consent." },
+    ],
+    before: "Learners should understand consent, consent evidence, identity, APIs and basic privacy-management systems.",
+    organisationAction: "An organisation operating with or through a Consent Manager should establish clear governance over consent records, interfaces, security, authentication, interoperability and withdrawal. It should ensure that consent information is accurate, traceable and protected against unauthorised alteration, and that changes in consent status can be reliably reflected across relevant processing systems. Organisations should also understand the applicable registration and governance requirements before treating a Consent Manager as simply another software service.",
+  },
+  23: {
+    terms: [
+      { term: "Data Protection Officer (DPO)", definition: "A designated person responsible for relevant privacy accountability and coordination." },
+      { term: "Contact Mechanism", definition: "A clearly identified channel through which Data Principals or regulators can contact the organisation." },
+      { term: "Escalation", definition: "Process for moving an issue to an appropriate decision-maker." },
+      { term: "Accountability", definition: "Clear assignment of responsibility for privacy obligations." },
+      { term: "Independence", definition: "Appropriate ability to perform privacy responsibilities without inappropriate interference." },
+      { term: "Evidence", definition: "Records demonstrating the DPO/contact function is operational." },
+    ],
+    before: "Learners should understand governance, Data Fiduciary responsibilities, rights, grievances and organisational reporting structures.",
+    organisationAction: "Where a DPO or designated privacy contact is required, the organisation should provide the role with appropriate authority, visibility, resources, access to relevant information and escalation channels. Contact information should be accurate and accessible, and responsibilities should extend beyond receiving emails to include coordination of rights, grievances, incidents, audits, risk assessments and management reporting as applicable. The organisation should also ensure that employees understand when and how privacy matters must be escalated.",
+  },
+  24: {
+    terms: [
+      { term: "Grievance", definition: "A complaint concerning processing or privacy rights." },
+      { term: "Grievance Mechanism", definition: "The channel and workflow used to receive and resolve complaints." },
+      { term: "Case Ownership", definition: "Assignment of responsibility for handling a grievance." },
+      { term: "Response Period", definition: "The applicable period within which a response should be provided." },
+      { term: "Escalation", definition: "Moving a matter to a higher authority when necessary." },
+      { term: "Audit Trail", definition: "Record of actions taken during grievance handling." },
+    ],
+    before: "Learners should understand Data Principal rights, identity verification and basic complaint-management processes.",
+    organisationAction: "The organisation should operate a measurable grievance workflow with a visible submission mechanism, appropriate identity verification, case ownership, investigation, escalation, response tracking and evidence preservation. Grievances should be treated not merely as customer-service tickets but as potential indicators of privacy, security, vendor or process weaknesses. Complaint records should themselves be protected because they may contain personal data, identity documents or sensitive allegations.",
+  },
+  25: {
+    terms: [
+      { term: "Enforcement", definition: "Regulatory action to address non-compliance." },
+      { term: "Inquiry", definition: "Examination of an issue by the competent authority." },
+      { term: "Compliance Direction", definition: "A direction requiring an organisation to take specified action." },
+      { term: "Evidence Preservation", definition: "Protecting relevant information from alteration or deletion." },
+      { term: "Regulatory Response Team", definition: "Group responsible for coordinating the organisation's response." },
+      { term: "Corrective Action", definition: "Measures taken to address identified non-compliance." },
+    ],
+    before: "Learners should understand the Data Protection Board, organisational obligations, evidence and incident-response concepts.",
+    organisationAction: "The organisation should establish a formal regulatory-response framework covering escalation, evidence preservation, legal review, communications, ownership and remediation tracking. Relevant contracts, logs, policies, system records, correspondence and assessment reports should be capable of being located and preserved when required. Management should rehearse regulatory-response scenarios so that an inquiry does not become the first occasion on which the organisation attempts to determine who is responsible and what evidence exists.",
+  },
+  26: {
+    terms: [
+      { term: "Penalty", definition: "Financial consequence imposed within the statutory framework." },
+      { term: "Schedule", definition: "Statutory framework specifying relevant penalty amounts." },
+      { term: "Financial Exposure", definition: "Potential monetary impact arising from non-compliance." },
+      { term: "Risk Acceptance", definition: "Formal decision to accept a known risk." },
+      { term: "Control Failure", definition: "Failure of a required safeguard or process." },
+      { term: "Board-Level Risk", definition: "Risk requiring management or board-level visibility." },
+    ],
+    before: "Learners should understand the Act's obligations, enforcement framework, security safeguards and organisational risk management.",
+    organisationAction: "The organisation should translate DPDP compliance risks into management-level risk metrics and ensure that significant gaps are visible to appropriate senior decision-makers. Potential penalty exposure should be connected to control testing, risk registers, remediation deadlines and documented risk acceptance where applicable. The organisation should focus not merely on avoiding a particular penalty amount but on demonstrating that it identified risks, implemented reasonable controls, monitored failures and took timely corrective action.",
+  },
+  27: {
+    terms: [
+      { term: "Retention", definition: "Continuing to keep personal data." },
+      { term: "Retention Schedule", definition: "Defined periods for keeping particular categories of information." },
+      { term: "Erasure", definition: "Removal of personal data when the applicable conditions are met." },
+      { term: "Secure Deletion", definition: "Deletion performed in a manner appropriate to the technology and risk." },
+      { term: "Backup Lifecycle", definition: "Period over which backup copies remain available." },
+      { term: "Deletion Evidence", definition: "Records demonstrating that required deletion occurred." },
+    ],
+    before: "Learners should understand personal-data lifecycle, purpose limitation, data inventories, databases, backups and processor management.",
+    organisationAction: "The organisation should establish a documented retention schedule linked to business purposes and applicable legal retention requirements, and should map all important copies of personal data before designing deletion workflows. Deletion should cover relevant databases, analytics platforms, exports, spreadsheets, test environments and processor-held copies, with backup lifecycles addressed separately where appropriate. The organisation should periodically test deletion and retain evidence demonstrating that the process actually works rather than assuming that deleting a record from one application removes all copies.",
+  },
+  28: {
+    terms: [
+      { term: "Privacy Governance", definition: "Structures, policies, roles and processes used to manage privacy." },
+      { term: "DPIA", definition: "Data Protection Impact Assessment." },
+      { term: "Audit", definition: "Systematic assessment of controls and compliance." },
+      { term: "Residual Risk", definition: "Risk remaining after controls are implemented." },
+      { term: "Risk Register", definition: "Record of identified risks, owners and treatments." },
+      { term: "Algorithmic Due Diligence", definition: "Assessment of relevant algorithmic systems and their potential impacts." },
+      { term: "Remediation", definition: "Corrective action taken to address identified weaknesses." },
+    ],
+    before: "Learners should understand risk management, Data Fiduciary obligations, security controls and the concept of Significant Data Fiduciary.",
+    organisationAction: "The organisation should integrate DPIAs, audits, risk registers and remediation into its normal governance cycle rather than treating them as documentation exercises. High-risk processing should be assessed for necessity, data minimisation, security, vendor dependency, potential harms, algorithmic risks and residual risk before and during implementation. Audit and DPIA findings should be assigned to accountable owners, given deadlines and tracked to closure so that governance activities produce measurable improvements in actual processing environments.",
+  },
+  29: {
+    terms: [
+      { term: "Compliance Programme", definition: "Structured organisational framework for meeting legal and operational requirements." },
+      { term: "Processing Register", definition: "Record of processing activities." },
+      { term: "GRC", definition: "Governance, Risk and Compliance." },
+      { term: "DLP", definition: "Data Loss Prevention." },
+      { term: "IAM", definition: "Identity and Access Management." },
+      { term: "SOC", definition: "Security Operations Center." },
+      { term: "Evidence Repository", definition: "Controlled location for compliance evidence." },
+      { term: "Continuous Improvement", definition: "Repeated assessment and improvement of controls." },
+    ],
+    before: "Learners should understand the major concepts covered in Modules 1–28, particularly data inventory, lawful processing, rights, processors, security, breach response, retention and governance.",
+    organisationAction: "The organisation should implement DPDP compliance as a phased operating programme rather than as a collection of policies. It should begin with discovery, establish governance, map processing and purposes, assess processors, implement rights and consent workflows, strengthen security, establish retention and breach-response mechanisms, train employees, test controls and conduct periodic audits. Each major requirement should have a responsible owner, documented process, supporting technology where necessary and evidence demonstrating that the control operates in practice.",
+  },
+  30: {
+    terms: [
+      { term: "Readiness Assessment", definition: "Structured evaluation of whether an organisation can demonstrate compliance." },
+      { term: "Gap Assessment", definition: "Identification of missing, weak or ineffective controls." },
+      { term: "Maturity", definition: "The level of development and effectiveness of a compliance capability." },
+      { term: "Remediation", definition: "Corrective action taken to close identified gaps." },
+      { term: "Evidence", definition: "Documents, records or technical outputs demonstrating operation of controls." },
+      { term: "Mock Breach", definition: "Simulated incident used to test breach-response readiness." },
+      { term: "Compliance Score", definition: "A structured measure used to communicate readiness." },
+    ],
+    before: "This module should be completed after the learner has studied the preceding modules and understands the major DPDP roles, processing requirements, rights, security safeguards, breach response, retention, governance and enforcement framework.",
+    organisationAction: "The organisation should conduct a formal evidence-based DPDP readiness assessment covering governance, data inventory, purposes, processors, notices, consent where applicable, rights, security, breach response, retention, DPIAs, audits and regulatory evidence. Each gap should be assigned a risk rating, responsible owner, target completion date and remediation plan. Management should validate the assessment through practical tests such as access reviews, deletion exercises, rights-request simulations, consent-evidence checks and mock breach exercises, ensuring that the final readiness score reflects actual operational capability rather than confidence or documentation alone.",
+  },
+};
+
+export function moduleGlossary(moduleNumber: number): ModuleGlossary | null {
+  return MODULE_GLOSSARIES[moduleNumber] ?? null;
+}
