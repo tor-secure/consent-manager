@@ -79,7 +79,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const requestHeaders = await headers();
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
-  const learningAuth = requestHeaders.get("x-cg-auth") === "learning";
+  const learningPath = requestHeaders.get("x-cg-path") ?? "";
+  const learningSignIn = learningPath.startsWith("/e-learning/sign-in") || learningPath.startsWith("/e-learning/sign-up");
+  const learningPage = requestHeaders.get("x-cg-auth") === "learning";
 
   return (
     <html
@@ -100,8 +102,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
-          {learningAuth ? (
+          {learningSignIn ? (
             <LearningClerkProvider>{children}</LearningClerkProvider>
+          ) : learningPage ? (
+            children
           ) : (
             <OptionalClerkProvider>{children}</OptionalClerkProvider>
           )}

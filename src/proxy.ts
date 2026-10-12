@@ -3,6 +3,7 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server
 
 import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
+import { applyClerkCookies, rememberPlatformSession, takePlatformSession } from "@/lib/learning/platform-session";
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
@@ -170,6 +171,10 @@ function isLearningPath(pathname: string) {
   return pathname === "/e-learning" || pathname.startsWith("/e-learning/") || pathname === "/api/learning" || pathname.startsWith("/api/learning/");
 }
 
+function isLearningSignPage(pathname: string) {
+  return pathname === "/e-learning/sign-in" || pathname.startsWith("/e-learning/sign-in/") || pathname === "/e-learning/sign-up" || pathname.startsWith("/e-learning/sign-up/");
+}
+
 function learningPass(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-cg-auth", "learning");
@@ -183,9 +188,24 @@ const platformProxy = isClerkConfigured()
     ? productionUnconfiguredProxy
     : unconfiguredProxy;
 
-export default function proxy(request: NextRequest, event: NextFetchEvent) {
-  if (isLearningPath(request.nextUrl.pathname)) return learningPass(request);
-  return platformProxy(request, event);
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  const pathname = request.nextUrl.pathname;
+  if (isLearningSignPage(pathname)) {
+    const response = await learningPass(request);
+    rememberPlatformSession(request, response);
+    return response;
+  }
+  if (pathname === "/e-learning/session") return learningPass(request);
+  if (isLearningPath(pathname)) {
+    const restored = takePlatformSession(request);
+    const response = await learningPass(request);
+    applyClerkCookies(response, restored);
+    return response;
+  }
+  const restored = takePlatformSession(request);
+  const response = await platformProxy(request, event);
+  if (response instanceof NextResponse) applyClerkCookies(response, restored);
+  return response;
 }
 
 export const config = {

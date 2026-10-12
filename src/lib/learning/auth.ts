@@ -1,20 +1,19 @@
 import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { createClerkClient, verifyToken } from "@clerk/backend";
+import { createClerkClient } from "@clerk/backend";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { learningDb } from "@/db/learning/client";
 import { learningLearners } from "@/db/learning/schema";
 import { learningClerkKeys, safeLearningPath } from "@/lib/learning/clerk";
+import { applyClerkCookies, clearLearningClerkCookies, takePlatformSession } from "@/lib/learning/platform-session";
 import { ADMIN_ROLE, MEMBER_ROLE } from "@/lib/org-roles";
 import type { LearnerContext } from "@/lib/learning/service";
 
 export const LEARNING_SESSION_COOKIE = "cg_learning";
 const SESSION_SECONDS = 60 * 60 * 24 * 14;
-
-const CLERK_COOKIES = ["__session", "__client_uat", "__refresh", "__clerk_db_jwt", "__clerk_handshake"];
 
 type SessionPayload = {
   sub: string;
@@ -71,7 +70,7 @@ export async function establishLearningSession(request: NextRequest): Promise<Ne
     path: "/",
     maxAge: SESSION_SECONDS,
   });
-  await clearLearningClerkCookie(request, response);
+  separateFromWorkspaceLogin(request, response);
   return response;
 }
 
@@ -82,7 +81,7 @@ export function clearLearningSession(response: NextResponse) {
 export async function endLearningSession(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.redirect(new URL("/e-learning", request.url));
   clearLearningSession(response);
-  await clearLearningClerkCookie(request, response);
+  separateFromWorkspaceLogin(request, response);
   return response;
 }
 
@@ -152,16 +151,8 @@ function verifySession(token: string | undefined): SessionPayload | null {
   }
 }
 
-async function clearLearningClerkCookie(request: NextRequest, response: NextResponse) {
-  const session = request.cookies.get("__session")?.value;
-  const { secretKey } = learningClerkKeys();
-  if (!session || !secretKey) return;
-  try {
-    await verifyToken(session, { secretKey });
-  } catch {
-    return;
-  }
-  for (const name of CLERK_COOKIES) {
-    response.cookies.set(name, "", { path: "/", maxAge: 0 });
-  }
+function separateFromWorkspaceLogin(request: NextRequest, response: NextResponse) {
+  const restored = takePlatformSession(request);
+  applyClerkCookies(response, restored);
+  if (restored.length === 0) clearLearningClerkCookies(request, response);
 }
