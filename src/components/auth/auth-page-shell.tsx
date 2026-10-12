@@ -242,9 +242,11 @@ const modeCopy = {
 export function AuthPageShell({
   children,
   mode,
+  accountHref,
 }: {
   children: React.ReactNode;
   mode: "sign-in" | "sign-up" | "create-org";
+  accountHref?: string;
 }) {
   useEffect(() => {
     const root = document.documentElement;
@@ -273,12 +275,12 @@ export function AuthPageShell({
             {mode === "sign-in" ? (
               <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Don&apos;t have an account?</p>
-                <ArrowButton href="/sign-up">Sign up</ArrowButton>
+                <ArrowButton href={accountHref ?? "/sign-up"}>Sign up</ArrowButton>
               </div>
             ) : mode === "sign-up" ? (
               <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Already have an account?</p>
-                <ArrowButton href="/sign-in">Log in</ArrowButton>
+                <ArrowButton href={accountHref ?? "/sign-in"}>Log in</ArrowButton>
               </div>
             ) : (
               <p className="max-w-[11rem] text-right text-xs leading-5 text-[#4B5563] min-[400px]:max-w-none min-[400px]:text-sm">

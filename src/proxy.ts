@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
@@ -166,11 +166,27 @@ async function productionUnconfiguredProxy(request: NextRequest) {
   return withBaselineHeaders(request, unavailable);
 }
 
-export default isClerkConfigured()
+function isLearningPath(pathname: string) {
+  return pathname === "/e-learning" || pathname.startsWith("/e-learning/") || pathname === "/api/learning" || pathname.startsWith("/api/learning/");
+}
+
+function learningPass(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-cg-auth", "learning");
+  requestHeaders.set("x-cg-path", request.nextUrl.pathname);
+  return withBaselineHeaders(request, NextResponse.next({ request: { headers: requestHeaders } }));
+}
+
+const platformProxy = isClerkConfigured()
   ? clerkProxy
   : process.env.NODE_ENV === "production"
     ? productionUnconfiguredProxy
     : unconfiguredProxy;
+
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
+  if (isLearningPath(request.nextUrl.pathname)) return learningPass(request);
+  return platformProxy(request, event);
+}
 
 export const config = {
   matcher: [

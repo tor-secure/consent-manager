@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
+import { learningClerkKeys } from "@/lib/learning/clerk";
 import {
   CONSENT_GURU_SITE_VERIFICATION,
   ConsentGuruInstall,
@@ -76,7 +77,9 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const learningAuth = requestHeaders.get("x-cg-auth") === "learning";
 
   return (
     <html
@@ -97,10 +100,32 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
-          <OptionalClerkProvider>{children}</OptionalClerkProvider>
+          {learningAuth ? (
+            <LearningClerkProvider>{children}</LearningClerkProvider>
+          ) : (
+            <OptionalClerkProvider>{children}</OptionalClerkProvider>
+          )}
         </ThemeProvider>
       </body>
     </html>
+  );
+}
+
+function LearningClerkProvider({ children }: { children: ReactNode }) {
+  const { publishableKey, configured } = learningClerkKeys();
+  if (!configured) return children;
+  return (
+    <ClerkProvider
+      publishableKey={publishableKey}
+      signInUrl="/e-learning/sign-in"
+      signUpUrl="/e-learning/sign-up"
+      signInFallbackRedirectUrl="/e-learning/session"
+      signUpFallbackRedirectUrl="/e-learning/session"
+      dynamic
+      ui={ui}
+    >
+      {children}
+    </ClerkProvider>
   );
 }
 

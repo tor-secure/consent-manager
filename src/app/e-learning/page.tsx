@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { auth } from "@clerk/nextjs/server";
+import { getLearningSession } from "@/lib/learning/auth";
+import { isOperatorRole } from "@/lib/org-roles";
 
 import { EnrollButton } from "@/components/learning/enroll-button";
 import { ModuleCards } from "@/components/learning/module-cards";
@@ -12,7 +13,6 @@ import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learn
 import { JsonLd } from "@/components/seo/json-ld";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-data";
-import { learnerPageContext } from "@/lib/learning/page-context";
 import { getCourseHome, getPublicCourseCatalog, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
 
 const title = "DPDP Act Training";
@@ -187,8 +187,8 @@ function AchievementCard({
 
 export default async function DpdpCoursePage() {
   const catalogReady = warmLearningCatalog();
-  const session = await auth();
-  if (!session.userId) {
+  const learnerSession = await getLearningSession();
+  if (!learnerSession) {
     const home = await getPublicCourseCatalog();
     await catalogReady;
     const courseLd = graphSchema([
@@ -222,7 +222,7 @@ export default async function DpdpCoursePage() {
     );
   }
 
-  const learner = await learnerPageContext();
+  const learner = { ...learnerSession, operator: isOperatorRole(learnerSession.roleName) };
   const home = await getCourseHome(learner);
   await catalogReady;
 

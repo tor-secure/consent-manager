@@ -1,23 +1,18 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-import { requireDashboardContext } from "@/lib/bootstrap-current-context";
+import { getLearningSession } from "@/lib/learning/auth";
+import { safeLearningPath } from "@/lib/learning/clerk";
 import { isOperatorRole } from "@/lib/org-roles";
 import type { LearnerContext } from "@/lib/learning/service";
 
 export async function learnerPageContext(): Promise<LearnerContext & { operator: boolean }> {
-  const session = await auth();
-  if (!session.userId) {
-    session.redirectToSignIn();
+  const learner = await getLearningSession();
+  if (!learner) {
+    const path = safeLearningPath((await headers()).get("x-cg-path"));
+    redirect(`/e-learning/sign-in?redirect_url=${encodeURIComponent(path)}`);
   }
-  const ctx = await requireDashboardContext();
-  const roleName = ctx.membership.status === "active" ? ctx.roleName : "Member";
-  return {
-    organizationId: ctx.organization.id,
-    userId: ctx.user.id,
-    roleName,
-    learnerName: ctx.user.name,
-    operator: isOperatorRole(roleName),
-  };
+  return { ...learner, operator: isOperatorRole(learner.roleName) };
 }

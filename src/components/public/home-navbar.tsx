@@ -187,20 +187,64 @@ function ClerkAuthButtons({
   return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
 }
 
-function AuthButtons({
+function LearningAuthButtons({
+  signedIn,
   mobile,
   onNavigate,
 }: {
+  signedIn: boolean;
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
+  if (!signedIn) {
+    return (
+      <>
+        <ArrowButton href="/e-learning/sign-in" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+          Log in
+        </ArrowButton>
+        <ArrowButton href="/e-learning/sign-up" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+          Sign up
+        </ArrowButton>
+      </>
+    );
+  }
+  return (
+    <>
+      <Link
+        href="/e-learning"
+        onClick={onNavigate}
+        className={
+          mobile
+            ? "inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
+            : "inline-flex h-10 items-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
+        }
+      >
+        Your course
+      </Link>
+      <Link href="/api/learning/sign-out" onClick={onNavigate} className={mobile ? "inline-flex h-10 items-center justify-center text-sm font-semibold text-[#0B2C4A]" : "text-sm font-semibold text-[#0B2C4A]"}>
+        Log out
+      </Link>
+    </>
+  );
+}
+
+function AuthButtons({
+  mobile,
+  onNavigate,
+  learningAuth,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  learningAuth?: { signedIn: boolean };
+}) {
+  if (learningAuth) return <LearningAuthButtons signedIn={learningAuth.signedIn} mobile={mobile} onNavigate={onNavigate} />;
   if (!clerkPublishableKey) {
     return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
   }
   return <ClerkAuthButtons mobile={mobile} onNavigate={onNavigate} />;
 }
 
-export function HomeNavbar() {
+export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolean } } = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const pathname = usePathname();
@@ -291,7 +335,7 @@ export function HomeNavbar() {
           </div>
 
           <div className="hidden shrink-0 items-center gap-3 xl:flex">
-            <AuthButtons />
+            <AuthButtons learningAuth={learningAuth} />
           </div>
 
           <button
@@ -370,7 +414,7 @@ export function HomeNavbar() {
                 );
               })}
               <div className="mt-2 grid gap-2 border-t border-[#E5E7EB] pt-4 sm:grid-cols-2">
-                <AuthButtons mobile onNavigate={closeMobile} />
+                <AuthButtons mobile onNavigate={closeMobile} learningAuth={learningAuth} />
               </div>
             </div>
           </div>

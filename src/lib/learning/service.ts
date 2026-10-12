@@ -5,8 +5,7 @@ import { after } from "next/server";
 import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
-import { db } from "@/db";
-import { auditLogs } from "@/db/schema/audit-logs";
+import { learningDb as db } from "@/db/learning/client";
 import {
   learningCertificates,
   learningCourses,
@@ -20,8 +19,8 @@ import {
   learningQuestions,
   learningQuizAnswers,
   learningQuizAttempts,
-} from "@/db/schema/learning";
-import { users } from "@/db/schema/users";
+  learningLearners,
+} from "@/db/learning/schema";
 import { isOperatorRole } from "@/lib/org-roles";
 import {
   COURSE_CATALOG,
@@ -57,8 +56,9 @@ import {
 } from "@/lib/learning/engine";
 
 export type LearnerContext = {
-  organizationId: string;
-  userId: string;
+  learnerId: string;
+  clerkUserId: string;
+  email: string;
   roleName: string;
   learnerName: string;
 };
@@ -236,8 +236,6 @@ export async function completeLesson(
     .insert(learningLessonCompletions)
     .values({
       enrollmentId: enrollment.id,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
       moduleId: courseModule.id,
     })
     .onConflictDoNothing();
@@ -378,8 +376,7 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
     .where(
       and(
         eq(learningExamAttempts.id, attemptId),
-        eq(learningExamAttempts.organizationId, ctx.organizationId),
-        eq(learningExamAttempts.userId, ctx.userId),
+        eq(learningExamAttempts.learnerId, ctx.learnerId),
       ),
     )
     .limit(1);
@@ -427,8 +424,7 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
       if (!existing) {
         await tx.insert(learningCertificates).values({
           enrollmentId: attempt.enrollmentId,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
+          learnerId: ctx.learnerId,
           courseId: course.id,
           examAttemptId: attempt.id,
           certificateCode: certificateCode(),
@@ -448,8 +444,7 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
       .where(
         and(
           eq(learningExamAttempts.id, attemptId),
-          eq(learningExamAttempts.organizationId, ctx.organizationId),
-          eq(learningExamAttempts.userId, ctx.userId),
+          eq(learningExamAttempts.learnerId, ctx.learnerId),
         ),
       )
       .limit(1);
@@ -665,14 +660,14 @@ export async function listOrgProgress(ctx: LearnerContext) {
   const rows = await db
     .select({
       enrollmentId: learningEnrollments.id,
-      userId: learningEnrollments.userId,
-      name: users.name,
+      userId: learningLearners.id,
+      name: learningLearners.name,
       startedAt: learningEnrollments.startedAt,
       completedAt: learningEnrollments.completedAt,
     })
     .from(learningEnrollments)
-    .innerJoin(users, eq(users.id, learningEnrollments.userId))
-    .where(and(eq(learningEnrollments.organizationId, ctx.organizationId), eq(learningEnrollments.courseId, course.id)));
+    .innerJoin(learningLearners, eq(learningLearners.id, learningEnrollments.learnerId))
+    .where(eq(learningEnrollments.courseId, course.id));
   const counts = new Map<string, number>();
   if (rows.length > 0) {
     const passedRows = await db
@@ -1001,8 +996,7 @@ async function findEnrollment(ctx: LearnerContext, courseId: string) {
     .from(learningEnrollments)
     .where(
       and(
-        eq(learningEnrollments.organizationId, ctx.organizationId),
-        eq(learningEnrollments.userId, ctx.userId),
+        eq(learningEnrollments.learnerId, ctx.learnerId),
         eq(learningEnrollments.courseId, courseId),
       ),
     )
@@ -1016,8 +1010,7 @@ async function enrollmentEvent(ctx: LearnerContext, courseId: string, action: st
     .from(learningEvents)
     .where(
       and(
-        eq(learningEvents.organizationId, ctx.organizationId),
-        eq(learningEvents.userId, ctx.userId),
+        eq(learningEvents.learnerId, ctx.learnerId),
         eq(learningEvents.courseId, courseId),
         eq(learningEvents.action, action),
       ),
@@ -1084,8 +1077,7 @@ const loadLearnerCourseState = cache(async function loadLearnerCourseState(
       'entered', (
         EXISTS (
           SELECT 1 FROM learning_events ev
-          WHERE ev.organization_id = e.organization_id
-            AND ev.user_id = e.user_id
+          WHERE ev.learner_id = e.learner_id
             AND ev.course_id = e.course_id
             AND ev.action = 'course_enrolled'
         )
@@ -1116,8 +1108,7 @@ const loadLearnerCourseState = cache(async function loadLearnerCourseState(
       LIMIT 1
     ) ex ON true
     LEFT JOIN learning_certificates cert ON cert.enrollment_id = e.id
-    WHERE e.organization_id = ${ctx.organizationId}::uuid
-      AND e.user_id = ${ctx.userId}::uuid
+    WHERE e.learner_id = ${ctx.learnerId}::uuid
       AND e.course_id = ${courseId}::uuid
     LIMIT 1
   `);
@@ -1158,7 +1149,7 @@ async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
   if (existing) return existing;
   const [created] = await db
     .insert(learningEnrollments)
-    .values({ organizationId: ctx.organizationId, userId: ctx.userId, courseId })
+    .values({ learnerId: ctx.learnerId, courseId })
     .onConflictDoNothing()
     .returning();
   if (created) {
@@ -1170,8 +1161,7 @@ async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
     .from(learningEnrollments)
     .where(
       and(
-        eq(learningEnrollments.organizationId, ctx.organizationId),
-        eq(learningEnrollments.userId, ctx.userId),
+        eq(learningEnrollments.learnerId, ctx.learnerId),
         eq(learningEnrollments.courseId, courseId),
       ),
     )
@@ -1300,8 +1290,7 @@ async function createQuizAttempt(ctx: LearnerContext, enrollmentId: string, cour
     .insert(learningQuizAttempts)
     .values({
       enrollmentId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
+      learnerId: ctx.learnerId,
       moduleId,
       attemptNumber: Number(countRow?.count ?? 0) + 1,
       questionIds,
@@ -1333,8 +1322,7 @@ async function createExamAttempt(
     .insert(learningExamAttempts)
     .values({
       enrollmentId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
+      learnerId: ctx.learnerId,
       courseId: course.id,
       attemptNumber: Number(countRow?.count ?? 0) + 1,
       questionIds: selected.map((question) => question.id),
@@ -1529,8 +1517,7 @@ async function ownedQuizAttempt(ctx: LearnerContext, attemptId: string) {
     .where(
       and(
         eq(learningQuizAttempts.id, attemptId),
-        eq(learningQuizAttempts.organizationId, ctx.organizationId),
-        eq(learningQuizAttempts.userId, ctx.userId),
+        eq(learningQuizAttempts.learnerId, ctx.learnerId),
       ),
     )
     .limit(1);
@@ -1643,19 +1630,10 @@ async function touchEnrollment(enrollmentId: string) {
 async function recordEvent(ctx: LearnerContext, courseId: string, action: string, resourceId: string | null) {
   await Promise.all([
     db.insert(learningEvents).values({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
+      learnerId: ctx.learnerId,
       courseId,
       action,
       resourceId,
-    }),
-    db.insert(auditLogs).values({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      action: `learning.${action}`,
-      resourceType: "learning_course",
-      resourceId: resourceId,
-      description: action,
     }),
   ]);
 }
