@@ -24,9 +24,12 @@ export default async function LearningSignInPage({
   return (
     <AuthPageShell mode="sign-in" audience="learning" accountHref={signUpHref}>
       <SignIn
+        path="/e-learning/sign-in"
+        routing="path"
         forceRedirectUrl={sessionUrl}
         fallbackRedirectUrl={sessionUrl}
         signUpUrl={`/e-learning/sign-up?redirect_url=${encodeURIComponent(next)}`}
+        signUpForceRedirectUrl={sessionUrl}
         appearance={clerkAuthAppearance}
       />
     </AuthPageShell>

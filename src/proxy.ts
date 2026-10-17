@@ -3,7 +3,12 @@ import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server
 
 import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
-import { applyClerkCookies, rememberPlatformSession, takePlatformSession } from "@/lib/learning/platform-session";
+import {
+  applyClerkCookies,
+  clearPlatformClerkCookies,
+  rememberPlatformSession,
+  takePlatformSession,
+} from "@/lib/learning/platform-session";
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
@@ -208,7 +213,9 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   const pathname = request.nextUrl.pathname;
   if (isLearningSignPage(pathname)) {
     const response = await learningPass(request);
+    // Stash workspace login, then clear it so Learning Clerk is not the dashboard app.
     rememberPlatformSession(request, response);
+    clearPlatformClerkCookies(request, response);
     return response;
   }
   if (pathname === "/e-learning/session") return learningPass(request);

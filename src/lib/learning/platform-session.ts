@@ -106,9 +106,24 @@ export function applyClerkCookies(response: NextResponse, writes: ClerkCookieWri
   }
 }
 
-export function clearLearningClerkCookies(request: NextRequest, response: NextResponse) {
-  if (sessionOwner(request.cookies.get(CLERK_SESSION)?.value) !== "learning") return;
-  for (const name of [CLERK_SESSION, CLERK_UAT, "__refresh", CLERK_DEV, "__clerk_handshake"]) {
+const CLERK_BROWSER_COOKIES = [CLERK_SESSION, CLERK_UAT, "__refresh", CLERK_DEV, "__clerk_handshake"] as const;
+
+function clearClerkBrowserCookies(response: NextResponse) {
+  for (const name of CLERK_BROWSER_COOKIES) {
     response.cookies.set(name, "", { path: "/", maxAge: 0 });
   }
+}
+
+export function clearLearningClerkCookies(request: NextRequest, response: NextResponse) {
+  if (sessionOwner(request.cookies.get(CLERK_SESSION)?.value) !== "learning") return;
+  clearClerkBrowserCookies(response);
+}
+
+/**
+ * After stashing the workspace session, drop active Clerk cookies so the Learning
+ * Clerk app is not confused by a Consent Guru dashboard `__session`.
+ */
+export function clearPlatformClerkCookies(request: NextRequest, response: NextResponse) {
+  if (sessionOwner(request.cookies.get(CLERK_SESSION)?.value) !== "platform") return;
+  clearClerkBrowserCookies(response);
 }

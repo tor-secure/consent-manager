@@ -192,16 +192,6 @@ export default async function DpdpCoursePage({
           heading="DPDP Act training"
           body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam — with a certificate when you pass."
           primary={<EnrollButton moduleCount={home.course.moduleCount} signedIn={Boolean(learnerSession)} />}
-          secondary={
-            !learnerSession ? (
-              <Link
-                href={`/e-learning/sign-up?redirect_url=${encodeURIComponent("/e-learning?intent=enroll")}`}
-                className={secondaryBtn}
-              >
-                Create account
-              </Link>
-            ) : null
-          }
         />
         <BeforeYouStart
           disclaimer={home.course.disclaimer}

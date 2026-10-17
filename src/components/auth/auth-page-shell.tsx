@@ -278,11 +278,11 @@ const modeCopy = {
       footnote: "Your course progress and certificate stay with this learning account.",
       footer: (
         <>
-          Need the consent platform instead?{" "}
+          This form is only for the DPDP course. For the Consent Guru product dashboard, use{" "}
           <Link href="/sign-in" className="font-medium text-[#0B2C4A] hover:underline">
-            Workspace login
-          </Link>
-          .
+            workspace login
+          </Link>{" "}
+          (separate account).
         </>
       ),
     },
@@ -294,11 +294,11 @@ const modeCopy = {
       footnote: "Your course progress and certificate stay with this learning account.",
       footer: (
         <>
-          Need the consent platform instead?{" "}
+          This form is only for the DPDP course. For the Consent Guru product,{" "}
           <Link href="/sign-up" className="font-medium text-[#0B2C4A] hover:underline">
-            Create a workspace
-          </Link>
-          .
+            create a workspace
+          </Link>{" "}
+          (separate account).
         </>
       ),
     },
