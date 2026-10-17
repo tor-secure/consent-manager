@@ -2,24 +2,29 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClerkClient } from "@clerk/backend";
+import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { learningDb } from "@/db/learning/client";
 import { learningLearners } from "@/db/learning/schema";
 import { learningClerkKeys, safeLearningPath } from "@/lib/learning/clerk";
+import { parseOperatorEmailAllowlist, resolveLearningRole } from "@/lib/learning/operator-access";
 import { applyClerkCookies, clearLearningClerkCookies, takePlatformSession } from "@/lib/learning/platform-session";
-import { ADMIN_ROLE, MEMBER_ROLE } from "@/lib/org-roles";
 import type { LearnerContext } from "@/lib/learning/service";
 
 export const LEARNING_SESSION_COOKIE = "cg_learning";
 const SESSION_SECONDS = 60 * 60 * 24 * 14;
+/** Skip learner upsert when profile is unchanged and recently synced. */
+const LEARNER_SYNC_MS = 15 * 60 * 1000;
 
 type SessionPayload = {
   sub: string;
   email: string;
   name: string;
   exp: number;
+  /** Absent on legacy cookies — treated as unverified so operator privilege cannot linger. */
+  emailVerified?: boolean;
 };
 
 function learningClerk() {
@@ -57,19 +62,29 @@ export async function establishLearningSession(request: NextRequest): Promise<Ne
 
   const auth = state.toAuth();
   const user = await learningClerk().users.getUser(auth.userId);
-  const email =
-    user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId)?.emailAddress ??
-    user.emailAddresses[0]?.emailAddress ??
-    "";
+  const primary =
+    user.emailAddresses.find((item) => item.id === user.primaryEmailAddressId) ?? user.emailAddresses[0];
+  const email = primary?.emailAddress ?? "";
+  const emailVerified = primary?.verification?.status === "verified";
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || email || "Learner";
   const response = NextResponse.redirect(new URL(next, request.url));
-  response.cookies.set(LEARNING_SESSION_COOKIE, signSession({ sub: auth.userId, email, name, exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS }), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_SECONDS,
-  });
+  response.cookies.set(
+    LEARNING_SESSION_COOKIE,
+    signSession({
+      sub: auth.userId,
+      email,
+      name,
+      emailVerified,
+      exp: Math.floor(Date.now() / 1000) + SESSION_SECONDS,
+    }),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: SESSION_SECONDS,
+    },
+  );
   separateFromWorkspaceLogin(request, response);
   return response;
 }
@@ -81,13 +96,36 @@ export function clearLearningSession(response: NextResponse) {
 export async function endLearningSession(request: NextRequest): Promise<NextResponse> {
   const response = NextResponse.redirect(new URL("/e-learning", request.url));
   clearLearningSession(response);
+  // Clear Learning Clerk browser cookies before restoring any stashed workspace session.
+  clearLearningClerkCookies(request, response);
   separateFromWorkspaceLogin(request, response);
   return response;
 }
 
 async function saveLearner(payload: SessionPayload): Promise<LearnerContext> {
   const email = payload.email.trim().toLowerCase();
-  const roleName = operatorEmails().has(email) ? ADMIN_ROLE : MEMBER_ROLE;
+  const roleName = resolveLearningRole(email, Boolean(payload.emailVerified), operatorEmails());
+  const [existing] = await learningDb
+    .select()
+    .from(learningLearners)
+    .where(eq(learningLearners.clerkUserId, payload.sub))
+    .limit(1);
+  if (
+    existing &&
+    existing.email === email &&
+    existing.name === payload.name &&
+    existing.roleName === roleName &&
+    Date.now() - existing.updatedAt.getTime() < LEARNER_SYNC_MS
+  ) {
+    return {
+      learnerId: existing.id,
+      clerkUserId: existing.clerkUserId,
+      email: existing.email,
+      roleName: existing.roleName,
+      learnerName: existing.name,
+    };
+  }
+
   const now = new Date();
   const [row] = await learningDb
     .insert(learningLearners)
@@ -114,12 +152,7 @@ async function saveLearner(payload: SessionPayload): Promise<LearnerContext> {
 }
 
 function operatorEmails(): Set<string> {
-  return new Set(
-    (process.env.LEARNING_OPERATOR_EMAILS ?? "")
-      .split(",")
-      .map((email) => email.trim().toLowerCase())
-      .filter(Boolean),
-  );
+  return parseOperatorEmailAllowlist(process.env.LEARNING_OPERATOR_EMAILS);
 }
 
 function sessionSecret(): string {

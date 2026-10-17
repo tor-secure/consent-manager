@@ -13,6 +13,9 @@ export const PDF_SECTION_HEADINGS = new Set([
   "Module Summary",
 ]);
 
+/** Combined reading section for Do's + Don'ts in the lesson TOC. */
+export const DOS_AND_DONTS_SECTION_ID = "Do's and Don'ts";
+
 /** Section ids the learner must finish, in order, before a lesson can be marked complete. */
 export function readingSectionIds(lesson: string): string[] {
   const headings: string[] = [];
@@ -23,7 +26,12 @@ export function readingSectionIds(lesson: string): string[] {
   if (headings.includes("Introduction")) ids.push("Introduction");
   ids.push("objectives", "video");
   for (const heading of headings) {
-    if (heading !== "Introduction") ids.push(heading);
+    if (heading === "Introduction") continue;
+    if (heading === "Do's" || heading === "Don'ts") {
+      if (!ids.includes(DOS_AND_DONTS_SECTION_ID)) ids.push(DOS_AND_DONTS_SECTION_ID);
+      continue;
+    }
+    ids.push(heading);
   }
   return ids;
 }

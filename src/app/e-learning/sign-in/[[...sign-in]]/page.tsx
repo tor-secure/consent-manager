@@ -14,7 +14,7 @@ export default async function LearningSignInPage({
   const signUpHref = `/e-learning/sign-up?redirect_url=${encodeURIComponent(next)}`;
   if (!learningClerkKeys().configured) {
     return (
-      <AuthPageShell mode="sign-in" accountHref={signUpHref}>
+      <AuthPageShell mode="sign-in" audience="learning" accountHref={signUpHref}>
         <p className="text-sm text-[#0B2C4A]">
           E-learning sign-in is not configured yet. Add the learning Clerk keys, then reload this page.
         </p>
@@ -22,7 +22,7 @@ export default async function LearningSignInPage({
     );
   }
   return (
-    <AuthPageShell mode="sign-in" accountHref={signUpHref}>
+    <AuthPageShell mode="sign-in" audience="learning" accountHref={signUpHref}>
       <SignIn
         forceRedirectUrl={sessionUrl}
         fallbackRedirectUrl={sessionUrl}

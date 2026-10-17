@@ -1,4 +1,38 @@
-/** Public Drive previews for the 30 DPDP lesson videos (folder shared as viewer). */
+/** YouTube lesson videos for the 30 DPDP modules (from consent_guru_modules.json). */
+const MODULE_YOUTUBE_IDS: Record<number, string> = {
+  1: "OA6100k37YI",
+  2: "qEuqBeYZInA",
+  3: "uIECzYJ2T-k",
+  4: "oZZRoGWxO5c",
+  5: "xN88qhHe-n4",
+  6: "G04S6gk0M_U",
+  7: "AWndcYGHrqw",
+  8: "NT6bAK8P_DA",
+  9: "-eibVd2_BUk",
+  10: "oX--5-ElmHg",
+  11: "qhCW3NXH4yI",
+  12: "S7BXJStwIZ8",
+  13: "Dhf00Oo0qSU",
+  14: "7Ar4i0m6xhY",
+  15: "A18LSMX6glo",
+  16: "D5IdKAJmou0",
+  17: "mDP0T56mwYc",
+  18: "3reHK3mo2tY",
+  19: "AKbC27c7lac",
+  20: "DTrGnVzYXrE",
+  21: "qF53_WVJCB0",
+  22: "NAQpvCMsBMY",
+  23: "eIherQvwSbY",
+  24: "0bq46RJUIy4",
+  25: "cy4Re__rW-g",
+  26: "l65HxNhI4d8",
+  27: "90iQS5E4lBA",
+  28: "0R8v-DqmVVo",
+  29: "b1_tkBTL8DA",
+  30: "LLP3trVzj1c",
+};
+
+/** Legacy Drive file ids (kept for the optional /api/learning/video stream). */
 const MODULE_DRIVE_FILE_IDS: Record<number, string> = {
   1: "1X-XF5rq9Mds_VaHA4J3EhRID9OpTKlIq",
   2: "1uS2CUk9ZpGTMoedZqWO-SS2k3ZLhHOmO",
@@ -32,6 +66,51 @@ const MODULE_DRIVE_FILE_IDS: Record<number, string> = {
   30: "1jYwMLfHG7G8zTFqyB-favS--oU1-RTvk",
 };
 
+export function moduleYoutubeId(moduleNumber: number): string | null {
+  return MODULE_YOUTUBE_IDS[moduleNumber] ?? null;
+}
+
+/** Privacy-enhanced embed URL for the lesson iframe. */
+export function moduleYoutubeEmbedUrl(moduleNumber: number): string | null {
+  const id = moduleYoutubeId(moduleNumber);
+  if (!id) return null;
+  return `https://www.youtube-nocookie.com/embed/${id}?rel=0&modestbranding=1`;
+}
+
+export type YoutubeThumbQuality = "maxres" | "sd" | "hq";
+
+export function youtubeThumbnailUrl(
+  youtubeId: string,
+  quality: YoutubeThumbQuality = "maxres",
+): string {
+  const file = quality === "maxres" ? "maxresdefault.jpg" : quality === "sd" ? "sddefault.jpg" : "hqdefault.jpg";
+  return `https://i.ytimg.com/vi/${youtubeId}/${file}`;
+}
+
+/** Prefer true 16:9 poster; callers should fall back if maxres is missing. */
+export function moduleYoutubeThumbnailUrl(
+  moduleNumber: number,
+  quality: YoutubeThumbQuality = "maxres",
+): string | null {
+  const id = moduleYoutubeId(moduleNumber);
+  if (!id) return null;
+  return youtubeThumbnailUrl(id, quality);
+}
+
+/** Local module card / poster art in /public (PNG for all modules). */
+export function moduleCardImageUrl(moduleNumber: number, slug: string): string {
+  return `/module-${String(moduleNumber).padStart(2, "0")}-${slug}.png`;
+}
+
+/** Extract a YouTube video id from watch / embed / short URLs. */
+export function youtubeIdFromUrl(url: string | null): string | null {
+  if (!url) return null;
+  const match =
+    url.match(/(?:youtu\.be\/|youtube(?:-nocookie)?\.com\/(?:embed\/|shorts\/|watch\?v=|live\/))([A-Za-z0-9_-]{6,})/) ??
+    null;
+  return match?.[1] ?? null;
+}
+
 export function moduleDriveFileId(moduleNumber: number): string | null {
   return MODULE_DRIVE_FILE_IDS[moduleNumber] ?? null;
 }
@@ -53,10 +132,36 @@ function driveFileId(url: string | null): string | null {
   return match?.[1] ?? null;
 }
 
-/** Use a saved https video when one exists. Drive previews play as the file itself. */
-export function lessonVideo(moduleNumber: number, storedProvider: string, storedUrl: string | null): { provider: string; url: string | null } {
-  const storedIsFile = Boolean(storedUrl && storedProvider !== "placeholder" && !storedUrl.includes("drive.google.com"));
-  if (storedIsFile) return { provider: storedProvider, url: storedUrl };
+/**
+ * Prefer an operator-saved URL when present. Otherwise use the catalog YouTube
+ * id, then the legacy Drive stream proxy.
+ */
+export function lessonVideo(
+  moduleNumber: number,
+  storedProvider: string,
+  storedUrl: string | null,
+): { provider: string; url: string | null } {
+  const storedYoutubeId = youtubeIdFromUrl(storedUrl);
+  if (storedYoutubeId) {
+    return {
+      provider: "youtube",
+      url: `https://www.youtube-nocookie.com/embed/${storedYoutubeId}?rel=0&modestbranding=1`,
+    };
+  }
+
+  const storedIsCustom = Boolean(
+    storedUrl && storedProvider !== "placeholder" && !storedUrl.includes("drive.google.com"),
+  );
+  if (storedIsCustom) return { provider: storedProvider, url: storedUrl };
+
+  const youtubeId = moduleYoutubeId(moduleNumber);
+  if (youtubeId) {
+    return {
+      provider: "youtube",
+      url: `https://www.youtube-nocookie.com/embed/${youtubeId}?rel=0&modestbranding=1`,
+    };
+  }
+
   const fileId = driveFileId(storedUrl) ?? moduleDriveFileId(moduleNumber);
   if (fileId && moduleDriveFileId(moduleNumber) === fileId) {
     return { provider: "mp4", url: `/api/learning/video/${moduleNumber}` };

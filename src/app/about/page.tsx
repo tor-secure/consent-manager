@@ -6,16 +6,18 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { pageAlternates, socialMetadata, INDEXABLE_ROBOTS } from "@/lib/site-metadata";
 
+const aboutTitle = "About Consent Guru — Privacy Technology for Digital Trust";
+const aboutDescription =
+  "Meet Consent Guru: the consent management platform from TechensGlobal that helps organizations collect consent, honour preferences, and build trusted digital relationships.";
+
 export const metadata: Metadata = {
-  title: { absolute: "About Consent Guru" },
-  description:
-    "Learn how ConsentGuru is helping organizations build transparent, responsible, and trusted digital relationships.",
+  title: { absolute: aboutTitle },
+  description: aboutDescription,
   robots: INDEXABLE_ROBOTS,
   alternates: pageAlternates("/about"),
   ...socialMetadata({
-    title: "About ConsentGuru — Powering the Future of Digital Trust",
-    description:
-      "ConsentGuru helps organizations build transparent, responsible, and trusted relationships with the people whose data they use.",
+    title: aboutTitle,
+    description: aboutDescription,
     path: "/about",
   }),
 };

@@ -23,6 +23,7 @@ export function organizationSchema() {
     "@type": "Organization",
     "@id": ORGANIZATION_ID,
     name: SITE_NAME,
+    alternateName: ["ConsentGuru", "Consent Guru CMP"],
     url: SITE_URL,
     logo: {
       "@type": "ImageObject",
@@ -46,8 +47,10 @@ export function websiteSchema() {
     "@type": "WebSite",
     "@id": WEBSITE_ID,
     name: SITE_NAME,
+    alternateName: "ConsentGuru",
     url: SITE_URL,
     inLanguage: "en-IN",
+    description: DEFAULT_DESCRIPTION,
     publisher: { "@id": ORGANIZATION_ID },
   };
 }

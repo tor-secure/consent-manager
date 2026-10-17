@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { isResponse, requireLearner } from "@/lib/learning/http";
+import { learningRateLimit } from "@/lib/learning/request-guard";
 import { startQuiz } from "@/lib/learning/service";
 
-export async function POST(_request: Request, context: { params: Promise<{ slug: string }> }) {
+export async function POST(request: Request, context: { params: Promise<{ slug: string }> }) {
+  const limited = learningRateLimit(request, "quiz-start", 40);
+  if (limited) return limited;
   const learner = await requireLearner();
   if (isResponse(learner)) return learner;
   const { slug } = await context.params;

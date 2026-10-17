@@ -73,6 +73,7 @@ const navItems: NavEntry[] = [
       { label: "Blogs", href: "/blogs" },
       { label: "News", href: "/news" },
       { label: "FAQs", href: "/faqs" },
+      { label: "Privacy Centre", href: "/privacy-center" },
       { label: "Compare platforms", href: "/compare" },
     ],
   },
@@ -221,9 +222,15 @@ function LearningAuthButtons({
       >
         Your course
       </Link>
-      <Link href="/api/learning/sign-out" onClick={onNavigate} className={mobile ? "inline-flex h-10 items-center justify-center text-sm font-semibold text-[#0B2C4A]" : "text-sm font-semibold text-[#0B2C4A]"}>
-        Log out
-      </Link>
+      <form action="/api/learning/sign-out" method="post" className={mobile ? "inline-flex" : "inline-flex"}>
+        <button
+          type="submit"
+          onClick={onNavigate}
+          className={mobile ? "inline-flex h-10 items-center justify-center text-sm font-semibold text-[#0B2C4A]" : "text-sm font-semibold text-[#0B2C4A]"}
+        >
+          Log out
+        </button>
+      </form>
     </>
   );
 }
@@ -237,7 +244,12 @@ function AuthButtons({
   onNavigate?: () => void;
   learningAuth?: { signedIn: boolean };
 }) {
-  if (learningAuth) return <LearningAuthButtons signedIn={learningAuth.signedIn} mobile={mobile} onNavigate={onNavigate} />;
+  const pathname = usePathname();
+  // Path-based fallback so e-learning never hydrates into the workspace /sign-in links.
+  const onLearning = Boolean(learningAuth) || pathname === "/e-learning" || pathname.startsWith("/e-learning/");
+  if (onLearning) {
+    return <LearningAuthButtons signedIn={learningAuth?.signedIn ?? false} mobile={mobile} onNavigate={onNavigate} />;
+  }
   if (!clerkPublishableKey) {
     return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
   }

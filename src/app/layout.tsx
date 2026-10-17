@@ -81,7 +81,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const learningPath = requestHeaders.get("x-cg-path") ?? "";
   const learningSignIn = learningPath.startsWith("/e-learning/sign-in") || learningPath.startsWith("/e-learning/sign-up");
-  const learningPage = requestHeaders.get("x-cg-auth") === "learning";
+  const learningPage = requestHeaders.get("x-cg-auth") === "learning" || learningPath.startsWith("/e-learning");
+  // Cookie banner must not cover the patient WhatsApp flow or the separate e-learning Clerk login.
+  const skipMarketingCmp =
+    learningPath.startsWith("/consent/whatsapp") || learningPath.startsWith("/e-learning");
 
   return (
     <html
@@ -92,7 +95,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.consentguru.com" />
-        <ConsentGuruInstall nonce={nonce} />
+        {skipMarketingCmp ? null : <ConsentGuruInstall nonce={nonce} />}
         <script
           id="cmp-theme-bootstrap"
           nonce={nonce}

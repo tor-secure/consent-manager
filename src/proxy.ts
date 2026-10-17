@@ -176,9 +176,25 @@ function isLearningSignPage(pathname: string) {
 }
 
 function learningPass(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  if (shouldEnforceCsrfOrigin(request.method, pathname) && !hasMachineBearerAuth(request)) {
+    const allowed = isTrustedDashboardMutation({
+      origin: request.headers.get("origin"),
+      referer: request.headers.get("referer"),
+      secFetchSite: request.headers.get("sec-fetch-site"),
+      requestOrigin: request.nextUrl.origin,
+    });
+    if (!allowed) {
+      const forbidden = NextResponse.json(
+        { success: false, message: "Cross-origin request is not allowed." },
+        { status: 403 },
+      );
+      return withBaselineHeaders(request, forbidden);
+    }
+  }
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-cg-auth", "learning");
-  requestHeaders.set("x-cg-path", request.nextUrl.pathname);
+  requestHeaders.set("x-cg-path", pathname);
   return withBaselineHeaders(request, NextResponse.next({ request: { headers: requestHeaders } }));
 }
 

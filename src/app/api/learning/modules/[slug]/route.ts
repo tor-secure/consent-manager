@@ -1,9 +1,15 @@
 import { NextResponse } from "next/server";
 
 import { isResponse, requireLearner } from "@/lib/learning/http";
+import { learningRateLimit, requireJsonBodyHeaders } from "@/lib/learning/request-guard";
 import { updateModuleContent } from "@/lib/learning/service";
 
 export async function PATCH(request: Request, context: { params: Promise<{ slug: string }> }) {
+  const limited = learningRateLimit(request, "module-edit", 40);
+  if (limited) return limited;
+  const headersError = requireJsonBodyHeaders(request);
+  if (headersError) return headersError;
+
   const learner = await requireLearner();
   if (isResponse(learner)) return learner;
   const { slug } = await context.params;

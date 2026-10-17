@@ -15,7 +15,7 @@ import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-met
 
 const title = "Privacy Centre";
 const description =
-  "Privacy Policy, Cookie Policy and Data Processing Agreement for ConsentGuru. Learn how we handle personal data, cookies and customer processing.";
+  "Consent Guru Privacy Centre: Privacy Policy, Cookie Policy, Data Processing Agreement, and Data Principal rights requests for www.consentguru.com.";
 
 export const metadata: Metadata = {
   title,

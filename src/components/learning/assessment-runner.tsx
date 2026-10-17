@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { takePreloadedQuizStart } from "@/lib/learning/quiz-start-cache";
 
 type Option = { id: string; label: string };
 type Question = { id: string; type: string; prompt: string; options: Option[] };
@@ -59,6 +60,7 @@ export function AssessmentRunner({
   questionCount,
   defaultPassPercent = 60,
   autoStart = false,
+  preloadSlug,
 }: {
   startPath: string;
   submitBasePath: string;
@@ -69,6 +71,8 @@ export function AssessmentRunner({
   questionCount?: number;
   defaultPassPercent?: number;
   autoStart?: boolean;
+  /** When set with autoStart, reuse a quiz already opened during lesson-complete. */
+  preloadSlug?: string;
 }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<{ message: string; action: "start" | "submit" } | null>(null);
@@ -153,10 +157,22 @@ export function AssessmentRunner({
   useEffect(() => {
     if (!autoStart || autoStarted.current) return;
     autoStarted.current = true;
+    if (preloadSlug) {
+      const preloaded = takePreloadedQuizStart(preloadSlug);
+      if (preloaded) {
+        setAttemptId(preloaded.attemptId);
+        setQuestions(preloaded.questions);
+        setPassPercent(preloaded.passPercent ?? defaultPassPercent);
+        setAnswers({});
+        setIndex(0);
+        setLoading(false);
+        return;
+      }
+    }
     void begin();
     // Open the questions immediately after the lesson is marked complete.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart]);
+  }, [autoStart, preloadSlug]);
 
   function goTo(nextIndex: number) {
     if (advanceTimer.current) {
@@ -328,13 +344,18 @@ export function AssessmentRunner({
           {title}
         </h2>
         {intro ? <p className="mt-2 max-w-2xl text-justify text-base leading-7 text-[#36505c]">{intro}</p> : null}
-        <ul className="mt-4 grid gap-2 text-sm text-[#0B2C4A] sm:grid-cols-3">
-          {questionCount ? <li className="rounded-lg bg-[#f3f7f6] px-3 py-2"><span className="font-semibold">{questionCount}</span> questions</li> : null}
+        <ul className="mt-4 grid gap-2 text-sm text-[#0B2C4A] sm:grid-cols-2">
+          {questionCount ? (
+            <li className="rounded-lg bg-[#f3f7f6] px-3 py-2">
+              <span className="font-semibold">{questionCount}</span> questions
+            </li>
+          ) : null}
           <li className="rounded-lg bg-[#f3f7f6] px-3 py-2">
             Pass mark <span className="font-semibold">{passPercent}%</span>
           </li>
-          <li className="rounded-lg bg-[#f3f7f6] px-3 py-2">Answers shown after you submit</li>
-          <li className="rounded-lg bg-[#f3f7f6] px-3 py-2 sm:col-span-3">The quiz runs in fullscreen. Leave it and the questions are hidden.</li>
+          <li className="rounded-lg bg-[#f3f7f6] px-3 py-2 sm:col-span-2">
+            The quiz runs in fullscreen. Leave it and the questions are hidden.
+          </li>
         </ul>
         {error ? (
           <div className="mt-4">
