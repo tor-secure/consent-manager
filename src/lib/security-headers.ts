@@ -89,6 +89,7 @@ export function isPublicCrossOriginApiPath(pathname: string): boolean {
   if (pathname.startsWith("/api/cron/")) return true;
   if (pathname.startsWith("/api/webhooks/clerk")) return true;
   if (pathname.startsWith("/api/webhooks/stripe")) return true;
+  if (pathname.startsWith("/api/webhooks/whatsapp")) return true;
   if (pathname.startsWith("/api/v1/")) return true;
   if (pathname.startsWith("/api/agent/")) return true;
   if (pathname.startsWith("/api/sdk/")) return true;

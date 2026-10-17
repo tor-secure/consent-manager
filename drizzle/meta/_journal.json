@@ -414,6 +414,13 @@
       "when": 1789200000000,
       "tag": "0059_learning_lookup_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1789300000000,
+      "tag": "0060_whatsapp_consent_challenges",
+      "breakpoints": true
     }
   ]
 }

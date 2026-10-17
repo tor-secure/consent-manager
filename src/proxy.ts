@@ -26,6 +26,7 @@ const isPublicRoute = createRouteMatcher([
   "/dpo-as-service(.*)",
   "/privacy-request(.*)",
   "/guardian-consent(.*)",
+  "/consent/whatsapp(.*)",
   "/sdk-demo(.*)",
   "/blogs(.*)",
   "/news(.*)",
@@ -46,6 +47,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/consent/withdraw(.*)",
   "/api/consent/policy(.*)",
   "/api/consent/receipt(.*)",
+  "/api/consent/whatsapp(.*)",
   "/api/rights-request(.*)",
   "/api/pricing-enquiry(.*)",
   "/api/dpo-enquiry(.*)",
@@ -56,6 +58,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/cron(.*)",
   "/api/webhooks/clerk(.*)",
   "/api/webhooks/stripe(.*)",
+  "/api/webhooks/whatsapp(.*)",
   "/api/v1(.*)",
   "/api/agent(.*)",
 ]);
@@ -66,6 +69,13 @@ async function withBaselineHeaders(request: NextRequest, response: NextResponse)
     forwardedProto: request.headers.get("x-forwarded-proto"),
   });
   return response;
+}
+
+/** Pass the request through, exposing the pathname to the root layout via x-cg-path. */
+function nextWithPath(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-cg-path", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 const clerkProxy = clerkMiddleware(
@@ -119,7 +129,7 @@ const clerkProxy = clerkMiddleware(
       await auth.protect();
     }
 
-    return withBaselineHeaders(request, NextResponse.next());
+    return withBaselineHeaders(request, nextWithPath(request));
   },
   {
     contentSecurityPolicy: {
@@ -141,7 +151,7 @@ async function unconfiguredProxy(request: NextRequest) {
     return withBaselineHeaders(request, preflight);
   }
 
-  return withBaselineHeaders(request, NextResponse.next());
+  return withBaselineHeaders(request, nextWithPath(request));
 }
 
 async function productionUnconfiguredProxy(request: NextRequest) {
@@ -157,7 +167,7 @@ async function productionUnconfiguredProxy(request: NextRequest) {
     pathname === "/api/health/ready" ||
     (!pathname.startsWith("/api/") && !isPrivatePage(pathname))
   ) {
-    return withBaselineHeaders(request, NextResponse.next());
+    return withBaselineHeaders(request, nextWithPath(request));
   }
 
   const unavailable = NextResponse.json(

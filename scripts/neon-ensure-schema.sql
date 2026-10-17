@@ -1025,3 +1025,39 @@ CREATE TABLE IF NOT EXISTS "learning_events" (
 CREATE INDEX IF NOT EXISTS "learning_events_org_created_idx" ON "learning_events" ("organization_id", "created_at");
 CREATE INDEX IF NOT EXISTS "learning_events_learner_action_idx" ON "learning_events" ("organization_id", "user_id", "course_id", "action");
 
+-- WhatsApp OTP consent challenges (public patient flow)
+CREATE TABLE IF NOT EXISTS "whatsapp_consent_challenges" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "policy_id" uuid NOT NULL REFERENCES "consent_policies"("id") ON DELETE RESTRICT,
+  "policy_version_id" uuid NOT NULL REFERENCES "consent_policy_versions"("id") ON DELETE RESTRICT,
+  "policy_version_number" integer NOT NULL,
+  "jurisdiction" varchar(100) NOT NULL,
+  "locale" varchar(35) NOT NULL,
+  "notice_hash" varchar(64) NOT NULL,
+  "notice_snapshot" jsonb NOT NULL,
+  "phone_e164" varchar(20) NOT NULL,
+  "phone_hash" varchar(64) NOT NULL,
+  "phone_last4" varchar(4) NOT NULL,
+  "otp_hash" varchar(64) NOT NULL,
+  "session_token_hash" varchar(64),
+  "status" varchar(20) DEFAULT 'otp_sent' NOT NULL,
+  "attempt_count" integer DEFAULT 0 NOT NULL,
+  "send_count" integer DEFAULT 1 NOT NULL,
+  "otp_expires_at" timestamp with time zone NOT NULL,
+  "resend_available_at" timestamp with time zone NOT NULL,
+  "otp_message_id" varchar(255),
+  "otp_delivery_status" varchar(30),
+  "confirmation_message_id" varchar(255),
+  "consent_id" varchar(255),
+  "verified_at" timestamp with time zone,
+  "completed_at" timestamp with time zone,
+  "created_at" timestamp with time zone DEFAULT now() NOT NULL,
+  "updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "whatsapp_consent_challenges_site_phone_idx" ON "whatsapp_consent_challenges" ("website_id", "phone_hash", "created_at");
+CREATE INDEX IF NOT EXISTS "whatsapp_consent_challenges_org_created_idx" ON "whatsapp_consent_challenges" ("organization_id", "created_at");
+CREATE INDEX IF NOT EXISTS "whatsapp_consent_challenges_otp_message_idx" ON "whatsapp_consent_challenges" ("otp_message_id");
+CREATE INDEX IF NOT EXISTS "whatsapp_consent_challenges_consent_idx" ON "whatsapp_consent_challenges" ("consent_id");
+

@@ -82,6 +82,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const learningPath = requestHeaders.get("x-cg-path") ?? "";
   const learningSignIn = learningPath.startsWith("/e-learning/sign-in") || learningPath.startsWith("/e-learning/sign-up");
   const learningPage = requestHeaders.get("x-cg-auth") === "learning";
+  // The patient-facing WhatsApp consent flow is itself the consent experience;
+  // do not stack the marketing site's cookie banner on top of it.
+  const whatsappConsentPage = learningPath.startsWith("/consent/whatsapp");
 
   return (
     <html
@@ -92,7 +95,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.consentguru.com" />
-        <ConsentGuruInstall nonce={nonce} />
+        {whatsappConsentPage ? null : <ConsentGuruInstall nonce={nonce} />}
         <script
           id="cmp-theme-bootstrap"
           nonce={nonce}

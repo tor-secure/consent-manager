@@ -1,12 +1,10 @@
-import { after, NextResponse } from "next/server";
-import { desc, eq, and, sql } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { eq, and } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentRecords } from "@/db/schema/consent-records";
-import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
-import { appendConsentEvent } from "@/lib/consent-engine";
-import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
+import { withdrawConsentRecord } from "@/lib/consent-withdraw";
 import { logger } from "@/lib/logger";
 import {
   isValidConsentId,
@@ -132,52 +130,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-    const [priorEvidence] = await db
-      .select()
-      .from(consentEvidenceSnapshots)
-      .where(
-        and(
-          eq(consentEvidenceSnapshots.organizationId, website.organizationId),
-          eq(consentEvidenceSnapshots.consentId, record.consentId),
-        ),
-      )
-      .orderBy(desc(consentEvidenceSnapshots.consentedAt))
-      .limit(1);
-
-    let withdrawn: { stateVersion: number } | undefined;
-    await db.transaction(async (tx) => {
-      const [updated] = await tx
-        .update(consentRecords)
-        .set({
-          status: "withdrawn",
-          stateVersion: sql`${consentRecords.stateVersion} + 1`,
-          withdrawnAt: now,
-          updatedAt: now,
-        })
-        .where(
-          and(
-            eq(consentRecords.id, record.id),
-            eq(consentRecords.stateVersion, expectedStateVersion),
-          ),
-        )
-        .returning({ stateVersion: consentRecords.stateVersion });
-      if (!updated) {
-        throw new Error("CONSENT_STATE_CONFLICT");
-      }
-      withdrawn = updated;
-
-      if (priorEvidence) {
-        const snapshot = buildWithdrawalEvidenceSnapshot({
-          prior: priorEvidence,
-          stateVersion: updated.stateVersion,
-          withdrawnAt: now,
-        });
-        await tx.insert(consentEvidenceSnapshots).values(snapshot.values);
-      }
+    const result = await withdrawConsentRecord({
+      record: { ...record, organizationId: website.organizationId },
+      expectedStateVersion,
+      source: "web",
     });
 
-    if (!withdrawn) {
+    if (!result.ok) {
       return NextResponse.json(
         {
           success: false,
@@ -186,51 +145,13 @@ export async function POST(request: Request) {
         },
         { status: 409, headers: CORS_HEADERS },
       );
-    }
-
-    try {
-      after(() =>
-        appendConsentEvent({
-          consentRecordId: record.id,
-          policyVersionId: record.policyVersionId,
-          eventType: "consent.withdrawn",
-          eventData: {
-            previousStatus: record.status,
-            withdrawnAt: now.toISOString(),
-          },
-        }).catch((eventError) => {
-          logger.error("Append withdrawal consent event failed", {
-            operation: "consent.withdraw.event",
-            consentRecordId: record.id,
-            policyVersionId: record.policyVersionId,
-            error: eventError,
-          });
-        }),
-      );
-    } catch (eventError) {
-      logger.error("Schedule withdrawal consent event failed", {
-        operation: "consent.withdraw.event",
-        consentRecordId: record.id,
-        policyVersionId: record.policyVersionId,
-        error: eventError,
-      });
     }
 
     return NextResponse.json(
-      { success: true, withdrawnAt: now, stateVersion: withdrawn.stateVersion },
+      { success: true, withdrawnAt: result.withdrawnAt, stateVersion: result.stateVersion },
       { headers: CORS_HEADERS },
     );
   } catch (error) {
-    if (error instanceof Error && error.message === "CONSENT_STATE_CONFLICT") {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "CONSENT_STATE_CONFLICT",
-          message: "Consent state changed; refresh and retry",
-        },
-        { status: 409, headers: CORS_HEADERS },
-      );
-    }
     logger.error("Consent withdrawal failed", {
       operation: "consent.withdraw",
       error,
