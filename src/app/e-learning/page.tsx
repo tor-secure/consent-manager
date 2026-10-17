@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { EnrollButton } from "@/components/learning/enroll-button";
@@ -9,7 +10,13 @@ import { VerifyCertificateForm } from "@/components/learning/verify-certificate-
 import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getLearningSession } from "@/lib/learning/auth";
-import { getCourseHome, getPublicCourseCatalog, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
+import {
+  enrollInCourse,
+  getCourseHome,
+  getPublicCourseCatalog,
+  warmLearningCatalog,
+  warmModuleLesson,
+} from "@/lib/learning/service";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-data";
 
@@ -147,9 +154,22 @@ function BeforeYouStart({
   );
 }
 
-export default async function DpdpCoursePage() {
+export default async function DpdpCoursePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ intent?: string }>;
+}) {
   const catalogReady = warmLearningCatalog();
+  const { intent } = await searchParams;
   const learnerSession = await getLearningSession();
+
+  // After Learning Clerk sign-in, finish enrollment then drop the intent query.
+  if (learnerSession && intent === "enroll") {
+    const current = await getCourseHome(learnerSession);
+    if (!current.enrolled) await enrollInCourse(learnerSession);
+    redirect("/e-learning");
+  }
+
   const home = learnerSession ? await getCourseHome(learnerSession) : await getPublicCourseCatalog();
   await catalogReady;
 
@@ -171,11 +191,14 @@ export default async function DpdpCoursePage() {
         <EnrollHero
           heading="DPDP Act training"
           body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam — with a certificate when you pass."
-          primary={<EnrollButton moduleCount={home.course.moduleCount} />}
+          primary={<EnrollButton moduleCount={home.course.moduleCount} signedIn={Boolean(learnerSession)} />}
           secondary={
             !learnerSession ? (
-              <Link href="/e-learning/sign-in" className={secondaryBtn}>
-                Log in
+              <Link
+                href={`/e-learning/sign-up?redirect_url=${encodeURIComponent("/e-learning?intent=enroll")}`}
+                className={secondaryBtn}
+              >
+                Create account
               </Link>
             ) : null
           }
