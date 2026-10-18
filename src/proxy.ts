@@ -1,8 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 
 import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
+import {
+  applyClerkCookies,
+  clearPlatformClerkCookies,
+  rememberPlatformSession,
+  takePlatformSession,
+} from "@/lib/learning/platform-session";
 import { publicOptionsResponse } from "@/lib/sdk/public-http";
 import {
   applyBaselineSecurityHeaders,
@@ -166,11 +172,64 @@ async function productionUnconfiguredProxy(request: NextRequest) {
   return withBaselineHeaders(request, unavailable);
 }
 
-export default isClerkConfigured()
+function isLearningPath(pathname: string) {
+  return pathname === "/e-learning" || pathname.startsWith("/e-learning/") || pathname === "/api/learning" || pathname.startsWith("/api/learning/");
+}
+
+function isLearningSignPage(pathname: string) {
+  return pathname === "/e-learning/sign-in" || pathname.startsWith("/e-learning/sign-in/") || pathname === "/e-learning/sign-up" || pathname.startsWith("/e-learning/sign-up/");
+}
+
+function learningPass(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+  if (shouldEnforceCsrfOrigin(request.method, pathname) && !hasMachineBearerAuth(request)) {
+    const allowed = isTrustedDashboardMutation({
+      origin: request.headers.get("origin"),
+      referer: request.headers.get("referer"),
+      secFetchSite: request.headers.get("sec-fetch-site"),
+      requestOrigin: request.nextUrl.origin,
+    });
+    if (!allowed) {
+      const forbidden = NextResponse.json(
+        { success: false, message: "Cross-origin request is not allowed." },
+        { status: 403 },
+      );
+      return withBaselineHeaders(request, forbidden);
+    }
+  }
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-cg-auth", "learning");
+  requestHeaders.set("x-cg-path", pathname);
+  return withBaselineHeaders(request, NextResponse.next({ request: { headers: requestHeaders } }));
+}
+
+const platformProxy = isClerkConfigured()
   ? clerkProxy
   : process.env.NODE_ENV === "production"
     ? productionUnconfiguredProxy
     : unconfiguredProxy;
+
+export default async function proxy(request: NextRequest, event: NextFetchEvent) {
+  const pathname = request.nextUrl.pathname;
+  if (isLearningSignPage(pathname)) {
+    const response = await learningPass(request);
+    // Stash workspace login, then clear it so Learning Clerk is not the dashboard app.
+    rememberPlatformSession(request, response);
+    clearPlatformClerkCookies(request, response);
+    return response;
+  }
+  if (pathname === "/e-learning/session") return learningPass(request);
+  if (isLearningPath(pathname)) {
+    const restored = takePlatformSession(request);
+    const response = await learningPass(request);
+    applyClerkCookies(response, restored);
+    return response;
+  }
+  const restored = takePlatformSession(request);
+  const response = await platformProxy(request, event);
+  if (response instanceof NextResponse) applyClerkCookies(response, restored);
+  return response;
+}
 
 export const config = {
   matcher: [

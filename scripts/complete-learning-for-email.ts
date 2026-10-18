@@ -2,11 +2,8 @@ import "dotenv/config";
 
 import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
-import { learningQuestionOptions } from "@/db/schema/learning";
-import { memberships } from "@/db/schema/memberships";
-import { roles } from "@/db/schema/roles";
-import { users } from "@/db/schema/users";
+import { learningDb as db } from "@/db/learning/client";
+import { learningLearners, learningQuestionOptions } from "@/db/learning/schema";
 import {
   completeLesson,
   enrollInCourse,
@@ -39,7 +36,7 @@ async function completeFor(ctx: LearnerContext, label: string) {
   for (const courseModule of home.modules) {
     if (courseModule.status === "completed") continue;
     const lesson = await completeLesson(ctx, courseModule.slug, { skipSectionCheck: true });
-    if (lesson.error) throw new Error(`${label}: lesson ${courseModule.number} — ${lesson.error}`);
+    if ("error" in lesson) throw new Error(`${label}: lesson ${courseModule.number} — ${lesson.error}`);
     const quiz = await startQuiz(ctx, courseModule.slug);
     if (quiz.error || !quiz.attemptId) throw new Error(`${label}: quiz ${courseModule.number} start — ${quiz.error}`);
     const result = await submitQuiz(ctx, quiz.attemptId, await correctAnswers(quiz.questions.map((question) => question.id)));
@@ -61,23 +58,23 @@ async function completeFor(ctx: LearnerContext, label: string) {
 
 async function main() {
   if (!email) throw new Error("Usage: complete-learning-for-email <email>");
-  const [user] = await db.select({ id: users.id, name: users.name }).from(users).where(eq(users.email, email)).limit(1);
-  if (!user) throw new Error(`No user with email ${email}. Sign in once so the account exists.`);
+  const [learner] = await db
+    .select()
+    .from(learningLearners)
+    .where(eq(learningLearners.email, email))
+    .limit(1);
+  if (!learner) throw new Error(`No e-learning account for ${email}. Sign in at /e-learning/sign-in once, then run this again.`);
 
-  const rows = await db
-    .select({ organizationId: memberships.organizationId, roleName: roles.name })
-    .from(memberships)
-    .innerJoin(roles, eq(memberships.roleId, roles.id))
-    .where(and(eq(memberships.userId, user.id), eq(memberships.status, "active")));
-  if (rows.length === 0) throw new Error(`${email} has no active organisation membership.`);
-
-  console.log(`User ${user.name} · ${rows.length} active organisation(s)`);
-  for (const [index, row] of rows.entries()) {
-    await completeFor(
-      { organizationId: row.organizationId, userId: user.id, roleName: row.roleName, learnerName: user.name },
-      `Organisation ${index + 1}`,
-    );
-  }
+  await completeFor(
+    {
+      learnerId: learner.id,
+      clerkUserId: learner.clerkUserId,
+      email: learner.email,
+      roleName: learner.roleName,
+      learnerName: learner.name,
+    },
+    learner.name,
+  );
 }
 
 main()

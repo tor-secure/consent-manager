@@ -138,20 +138,20 @@ export default function Home() {
                 Build trust. Collect consent. Stay compliant.
               </p>
               <h1 className="mt-3 text-balance text-[clamp(1.55rem,1.05rem+2.6vw,2.6rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
-                Consent management platform{" "}
+                Consent Guru —{" "}
                 <span
                   className="bg-clip-text text-transparent"
                   style={{
                     backgroundImage: "linear-gradient(90deg, #0B2C4A 0%, #00C4A7 70%)",
                   }}
                 >
-                  for privacy compliance
+                  consent management for privacy compliance
                 </span>
               </h1>
 
               <p className="mt-3 max-w-lg text-[14px] leading-6 text-[#4B5563] sm:text-[15px]">
-                Consent Guru helps organizations collect digital consent, manage privacy preferences
-                and cookie consent, store consent records, and apply those choices on websites and apps.
+                Collect digital consent, manage privacy preferences and cookie consent, store consent
+                records, and apply those choices on websites and apps.
               </p>
               <p className="mt-2 max-w-lg text-[13px] leading-6 text-[#6B7280]">
                 Review consent analytics and connect a consent API, with workflows for GDPR, CCPA/CPRA,

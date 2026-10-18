@@ -88,30 +88,35 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
     <div className="space-y-5 text-[#0B2C4A]">
       <Breadcrumb items={[{ label: "E-learning", href: "/e-learning" }, { label: `Module ${pad(courseModule.number)}` }]} />
       <article className="min-w-0 space-y-5">
-          <header className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-semibold tabular-nums text-[#4d6570]">Module {pad(courseModule.number)} of {result.progress.total}</p>
-              <StatusChip status={status} />
-            </div>
-            <h1 className="text-2xl font-semibold leading-tight sm:text-[1.75rem]">{courseModule.title}</h1>
-            <p className="text-sm text-[#4d6570]">{courseModule.minutes} minutes</p>
-          </header>
+        <header className="rounded-2xl border border-[#e4eeec] bg-white px-5 py-5 shadow-[0_14px_36px_-30px_rgba(11,44,74,0.35)] sm:px-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="rounded-full bg-[#E6F9F5] px-2.5 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[#0B2C4A]">
+              Module {pad(courseModule.number)} of {result.progress.total}
+            </p>
+            <StatusChip status={status} />
+            <span className="text-sm font-medium text-[#4d6570]">{courseModule.minutes} minutes</span>
+          </div>
+          <h1 className="mt-3 max-w-4xl text-2xl font-semibold leading-tight tracking-tight sm:text-[1.85rem]">
+            {courseModule.title}
+          </h1>
+        </header>
 
-          <ModuleReading
-            moduleNumber={courseModule.number}
-            objectives={courseModule.objectives}
-            lesson={courseModule.lesson}
-            video={courseModule.video}
-            slug={courseModule.slug}
-            lessonComplete={courseModule.lessonComplete}
-            quizPassed={courseModule.quizPassed}
-            passPercent={result.course.passPercent}
-          />
+        <ModuleReading
+          moduleNumber={courseModule.number}
+          objectives={courseModule.objectives}
+          lesson={courseModule.lesson}
+          video={courseModule.video}
+          slug={courseModule.slug}
+          lessonComplete={courseModule.lessonComplete}
+          quizPassed={courseModule.quizPassed}
+          passPercent={result.course.passPercent}
+          learnerId={learner.learnerId}
+        />
 
-          <Suspense fallback={<ModulePagerSkeleton />}>
-            <ModulePager homePromise={homePromise} currentSlug={courseModule.slug} />
-          </Suspense>
-        </article>
+        <Suspense fallback={<ModulePagerSkeleton />}>
+          <ModulePager homePromise={homePromise} currentSlug={courseModule.slug} />
+        </Suspense>
+      </article>
     </div>
   );
 }
@@ -134,7 +139,7 @@ async function ModulePager({
         <Link href={`/e-learning/module/${previous.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
           <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Previous</span>
           <span className="mt-0.5 text-sm font-semibold">
-            {pad(previous.number)} Â· {previous.title}
+            {pad(previous.number)} · {previous.title}
           </span>
         </Link>
       ) : (
@@ -145,15 +150,15 @@ async function ModulePager({
           <Link href={`/e-learning/module/${next.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
             <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
             <span className="mt-0.5 text-sm font-semibold">
-              {pad(next.number)} Â· {next.title}
+              {pad(next.number)} · {next.title}
             </span>
           </Link>
         ) : (
           <div className="flex min-h-16 items-center justify-end gap-3 rounded-xl border border-dashed border-[#d5e3e0] bg-[#fbfdfc] px-4 py-3 text-right text-[#4d6570]" aria-label={`Next module ${next.number} is locked`}>
             <span className="flex flex-col">
-              <span className="text-xs font-semibold uppercase tracking-wide">Next Â· locked</span>
+              <span className="text-xs font-semibold uppercase tracking-wide">Next · locked</span>
               <span className="mt-0.5 text-sm font-semibold">
-                {pad(next.number)} Â· {next.title}
+                {pad(next.number)} · {next.title}
               </span>
             </span>
             <StatusIcon status="locked" size={20} />

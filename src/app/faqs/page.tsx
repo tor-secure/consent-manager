@@ -12,7 +12,7 @@ import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-met
 
 const title = "FAQs";
 const description =
-  "Answers to common questions about ConsentGuru: consent management, cookies, DPDP, GDPR, banners, evidence, and plans.";
+  "Direct answers about Consent Guru: what a CMP does, cookie banners, DPDP and GDPR workflows, consent records, withdrawal, and pricing plans.";
 
 export const metadata: Metadata = {
   title,

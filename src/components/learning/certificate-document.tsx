@@ -12,6 +12,7 @@ export type CertificateDocumentData = {
   certificateCode: string;
   verificationUrl: string;
   programLine: string;
+  specimen?: boolean;
 };
 
 function formatDate(value: Date | string): string {
@@ -36,10 +37,15 @@ export function CertificateDocument({
   certificate: CertificateDocumentData;
   qrSvg: string;
 }) {
+  const specimen = Boolean(certificate.specimen);
   return (
     <article
       className="certificate-sheet relative mx-auto w-full max-w-[1100px] overflow-hidden bg-white text-[#0B2C4A] shadow-[0_18px_50px_-24px_rgba(11,44,74,0.45)] [container-type:inline-size] print:max-w-none print:shadow-none"
-      aria-label={`Certificate of completion for ${certificate.learnerName}`}
+      aria-label={
+        specimen
+          ? `Specimen certificate layout (not authentic) for ${certificate.learnerName}`
+          : `Certificate of completion for ${certificate.learnerName}`
+      }
     >
       <Image
         src={templateImage}
@@ -49,10 +55,19 @@ export function CertificateDocument({
         className="block h-auto w-full select-none"
       />
 
+      {specimen ? (
+        <p
+          className="pointer-events-none absolute left-1/2 top-[48%] z-10 w-[90%] -translate-x-1/2 -translate-y-1/2 -rotate-12 text-center text-[4.5cqw] font-bold uppercase tracking-[0.2em] text-[#0B2C4A]/35"
+          aria-hidden="true"
+        >
+          Specimen — not authentic
+        </p>
+      ) : null}
+
       <p className="sr-only">
-        Consent Guru certification of completion. This certifies that {certificate.learnerName} has completed Consent Guru&apos;s online
-        training on DPDP Act (Foundation Certification). Grade {certificateGrade(certificate.scorePercent)}. Completed on {formatDate(certificate.completedAt)}. Valid for one year, until {validUntil(certificate.completedAt)}. Certificate
-        ID {certificate.certificateCode}.
+        {specimen
+          ? `Specimen certificate layout only. Not an issued Consent Guru certificate. Sample name ${certificate.learnerName}. Certificate ID ${certificate.certificateCode}.`
+          : `Consent Guru certification of completion. This certifies that ${certificate.learnerName} has completed Consent Guru's online training on DPDP Act (Foundation Certification). Grade ${certificateGrade(certificate.scorePercent)}. Completed on ${formatDate(certificate.completedAt)}. Valid for one year, until ${validUntil(certificate.completedAt)}. Certificate ID ${certificate.certificateCode}.`}
       </p>
 
       <div aria-hidden="true">

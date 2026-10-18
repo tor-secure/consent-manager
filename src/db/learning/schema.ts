@@ -11,9 +11,6 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-import { organizations } from "./organizations";
-import { users } from "./users";
-
 export const learningCourses = pgTable(
   "learning_courses",
   {
@@ -113,16 +110,27 @@ export const learningQuestionOptions = pgTable(
   (table) => [index("learning_question_options_question_idx").on(table.questionId)],
 );
 
+export const learningLearners = pgTable(
+  "learning_learners",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clerkUserId: varchar("clerk_user_id", { length: 128 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    roleName: varchar("role_name", { length: 40 }).notNull().default("Member"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("learning_learners_clerk_user_unique").on(table.clerkUserId)],
+);
+
 export const learningEnrollments = pgTable(
   "learning_enrollments",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: uuid("organization_id")
+    learnerId: uuid("learner_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => learningLearners.id, { onDelete: "cascade" }),
     courseId: uuid("course_id")
       .notNull()
       .references(() => learningCourses.id, { onDelete: "cascade" }),
@@ -131,12 +139,8 @@ export const learningEnrollments = pgTable(
     completedAt: timestamp("completed_at", { withTimezone: true }),
   },
   (table) => [
-    uniqueIndex("learning_enrollments_org_user_course_unique").on(
-      table.organizationId,
-      table.userId,
-      table.courseId,
-    ),
-    index("learning_enrollments_org_idx").on(table.organizationId),
+    uniqueIndex("learning_enrollments_learner_course_unique").on(table.learnerId, table.courseId),
+    index("learning_enrollments_learner_idx").on(table.learnerId),
   ],
 );
 
@@ -147,12 +151,6 @@ export const learningLessonCompletions = pgTable(
     enrollmentId: uuid("enrollment_id")
       .notNull()
       .references(() => learningEnrollments.id, { onDelete: "cascade" }),
-    organizationId: uuid("organization_id")
-      .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
     moduleId: uuid("module_id")
       .notNull()
       .references(() => learningModules.id, { onDelete: "cascade" }),
@@ -170,12 +168,9 @@ export const learningQuizAttempts = pgTable(
     enrollmentId: uuid("enrollment_id")
       .notNull()
       .references(() => learningEnrollments.id, { onDelete: "cascade" }),
-    organizationId: uuid("organization_id")
+    learnerId: uuid("learner_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => learningLearners.id, { onDelete: "cascade" }),
     moduleId: uuid("module_id")
       .notNull()
       .references(() => learningModules.id, { onDelete: "cascade" }),
@@ -222,12 +217,9 @@ export const learningExamAttempts = pgTable(
     enrollmentId: uuid("enrollment_id")
       .notNull()
       .references(() => learningEnrollments.id, { onDelete: "cascade" }),
-    organizationId: uuid("organization_id")
+    learnerId: uuid("learner_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => learningLearners.id, { onDelete: "cascade" }),
     courseId: uuid("course_id")
       .notNull()
       .references(() => learningCourses.id, { onDelete: "cascade" }),
@@ -243,7 +235,7 @@ export const learningExamAttempts = pgTable(
   },
   (table) => [
     uniqueIndex("learning_exam_attempts_enrollment_number_unique").on(table.enrollmentId, table.attemptNumber),
-    index("learning_exam_attempts_org_idx").on(table.organizationId),
+    index("learning_exam_attempts_learner_idx").on(table.learnerId),
   ],
 );
 
@@ -271,12 +263,9 @@ export const learningCertificates = pgTable(
     enrollmentId: uuid("enrollment_id")
       .notNull()
       .references(() => learningEnrollments.id, { onDelete: "cascade" }),
-    organizationId: uuid("organization_id")
+    learnerId: uuid("learner_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => learningLearners.id, { onDelete: "cascade" }),
     courseId: uuid("course_id")
       .notNull()
       .references(() => learningCourses.id, { onDelete: "cascade" }),
@@ -300,12 +289,9 @@ export const learningEvents = pgTable(
   "learning_events",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    organizationId: uuid("organization_id")
+    learnerId: uuid("learner_id")
       .notNull()
-      .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
+      .references(() => learningLearners.id, { onDelete: "cascade" }),
     courseId: uuid("course_id")
       .notNull()
       .references(() => learningCourses.id, { onDelete: "cascade" }),
@@ -314,12 +300,7 @@ export const learningEvents = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
-    index("learning_events_org_created_idx").on(table.organizationId, table.createdAt),
-    index("learning_events_learner_action_idx").on(
-      table.organizationId,
-      table.userId,
-      table.courseId,
-      table.action,
-    ),
+    index("learning_events_learner_created_idx").on(table.learnerId, table.createdAt),
+    index("learning_events_learner_action_idx").on(table.learnerId, table.courseId, table.action),
   ],
 );

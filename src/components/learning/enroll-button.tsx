@@ -1,13 +1,39 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
 import { primaryBtn } from "@/components/learning/ui";
 
-export function EnrollButton({ moduleCount }: { moduleCount: number }) {
+const GUEST_ENROLL_HREF = `/e-learning/sign-in?redirect_url=${encodeURIComponent("/e-learning?intent=enroll")}`;
+
+export function EnrollButton({
+  moduleCount,
+  signedIn,
+}: {
+  moduleCount: number;
+  signedIn: boolean;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+
+  if (!signedIn) {
+    return (
+      <div className="flex flex-col items-start gap-2 lg:items-end">
+        <Link
+          href={GUEST_ENROLL_HREF}
+          aria-label={`Log in to enroll in all ${moduleCount} modules`}
+          className={`${primaryBtn} h-12 min-w-40 px-8 text-base`}
+        >
+          Enroll
+        </Link>
+        <p className="max-w-xs text-sm leading-5 text-[#4d6570] lg:text-right">
+          Log in with your e-learning account to enrol. Workspace login is separate.
+        </p>
+      </div>
+    );
+  }
 
   function enroll() {
     if (pending) return;

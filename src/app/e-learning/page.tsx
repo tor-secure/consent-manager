@@ -1,23 +1,29 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { auth } from "@clerk/nextjs/server";
 
 import { EnrollButton } from "@/components/learning/enroll-button";
-import { ModuleCards } from "@/components/learning/module-cards";
+import { FeaturedModuleCard, ModuleCards } from "@/components/learning/module-cards";
 import { VerifyCertificateForm } from "@/components/learning/verify-certificate-form";
-import { ProgressBar } from "@/components/learning/progress-bar";
-import { StatusIcon } from "@/components/learning/status-icon";
-import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { JsonLd } from "@/components/seo/json-ld";
+import { getLearningSession } from "@/lib/learning/auth";
+import {
+  enrollInCourse,
+  getCourseHome,
+  getPublicCourseCatalog,
+  warmLearningCatalog,
+  warmModuleLesson,
+} from "@/lib/learning/service";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-data";
-import { learnerPageContext } from "@/lib/learning/page-context";
-import { getCourseHome, getPublicCourseCatalog, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
 
 const title = "DPDP Act Training";
 const description =
-  "A 30-module course on the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025. Passing earns a certificate of completion from Consent Guru, not a government or university accreditation.";
+  "Consent Guru’s free 30-module e-learning course on India’s DPDP Act, 2023 and DPDP Rules, 2025. Pass module quizzes and the final exam for a certificate of completion (not government accreditation).";
+const ENROLL_BANNER_SRC = "/certification/cg_banner.png";
 
 export const metadata: Metadata = {
   title,
@@ -27,203 +33,144 @@ export const metadata: Metadata = {
   ...socialMetadata({ title: `${title} — Consent Guru`, description, path: "/e-learning" }),
 };
 
-type CourseInfo = {
-  title: string;
-  description: string;
-  instructor: string;
-  moduleCount: number;
-  difficulty: string;
-  passPercent: number;
-  examQuestionCount: number;
-};
-
-const courseHighlights = [
-  "30 modules, about 15 minutes each",
-  "A video, a lesson, and a 5-question quiz in every module",
-  "Modules unlock in order, and your progress is saved",
-  "A 60-question final exam: two questions from each module, in a random order",
-  "A certificate when you pass",
-];
-
-function Hero({ course, action, note, pitch }: { course: CourseInfo; action: ReactNode; note?: ReactNode; pitch?: boolean }) {
-  const facts = [
-    ["Modules", String(course.moduleCount)],
-    ["Duration", "30 days, 15 min a day"],
-    ["Level", course.difficulty],
-    ["Instructor", course.instructor],
-  ];
+function EnrollHero({
+  heading,
+  body,
+  primary,
+  secondary,
+}: {
+  heading: string;
+  body: string;
+  primary: ReactNode;
+  secondary?: ReactNode;
+}) {
   return (
-    <section className={`${card} overflow-hidden`}>
-      <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-        <div className="min-w-0">
-          <p className={eyebrow}>DPDP Act 2023 training</p>
-          <h1 className="mt-2 max-w-3xl text-2xl font-semibold leading-tight text-[#0B2C4A] sm:text-[2rem] sm:leading-[1.2]">
-            {pitch ? "DPDP Act training" : course.title}
-          </h1>
-          <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
-            {pitch
-              ? "A 30-module course on the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025. Plan on about 15 minutes a day. Passing earns a certificate of completion from Consent Guru. It is not a government, university, or Data Protection Board accreditation."
-              : course.description}
-          </p>
-          {pitch ? (
-            <ul className="mt-4 max-w-3xl space-y-2">
-              {courseHighlights.map((item) => (
-                <li key={item} className="flex gap-3 text-[15px] leading-6 text-[#0B2C4A]">
-                  <span aria-hidden="true" className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          {action}
-          {note}
+    <section className="overflow-hidden rounded-3xl border border-[#e4eeec] bg-white shadow-[0_20px_50px_-36px_rgba(11,44,74,0.4)]">
+      <div className="relative aspect-video w-full bg-[#E6F9F5]">
+        <Image
+          src={ENROLL_BANNER_SRC}
+          alt="Consent Guru DPDP Act training"
+          fill
+          priority
+          sizes="(max-width: 1280px) 100vw, 1152px"
+          className="object-contain object-center"
+        />
+      </div>
+      <div className="p-6 sm:p-8 lg:p-10">
+        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00C4A7]">Consent Guru learning</p>
+        <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[#0B2C4A] sm:text-[2.35rem] xl:text-[2.6rem]">
+          {heading}
+        </h1>
+        <p className="mt-3 max-w-3xl text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          {primary}
+          {secondary}
         </div>
       </div>
-      <dl className="grid grid-cols-2 border-t border-[#d5e3e0] bg-[#fbfdfc] sm:grid-cols-4">
-        {facts.map(([label, value], index) => (
-          <div
-            key={label}
-            className={`px-6 py-4 sm:px-8 ${index % 2 === 1 ? "border-l border-[#d5e3e0]" : ""} ${index >= 2 ? "border-t border-[#d5e3e0] sm:border-t-0" : ""} ${index === 2 ? "sm:border-l" : ""}`}
-          >
-            <dt className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">{label}</dt>
-            <dd className="mt-1 text-sm font-semibold leading-6 text-[#0B2C4A] sm:text-base">{value}</dd>
-          </div>
-        ))}
-      </dl>
     </section>
   );
 }
 
-function BeforeYouStart({ disclaimer, passPercent, examPassPercent }: { disclaimer: string; passPercent: number; examPassPercent: number }) {
+function PortalHero({
+  heading,
+  body,
+  primary,
+  secondary,
+  feature,
+}: {
+  heading: string;
+  body: string;
+  primary: ReactNode;
+  secondary?: ReactNode;
+  feature: ReactNode;
+}) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-[#e4eeec] bg-white shadow-[0_20px_50px_-36px_rgba(11,44,74,0.4)]">
+      <div className="grid gap-6 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,1fr)] lg:items-stretch xl:gap-10">
+        <div className="flex min-w-0 flex-col justify-center">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00C4A7]">Consent Guru learning</p>
+          <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[#0B2C4A] sm:text-[2.35rem] xl:text-[2.6rem]">
+            {heading}
+          </h1>
+          <p className="mt-3 max-w-3xl text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {primary}
+            {secondary}
+          </div>
+        </div>
+        <div className="min-w-0">{feature}</div>
+      </div>
+    </section>
+  );
+}
+
+function BeforeYouStart({
+  disclaimer,
+  passPercent,
+  examPassPercent,
+}: {
+  disclaimer: string;
+  passPercent: number;
+  examPassPercent: number;
+}) {
   const body = disclaimer.replace(/^Legal status note:\s*/, "");
   const [status, educational] = body.split(/(?=This training material)/);
   const prerequisites = [
-    "A Consent Guru account, so your progress, quizzes, and certificate stay with you.",
+    "An e-learning account (separate from the Consent Guru workspace login), so your progress, quizzes, and certificate stay with you.",
     "No earlier DPDP module. This foundation programme begins with privacy, data protection, and the terms used in the Act.",
     "About 15 minutes a day for 30 days.",
     `A score of ${passPercent}% or more on each module quiz. The final exam passes at ${examPassPercent}%.`,
   ];
   return (
-    <section aria-labelledby="before-you-start" className={`${card} space-y-6 p-6 sm:p-8`}>
-      <div>
-        <h2 id="before-you-start" className="text-xl font-semibold text-[#0B2C4A]">Before you start</h2>
-        <p className="mt-2 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
-          Read this before you enrol. It is the note from the first page of the programme, with what you need in place to begin.
-        </p>
-      </div>
-      <div>
-        <h3 className="text-base font-semibold text-[#0B2C4A]">Prerequisites</h3>
-        <ul className="mt-3 max-w-3xl space-y-2.5">
-          {prerequisites.map((item) => (
-            <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
-              <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-              <span className="min-w-0 flex-1 text-justify">{item}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div>
-        <h3 className="text-base font-semibold text-[#0B2C4A]">Disclaimer</h3>
-        <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#0B2C4A]">
-          <strong className="font-semibold">Legal status note: </strong>
-          {status}
-        </p>
-        {educational ? <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#0B2C4A]">{educational}</p> : null}
-      </div>
-    </section>
-  );
-}
-
-function VerifyCertificate() {
-  return (
-    <section aria-labelledby="verify-certificate" className={`${card} p-6 sm:p-8`}>
-      <h2 id="verify-certificate" className="text-xl font-semibold text-[#0B2C4A]">Verify a certificate</h2>
-      <p className="mt-2 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
-        Enter the certificate ID printed on a Consent Guru DPDP certificate. A valid certificate is good for one year from the date it was issued.
+    <section id="before-you-start" aria-labelledby="before-you-start-heading" className="scroll-mt-24 rounded-3xl border border-[#e4eeec] bg-white p-6 sm:p-8">
+      <h2 id="before-you-start-heading" className="text-xl font-semibold text-[#0B2C4A]">
+        Introduction
+      </h2>
+      <p className="mt-2 max-w-3xl text-base leading-7 text-[#36505c]">
+        Read this before you enrol. It is the note from the first page of the programme.
       </p>
-      <VerifyCertificateForm />
+      <div id="guidelines" className="mt-6 scroll-mt-24 grid gap-6 lg:grid-cols-2">
+        <div>
+          <h3 className="text-base font-semibold text-[#0B2C4A]">Prerequisites</h3>
+          <ul className="mt-3 space-y-2.5">
+            {prerequisites.map((item) => (
+              <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
+                <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
+                <span className="min-w-0 flex-1">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <h3 className="text-base font-semibold text-[#0B2C4A]">Guidelines</h3>
+          <p className="mt-3 text-base leading-7 text-[#0B2C4A]">
+            <strong className="font-semibold">Legal status note: </strong>
+            {status}
+          </p>
+          {educational ? <p className="mt-3 text-base leading-7 text-[#0B2C4A]">{educational}</p> : null}
+        </div>
+      </div>
     </section>
   );
 }
 
-function Disclaimer({ text, reviewed }: { text: string; reviewed?: string }) {
-  return (
-    <section aria-label="Course disclaimer" className="border-t border-[#d5e3e0] pt-6">
-      <p className="max-w-4xl text-justify text-sm leading-6 text-[#4d6570]">{text}</p>
-      {reviewed ? <p className="mt-2 text-sm text-[#4d6570]">Last reviewed {reviewed}.</p> : null}
-    </section>
-  );
-}
-
-function AchievementCard({
-  title: heading,
-  state,
-  detail,
-  done,
-  locked,
-  action,
+export default async function DpdpCoursePage({
+  searchParams,
 }: {
-  title: string;
-  state: string;
-  detail: string;
-  done: boolean;
-  locked: boolean;
-  action?: ReactNode;
+  searchParams: Promise<{ intent?: string }>;
 }) {
-  return (
-    <div className={`${card} flex flex-col gap-4 p-5 sm:flex-row sm:items-center`}>
-      <StatusIcon status={done ? "completed" : locked ? "locked" : "available"} size={32} />
-      <div className="min-w-0 flex-1">
-        <h3 className="text-base font-semibold text-[#0B2C4A]">{heading}</h3>
-        <p className="mt-0.5 text-sm font-medium text-[#0B2C4A]">{state}</p>
-        <p className="mt-1 text-justify text-sm leading-6 text-[#4d6570]">{detail}</p>
-      </div>
-      {action}
-    </div>
-  );
-}
-
-export default async function DpdpCoursePage() {
   const catalogReady = warmLearningCatalog();
-  const session = await auth();
-  if (!session.userId) {
-    const home = await getPublicCourseCatalog();
-    await catalogReady;
-    const courseLd = graphSchema([
-      courseSchema({
-        name: home.course.title || "DPDP Act training",
-        description,
-      }),
-      breadcrumbSchema([
-        { name: "Home", path: "/" },
-        { name: "DPDP Act training", path: "/e-learning" },
-      ]),
-    ]);
-    return (
-      <div className="space-y-8 text-[#0B2C4A]">
-        <JsonLd id="dpdp-course-jsonld" data={courseLd} />
-        <Hero course={home.course} pitch action={<EnrollButton moduleCount={home.course.moduleCount} />} />
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
-        <VerifyCertificate />
-        <section aria-labelledby="curriculum-heading" className="space-y-4">
-          <div>
-            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">
-              Curriculum
-            </h2>
-            <p className="mt-1 text-sm text-[#4d6570]">
-              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Sign in to enrol. Lessons stay private to your account.
-            </p>
-          </div>
-          <ModuleCards modules={home.modules} />
-        </section>
-      </div>
-    );
+  const { intent } = await searchParams;
+  const learnerSession = await getLearningSession();
+
+  // After Learning Clerk sign-in, finish enrollment then drop the intent query.
+  if (learnerSession && intent === "enroll") {
+    const current = await getCourseHome(learnerSession);
+    if (!current.enrolled) await enrollInCourse(learnerSession);
+    redirect("/e-learning");
   }
 
-  const learner = await learnerPageContext();
-  const home = await getCourseHome(learner);
+  const home = learnerSession ? await getCourseHome(learnerSession) : await getPublicCourseCatalog();
   await catalogReady;
 
   const courseLd = graphSchema([
@@ -239,24 +186,26 @@ export default async function DpdpCoursePage() {
 
   if (!home.enrolled) {
     return (
-      <div className="space-y-8 text-[#0B2C4A]">
+      <div className="space-y-6 text-[#0B2C4A]">
         <JsonLd id="dpdp-course-jsonld" data={courseLd} />
-        <Hero
-          course={home.course}
-          pitch
-          action={<EnrollButton moduleCount={home.course.moduleCount} />}
+        <EnrollHero
+          heading="DPDP Act training"
+          body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam — with a certificate when you pass."
+          primary={<EnrollButton moduleCount={home.course.moduleCount} signedIn={Boolean(learnerSession)} />}
         />
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
-        <VerifyCertificate />
-        <section aria-labelledby="curriculum-heading" className="space-y-4">
-          <div>
-            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">Curriculum</h2>
-            <p className="mt-1 text-sm text-[#4d6570]">
-              {home.course.moduleCount} modules, each with a video, a lesson, and a 5-question quiz. Modules unlock in order. The final exam is {home.course.examQuestionCount} questions: two from each module, in a random order.
-            </p>
-          </div>
-          <ModuleCards modules={home.modules} />
+        <BeforeYouStart
+          disclaimer={home.course.disclaimer}
+          passPercent={home.course.passPercent}
+          examPassPercent={home.course.examPassPercent}
+        />
+        <section className="rounded-3xl border border-[#e4eeec] bg-white p-6 sm:p-8">
+          <h2 className="text-xl font-semibold text-[#0B2C4A]">Verify a certificate</h2>
+          <p className="mt-2 text-sm leading-6 text-[#4d6570]">
+            Enter the certificate ID printed on a Consent Guru DPDP certificate.
+          </p>
+          <VerifyCertificateForm />
         </section>
+        <ModuleCards modules={home.modules} />
       </div>
     );
   }
@@ -265,146 +214,95 @@ export default async function DpdpCoursePage() {
   const current = home.modules.find((item) => item.status === "in_progress" || item.status === "available");
   if (current) warmModuleLesson(current.slug).catch(() => undefined);
   const allModulesDone = progress.completedModules >= progress.totalModules;
+  const feature = current ?? home.modules[home.modules.length - 1];
   const primary = progress.certificateEligible
     ? { href: "/e-learning/certificate", label: "View certificate" }
     : allModulesDone
-      ? { href: "/e-learning/final-exam", label: "Take the final exam" }
+      ? { href: "/e-learning/final-exam", label: "Take final exam" }
       : current
-        ? { href: `/e-learning/module/${current.slug}`, label: progress.completedModules === 0 && !current.lessonComplete ? "Start learning" : "Continue learning" }
-        : { href: "/e-learning/final-exam", label: "Take the final exam" };
+        ? {
+            href: `/e-learning/module/${current.slug}`,
+            label: progress.completedModules === 0 && !current.lessonComplete ? "Start Module 1" : `Continue Module ${current.number}`,
+          }
+        : { href: "/e-learning/final-exam", label: "Take final exam" };
 
   return (
-    <div className="space-y-8 text-[#0B2C4A]">
+    <div className="space-y-6 text-[#0B2C4A]">
       <JsonLd id="dpdp-course-jsonld" data={courseLd} />
-      <Hero
-        course={home.course}
-        action={
-          <Link href={primary.href} {...(primary.href.includes("/module/") ? { prefetch: true } : {})} className={primaryBtn}>
-            {primary.label}
+      <PortalHero
+        heading={home.course.title}
+        body="Learn practical DPDP compliance through structured modules and interactive quizzes — tracked to your learning account."
+        primary={
+          <Link href={primary.href} prefetch={primary.href.includes("/module/")} className={primaryBtn}>
+            {primary.label} →
           </Link>
         }
+        secondary={
+          allModulesDone && !progress.certificateEligible ? (
+            <Link href="/e-learning/final-exam" className={secondaryBtn}>
+              Take final exam
+            </Link>
+          ) : progress.certificateEligible ? (
+            <Link href="/e-learning/certificate" className={secondaryBtn}>
+              Certificate
+            </Link>
+          ) : (
+            <Link href="#modules-heading" className={secondaryBtn}>
+              Browse modules
+            </Link>
+          )
+        }
+        feature={feature ? <FeaturedModuleCard module={feature} enrolled /> : <div className="rounded-2xl border border-[#e4eeec] bg-[#E6F9F5] p-6" />}
       />
 
       {progress.completedModules === 0 && !current?.lessonComplete ? (
-        <BeforeYouStart disclaimer={home.course.disclaimer} passPercent={home.course.passPercent} examPassPercent={home.course.examPassPercent} />
+        <BeforeYouStart
+          disclaimer={home.course.disclaimer}
+          passPercent={home.course.passPercent}
+          examPassPercent={home.course.examPassPercent}
+        />
       ) : null}
-      <VerifyCertificate />
 
-      <section aria-labelledby="continue-heading" className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className={`${card} flex flex-col p-6`}>
-          <h2 id="continue-heading" className={eyebrow}>
-            {current && !allModulesDone ? "Continue learning" : "Next step"}
-          </h2>
-          {current && !allModulesDone ? (
-            <>
-              <p className="mt-3 text-sm font-semibold tabular-nums text-[#4d6570]">Module {pad(current.number)}</p>
-              <p className="mt-1 text-xl font-semibold leading-snug text-[#0B2C4A]">{current.title}</p>
-              <p className="mt-2 text-sm text-[#4d6570]">
-                {current.minutes} minutes · {current.lessonComplete ? "Lesson done. Pass the quiz to unlock the next module." : "Watch the video and read the lesson."}
-              </p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link href={`/e-learning/module/${current.slug}`} prefetch className={primaryBtn}>
-                  {current.lessonComplete ? "Go to module" : "Resume module"}
-                </Link>
-                {current.lessonComplete ? (
-                  <Link href={`/e-learning/module/${current.slug}/quiz`} prefetch className={secondaryBtn}>
-                    Take the quiz
-                  </Link>
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <>
-              <p className="mt-3 text-xl font-semibold leading-snug text-[#0B2C4A]">
-                {progress.certificateEligible ? "Course complete" : "All 30 modules passed"}
-              </p>
-              <p className="mt-2 text-sm text-[#4d6570]">
-                {progress.certificateEligible
-                  ? "Your certificate of completion is ready."
-                  : `Pass the final examination with ${home.course.examPassPercent}% or more to earn your certificate.`}
-              </p>
-              <div className="mt-5">
-                <Link href={primary.href} className={primaryBtn}>
-                  {primary.label}
-                </Link>
-              </div>
-            </>
-          )}
-        </div>
-        <div className={`${card} p-6`}>
-          <h2 className={eyebrow}>Your progress</h2>
-          <p className="mt-3 text-3xl font-semibold tabular-nums text-[#0B2C4A]">
-            {progress.completedModules}
-            <span className="text-lg font-medium text-[#4d6570]"> / {progress.totalModules} modules</span>
+      <ModuleCards modules={home.modules} currentSlug={allModulesDone ? null : current?.slug} />
+
+      <section className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-3xl border border-[#e4eeec] bg-white p-6">
+          <h2 className="text-lg font-semibold">Final examination</h2>
+          <p className="mt-2 text-sm leading-6 text-[#4d6570]">
+            {progress.examPassed
+              ? `Passed with ${progress.examPercentage}%.`
+              : allModulesDone
+                ? `${home.course.examQuestionCount} questions. Pass at ${home.course.examPassPercent}%.`
+                : "Unlocks after all 30 modules are passed."}
           </p>
-          <div className="mt-4">
-            <ProgressBar value={progress.completionPercentage} label="Course completion" />
-          </div>
-          <dl className="mt-5 space-y-2 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-[#4d6570]">Final exam</dt>
-              <dd className="font-semibold">
-                {progress.examPassed ? `Passed · ${progress.examPercentage}%` : progress.examPercentage !== null ? `Last score ${progress.examPercentage}%` : "Not taken"}
-              </dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-[#4d6570]">Certificate</dt>
-              <dd className="font-semibold">{progress.certificateEligible ? "Earned" : "Not yet"}</dd>
-            </div>
-          </dl>
+          {allModulesDone ? (
+            <Link href="/e-learning/final-exam" className={`${secondaryBtn} mt-4`}>
+              {progress.examPassed ? "Retake exam" : "Start exam"}
+            </Link>
+          ) : null}
         </div>
-      </section>
-
-      <section aria-labelledby="curriculum-heading" className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 id="curriculum-heading" className="text-xl font-semibold text-[#0B2C4A]">Curriculum</h2>
-            <p className="mt-1 text-sm text-[#4d6570]">Pass each module quiz with {home.course.passPercent}% to unlock the next module.</p>
-          </div>
-          <p className="text-sm font-semibold tabular-nums text-[#4d6570]">
-            {progress.completedModules} of {progress.totalModules} completed
+        <div className="rounded-3xl border border-[#e4eeec] bg-white p-6">
+          <h2 className="text-lg font-semibold">Certificate</h2>
+          <p className="mt-2 text-sm leading-6 text-[#4d6570]">
+            {progress.certificateEligible
+              ? `Issued${progress.certificateCode ? ` · ${progress.certificateCode}` : ""}.`
+              : "Earned after you pass the final exam."}
           </p>
-        </div>
-        <ModuleCards modules={home.modules} currentSlug={allModulesDone ? null : current?.slug} />
-      </section>
-
-      <section aria-labelledby="achievements-heading" className="space-y-4">
-        <h2 id="achievements-heading" className="text-xl font-semibold text-[#0B2C4A]">Exam and certificate</h2>
-        <div className="grid gap-4 md:grid-cols-2">
-          <AchievementCard
-            title="Final examination"
-            done={progress.examPassed}
-            locked={!allModulesDone}
-            state={progress.examPassed ? `Passed with ${progress.examPercentage}%` : allModulesDone ? "Ready to take" : "Locked"}
-            detail={`${home.course.examQuestionCount} questions: two from each module, in a random order.`}
-            action={
-              allModulesDone && !progress.examPassed ? (
-                <Link href="/e-learning/final-exam" className={secondaryBtn}>
-                  Start exam
-                </Link>
-              ) : null
-            }
-          />
-          <AchievementCard
-            title="Certificate of completion"
-            done={progress.certificateEligible}
-            locked={!progress.certificateEligible}
-            state={progress.certificateEligible ? `Issued · ${progress.certificateCode ?? ""}`.trim() : "Locked"}
-            detail="Includes a QR code anyone can scan to verify it."
-            action={
-              progress.certificateEligible ? (
-                <Link href="/e-learning/certificate" className={secondaryBtn}>
-                  View
-                </Link>
-              ) : null
-            }
-          />
+          {progress.certificateEligible ? (
+            <Link href="/e-learning/certificate" className={`${secondaryBtn} mt-4`}>
+              View certificate
+            </Link>
+          ) : null}
         </div>
       </section>
 
-      {progress.completedModules === 0 && !current?.lessonComplete ? null : (
-        <Disclaimer text={home.course.disclaimer} reviewed={home.course.lastReviewedOn} />
-      )}
+      <section className="rounded-3xl border border-[#e4eeec] bg-white p-6 sm:p-8">
+        <h2 className="text-xl font-semibold text-[#0B2C4A]">Verify a certificate</h2>
+        <p className="mt-2 text-sm leading-6 text-[#4d6570]">
+          Enter the certificate ID printed on a Consent Guru DPDP certificate.
+        </p>
+        <VerifyCertificateForm />
+      </section>
     </div>
   );
 }

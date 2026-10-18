@@ -8,9 +8,9 @@ import { recaptchaSiteKey } from "@/lib/recaptcha";
 import { SkipLink } from "@/components/ui/skip-link";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
-const title = "Consent Management Platform Pricing";
+const title = "Pricing";
 const description =
-  "Compare Silver, Gold, and Platinum consent management platform plans for your sites, then request a quote. List prices are not published.";
+  "Compare Consent Guru Silver, Gold, and Platinum plans for consent banners, records, and enforcement. Request a quote — list prices are not published online.";
 
 const tiers = [
   {

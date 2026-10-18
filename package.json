@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node scripts/run-tests.cjs",
     "db:push": "drizzle-kit push",
-    "db:ensure-schema": "npx tsx scripts/ensure-schema.ts"
+    "db:ensure-schema": "npx tsx scripts/ensure-schema.ts",
+    "db:ensure-learning": "drizzle-kit push --config drizzle.learning.config.ts --force"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1127.0",

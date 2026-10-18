@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 
-export const SITE_URL = "https://consentguru.com";
+/** Canonical public origin (www). Apex hosts should 301 here at the CDN/DNS layer. */
+export const SITE_URL = "https://www.consentguru.com";
 export const SITE_NAME = "Consent Guru";
+/** Brand-first title for the homepage SERP (absolute title on `/`). */
 export const DEFAULT_TITLE =
-  "Consent Management Platform | Privacy & Cookie Consent Manager";
+  "Consent Guru — Consent Management Platform for Privacy & Cookie Consent";
 export const DEFAULT_DESCRIPTION =
-  "Consent Guru is a consent management platform that helps organizations collect digital consent, manage cookie and privacy preferences, store consent records, and run privacy workflows, including DPDP-related consent management.";
+  "Consent Guru is a consent management platform for organizations that need to collect digital consent, manage cookie and privacy preferences, store consent records, and run privacy workflows for DPDP, GDPR, and CCPA/CPRA.";
 
 export const SHARE_IMAGE_PATH = "/og/consent-guru-share.png";
 export const SHARE_IMAGE_ALT =
-  "Consent Guru — Build trust. Collect consent. Stay compliant. consentguru.com";
+  "Consent Guru — Build trust. Collect consent. Stay compliant. www.consentguru.com";
 
 export const shareImage = {
   url: SHARE_IMAGE_PATH,

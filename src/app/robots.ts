@@ -1,34 +1,18 @@
 import type { MetadataRoute } from "next";
 
-import { SEO_PUBLIC_PATHS } from "@/content/seo-landings";
 import { SITE_URL } from "@/lib/site-metadata";
 
+/**
+ * Crawl policy for public marketing content.
+ * Private surfaces are disallowed here for signal hygiene; access control remains
+ * authentication and noindex headers — robots.txt is not an access-control layer.
+ */
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/about",
-          "/blogs",
-          "/blogs/",
-          "/news",
-          "/e-learning",
-          "/dpdp-act",
-          "/tools",
-          "/privacy-center",
-          "/privacy-center/",
-          "/privacy-center/data-principal-request",
-          "/privacy-center/grievance",
-          "/privacy-center/track-request",
-          "/privacy-center/consent-preferences",
-          "/disclaimer",
-          "/faqs",
-          "/pricing",
-          "/dpo-as-service",
-          ...SEO_PUBLIC_PATHS,
-        ],
+        allow: "/",
         disallow: [
           "/dashboard",
           "/dashboard/",
@@ -47,8 +31,10 @@ export default function robots(): MetadataRoute.Robots {
           "/e-learning/manage",
           "/e-learning/certificate",
           "/e-learning/final-exam",
+          "/e-learning/sign-in",
+          "/e-learning/sign-up",
+          "/e-learning/session",
           "/learning/",
-          "/dashboard/learning/",
         ],
       },
     ],

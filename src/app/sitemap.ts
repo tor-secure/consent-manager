@@ -4,8 +4,8 @@ import { getAllBlogs } from "@/content/blogs";
 import { SEO_LANDINGS } from "@/content/seo-landings";
 import { SITE_URL } from "@/lib/site-metadata";
 
-/** Stable date so the sitemap does not look freshly edited on every request. */
-const CONTENT_UPDATED = new Date("2026-10-08T00:00:00+05:30");
+/** Bump when substantive public content or canonical metadata changes. */
+const CONTENT_UPDATED = new Date("2026-10-17T00:00:00+05:30");
 
 const HIGH_PRIORITY = new Set([
   "/consent-management-platform",

@@ -73,6 +73,7 @@ const navItems: NavEntry[] = [
       { label: "Blogs", href: "/blogs" },
       { label: "News", href: "/news" },
       { label: "FAQs", href: "/faqs" },
+      { label: "Privacy Centre", href: "/privacy-center" },
       { label: "Compare platforms", href: "/compare" },
     ],
   },
@@ -187,20 +188,75 @@ function ClerkAuthButtons({
   return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
 }
 
-function AuthButtons({
+function LearningAuthButtons({
+  signedIn,
   mobile,
   onNavigate,
 }: {
+  signedIn: boolean;
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
+  if (!signedIn) {
+    return (
+      <>
+        <ArrowButton href="/e-learning/sign-in" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+          Log in
+        </ArrowButton>
+        <ArrowButton href="/e-learning/sign-up" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+          Sign up
+        </ArrowButton>
+      </>
+    );
+  }
+  return (
+    <>
+      <Link
+        href="/e-learning"
+        onClick={onNavigate}
+        className={
+          mobile
+            ? "inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
+            : "inline-flex h-10 items-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
+        }
+      >
+        Your course
+      </Link>
+      <form action="/api/learning/sign-out" method="post" className={mobile ? "inline-flex" : "inline-flex"}>
+        <button
+          type="submit"
+          onClick={onNavigate}
+          className={mobile ? "inline-flex h-10 items-center justify-center text-sm font-semibold text-[#0B2C4A]" : "text-sm font-semibold text-[#0B2C4A]"}
+        >
+          Log out
+        </button>
+      </form>
+    </>
+  );
+}
+
+function AuthButtons({
+  mobile,
+  onNavigate,
+  learningAuth,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+  learningAuth?: { signedIn: boolean };
+}) {
+  const pathname = usePathname();
+  // Path-based fallback so e-learning never hydrates into the workspace /sign-in links.
+  const onLearning = Boolean(learningAuth) || pathname === "/e-learning" || pathname.startsWith("/e-learning/");
+  if (onLearning) {
+    return <LearningAuthButtons signedIn={learningAuth?.signedIn ?? false} mobile={mobile} onNavigate={onNavigate} />;
+  }
   if (!clerkPublishableKey) {
     return <GuestAuthButtons mobile={mobile} onNavigate={onNavigate} />;
   }
   return <ClerkAuthButtons mobile={mobile} onNavigate={onNavigate} />;
 }
 
-export function HomeNavbar() {
+export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolean } } = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const pathname = usePathname();
@@ -291,7 +347,7 @@ export function HomeNavbar() {
           </div>
 
           <div className="hidden shrink-0 items-center gap-3 xl:flex">
-            <AuthButtons />
+            <AuthButtons learningAuth={learningAuth} />
           </div>
 
           <button
@@ -370,7 +426,7 @@ export function HomeNavbar() {
                 );
               })}
               <div className="mt-2 grid gap-2 border-t border-[#E5E7EB] pt-4 sm:grid-cols-2">
-                <AuthButtons mobile onNavigate={closeMobile} />
+                <AuthButtons mobile onNavigate={closeMobile} learningAuth={learningAuth} />
               </div>
             </div>
           </div>

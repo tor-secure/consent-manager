@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
+import { LearningClerkProvider } from "@/components/learning/learning-clerk-provider";
 import {
   CONSENT_GURU_SITE_VERIFICATION,
   ConsentGuruInstall,
@@ -76,7 +77,18 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const nonce = (await headers()).get("x-nonce") ?? undefined;
+  const requestHeaders = await headers();
+  const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const learningPath = requestHeaders.get("x-cg-path") ?? "";
+  const onLearning =
+    requestHeaders.get("x-cg-auth") === "learning" ||
+    learningPath.startsWith("/e-learning") ||
+    learningPath.startsWith("/api/learning");
+  const learningSignIn =
+    learningPath.startsWith("/e-learning/sign-in") || learningPath.startsWith("/e-learning/sign-up");
+  // Cookie banner must not cover the patient WhatsApp flow or the separate e-learning Clerk login.
+  const skipMarketingCmp =
+    learningPath.startsWith("/consent/whatsapp") || learningPath.startsWith("/e-learning") || onLearning;
 
   return (
     <html
@@ -87,7 +99,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://www.consentguru.com" />
-        <ConsentGuruInstall nonce={nonce} />
+        {skipMarketingCmp ? null : <ConsentGuruInstall nonce={nonce} />}
         <script
           id="cmp-theme-bootstrap"
           nonce={nonce}
@@ -97,7 +109,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
-          <OptionalClerkProvider>{children}</OptionalClerkProvider>
+          {onLearning ? (
+            // Never mount the workspace/dashboard Clerk app on e-learning routes.
+            // Sign-in/up also wrap LearningClerkProvider in their own layouts.
+            learningSignIn ? <LearningClerkProvider>{children}</LearningClerkProvider> : children
+          ) : (
+            <OptionalClerkProvider>{children}</OptionalClerkProvider>
+          )}
         </ThemeProvider>
       </body>
     </html>

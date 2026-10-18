@@ -12,7 +12,7 @@ export default async function ManageCoursePage() {
   const [home, progress] = await Promise.all([getCourseHome(learner), listOrgProgress(learner)]);
   return (
     <div className="space-y-6 text-[#0B2C4A]">
-      <PageHeader title="Manage DPDP training" description="Owner and Admin only. Learners do not see this page." />
+      <PageHeader title="Manage DPDP training" description="Course operators only. Learners do not see this page." />
       <CourseSettingsForm
         passPercent={home.course.passPercent}
         examPassPercent={home.course.examPassPercent}
@@ -31,7 +31,7 @@ export default async function ManageCoursePage() {
         </ul>
       </section>
       <section>
-        <h2 className="text-lg font-semibold">Learner progress in this workspace</h2>
+        <h2 className="text-lg font-semibold">Learner progress</h2>
         {!progress.error && progress.progress.length > 0 ? (
           <ul className="mt-2 space-y-2 text-sm">
             {progress.progress.map((row) => (

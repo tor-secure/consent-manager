@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { quizStartStorageKey, type PreloadedQuizStart } from "@/lib/learning/quiz-start-cache";
 
 export function LessonActions({
   slug,
@@ -23,6 +24,12 @@ export function LessonActions({
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [justCompleted, setJustCompleted] = useState(false);
+  const quizHref = `/e-learning/module/${slug}/quiz?start=1`;
+
+  useEffect(() => {
+    if (!sectionsReady || lessonComplete) return;
+    router.prefetch(quizHref);
+  }, [sectionsReady, lessonComplete, quizHref, router]);
 
   async function complete() {
     setPending(true);
@@ -31,15 +38,31 @@ export function LessonActions({
       const response = await fetch(`/api/learning/modules/${slug}/lesson`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sectionIds }),
+        body: JSON.stringify({ sectionIds, startQuiz: true }),
       });
-      const body = (await response.json().catch(() => null)) as { message?: string } | null;
+      const body = (await response.json().catch(() => null)) as
+        | (PreloadedQuizStart & { message?: string; error?: string })
+        | null;
       if (!response.ok) {
         setError(body?.message ?? "The lesson could not be marked complete. Try again.");
         return;
       }
+      if (body?.attemptId && Array.isArray(body.questions) && body.questions.length > 0) {
+        try {
+          sessionStorage.setItem(
+            quizStartStorageKey(slug),
+            JSON.stringify({
+              attemptId: body.attemptId,
+              questions: body.questions,
+              passPercent: body.passPercent,
+            } satisfies PreloadedQuizStart),
+          );
+        } catch {
+          // Quiz page will start via POST if storage is unavailable.
+        }
+      }
       setJustCompleted(true);
-      router.push(`/e-learning/module/${slug}/quiz?start=1`);
+      router.push(quizHref);
     } catch {
       setError("Network error. Check your connection and try again.");
     } finally {
@@ -55,7 +78,7 @@ export function LessonActions({
         </Link>
       ) : (
         <button type="button" className={primaryBtn} onClick={complete} disabled={pending || !sectionsReady} aria-busy={pending}>
-          {pending ? "Saving…" : "Mark lesson complete"}
+          {pending ? "Opening quiz…" : "Mark lesson complete"}
         </button>
       )}
       <div aria-live="polite" className="text-sm">

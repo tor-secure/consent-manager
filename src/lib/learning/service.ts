@@ -5,8 +5,7 @@ import { after } from "next/server";
 import { cache } from "react";
 import { and, asc, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 
-import { db } from "@/db";
-import { auditLogs } from "@/db/schema/audit-logs";
+import { learningDb as db } from "@/db/learning/client";
 import {
   learningCertificates,
   learningCourses,
@@ -20,8 +19,8 @@ import {
   learningQuestions,
   learningQuizAnswers,
   learningQuizAttempts,
-} from "@/db/schema/learning";
-import { users } from "@/db/schema/users";
+  learningLearners,
+} from "@/db/learning/schema";
 import { isOperatorRole } from "@/lib/org-roles";
 import {
   COURSE_CATALOG,
@@ -33,8 +32,9 @@ import {
   lessonText,
   scriptText,
 } from "@/lib/learning/catalog";
+import { courseEnsureMetadataPatch } from "@/lib/learning/catalog-ensure";
 import { readingSectionIds } from "@/lib/learning/lesson-sections";
-import { lessonVideo, moduleDrivePreviewUrl } from "@/lib/learning/module-videos";
+import { lessonVideo, moduleYoutubeEmbedUrl } from "@/lib/learning/module-videos";
 import {
   CERTIFICATE_PROGRAM_LINE,
   certificateVerificationUrl,
@@ -57,8 +57,9 @@ import {
 } from "@/lib/learning/engine";
 
 export type LearnerContext = {
-  organizationId: string;
-  userId: string;
+  learnerId: string;
+  clerkUserId: string;
+  email: string;
   roleName: string;
   learnerName: string;
 };
@@ -213,6 +214,44 @@ export async function completeLesson(
   slug: string,
   options?: { visitedSectionIds?: string[]; skipSectionCheck?: boolean },
 ) {
+  const prepared = await prepareLessonCompletion(ctx, slug, options);
+  if ("error" in prepared) return prepared;
+  await persistLessonCompletion(ctx, prepared.course.id, prepared.enrollment.id, prepared.courseModule.id);
+  return { ok: true as const, lessonComplete: true };
+}
+
+/** Mark the lesson complete and open the quiz in one round trip. */
+export async function completeLessonAndStartQuiz(
+  ctx: LearnerContext,
+  slug: string,
+  options?: { visitedSectionIds?: string[]; skipSectionCheck?: boolean },
+) {
+  const prepared = await prepareLessonCompletion(ctx, slug, options);
+  if ("error" in prepared) return prepared;
+  await persistLessonCompletion(ctx, prepared.course.id, prepared.enrollment.id, prepared.courseModule.id);
+  const quiz = await openModuleQuiz(ctx, prepared.enrollment.id, prepared.course, prepared.courseModule.id);
+  return { ok: true as const, lessonComplete: true as const, ...quiz };
+}
+
+export async function startQuiz(ctx: LearnerContext, slug: string) {
+  const course = await ensureCatalog();
+  const enrollment = await activeEnrollment(ctx, course.id);
+  if (!enrollment) return { error: "not_enrolled" as const };
+  const courseModule = await requireUnlockedModule(ctx, enrollment.id, course.id, slug);
+  if ("error" in courseModule) return courseModule;
+  const lessonDone = await lessonCompletionSet(enrollment.id);
+  if (!lessonDone.has(courseModule.id)) {
+    return { error: "lesson_required" as const, message: "Mark the lesson complete before the quiz." };
+  }
+  const quiz = await openModuleQuiz(ctx, enrollment.id, course, courseModule.id);
+  return { error: null, ...quiz };
+}
+
+async function prepareLessonCompletion(
+  ctx: LearnerContext,
+  slug: string,
+  options?: { visitedSectionIds?: string[]; skipSectionCheck?: boolean },
+) {
   const course = await ensureCatalog();
   const enrollment = await activeEnrollment(ctx, course.id);
   if (!enrollment) return { error: "not_enrolled" as const };
@@ -232,30 +271,32 @@ export async function completeLesson(
       }
     }
   }
+  return { course, enrollment, courseModule };
+}
+
+async function persistLessonCompletion(
+  ctx: LearnerContext,
+  courseId: string,
+  enrollmentId: string,
+  moduleId: string,
+) {
   await db
     .insert(learningLessonCompletions)
     .values({
-      enrollmentId: enrollment.id,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      moduleId: courseModule.id,
+      enrollmentId,
+      moduleId,
     })
     .onConflictDoNothing();
-  await recordEvent(ctx, course.id, "lesson_completed", courseModule.id);
-  return { ok: true as const, lessonComplete: true };
+  after(() => recordEvent(ctx, courseId, "lesson_completed", moduleId));
 }
 
-export async function startQuiz(ctx: LearnerContext, slug: string) {
-  const course = await ensureCatalog();
-  const enrollment = await activeEnrollment(ctx, course.id);
-  if (!enrollment) return { error: "not_enrolled" as const };
-  const courseModule = await requireUnlockedModule(ctx, enrollment.id, course.id, slug);
-  if ("error" in courseModule) return courseModule;
-  const lessonDone = await lessonCompletionSet(enrollment.id);
-  if (!lessonDone.has(courseModule.id)) {
-    return { error: "lesson_required" as const, message: "Mark the lesson complete before the quiz." };
-  }
-  const existingQuiz = await openQuizAttempt(enrollment.id, courseModule.id);
+async function openModuleQuiz(
+  ctx: LearnerContext,
+  enrollmentId: string,
+  course: { id: string; passPercent: number },
+  moduleId: string,
+) {
+  const existingQuiz = await openQuizAttempt(enrollmentId, moduleId);
   const openQuiz =
     existingQuiz &&
     existingQuiz.questionIds.length === MODULE_QUIZ_DRAW_COUNT &&
@@ -265,11 +306,10 @@ export async function startQuiz(ctx: LearnerContext, slug: string) {
   if (existingQuiz && !openQuiz) {
     await db.delete(learningQuizAttempts).where(eq(learningQuizAttempts.id, existingQuiz.id));
   }
-  const attempt = openQuiz ?? (await createQuizAttempt(ctx, enrollment.id, course.id, courseModule.id));
+  const attempt = openQuiz ?? (await createQuizAttempt(ctx, enrollmentId, course.id, moduleId));
   const questions = await publicQuestions(attempt.questionIds);
-  await recordEvent(ctx, course.id, "quiz_started", attempt.id);
+  after(() => recordEvent(ctx, course.id, "quiz_started", attempt.id));
   return {
-    error: null,
     attemptId: attempt.id,
     attemptNumber: attempt.attemptNumber,
     passPercent: course.passPercent,
@@ -281,9 +321,8 @@ export async function submitQuiz(ctx: LearnerContext, attemptId: string, answers
   const attempt = await ownedQuizAttempt(ctx, attemptId);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return replayQuizSubmission(attempt);
-  if (missingAnswers(attempt.questionIds, answers)) {
-    return { error: "incomplete" as const, message: "Answer every question before you submit." };
-  }
+  const answerCheck = validateAttemptAnswers(attempt.questionIds, answers);
+  if (answerCheck) return answerCheck;
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.passPercent);
   try {
@@ -378,16 +417,14 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
     .where(
       and(
         eq(learningExamAttempts.id, attemptId),
-        eq(learningExamAttempts.organizationId, ctx.organizationId),
-        eq(learningExamAttempts.userId, ctx.userId),
+        eq(learningExamAttempts.learnerId, ctx.learnerId),
       ),
     )
     .limit(1);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return replayExamSubmission(attempt);
-  if (missingAnswers(attempt.questionIds, answers)) {
-    return { error: "incomplete" as const, message: "Answer every question before you submit." };
-  }
+  const answerCheck = validateAttemptAnswers(attempt.questionIds, answers);
+  if (answerCheck) return answerCheck;
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.examPassPercent);
   const passedModules = await passedModuleNumbers(attempt.enrollmentId);
@@ -427,8 +464,7 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
       if (!existing) {
         await tx.insert(learningCertificates).values({
           enrollmentId: attempt.enrollmentId,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
+          learnerId: ctx.learnerId,
           courseId: course.id,
           examAttemptId: attempt.id,
           certificateCode: certificateCode(),
@@ -448,8 +484,7 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
       .where(
         and(
           eq(learningExamAttempts.id, attemptId),
-          eq(learningExamAttempts.organizationId, ctx.organizationId),
-          eq(learningExamAttempts.userId, ctx.userId),
+          eq(learningExamAttempts.learnerId, ctx.learnerId),
         ),
       )
       .limit(1);
@@ -665,14 +700,14 @@ export async function listOrgProgress(ctx: LearnerContext) {
   const rows = await db
     .select({
       enrollmentId: learningEnrollments.id,
-      userId: learningEnrollments.userId,
-      name: users.name,
+      userId: learningLearners.id,
+      name: learningLearners.name,
       startedAt: learningEnrollments.startedAt,
       completedAt: learningEnrollments.completedAt,
     })
     .from(learningEnrollments)
-    .innerJoin(users, eq(users.id, learningEnrollments.userId))
-    .where(and(eq(learningEnrollments.organizationId, ctx.organizationId), eq(learningEnrollments.courseId, course.id)));
+    .innerJoin(learningLearners, eq(learningLearners.id, learningEnrollments.learnerId))
+    .where(eq(learningEnrollments.courseId, course.id));
   const counts = new Map<string, number>();
   if (rows.length > 0) {
     const passedRows = await db
@@ -780,29 +815,14 @@ async function loadOrSeedCatalog() {
       const [updated] = await db.select().from(learningCourses).where(eq(learningCourses.id, existing.id)).limit(1);
       existing = updated ?? existing;
     }
-    if (
-      existing.difficulty !== COURSE_DIFFICULTY ||
-      existing.passPercent !== COURSE_PASS_PERCENT ||
-      existing.examPassPercent !== COURSE_EXAM_PASS_PERCENT ||
-      existing.examQuestionCount !== DEFAULT_EXAM_QUESTION_COUNT
-    ) {
+    // Defaults apply only on initial seed. Operator pass/exam settings must persist.
+    const metadata = courseEnsureMetadataPatch(existing, { difficulty: COURSE_DIFFICULTY });
+    if (metadata) {
       await db
         .update(learningCourses)
-        .set({
-          difficulty: COURSE_DIFFICULTY,
-          passPercent: COURSE_PASS_PERCENT,
-          examPassPercent: COURSE_EXAM_PASS_PERCENT,
-          examQuestionCount: DEFAULT_EXAM_QUESTION_COUNT,
-          updatedAt: new Date(),
-        })
+        .set({ ...metadata, updatedAt: new Date() })
         .where(eq(learningCourses.id, existing.id));
-      existing = {
-        ...existing,
-        difficulty: COURSE_DIFFICULTY,
-        passPercent: COURSE_PASS_PERCENT,
-        examPassPercent: COURSE_EXAM_PASS_PERCENT,
-        examQuestionCount: DEFAULT_EXAM_QUESTION_COUNT,
-      };
+      existing = { ...existing, ...metadata };
     }
     return existing;
   }
@@ -839,8 +859,8 @@ async function loadOrSeedCatalog() {
           summary: courseModule.summary,
           learningObjectives: courseModule.objectives,
           estimatedMinutes: courseModule.minutes,
-          videoProvider: "embed",
-          videoUrl: moduleDrivePreviewUrl(courseModule.number),
+          videoProvider: "youtube",
+          videoUrl: moduleYoutubeEmbedUrl(courseModule.number),
           videoScript: scriptText(courseModule),
           lessonContent: lessonText(courseModule),
           keyConcepts: courseModule.concepts,
@@ -898,6 +918,7 @@ async function insertModuleQuestions(
 async function refreshCatalogContent(courseId: string) {
   const minutes = COURSE_CATALOG.reduce((sum, courseModule) => sum + courseModule.minutes, 0);
   await db.transaction(async (tx) => {
+    // Preserve operator pass/exam settings; only refresh catalog metadata and version.
     await tx
       .update(learningCourses)
       .set({
@@ -905,9 +926,6 @@ async function refreshCatalogContent(courseId: string) {
         description: COURSE_DESCRIPTION,
         disclaimer: COURSE_DISCLAIMER,
         difficulty: COURSE_DIFFICULTY,
-        passPercent: COURSE_PASS_PERCENT,
-        examPassPercent: COURSE_EXAM_PASS_PERCENT,
-        examQuestionCount: DEFAULT_EXAM_QUESTION_COUNT,
         estimatedMinutes: minutes,
         contentVersion: COURSE_CONTENT_VERSION,
         lastReviewedOn: COURSE_LAST_REVIEWED,
@@ -920,17 +938,16 @@ async function refreshCatalogContent(courseId: string) {
         .set({ slug: `refresh-${courseModule.number}` })
         .where(and(eq(learningModules.courseId, courseId), eq(learningModules.moduleNumber, courseModule.number)));
     }
+    const protectedQuestionIds = await questionIdsWithHistory(tx, courseId);
     for (const courseModule of COURSE_CATALOG) {
+      // Preserve operator-owned lesson/video fields; refresh structured catalog fields only.
       const [row] = await tx
         .update(learningModules)
         .set({
           slug: courseModule.slug,
           title: courseModule.title,
-          summary: courseModule.summary,
           learningObjectives: courseModule.objectives,
           estimatedMinutes: courseModule.minutes,
-          videoScript: scriptText(courseModule),
-          lessonContent: lessonText(courseModule),
           keyConcepts: courseModule.concepts,
           practicalExample: courseModule.example,
           caseStudy: courseModule.caseStudy,
@@ -946,7 +963,9 @@ async function refreshCatalogContent(courseId: string) {
         .where(eq(learningQuestions.moduleId, row.id));
       const desired = [...courseModule.quiz, ...courseModule.exam];
       const desiredKeys = new Set(desired.map((question) => question.key));
-      const removable = existing.filter((question) => !desiredKeys.has(question.questionKey)).map((question) => question.id);
+      const removable = existing
+        .filter((question) => !desiredKeys.has(question.questionKey) && !protectedQuestionIds.has(question.id))
+        .map((question) => question.id);
       if (removable.length > 0) {
         await tx.delete(learningQuestions).where(inArray(learningQuestions.id, removable));
       }
@@ -980,6 +999,8 @@ async function refreshCatalogContent(courseId: string) {
         if (found) {
           await tx.update(learningQuestions).set(values).where(eq(learningQuestions.id, found.id));
         }
+        // Keep option IDs stable when attempts/answers already reference this question.
+        if (protectedQuestionIds.has(questionId)) continue;
         await tx.delete(learningQuestionOptions).where(eq(learningQuestionOptions.questionId, questionId));
         await tx.insert(learningQuestionOptions).values(
           question.options.map((option, index) => ({
@@ -995,14 +1016,46 @@ async function refreshCatalogContent(courseId: string) {
   clearLearningContentCache();
 }
 
+async function questionIdsWithHistory(tx: CatalogWriter, courseId: string) {
+  const protectedIds = new Set<string>();
+  const quizAttempts = await tx
+    .select({ questionIds: learningQuizAttempts.questionIds })
+    .from(learningQuizAttempts)
+    .innerJoin(learningModules, eq(learningModules.id, learningQuizAttempts.moduleId))
+    .where(eq(learningModules.courseId, courseId));
+  for (const attempt of quizAttempts) {
+    for (const id of attempt.questionIds) protectedIds.add(id);
+  }
+  const examAttempts = await tx
+    .select({ questionIds: learningExamAttempts.questionIds })
+    .from(learningExamAttempts)
+    .where(eq(learningExamAttempts.courseId, courseId));
+  for (const attempt of examAttempts) {
+    for (const id of attempt.questionIds) protectedIds.add(id);
+  }
+  const quizAnswers = await tx
+    .select({ questionId: learningQuizAnswers.questionId })
+    .from(learningQuizAnswers)
+    .innerJoin(learningQuizAttempts, eq(learningQuizAttempts.id, learningQuizAnswers.attemptId))
+    .innerJoin(learningModules, eq(learningModules.id, learningQuizAttempts.moduleId))
+    .where(eq(learningModules.courseId, courseId));
+  for (const row of quizAnswers) protectedIds.add(row.questionId);
+  const examAnswers = await tx
+    .select({ questionId: learningExamAnswers.questionId })
+    .from(learningExamAnswers)
+    .innerJoin(learningExamAttempts, eq(learningExamAttempts.id, learningExamAnswers.attemptId))
+    .where(eq(learningExamAttempts.courseId, courseId));
+  for (const row of examAnswers) protectedIds.add(row.questionId);
+  return protectedIds;
+}
+
 async function findEnrollment(ctx: LearnerContext, courseId: string) {
   const [existing] = await db
     .select()
     .from(learningEnrollments)
     .where(
       and(
-        eq(learningEnrollments.organizationId, ctx.organizationId),
-        eq(learningEnrollments.userId, ctx.userId),
+        eq(learningEnrollments.learnerId, ctx.learnerId),
         eq(learningEnrollments.courseId, courseId),
       ),
     )
@@ -1016,8 +1069,7 @@ async function enrollmentEvent(ctx: LearnerContext, courseId: string, action: st
     .from(learningEvents)
     .where(
       and(
-        eq(learningEvents.organizationId, ctx.organizationId),
-        eq(learningEvents.userId, ctx.userId),
+        eq(learningEvents.learnerId, ctx.learnerId),
         eq(learningEvents.courseId, courseId),
         eq(learningEvents.action, action),
       ),
@@ -1084,8 +1136,7 @@ const loadLearnerCourseState = cache(async function loadLearnerCourseState(
       'entered', (
         EXISTS (
           SELECT 1 FROM learning_events ev
-          WHERE ev.organization_id = e.organization_id
-            AND ev.user_id = e.user_id
+          WHERE ev.learner_id = e.learner_id
             AND ev.course_id = e.course_id
             AND ev.action = 'course_enrolled'
         )
@@ -1116,8 +1167,7 @@ const loadLearnerCourseState = cache(async function loadLearnerCourseState(
       LIMIT 1
     ) ex ON true
     LEFT JOIN learning_certificates cert ON cert.enrollment_id = e.id
-    WHERE e.organization_id = ${ctx.organizationId}::uuid
-      AND e.user_id = ${ctx.userId}::uuid
+    WHERE e.learner_id = ${ctx.learnerId}::uuid
       AND e.course_id = ${courseId}::uuid
     LIMIT 1
   `);
@@ -1158,7 +1208,7 @@ async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
   if (existing) return existing;
   const [created] = await db
     .insert(learningEnrollments)
-    .values({ organizationId: ctx.organizationId, userId: ctx.userId, courseId })
+    .values({ learnerId: ctx.learnerId, courseId })
     .onConflictDoNothing()
     .returning();
   if (created) {
@@ -1170,8 +1220,7 @@ async function ensureEnrollment(ctx: LearnerContext, courseId: string) {
     .from(learningEnrollments)
     .where(
       and(
-        eq(learningEnrollments.organizationId, ctx.organizationId),
-        eq(learningEnrollments.userId, ctx.userId),
+        eq(learningEnrollments.learnerId, ctx.learnerId),
         eq(learningEnrollments.courseId, courseId),
       ),
     )
@@ -1292,23 +1341,33 @@ async function createQuizAttempt(ctx: LearnerContext, enrollmentId: string, cour
   if (questionIds.length < MODULE_QUIZ_DRAW_COUNT) {
     throw new Error("Module quiz bank does not have enough questions");
   }
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(learningQuizAttempts)
-    .where(and(eq(learningQuizAttempts.enrollmentId, enrollmentId), eq(learningQuizAttempts.moduleId, moduleId)));
-  const [created] = await db
-    .insert(learningQuizAttempts)
-    .values({
-      enrollmentId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      moduleId,
-      attemptNumber: Number(countRow?.count ?? 0) + 1,
-      questionIds,
-    })
-    .returning();
   void courseId;
-  return created;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const open = await openQuizAttempt(enrollmentId, moduleId);
+    if (open) return open;
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(learningQuizAttempts)
+      .where(and(eq(learningQuizAttempts.enrollmentId, enrollmentId), eq(learningQuizAttempts.moduleId, moduleId)));
+    try {
+      const [created] = await db
+        .insert(learningQuizAttempts)
+        .values({
+          enrollmentId,
+          learnerId: ctx.learnerId,
+          moduleId,
+          attemptNumber: Number(countRow?.count ?? 0) + 1,
+          questionIds,
+        })
+        .returning();
+      return created;
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+      const raced = await openQuizAttempt(enrollmentId, moduleId);
+      if (raced) return raced;
+    }
+  }
+  throw new Error("Could not start the module quiz");
 }
 
 async function createExamAttempt(
@@ -1325,23 +1384,39 @@ async function createExamAttempt(
   if (!examDrawIsBalanced(selected.map((question) => question.moduleNumber), course.examQuestionCount)) {
     throw new Error("Final exam bank does not cover every module");
   }
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)::int` })
-    .from(learningExamAttempts)
-    .where(eq(learningExamAttempts.enrollmentId, enrollmentId));
-  const [created] = await db
-    .insert(learningExamAttempts)
-    .values({
-      enrollmentId,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      courseId: course.id,
-      attemptNumber: Number(countRow?.count ?? 0) + 1,
-      questionIds: selected.map((question) => question.id),
-      moduleNumbers: selected.map((question) => question.moduleNumber),
-    })
-    .returning();
-  return created;
+  const questionIds = selected.map((question) => question.id);
+  const moduleNumbers = selected.map((question) => question.moduleNumber);
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const [open] = await db
+      .select()
+      .from(learningExamAttempts)
+      .where(
+        and(eq(learningExamAttempts.enrollmentId, enrollmentId), sql`${learningExamAttempts.submittedAt} is null`),
+      )
+      .limit(1);
+    if (open) return open;
+    const [countRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(learningExamAttempts)
+      .where(eq(learningExamAttempts.enrollmentId, enrollmentId));
+    try {
+      const [created] = await db
+        .insert(learningExamAttempts)
+        .values({
+          enrollmentId,
+          learnerId: ctx.learnerId,
+          courseId: course.id,
+          attemptNumber: Number(countRow?.count ?? 0) + 1,
+          questionIds,
+          moduleNumbers,
+        })
+        .returning();
+      return created;
+    } catch (error) {
+      if (!isUniqueViolation(error)) throw error;
+    }
+  }
+  throw new Error("Could not start the final exam");
 }
 
 async function attemptStillMatches(questionIds: string[]): Promise<boolean> {
@@ -1529,8 +1604,7 @@ async function ownedQuizAttempt(ctx: LearnerContext, attemptId: string) {
     .where(
       and(
         eq(learningQuizAttempts.id, attemptId),
-        eq(learningQuizAttempts.organizationId, ctx.organizationId),
-        eq(learningQuizAttempts.userId, ctx.userId),
+        eq(learningQuizAttempts.learnerId, ctx.learnerId),
       ),
     )
     .limit(1);
@@ -1624,9 +1698,45 @@ function clampPercent(value: number): number {
   return Math.min(100, Math.max(1, Math.round(value)));
 }
 
-function missingAnswers(ids: string[], answers: SubmittedAnswer[]) {
+function validateAttemptAnswers(ids: string[], answers: SubmittedAnswer[]) {
+  const seen = new Set<string>();
+  for (const answer of answers) {
+    if (seen.has(answer.questionId)) {
+      return { error: "duplicate_question" as const, message: "Each question may only appear once." };
+    }
+    seen.add(answer.questionId);
+    if (!Array.isArray(answer.optionIds)) {
+      return { error: "invalid" as const, message: "Send the selected answers." };
+    }
+  }
   const byQuestion = new Map(answers.map((answer) => [answer.questionId, answer.optionIds]));
-  return ids.some((id) => (byQuestion.get(id) ?? []).length === 0);
+  if (ids.some((id) => (byQuestion.get(id) ?? []).length === 0)) {
+    return { error: "incomplete" as const, message: "Answer every question before you submit." };
+  }
+  return null;
+}
+
+/** Enrollment + sequential unlock gate for the legacy Drive video proxy. */
+export async function canAccessModuleVideo(ctx: LearnerContext, moduleNumber: number) {
+  if (!Number.isInteger(moduleNumber) || moduleNumber < 1 || moduleNumber > MODULE_COUNT) {
+    return { ok: false as const, error: "not_found" as const };
+  }
+  const course = await ensureCatalog();
+  const enrollment = await activeEnrollment(ctx, course.id);
+  if (!enrollment) return { ok: false as const, error: "not_enrolled" as const };
+  const [courseModule] = await db
+    .select()
+    .from(learningModules)
+    .where(and(eq(learningModules.courseId, course.id), eq(learningModules.moduleNumber, moduleNumber)))
+    .limit(1);
+  if (!courseModule || courseModule.status !== "published") {
+    return { ok: false as const, error: "not_found" as const };
+  }
+  const passed = await passedModuleNumbers(enrollment.id);
+  if (!moduleUnlocked(courseModule.moduleNumber, passed)) {
+    return { ok: false as const, error: "locked" as const };
+  }
+  return { ok: true as const };
 }
 
 function certificateCode(): string {
@@ -1643,19 +1753,10 @@ async function touchEnrollment(enrollmentId: string) {
 async function recordEvent(ctx: LearnerContext, courseId: string, action: string, resourceId: string | null) {
   await Promise.all([
     db.insert(learningEvents).values({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
+      learnerId: ctx.learnerId,
       courseId,
       action,
       resourceId,
-    }),
-    db.insert(auditLogs).values({
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-      action: `learning.${action}`,
-      resourceType: "learning_course",
-      resourceId: resourceId,
-      description: action,
     }),
   ]);
 }

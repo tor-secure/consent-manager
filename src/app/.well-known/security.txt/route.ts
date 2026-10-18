@@ -2,7 +2,7 @@ import { SITE_URL } from "@/lib/site-metadata";
 
 export function GET() {
   const body = [
-    "Contact: https://consentguru.com/security",
+    `Contact: ${SITE_URL}/security`,
     "Contact: mailto:support@consentguru.com",
     `Canonical: ${SITE_URL}/.well-known/security.txt`,
     "Preferred-Languages: en",

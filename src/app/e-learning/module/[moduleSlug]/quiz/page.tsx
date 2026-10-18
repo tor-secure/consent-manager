@@ -65,6 +65,7 @@ export default async function ModuleQuizPage({
         onPassedHref={passedHref}
         passedLabel={passedLabel}
         autoStart={start === "1"}
+        preloadSlug={moduleSlug}
       />
     </div>
   );

@@ -219,32 +219,119 @@ function BrandPanel({
 }
 
 const modeCopy = {
-  "sign-in": {
-    badge: "Welcome back 👋",
-    title: "Log in to your Consent Guru account",
-    description: "Access your dashboard and manage consent with confidence.",
-    showPlus: false,
+  workspace: {
+    "sign-in": {
+      badge: "Welcome back 👋",
+      title: "Log in to your Consent Guru account",
+      description: "Access your dashboard and manage consent with confidence.",
+      showPlus: false,
+      footnote: "Your workspace data stays in your organization. Do not share API keys or site keys.",
+      footer: (
+        <>
+          By continuing, you start a Consent Guru workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
+            See how it works
+          </Link>
+          .
+        </>
+      ),
+    },
+    "sign-up": {
+      badge: "Create your account ✨",
+      title: "Get started with Consent Guru",
+      description: "Create your account and start managing consent the right way.",
+      showPlus: true,
+      footnote: "Your workspace data stays in your organization. Do not share API keys or site keys.",
+      footer: (
+        <>
+          By continuing, you start a Consent Guru workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
+            See how it works
+          </Link>
+          .
+        </>
+      ),
+    },
+    "create-org": {
+      badge: "Name your workspace",
+      title: "Create a Consent Guru organization",
+      description: "Add a workspace so you can create websites, publish a policy, and install the banner.",
+      showPlus: true,
+      footnote: "Your workspace data stays in your organization. Do not share API keys or site keys.",
+      footer: (
+        <>
+          By continuing, you start a Consent Guru workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
+            See how it works
+          </Link>
+          .
+        </>
+      ),
+    },
   },
-  "sign-up": {
-    badge: "Create your account ✨",
-    title: "Get started with Consent Guru",
-    description: "Create your account and start managing consent the right way.",
-    showPlus: true,
-  },
-  "create-org": {
-    badge: "Name your workspace",
-    title: "Create a Consent Guru organization",
-    description: "Add a workspace so you can create websites, publish a policy, and install the banner.",
-    showPlus: true,
+  learning: {
+    "sign-in": {
+      badge: "DPDP e-learning",
+      title: "Log in to your learning account",
+      description: "This login is only for the DPDP course. It is separate from the Consent Guru workspace.",
+      showPlus: false,
+      footnote: "Your course progress and certificate stay with this learning account.",
+      footer: (
+        <>
+          This form is only for the DPDP course. For the Consent Guru product dashboard, use{" "}
+          <Link href="/sign-in" className="font-medium text-[#0B2C4A] hover:underline">
+            workspace login
+          </Link>{" "}
+          (separate account).
+        </>
+      ),
+    },
+    "sign-up": {
+      badge: "DPDP e-learning",
+      title: "Create your learning account",
+      description: "Sign up for the DPDP course. This does not create a Consent Guru workspace.",
+      showPlus: true,
+      footnote: "Your course progress and certificate stay with this learning account.",
+      footer: (
+        <>
+          This form is only for the DPDP course. For the Consent Guru product,{" "}
+          <Link href="/sign-up" className="font-medium text-[#0B2C4A] hover:underline">
+            create a workspace
+          </Link>{" "}
+          (separate account).
+        </>
+      ),
+    },
+    "create-org": {
+      badge: "Name your workspace",
+      title: "Create a Consent Guru organization",
+      description: "Add a workspace so you can create websites, publish a policy, and install the banner.",
+      showPlus: true,
+      footnote: "Your workspace data stays in your organization. Do not share API keys or site keys.",
+      footer: (
+        <>
+          By continuing, you start a Consent Guru workspace for consent management.{" "}
+          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
+            See how it works
+          </Link>
+          .
+        </>
+      ),
+    },
   },
 } as const;
 
 export function AuthPageShell({
   children,
   mode,
+  accountHref,
+  audience = "workspace",
 }: {
   children: React.ReactNode;
   mode: "sign-in" | "sign-up" | "create-org";
+  accountHref?: string;
+  /** E-learning uses a separate Clerk application from the Consent Guru workspace. */
+  audience?: "workspace" | "learning";
 }) {
   useEffect(() => {
     const root = document.documentElement;
@@ -252,7 +339,7 @@ export function AuthPageShell({
     root.style.colorScheme = "light";
   }, []);
 
-  const copy = modeCopy[mode];
+  const copy = modeCopy[audience][mode];
 
   return (
     <div
@@ -273,12 +360,12 @@ export function AuthPageShell({
             {mode === "sign-in" ? (
               <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Don&apos;t have an account?</p>
-                <ArrowButton href="/sign-up">Sign up</ArrowButton>
+                <ArrowButton href={accountHref ?? "/sign-up"}>Sign up</ArrowButton>
               </div>
             ) : mode === "sign-up" ? (
               <div className="flex shrink-0 items-center gap-3">
                 <p className="hidden text-sm text-[#4B5563] sm:block">Already have an account?</p>
-                <ArrowButton href="/sign-in">Log in</ArrowButton>
+                <ArrowButton href={accountHref ?? "/sign-in"}>Log in</ArrowButton>
               </div>
             ) : (
               <p className="max-w-[11rem] text-right text-xs leading-5 text-[#4B5563] min-[400px]:max-w-none min-[400px]:text-sm">
@@ -324,20 +411,14 @@ export function AuthPageShell({
                       strokeLinecap="round"
                     />
                   </svg>
-                  Your workspace data stays in your organization. Do not share API keys or site keys.
+                  {copy.footnote}
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        <p className="mt-5 px-2 text-center text-xs leading-5 break-words text-[#6B7280]">
-          By continuing, you start a Consent Guru workspace for consent management.{" "}
-          <Link href="/#how-it-works" className="font-medium text-[#0B2C4A] hover:underline">
-            See how it works
-          </Link>
-          .
-        </p>
+        <p className="mt-5 px-2 text-center text-xs leading-5 break-words text-[#6B7280]">{copy.footer}</p>
       </div>
       <WhatsAppFloat />
     </div>
