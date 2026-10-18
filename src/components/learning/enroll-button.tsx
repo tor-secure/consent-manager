@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 
 import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
@@ -21,13 +20,13 @@ export function EnrollButton({
   if (!signedIn) {
     return (
       <div className="flex flex-col items-start gap-2 lg:items-end">
-        <Link
+        <a
           href={GUEST_ENROLL_HREF}
           aria-label={`Log in to enroll in all ${moduleCount} modules`}
           className={`${primaryBtn} h-12 min-w-40 px-8 text-base`}
         >
           Enroll
-        </Link>
+        </a>
         <p className="max-w-xs text-sm leading-5 text-[#4d6570] lg:text-right">
           Log in with your e-learning account to enrol. Workspace login is separate.
         </p>

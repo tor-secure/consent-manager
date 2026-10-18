@@ -93,6 +93,10 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  if (pathname.startsWith("/e-learning/sign-in") || pathname.startsWith("/e-learning/sign-up")) {
+    return children;
+  }
+
   if (!signedIn) {
     return (
       <div className="min-h-screen bg-[#f3f7f6] text-[#0B2C4A]">
@@ -101,12 +105,12 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
             <Link href="/e-learning" className="inline-flex items-center gap-2">
               <BrandLogo height={28} />
             </Link>
-            <Link
+            <a
               href="/e-learning/sign-in"
               className="inline-flex h-10 items-center rounded-xl bg-[#0B2C4A] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#123a5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]"
             >
               Log in
-            </Link>
+            </a>
           </div>
         </header>
         <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
