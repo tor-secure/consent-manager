@@ -25,8 +25,6 @@ export interface JourneyFrame {
    * part of the scroll, so each station holds still while its card is read.
    */
   position: number
-  /** 0 → 1 through the whole document. */
-  progress: number
   /** Pointer in normalised device coordinates, −1 → 1. Mouse only. */
   pointerX: number
   pointerY: number
@@ -46,7 +44,6 @@ export interface JourneyFrame {
 
 export const journey: JourneyFrame = {
   position: -1,
-  progress: 0,
   pointerX: 0,
   pointerY: 0,
   window: { x: 0, y: 0, width: 1, height: 1 },

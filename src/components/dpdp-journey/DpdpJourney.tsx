@@ -61,9 +61,6 @@ function Journey() {
           per layout; the camera fits each model to it. */}
       <div className="stage-window" aria-hidden="true" />
 
-      <span className="progress" aria-hidden="true">
-        <span data-progress />
-      </span>
       <StationNav />
 
       <main id="story">
