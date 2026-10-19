@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LessonActions } from "@/components/learning/lesson-actions";
 import { StatusIcon } from "@/components/learning/status-icon";
@@ -95,24 +95,18 @@ function GlossaryBody({ moduleNumber }: { moduleNumber: number }) {
   const glossary = moduleGlossary(moduleNumber);
   if (!glossary) return null;
   return (
-    <div className="mt-5 space-y-5">
-      <ul className="space-y-3">
-        {glossary.terms.map((item) => (
-          <li key={item.term} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
-            <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-            <span className="min-w-0 flex-1">
-              <strong className="font-semibold">{item.term}</strong>
-              {" — "}
-              {item.definition}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="rounded-xl bg-[#E6F9F5]/70 px-4 py-3 text-[15px] leading-7 text-[#0B2C4A]">
-        <strong className="font-semibold">Before this module: </strong>
-        {glossary.before}
-      </p>
-    </div>
+    <ul className="mt-5 space-y-3 text-justify">
+      {glossary.terms.map((item) => (
+        <li key={item.term} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
+          <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
+          <span className="min-w-0 flex-1">
+            <strong className="font-semibold">{item.term}</strong>
+            {" — "}
+            {item.definition}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -200,11 +194,11 @@ function ListBody({ sectionId, paragraphs }: { sectionId: string; paragraphs: st
   const ordered = ORDERED_SECTIONS.has(sectionId);
   const ListTag = ordered ? "ol" : "ul";
   return (
-    <ListTag className={`space-y-3 ${ordered ? "list-decimal pl-6" : ""}`}>
+    <ListTag className={`space-y-3 text-justify ${ordered ? "list-decimal pl-6" : ""}`}>
       {units.map((item) => {
         const piece = labeled(item.replace(/^\d+\.\s*/, ""));
         return (
-          <li key={item} className="text-[15px] leading-7 text-[#0B2C4A]">
+          <li key={item} className="text-justify text-[15px] leading-7 text-[#0B2C4A]">
             {ordered ? (
               <RichText label={piece.label} text={piece.text} />
             ) : (
@@ -222,6 +216,19 @@ function ListBody({ sectionId, paragraphs }: { sectionId: string; paragraphs: st
   );
 }
 
+function NextSectionButton({ title, onClick }: { title: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 rounded-xl border border-[#d5e3e0] bg-[#fbfdfc] px-4 py-2.5 text-sm font-semibold text-[#0B2C4A] transition-colors hover:border-[#0B2C4A] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]"
+    >
+      Next: {title}
+      <span aria-hidden="true">→</span>
+    </button>
+  );
+}
+
 function SectionBody({
   sectionId,
   paragraphs,
@@ -233,7 +240,7 @@ function SectionBody({
 }) {
   if (groups && groups.length > 0) {
     return (
-      <div className="mt-5 space-y-8">
+      <div className="mt-5 space-y-8 text-justify">
         {groups.map((group) => (
           <div key={group.heading}>
             <h3 className="text-base font-semibold text-[#0B2C4A]">{group.heading}</h3>
@@ -248,7 +255,7 @@ function SectionBody({
 
   if (LIST_SECTIONS.has(sectionId)) {
     return (
-      <div className="mt-5">
+      <div className="mt-5 text-justify">
         <ListBody sectionId={sectionId} paragraphs={paragraphs} />
       </div>
     );
@@ -256,11 +263,11 @@ function SectionBody({
 
   const units = mergeLines(paragraphs).flatMap(splitUnits);
   return (
-    <div className="mt-5 space-y-4">
+    <div className="mt-5 space-y-4 text-justify">
       {units.map((item) => {
         const piece = labeled(item);
         return (
-          <p key={item} className="text-base leading-8 text-[#0B2C4A]">
+          <p key={item} className="text-justify text-base leading-8 text-[#0B2C4A]">
             <RichText label={piece.label} text={piece.text} />
           </p>
         );
@@ -292,9 +299,16 @@ export function ModuleReading({
 }) {
   const sections = useMemo(() => sectionsFromLesson(moduleNumber, objectives, lesson), [moduleNumber, objectives, lesson]);
   const requiredIds = useMemo(() => readingSectionIds(lesson), [lesson]);
+  const contentStartRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState(sections[0]?.id ?? "prerequisites");
   const [visited, setVisited] = useState<string[]>([]);
   const selected = sections.find((section) => section.id === selectedId) ?? sections[0];
+  const openedSlug = useRef(slug);
+  if (openedSlug.current !== slug) {
+    openedSlug.current = slug;
+    setSelectedId(sections[0]?.id ?? "prerequisites");
+    setVisited([]);
+  }
 
   useEffect(() => {
     const stored = storedVisited(
@@ -302,7 +316,13 @@ export function ModuleReading({
       slug,
       sections.map((section) => section.id),
     );
-    if (stored.length === 0) return;
+    const startId = sections[0]?.id ?? "prerequisites";
+    // Prerequisites is recorded as soon as it is shown. That must not skip it for Glossary.
+    if (stored.length === 0 || stored.every((id) => id === startId)) {
+      setSelectedId(startId);
+      if (stored.length > 0) setVisited(stored);
+      return;
+    }
     setVisited(stored);
     const nextIndex = sections.findIndex(
       (section, index) => sectionUnlocked(sections, stored, index) && !stored.includes(section.id),
@@ -331,6 +351,7 @@ export function ModuleReading({
     if (index < 0 || !sectionUnlocked(sections, visited, index)) return;
     setSelectedId(id);
     markVisited(id);
+    contentStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   // Opening/viewing a section counts as progress and unlocks the next one.
@@ -419,18 +440,21 @@ export function ModuleReading({
         </aside>
 
         <div className="flex min-w-0 flex-col">
-          <div
-            className={
-              selected.id === "video"
-                ? "flex items-center justify-center bg-[#0f172a] p-3 sm:p-5"
-                : undefined
-            }
-          >
+          <div ref={contentStartRef} className="scroll-mt-16 lg:scroll-mt-4">
             {selected.id === "video" ? (
-              <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl">
-                <div className="absolute inset-0">
-                    <VideoPlayer video={video} moduleNumber={moduleNumber} moduleSlug={slug} />
+              <div>
+                <div className="flex items-center justify-center bg-[#0f172a] p-3 sm:p-5">
+                  <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl">
+                    <div className="absolute inset-0">
+                      <VideoPlayer video={video} moduleNumber={moduleNumber} moduleSlug={slug} />
+                    </div>
+                  </div>
                 </div>
+                {nextSection ? (
+                  <div className="border-t border-[#e4eeec] px-5 py-5 sm:px-8">
+                    <NextSectionButton title={nextSection.title} onClick={() => openSection(nextSection.id)} />
+                  </div>
+                ) : null}
               </div>
             ) : (
               <article className="mx-auto w-full max-w-[42rem] px-5 py-6 sm:px-8 sm:py-8 lg:px-10">
@@ -449,14 +473,7 @@ export function ModuleReading({
                 )}
                 {nextSection && !onModuleSummary ? (
                   <div className="mt-8 border-t border-[#e4eeec] pt-5">
-                    <button
-                      type="button"
-                      onClick={() => openSection(nextSection.id)}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#d5e3e0] bg-[#fbfdfc] px-4 py-2.5 text-sm font-semibold text-[#0B2C4A] transition-colors hover:border-[#0B2C4A] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]"
-                    >
-                      Next: {nextSection.title}
-                      <span aria-hidden="true">→</span>
-                    </button>
+                    <NextSectionButton title={nextSection.title} onClick={() => openSection(nextSection.id)} />
                   </div>
                 ) : null}
               </article>

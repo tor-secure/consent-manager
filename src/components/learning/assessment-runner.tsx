@@ -74,7 +74,7 @@ export function AssessmentRunner({
   /** When set with autoStart, reuse a quiz already opened during lesson-complete. */
   preloadSlug?: string;
 }) {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<"start" | "submit" | null>(null);
   const [error, setError] = useState<{ message: string; action: "start" | "submit" } | null>(null);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -128,9 +128,13 @@ export function AssessmentRunner({
   }
 
   async function begin() {
-    setLoading(true);
+    setLoading("start");
     setError(null);
     setResult(null);
+    setAnswers({});
+    setQuestions([]);
+    setAttemptId(null);
+    setIndex(0);
     try {
       const response = await fetch(startPath, { method: "POST" });
       const body = (await response.json()) as StartResponse;
@@ -150,7 +154,7 @@ export function AssessmentRunner({
     } catch {
       setError({ message: "Network error. Check your connection and try again.", action: "start" });
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   }
 
@@ -165,7 +169,7 @@ export function AssessmentRunner({
         setPassPercent(preloaded.passPercent ?? defaultPassPercent);
         setAnswers({});
         setIndex(0);
-        setLoading(false);
+        setLoading(null);
         return;
       }
     }
@@ -214,7 +218,7 @@ export function AssessmentRunner({
       window.clearTimeout(advanceTimer.current);
       advanceTimer.current = null;
     }
-    setLoading(true);
+    setLoading("submit");
     setError(null);
     try {
       const response = await fetch(`${submitBasePath}/${encodeURIComponent(attemptId)}`, {
@@ -238,7 +242,7 @@ export function AssessmentRunner({
       setError({ message: "Network error. Your answers were not confirmed. Try submitting again.", action: "submit" });
     } finally {
       submitting.current = false;
-      setLoading(false);
+      setLoading(null);
     }
   }
 
@@ -274,8 +278,8 @@ export function AssessmentRunner({
                 {passedLabel}
               </a>
             ) : (
-              <button type="button" className={primaryBtn} onClick={startInFullscreen} disabled={loading}>
-                {loading ? "Starting…" : "Retry"}
+              <button type="button" className={primaryBtn} onClick={startInFullscreen} disabled={loading !== null}>
+                {loading === "start" ? "Starting…" : "Retry"}
               </button>
             )}
             <a className={secondaryBtn} href="/e-learning">
@@ -333,7 +337,7 @@ export function AssessmentRunner({
     if (autoStart && !error) {
       view = (
         <section className={`${card} p-6 sm:p-8`} aria-live="polite">
-          <h2 className="text-xl font-semibold text-[#0B2C4A]">{loading ? "Loading the quiz…" : title}</h2>
+          <h2 className="text-xl font-semibold text-[#0B2C4A]">{loading ? "Loading a new quiz…" : title}</h2>
           <p className="mt-2 text-sm text-[#4d6570]">The questions open as soon as the lesson is marked complete.</p>
         </section>
       );
@@ -362,8 +366,8 @@ export function AssessmentRunner({
             <ErrorBox message={error.message} onRetry={startInFullscreen} />
           </div>
         ) : null}
-        <button type="button" className={`${primaryBtn} mt-6`} onClick={startInFullscreen} disabled={loading} aria-busy={loading}>
-          {loading ? "Starting…" : "Start in fullscreen"}
+        <button type="button" className={`${primaryBtn} mt-6`} onClick={startInFullscreen} disabled={loading !== null} aria-busy={loading !== null}>
+          {loading === "start" ? "Starting…" : "Start in fullscreen"}
         </button>
       </section>
     );
@@ -376,13 +380,14 @@ export function AssessmentRunner({
         <p className="mt-2 max-w-2xl text-justify text-base leading-7 text-[#36505c]">
           The questions stay hidden until the quiz fills the screen. Your answers are kept. Press Escape or leave this tab and you will need to return here before you can continue.
         </p>
-        {loading ? <p className="mt-4 text-sm font-semibold text-[#0B2C4A]">Submitting your answers…</p> : null}
+        {loading === "submit" ? <p className="mt-4 text-sm font-semibold text-[#0B2C4A]">Submitting your answers…</p> : null}
+        {loading === "start" ? <p className="mt-4 text-sm font-semibold text-[#0B2C4A]">Starting a new attempt…</p> : null}
         {error ? (
           <div className="mt-4">
             <ErrorBox message={error.message} onRetry={error.action === "submit" ? submit : enterFullscreen} retryLabel={error.action === "submit" ? "Submit again" : undefined} />
           </div>
         ) : null}
-        <button type="button" className={`${primaryBtn} mt-6`} onClick={enterFullscreen} disabled={loading}>
+        <button type="button" className={`${primaryBtn} mt-6`} onClick={enterFullscreen} disabled={loading !== null}>
           {answered > 0 ? "Return to fullscreen" : "Enter fullscreen"}
         </button>
       </section>
@@ -460,7 +465,7 @@ export function AssessmentRunner({
         <p className="pt-1 text-sm text-[#4d6570]">
           {multi ? "Select all that apply, then use the arrow for the next question." : "Select one answer. The next question opens on its own."}
         </p>
-        <div className="mt-4 space-y-2">
+        <div key={attemptId ?? "attempt"} className="mt-4 space-y-2">
           {current.options.map((option) => {
             const isSelected = selected.includes(option.id);
             return (
@@ -498,8 +503,8 @@ export function AssessmentRunner({
           </button>
         </div>
         <div className="flex flex-col items-start gap-1 sm:items-end">
-          <button ref={submitButton} type="button" className={primaryBtn} onClick={submit} disabled={loading || remaining > 0} aria-busy={loading} aria-describedby="submit-hint">
-            {loading ? "Submitting…" : "Submit answers"}
+          <button ref={submitButton} type="button" className={primaryBtn} onClick={submit} disabled={loading !== null || remaining > 0} aria-busy={loading === "submit"} aria-describedby="submit-hint">
+            {loading === "submit" ? "Submitting…" : "Submit answers"}
           </button>
           <p id="submit-hint" className="text-xs text-[#4d6570]">
             {remaining > 0 ? `Answer ${remaining} more question${remaining === 1 ? "" : "s"} to submit.` : "All questions answered."}
