@@ -6,7 +6,6 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
-import { CertificationLogos } from "@/components/public/certification-logos";
 import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
@@ -196,12 +195,6 @@ export default function Home() {
             </div>
 
             <HomeProductPreview />
-          </div>
-        </section>
-
-        <section className="home-section border-t border-[#E5E7EB]/70 bg-[#F3FAF8]">
-          <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-10 min-[400px]:px-5 sm:px-8 sm:py-12">
-            <CertificationLogos compact />
           </div>
         </section>
 
