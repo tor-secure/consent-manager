@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { toolCard, toolIds } from "@/config/tools/catalog";
 import { ToolRunner } from "@/components/tools/tool-runner";
+import { PageLoader } from "@/components/ui/page-loader";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { isToolId } from "@/lib/tools/types";
 
@@ -40,7 +41,7 @@ export default async function ToolPage({
   const { tool } = await params;
   if (!isToolId(tool)) notFound();
   return (
-    <Suspense fallback={<p className="mx-auto max-w-[800px] px-5 py-10 text-sm text-[#5D6B73]">Loading the tool…</p>}>
+    <Suspense fallback={<PageLoader label="Loading the tool" />}>
       <ToolRunner tool={tool} />
     </Suspense>
   );

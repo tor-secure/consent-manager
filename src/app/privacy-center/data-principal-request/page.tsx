@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { DataPrincipalPortal } from "@/components/public/data-principal-portal";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { PageLoader } from "@/components/ui/page-loader";
 import { SkipLink } from "@/components/ui/skip-link";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
@@ -29,7 +30,7 @@ export default function DataPrincipalRequestPage() {
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <Suspense fallback={<div className="mx-auto max-w-[760px] px-5 py-16 text-sm text-[#6B7280]">Loading form…</div>}>
+        <Suspense fallback={<PageLoader label="Loading form" />}>
           <DataPrincipalPortal />
         </Suspense>
       </main>

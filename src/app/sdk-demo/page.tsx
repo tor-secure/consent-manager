@@ -5,6 +5,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { PageLoader } from "@/components/ui/page-loader";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -719,7 +720,7 @@ function SdkDemoInner() {
 
 export default function SdkDemoPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-slate-500">Loading SDK demo…</div>}>
+    <Suspense fallback={<PageLoader label="Loading SDK demo" />}>
       <SdkDemoInner />
     </Suspense>
   );

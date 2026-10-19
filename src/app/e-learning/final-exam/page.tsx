@@ -5,6 +5,7 @@ import { AssessmentRunner } from "@/components/learning/assessment-runner";
 import { LockMark } from "@/components/learning/lock-mark";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { card, eyebrow, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { FINAL_EXAM_DURATION_SECONDS } from "@/lib/learning/catalog";
 import { MODULE_COUNT } from "@/lib/learning/engine";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { getExamHistory } from "@/lib/learning/service";
@@ -46,7 +47,7 @@ export default async function FinalExamPage() {
             ["Questions", String(history.questionCount)],
             ["Pass mark", `${history.passPercent}%`],
             ["Coverage", `All ${total} modules`],
-            ["Time", `About ${history.estimatedMinutes} min`],
+            ["Time", `${history.estimatedMinutes} min`],
           ].map(([label, value]) => (
             <div key={label} className="rounded-lg bg-[#f3f7f6] px-3 py-3">
               <dt className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">{label}</dt>
@@ -89,13 +90,14 @@ export default async function FinalExamPage() {
       ) : (
         <AssessmentRunner
           title={history.attempts.length > 0 ? "Start a new attempt" : "Start the examination"}
-          intro={`Two questions are drawn at random from each of the ${total} modules, ${history.questionCount} in total. The order is shuffled. Answer every question, then submit. Each retake draws a new set.`}
+          intro={`Two questions are drawn at random from each of the ${total} modules, ${history.questionCount} in total. The order is shuffled. You have ${FINAL_EXAM_DURATION_SECONDS / 60} minutes. When that time ends, the exam submits the answers you have given. Each retake draws a new set.`}
           questionCount={history.questionCount}
           defaultPassPercent={history.passPercent}
           startPath="/api/learning/exam"
           submitBasePath="/api/learning/exam"
           onPassedHref="/e-learning/certificate"
           passedLabel="View certificate"
+          timeLimitSeconds={FINAL_EXAM_DURATION_SECONDS}
         />
       )}
 

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { ShieldLoader } from "@/components/ui/shield-loader";
 import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
 import { primaryBtn } from "@/components/learning/ui";
 
@@ -55,7 +56,7 @@ export function EnrollButton({
       >
         {pending ? (
           <>
-            <span aria-hidden="true" className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white motion-safe:animate-spin" />
+            <ShieldLoader />
             Enrolling…
           </>
         ) : (

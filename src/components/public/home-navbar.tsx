@@ -3,7 +3,7 @@
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { WhatsAppFloat } from "@/components/public/whatsapp-float";
@@ -107,6 +107,45 @@ function linkHref(item: { href: string; hash?: string }, pathname: string) {
     return item.hash;
   }
   return item.href;
+}
+
+function leavesMarketingSite(href: string) {
+  return href === "/e-learning" || href.startsWith("/e-learning/");
+}
+
+function SiteLink({
+  href,
+  className,
+  onClick,
+  children,
+  current,
+  smoothAnchor,
+}: {
+  href: string;
+  className?: string;
+  onClick?: () => void;
+  children: ReactNode;
+  current?: boolean;
+  smoothAnchor?: boolean;
+}) {
+  if (leavesMarketingSite(href)) {
+    return (
+      <a href={href} className={className} aria-current={current ? "page" : undefined} onClick={onClick}>
+        {children}
+      </a>
+    );
+  }
+  return (
+    <Link
+      href={href}
+      className={className}
+      aria-current={current ? "page" : undefined}
+      data-smooth-anchor={smoothAnchor ? true : undefined}
+      onClick={onClick}
+    >
+      {children}
+    </Link>
+  );
 }
 
 function isGroupActive(group: NavGroup, pathname: string) {
@@ -259,11 +298,22 @@ function AuthButtons({
 export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolean } } = {}) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathname = usePathname();
 
   function closeMobile() {
     setMobileOpen(false);
     setOpenMenu(null);
+  }
+
+  function openMenuNow(label: string) {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpenMenu(label);
+  }
+
+  function closeMenuSoon() {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpenMenu(null), 220);
   }
 
   return (
@@ -282,16 +332,16 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
               if (entry.type === "link") {
                 const active = isPlainLinkActive(entry, pathname);
                 return (
-                  <Link
+                  <SiteLink
                     key={entry.label}
                     href={linkHref(entry, pathname)}
-                    data-smooth-anchor={entry.hash ? true : undefined}
+                    smoothAnchor={Boolean(entry.hash)}
                     className={`${navLinkClass} ${active ? "bg-[#F3F4F6] text-[#111827]" : "text-[#374151]"}`}
-                    aria-current={active ? "page" : undefined}
+                    current={active}
                     onClick={() => setOpenMenu(null)}
                   >
                     {entry.label}
-                  </Link>
+                  </SiteLink>
                 );
               }
 
@@ -299,9 +349,9 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
               return (
                 <div
                   key={entry.label}
-                  className="group relative"
-                  onMouseEnter={() => setOpenMenu(entry.label)}
-                  onMouseLeave={() => setOpenMenu(null)}
+                  className="relative"
+                  onMouseEnter={() => openMenuNow(entry.label)}
+                  onMouseLeave={closeMenuSoon}
                 >
                   <button
                     type="button"
@@ -310,34 +360,30 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
                     }`}
                     aria-expanded={openMenu === entry.label}
                     aria-haspopup="true"
-                    onClick={() => setOpenMenu((current) => (current === entry.label ? null : entry.label))}
+                    onClick={() => openMenuNow(entry.label)}
                   >
                     {entry.label}
                     <Chevron open={openMenu === entry.label} />
                   </button>
                   <div
-                    className={`absolute top-full z-50 min-w-[13.5rem] max-w-[calc(100vw-1.5rem)] pt-1 transition ${
-                      entry.label === "Company" ? "right-0" : "left-0"
-                    } ${
-                      openMenu === entry.label
-                        ? "visible opacity-100"
-                        : "invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
-                    }`}
+                    className={`absolute top-full z-50 min-w-[13.5rem] max-w-[calc(100vw-1.5rem)] pt-1 ${
+                      entry.label === "Company" || entry.label === "DPDP Act" ? "right-0" : "left-0"
+                    } ${openMenu === entry.label ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`}
                   >
                     <div className="rounded-xl border border-[#E5E7EB] bg-white py-2 shadow-[0_12px_32px_-16px_rgba(15,23,42,0.35)]">
                       <p className="px-3 pb-1.5 pt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
                         {entry.label}
                       </p>
                       {entry.items.map((item) => (
-                        <Link
+                        <SiteLink
                           key={item.label}
                           href={linkHref(item, pathname)}
-                          data-smooth-anchor={item.hash ? true : undefined}
+                          smoothAnchor={Boolean(item.hash)}
                           className="block px-3 py-2 text-sm text-[#374151] transition hover:bg-[#F3F4F6] hover:text-[#111827]"
                           onClick={() => setOpenMenu(null)}
                         >
                           {item.label}
-                        </Link>
+                        </SiteLink>
                       ))}
                     </div>
                   </div>
@@ -391,15 +437,15 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
               {navItems.map((entry) => {
                 if (entry.type === "link") {
                   return (
-                    <Link
+                    <SiteLink
                       key={entry.label}
                       href={linkHref(entry, pathname)}
-                      data-smooth-anchor={entry.hash ? true : undefined}
+                      smoothAnchor={Boolean(entry.hash)}
                       className="rounded-lg px-3 py-3 text-sm font-semibold text-[#111827]"
                       onClick={closeMobile}
                     >
                       {entry.label}
-                    </Link>
+                    </SiteLink>
                   );
                 }
 
@@ -411,15 +457,15 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
                     </summary>
                     <div className="border-t border-[#E5E7EB] bg-white px-1 py-1">
                       {entry.items.map((item) => (
-                        <Link
+                        <SiteLink
                           key={item.label}
                           href={linkHref(item, pathname)}
-                          data-smooth-anchor={item.hash ? true : undefined}
+                          smoothAnchor={Boolean(item.hash)}
                           className="block rounded-md px-3 py-2.5 text-sm text-[#374151]"
                           onClick={closeMobile}
                         >
                           {item.label}
-                        </Link>
+                        </SiteLink>
                       ))}
                     </div>
                   </details>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { LessonActions } from "@/components/learning/lesson-actions";
 import { StatusIcon } from "@/components/learning/status-icon";
@@ -102,7 +102,7 @@ function GlossaryBody({ moduleNumber }: { moduleNumber: number }) {
           <span className="min-w-0 flex-1">
             <strong className="font-semibold">{item.term}</strong>
             {" — "}
-            {item.definition}
+            {emphasizeCitations(item.definition)}
           </span>
         </li>
       ))}
@@ -110,9 +110,12 @@ function GlossaryBody({ moduleNumber }: { moduleNumber: number }) {
   );
 }
 
+const CITE_SOURCE =
+  "(?:Sections|Section|Rules|Rule)\\s+\\d+(?:\\(\\d+\\))?(?:-\\(\\d+\\)|-\\d+)?(?:(?:\\s*,\\s*|\\s+and\\s+)\\d+(?:\\(\\d+\\))?(?:-\\(\\d+\\)|-\\d+)?)*";
+
 function continues(previous: string, next: string) {
   if (/[.!?:;]$/.test(previous)) return false;
-  if (/^(?:Sections?\s+\d+|Rules?\s+\d+|Real-life:|Corporate:|Technology:|\d+\.\s)/.test(next)) return false;
+  if (new RegExp(`^(?:${CITE_SOURCE}\\s*:|Real-life:|Corporate:|Technology:|\\d+\\.\\s)`).test(next)) return false;
   return true;
 }
 
@@ -130,16 +133,36 @@ function mergeLines(parts: string[]) {
 
 function splitUnits(text: string) {
   return text
-    .split(/\s+(?=(?:Sections?\s+\d+|Rules?\s+\d+|Real-life:|Corporate:|Technology:|Learning point:|\d+\.\s))/)
+    .split(new RegExp(`\\s+(?=(?:${CITE_SOURCE}\\s*:|Real-life:|Corporate:|Technology:|Learning point:|\\d+\\.\\s))`))
     .map((part) => part.trim())
     .filter(Boolean);
 }
 
+const LEGAL_CITE = new RegExp(`\\b${CITE_SOURCE}`, "g");
+
+function emphasizeCitations(text: string): ReactNode {
+  const nodes: ReactNode[] = [];
+  let last = 0;
+  LEGAL_CITE.lastIndex = 0;
+  for (const match of text.matchAll(LEGAL_CITE)) {
+    const index = match.index ?? 0;
+    if (index > last) nodes.push(text.slice(last, index));
+    nodes.push(
+      <strong key={`${index}-${match[0]}`} className="font-semibold">
+        {match[0]}
+      </strong>,
+    );
+    last = index + match[0].length;
+  }
+  if (nodes.length === 0) return text;
+  if (last < text.length) nodes.push(text.slice(last));
+  return nodes;
+}
+
 function labeled(text: string) {
-  const match =
-    text.match(
-      /^((?:Sections|Section|Rules|Rule)\s+\d+(?:(?:\s*[-,]\s*|\s+and\s+)\d+)*|Real-life|Corporate|Technology|Learning point)\s*:\s*([\s\S]*)$/,
-    ) ?? text.match(/^((?:Rule|Section)\s+\d+)\s+([\s\S]+)$/);
+  const match = text.match(
+    new RegExp(`^(${CITE_SOURCE}|Real-life|Corporate|Technology|Learning point)\\s*:\\s*([\\s\\S]*)$`),
+  );
   if (!match) return { text };
   return { label: `${match[1].trim()}:`, text: match[2].trim() };
 }
@@ -148,7 +171,7 @@ function RichText({ label, text }: { label?: string; text: string }) {
   return (
     <>
       {label ? <strong className="font-semibold">{label} </strong> : null}
-      {text}
+      {emphasizeCitations(text)}
     </>
   );
 }

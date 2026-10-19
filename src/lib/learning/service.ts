@@ -27,6 +27,7 @@ import {
   COURSE_CONTENT_VERSION,
   COURSE_DISCLAIMER,
   COURSE_LAST_REVIEWED,
+  FINAL_EXAM_DURATION_SECONDS,
   MODULE_QUIZ_DRAW_COUNT,
   assertCatalogShape,
   lessonText,
@@ -414,6 +415,8 @@ export async function startExam(ctx: LearnerContext) {
   }
   const attempt = openExam ?? (await createExamAttempt(ctx, enrollment.id, course));
   await recordEvent(ctx, course.id, "final_exam_started", attempt.id);
+  const started = attempt.startedAt instanceof Date ? attempt.startedAt : new Date(attempt.startedAt);
+  const startedAt = Number.isNaN(started.getTime()) ? new Date().toISOString() : started.toISOString();
   return {
     error: null,
     attemptId: attempt.id,
@@ -421,6 +424,8 @@ export async function startExam(ctx: LearnerContext) {
     passPercent: course.examPassPercent,
     questionCount: attempt.questionIds.length,
     questions: await publicQuestions(attempt.questionIds),
+    startedAt,
+    durationSeconds: FINAL_EXAM_DURATION_SECONDS,
   };
 }
 
@@ -437,8 +442,10 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
     .limit(1);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return replayExamSubmission(attempt);
+  const started = attempt.startedAt instanceof Date ? attempt.startedAt : new Date(attempt.startedAt);
+  const timeUp = Date.now() + 5_000 >= started.getTime() + FINAL_EXAM_DURATION_SECONDS * 1000;
   const answerCheck = validateAttemptAnswers(attempt.questionIds, answers);
-  if (answerCheck) return answerCheck;
+  if (answerCheck && !(timeUp && answerCheck.error === "incomplete")) return answerCheck;
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.examPassPercent);
   const passedModules = await passedModuleNumbers(attempt.enrollmentId);
@@ -549,7 +556,7 @@ export async function getExamHistory(ctx: LearnerContext) {
     completedModules: passed.size,
     questionCount: course.examQuestionCount,
     passPercent: course.examPassPercent,
-    estimatedMinutes: 60,
+    estimatedMinutes: FINAL_EXAM_DURATION_SECONDS / 60,
     attempts,
   };
 }

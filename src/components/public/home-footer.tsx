@@ -148,12 +148,15 @@ export function HomeFooter() {
                   <ul className="mt-4 space-y-2.5">
                     {column.links.map((link) => (
                       <li key={`${column.title}-${link.label}`}>
-                        <Link
-                          href={link.href}
-                          className="text-sm leading-5 text-white/55 transition hover:text-white"
-                        >
-                          {link.label}
-                        </Link>
+                        {link.href === "/e-learning" || link.href.startsWith("/e-learning/") ? (
+                          <a href={link.href} className="text-sm leading-5 text-white/55 transition hover:text-white">
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link href={link.href} className="text-sm leading-5 text-white/55 transition hover:text-white">
+                            {link.label}
+                          </Link>
+                        )}
                       </li>
                     ))}
                   </ul>

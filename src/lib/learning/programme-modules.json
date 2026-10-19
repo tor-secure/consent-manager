@@ -3560,7 +3560,7 @@
     "number": 26,
     "slug": "penalties-and-financial-consequences",
     "title": "Penalties and Financial Consequences",
-    "summary": "Financial penalties make DPDP a board-level risk-management issue. The ■250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed.",
+    "summary": "Financial penalties make DPDP a board-level risk-management issue. The ₹250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed.",
     "minutes": 15,
     "objectives": [
       "1. Understand the penalty framework.",
@@ -3576,7 +3576,7 @@
       "Key Concept",
       "Financial penalties create a business risk that should be managed through evidence-based governance. The statutory maximum is not an automatic penalty for every incident.",
       "Sections / Rules Applicable",
-      "Section 33: Provides for monetary penalties for specified contraventions. Schedule to the Act: Specifies penalty amounts for categories of contravention, including the maximum of ■250 crore for failure to take reasonable security safeguards to prevent personal data breaches.",
+      "Section 33: Provides for monetary penalties for specified contraventions. Schedule to the Act: Specifies penalty amounts for categories of contravention, including the maximum of ₹250 crore for failure to take reasonable security safeguards to prevent personal data breaches.",
       "Real-Life and Corporate Examples",
       "Real-life: A small business may not have a large compliance department, but it still needs proportionate security",
       "safeguards for the personal data it holds.",
@@ -3609,17 +3609,17 @@
       "Translate penalty exposure into board-level risk metrics, control testing, remediation tracking and documented assurance.",
       "5-Question Knowledge Check",
       "1. Why does the Act provide penalties?",
-      "2. What is the significance of the ■250 crore maximum?",
+      "2. What is the significance of the ₹250 crore maximum?",
       "3. Does every breach automatically attract the maximum?",
       "4. Why document risk acceptance?",
       "5. Why is privacy a board-level risk?",
       "Module Summary",
-      "Financial penalties make DPDP a board-level risk-management issue. The ■250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
+      "Financial penalties make DPDP a board-level risk-management issue. The ₹250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
     ],
     "example": "Real-life: A small business may not have a large compliance department, but it still needs proportionate security\n\nsafeguards for the personal data it holds.\n\nCorporate: A large organisation should quantify major privacy and security risks, track remediation and provide\n\nmanagement with evidence that controls are operating rather than merely documented.\n\nTechnology: Penalty exposure makes control testing important. Organisations should be able to demonstrate\n\nencryption, access reviews, monitoring, backups, incident response and vendor oversight.",
     "caseStudy": "A company receives repeated security warnings about an internet-exposed database. The security team recommends restricting access, but management postpones the change because it may affect a business deadline. Six months later, the database is compromised. The investigation finds that the organisation knew about the exposure and had a documented recommendation but did not act. This creates a very different governance picture from an unexpected technical failure despite reasonable safeguards. The lesson is that risk acceptance should be deliberate, documented and approved at the appropriate level. Security debt can become privacy and financial risk.",
     "takeaways": [
-      "Financial penalties make DPDP a board-level risk-management issue. The ■250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
+      "Financial penalties make DPDP a board-level risk-management issue. The ₹250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
     ],
     "scriptBeats": [
       "Introduction",
@@ -3627,7 +3627,7 @@
       "Key Concept",
       "Financial penalties create a business risk that should be managed through evidence-based governance. The statutory maximum is not an automatic penalty for every incident.",
       "Sections / Rules Applicable",
-      "Section 33: Provides for monetary penalties for specified contraventions. Schedule to the Act: Specifies penalty amounts for categories of contravention, including the maximum of ■250 crore for failure to take reasonable security safeguards to prevent personal data breaches.",
+      "Section 33: Provides for monetary penalties for specified contraventions. Schedule to the Act: Specifies penalty amounts for categories of contravention, including the maximum of ₹250 crore for failure to take reasonable security safeguards to prevent personal data breaches.",
       "Real-Life and Corporate Examples",
       "Real-life: A small business may not have a large compliance department, but it still needs proportionate security",
       "safeguards for the personal data it holds.",
@@ -3660,12 +3660,12 @@
       "Translate penalty exposure into board-level risk metrics, control testing, remediation tracking and documented assurance.",
       "5-Question Knowledge Check",
       "1. Why does the Act provide penalties?",
-      "2. What is the significance of the ■250 crore maximum?",
+      "2. What is the significance of the ₹250 crore maximum?",
       "3. Does every breach automatically attract the maximum?",
       "4. Why document risk acceptance?",
       "5. Why is privacy a board-level risk?",
       "Module Summary",
-      "Financial penalties make DPDP a board-level risk-management issue. The ■250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
+      "Financial penalties make DPDP a board-level risk-management issue. The ₹250 crore maximum for specified security failures demonstrates the scale of potential exposure, but organisations should not focus only on the number. The deeper lesson is accountability. Management should know what data is processed, what safeguards exist, what risks remain, who accepted those risks and whether corrective actions are completed."
     ],
     "dos": [
       "Test security controls.",
@@ -3689,7 +3689,7 @@
     "keyConcept": "Financial penalties create a business risk that should be managed through evidence-based governance. The statutory maximum is not an automatic penalty for every incident.",
     "knowledge": [
       "1. Why does the Act provide penalties?",
-      "2. What is the significance of the ■250 crore maximum?",
+      "2. What is the significance of the ₹250 crore maximum?",
       "3. Does every breach automatically attract the maximum?",
       "4. Why document risk acceptance?",
       "5. Why is privacy a board-level risk?"
