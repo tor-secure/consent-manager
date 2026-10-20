@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { EnrollButton } from "@/components/learning/enroll-button";
+import { GuestModuleOutline } from "@/components/learning/guest-module-outline";
 import { FeaturedModuleCard, ModuleCards } from "@/components/learning/module-cards";
 import { VerifyCertificateForm } from "@/components/learning/verify-certificate-form";
 import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
@@ -46,25 +47,27 @@ function EnrollHero({
 }) {
   return (
     <section className="overflow-hidden rounded-3xl border border-[#e4eeec] bg-white shadow-[0_20px_50px_-36px_rgba(11,44,74,0.4)]">
-      <div className="relative aspect-video w-full bg-[#E6F9F5]">
-        <Image
-          src={ENROLL_BANNER_SRC}
-          alt="Consent Guru DPDP Act training"
-          fill
-          priority
-          sizes="(max-width: 1280px) 100vw, 1152px"
-          className="object-contain object-center"
-        />
-      </div>
-      <div className="p-6 sm:p-8 lg:p-10">
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00C4A7]">Consent Guru learning</p>
-        <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[#0B2C4A] sm:text-[2.35rem] xl:text-[2.6rem]">
-          {heading}
-        </h1>
-        <p className="mt-3 max-w-3xl text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          {primary}
-          {secondary}
+      <div className="grid lg:grid-cols-2 lg:items-stretch">
+        <div className="relative min-h-[220px] bg-[#E6F9F5] sm:min-h-[280px] lg:min-h-[360px]">
+          <Image
+            src={ENROLL_BANNER_SRC}
+            alt="Consent Guru DPDP Act training"
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 576px"
+            className="object-contain object-center p-4 sm:p-6"
+          />
+        </div>
+        <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#00C4A7]">Consent Guru learning</p>
+          <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight text-[#0B2C4A] sm:text-[2.35rem] xl:text-[2.6rem]">
+            {heading}
+          </h1>
+          <p className="mt-3 text-justify text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {primary}
+            {secondary}
+          </div>
         </div>
       </div>
     </section>
@@ -92,7 +95,7 @@ function PortalHero({
           <h1 className="mt-2 max-w-3xl text-3xl font-bold leading-tight tracking-tight text-[#0B2C4A] sm:text-[2.35rem] xl:text-[2.6rem]">
             {heading}
           </h1>
-          <p className="mt-3 max-w-3xl text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
+          <p className="mt-3 max-w-3xl text-justify text-base leading-7 text-[#36505c] xl:text-lg xl:leading-8">{body}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             {primary}
             {secondary}
@@ -126,7 +129,7 @@ function BeforeYouStart({
       <h2 id="before-you-start-heading" className="text-xl font-semibold text-[#0B2C4A]">
         Introduction
       </h2>
-      <p className="mt-2 max-w-3xl text-base leading-7 text-[#36505c]">
+      <p className="mt-2 max-w-3xl text-justify text-base leading-7 text-[#36505c]">
         Read this before you enrol. It is the note from the first page of the programme.
       </p>
       <div id="guidelines" className="mt-6 scroll-mt-24 grid gap-6 lg:grid-cols-2">
@@ -136,18 +139,18 @@ function BeforeYouStart({
             {prerequisites.map((item) => (
               <li key={item} className="flex gap-3 text-[15px] leading-7 text-[#0B2C4A]">
                 <span aria-hidden="true" className="mt-[11px] h-1.5 w-1.5 shrink-0 rounded-full bg-[#00C4A7]" />
-                <span className="min-w-0 flex-1">{item}</span>
+                <span className="min-w-0 flex-1 text-justify">{item}</span>
               </li>
             ))}
           </ul>
         </div>
         <div>
           <h3 className="text-base font-semibold text-[#0B2C4A]">Guidelines</h3>
-          <p className="mt-3 text-base leading-7 text-[#0B2C4A]">
+          <p className="mt-3 text-justify text-base leading-7 text-[#0B2C4A]">
             <strong className="font-semibold">Legal status note: </strong>
             {status}
           </p>
-          {educational ? <p className="mt-3 text-base leading-7 text-[#0B2C4A]">{educational}</p> : null}
+          {educational ? <p className="mt-3 text-justify text-base leading-7 text-[#0B2C4A]">{educational}</p> : null}
         </div>
       </div>
     </section>
@@ -190,7 +193,7 @@ export default async function DpdpCoursePage({
         <JsonLd id="dpdp-course-jsonld" data={courseLd} />
         <EnrollHero
           heading="DPDP Act training"
-          body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam — with a certificate when you pass."
+          body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam, with a certificate when you pass."
           primary={<EnrollButton moduleCount={home.course.moduleCount} signedIn={Boolean(learnerSession)} />}
         />
         <BeforeYouStart
@@ -205,7 +208,7 @@ export default async function DpdpCoursePage({
           </p>
           <VerifyCertificateForm />
         </section>
-        <ModuleCards modules={home.modules} />
+        {learnerSession ? <ModuleCards modules={home.modules} /> : <GuestModuleOutline modules={home.modules} />}
       </div>
     );
   }
@@ -231,7 +234,7 @@ export default async function DpdpCoursePage({
       <JsonLd id="dpdp-course-jsonld" data={courseLd} />
       <PortalHero
         heading={home.course.title}
-        body="Learn practical DPDP compliance through structured modules and interactive quizzes — tracked to your learning account."
+        body="Learn practical DPDP compliance through structured modules and interactive quizzes, tracked to your learning account."
         primary={
           <Link href={primary.href} prefetch={primary.href.includes("/module/")} className={primaryBtn}>
             {primary.label} →
@@ -285,7 +288,7 @@ export default async function DpdpCoursePage({
           <h2 className="text-lg font-semibold">Certificate</h2>
           <p className="mt-2 text-sm leading-6 text-[#4d6570]">
             {progress.certificateEligible
-              ? `Issued${progress.certificateCode ? ` · ${progress.certificateCode}` : ""}.`
+              ? `Issued${progress.certificateCode ? ` · ${progress.certificateCode}` : ""}`
               : "Earned after you pass the final exam."}
           </p>
           {progress.certificateEligible ? (

@@ -195,7 +195,8 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col p-4">
-                  <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-[#0B2C4A]">{item.title}</h3>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d6570]">Module {pad(item.number)}</p>
+                  <h3 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-[#0B2C4A]">{item.title}</h3>
                   <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#4d6570]">{item.summary}</p>
 
                   <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#eef4f3] pt-3">
