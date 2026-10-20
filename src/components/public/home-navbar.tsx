@@ -7,77 +7,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { WhatsAppFloat } from "@/components/public/whatsapp-float";
-
-type NavLink = {
-  label: string;
-  href: string;
-  hash?: string;
-};
-
-type NavGroup = {
-  type: "group";
-  label: string;
-  href: string;
-  hash?: string;
-  items: NavLink[];
-};
-
-type NavEntry =
-  | ({ type: "link" } & NavLink)
-  | NavGroup;
-
-const navItems: NavEntry[] = [
-  { type: "link", label: "Home", href: "/" },
-  {
-    type: "group",
-    label: "Product",
-    href: "/#product",
-    hash: "#product",
-    items: [
-      { label: "Overview", href: "/#product", hash: "#product" },
-      { label: "Features", href: "/#features", hash: "#features" },
-      { label: "How it works", href: "/#how-it-works", hash: "#how-it-works" },
-      { label: "Why us", href: "/#comparison", hash: "#comparison" },
-      { label: "DPDP tools", href: "/tools" },
-    ],
-  },
-  {
-    type: "group",
-    label: "Solutions",
-    href: "/#solutions",
-    hash: "#solutions",
-    items: [
-      { label: "By Industry", href: "/#industries", hash: "#industries" },
-      { label: "By Use Case", href: "/#use-cases", hash: "#use-cases" },
-      { label: "DPO-as-a-Service", href: "/dpo-as-service" },
-    ],
-  },
-  { type: "link", label: "Pricing", href: "/pricing" },
-  { type: "link", label: "Tools", href: "/tools" },
-  { type: "link", label: "About", href: "/about" },
-  {
-    type: "group",
-    label: "DPDP Act",
-    href: "/dpdp-act",
-    items: [
-      { label: "DPDP Act", href: "/dpdp-act" },
-      { label: "DPDP compliance", href: "/dpdp-compliance" },
-      { label: "E-learning", href: "/e-learning" },
-    ],
-  },
-  {
-    type: "group",
-    label: "Company",
-    href: "/blogs",
-    items: [
-      { label: "Blogs", href: "/blogs" },
-      { label: "News", href: "/news" },
-      { label: "FAQs", href: "/faqs" },
-      { label: "Privacy Centre", href: "/privacy-center" },
-      { label: "Compare platforms", href: "/compare" },
-    ],
-  },
-];
+import { primaryNav, type PrimaryGroup, type PrimaryLink } from "@/content/primary-nav";
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim();
 
@@ -148,16 +78,17 @@ function SiteLink({
   );
 }
 
-function isGroupActive(group: NavGroup, pathname: string) {
-  return group.items.some((item) => {
-    if (!item.href.startsWith("/") || item.href.startsWith("/#")) {
-      return false;
-    }
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
-  });
+function isPathActive(href: string, pathname: string) {
+  if (!href.startsWith("/") || href.startsWith("/#")) return false;
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function isPlainLinkActive(item: NavLink, pathname: string) {
+function isGroupActive(group: PrimaryGroup, pathname: string) {
+  if (isPathActive(group.href, pathname)) return true;
+  return group.items.some((item) => isPathActive(item.href, pathname));
+}
+
+function isPlainLinkActive(item: PrimaryLink, pathname: string) {
   if (item.href === "/") {
     return pathname === "/";
   }
@@ -299,6 +230,7 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openedByHover = useRef(false);
   const pathname = usePathname();
 
   function closeMobile() {
@@ -308,7 +240,18 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
 
   function openMenuNow(label: string) {
     if (closeTimer.current) clearTimeout(closeTimer.current);
-    setOpenMenu(label);
+    setOpenMenu((current) => {
+      if (current !== label) openedByHover.current = true;
+      return label;
+    });
+  }
+
+  function toggleMenu(label: string) {
+    if (openedByHover.current) {
+      openedByHover.current = false;
+      return;
+    }
+    setOpenMenu((current) => (current === label ? null : label));
   }
 
   function closeMenuSoon() {
@@ -328,7 +271,7 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
           </Link>
 
           <div className="hidden min-w-0 items-center gap-0.5 xl:flex">
-            {navItems.map((entry) => {
+            {primaryNav.map((entry) => {
               if (entry.type === "link") {
                 const active = isPlainLinkActive(entry, pathname);
                 return (
@@ -346,29 +289,40 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
               }
 
               const active = isGroupActive(entry, pathname);
+              const menuOpen = openMenu === entry.label;
               return (
                 <div
                   key={entry.label}
-                  className="relative"
+                  className="relative flex items-center"
                   onMouseEnter={() => openMenuNow(entry.label)}
                   onMouseLeave={closeMenuSoon}
                 >
-                  <button
-                    type="button"
-                    className={`${navLinkClass} gap-1.5 ${
-                      active || openMenu === entry.label ? "bg-[#F3F4F6] text-[#111827]" : "text-[#374151]"
+                  <SiteLink
+                    href={entry.href}
+                    className={`${navLinkClass} ${
+                      active || menuOpen ? "bg-[#F3F4F6] text-[#111827]" : "text-[#374151]"
                     }`}
-                    aria-expanded={openMenu === entry.label}
-                    aria-haspopup="true"
-                    onClick={() => openMenuNow(entry.label)}
+                    current={active}
+                    onClick={() => setOpenMenu(null)}
                   >
                     {entry.label}
-                    <Chevron open={openMenu === entry.label} />
+                  </SiteLink>
+                  <button
+                    type="button"
+                    className={`inline-flex h-9 w-6 items-center justify-center rounded-md text-[#374151] hover:bg-[#F3F4F6] ${
+                      active || menuOpen ? "bg-[#F3F4F6] text-[#111827]" : ""
+                    }`}
+                    aria-expanded={menuOpen}
+                    aria-haspopup="true"
+                    aria-label={`${entry.label} pages`}
+                    onClick={() => toggleMenu(entry.label)}
+                  >
+                    <Chevron open={menuOpen} />
                   </button>
                   <div
                     className={`absolute top-full z-50 min-w-[13.5rem] max-w-[calc(100vw-1.5rem)] pt-1 ${
-                      entry.label === "Company" || entry.label === "DPDP Act" ? "right-0" : "left-0"
-                    } ${openMenu === entry.label ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`}
+                      entry.label === "About" ? "right-0" : "left-0"
+                    } ${menuOpen ? "visible opacity-100" : "invisible pointer-events-none opacity-0"}`}
                   >
                     <div className="rounded-xl border border-[#E5E7EB] bg-white py-2 shadow-[0_12px_32px_-16px_rgba(15,23,42,0.35)]">
                       <p className="px-3 pb-1.5 pt-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#6B7280]">
@@ -434,7 +388,7 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
         >
           <div className="overflow-hidden">
             <div className="mx-auto flex max-w-[1200px] flex-col gap-2 px-5 py-4 sm:px-8">
-              {navItems.map((entry) => {
+              {primaryNav.map((entry) => {
                 if (entry.type === "link") {
                   return (
                     <SiteLink
@@ -450,25 +404,34 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
                 }
 
                 return (
-                  <details key={entry.label} className="group rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
-                    <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-3 text-sm font-semibold text-[#111827] [&::-webkit-details-marker]:hidden">
+                  <div key={entry.label} className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB]">
+                    <SiteLink
+                      href={entry.href}
+                      className="block rounded-lg px-3 py-3 text-sm font-semibold text-[#111827]"
+                      onClick={closeMobile}
+                    >
                       {entry.label}
-                      <Chevron />
-                    </summary>
-                    <div className="border-t border-[#E5E7EB] bg-white px-1 py-1">
-                      {entry.items.map((item) => (
-                        <SiteLink
-                          key={item.label}
-                          href={linkHref(item, pathname)}
-                          smoothAnchor={Boolean(item.hash)}
-                          className="block rounded-md px-3 py-2.5 text-sm text-[#374151]"
-                          onClick={closeMobile}
-                        >
-                          {item.label}
-                        </SiteLink>
-                      ))}
-                    </div>
-                  </details>
+                    </SiteLink>
+                    <details className="group">
+                      <summary className="flex cursor-pointer list-none items-center justify-between border-t border-[#E5E7EB] px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#6B7280] [&::-webkit-details-marker]:hidden">
+                        More in {entry.label}
+                        <Chevron />
+                      </summary>
+                      <div className="border-t border-[#E5E7EB] bg-white px-1 py-1">
+                        {entry.items.map((item) => (
+                          <SiteLink
+                            key={item.label}
+                            href={linkHref(item, pathname)}
+                            smoothAnchor={Boolean(item.hash)}
+                            className="block rounded-md px-3 py-2.5 text-sm text-[#374151]"
+                            onClick={closeMobile}
+                          >
+                            {item.label}
+                          </SiteLink>
+                        ))}
+                      </div>
+                    </details>
+                  </div>
                 );
               })}
               <div className="mt-2 grid gap-2 border-t border-[#E5E7EB] pt-4 sm:grid-cols-2">

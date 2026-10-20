@@ -14,6 +14,7 @@ import { HomeComparison } from "@/components/public/home-comparison";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { PenaltyCallout } from "@/components/public/penalty-callout";
 import Link from "next/link";
+import { sitelinkPages } from "@/content/primary-nav";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -168,6 +169,18 @@ export default function Home() {
                   Compare capabilities
                 </Link>
               </div>
+
+              <nav aria-label="Key pages" className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                {sitelinkPages.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm font-semibold text-[#0B2C4A] underline-offset-4 hover:underline"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
 
               <PenaltyCallout className="mt-4 w-full max-w-lg" />
 

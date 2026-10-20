@@ -6,17 +6,17 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { pageAlternates, socialMetadata, INDEXABLE_ROBOTS } from "@/lib/site-metadata";
 
-const aboutTitle = "About Consent Guru — Privacy Technology for Digital Trust";
+const aboutTitle = "About";
 const aboutDescription =
   "Meet Consent Guru: the consent management platform from TechensGlobal that helps organizations collect consent, honour preferences, and build trusted digital relationships.";
 
 export const metadata: Metadata = {
-  title: { absolute: aboutTitle },
+  title: aboutTitle,
   description: aboutDescription,
   robots: INDEXABLE_ROBOTS,
   alternates: pageAlternates("/about"),
   ...socialMetadata({
-    title: aboutTitle,
+    title: `${aboutTitle} — Consent Guru`,
     description: aboutDescription,
     path: "/about",
   }),

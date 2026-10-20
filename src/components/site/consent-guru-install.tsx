@@ -69,6 +69,7 @@ export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
         async
         nonce={nonce}
         data-site-key={CONSENT_GURU_SITE_KEY}
+        data-api-base={CONSENT_GURU_ORIGIN}
       />
     </>
   );

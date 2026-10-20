@@ -58,7 +58,7 @@ const footerColumns = [
   {
     title: "Product",
     links: [
-      { label: "Consent platform", href: "/consent-management-platform" },
+      { label: "Platform", href: "/consent-management-platform" },
       { label: "Consent management", href: "/consent-management" },
       { label: "Consent records", href: "/consent-records" },
       { label: "Consent enforcement", href: "/consent-enforcement" },
@@ -71,6 +71,7 @@ const footerColumns = [
   {
     title: "Compliance",
     links: [
+      { label: "DPDP", href: "/dpdp" },
       { label: "DPDP compliance", href: "/dpdp-compliance" },
       { label: "DPDP consent requirements", href: "/dpdp-consent-requirements" },
       { label: "DPDP Act guide", href: "/dpdp-act" },
