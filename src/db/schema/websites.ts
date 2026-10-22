@@ -48,6 +48,8 @@ export const websites = pgTable(
       length: 255,
     }).notNull().unique(),
 
+    iconUrl: text("icon_url"),
+
     defaultLanguage: varchar("default_language", {
       length: 10,
     })

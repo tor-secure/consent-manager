@@ -3,35 +3,48 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-export function NotificationBell({ className = "" }: { className?: string }) {
+let unreadRequest: Promise<number> | null = null;
+
+function requestUnreadCount() {
+  if (!unreadRequest) {
+    unreadRequest = fetch("/api/notifications/unread-count", { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) return 0;
+        const data = (await res.json()) as { count?: unknown };
+        return typeof data.count === "number" ? data.count : 0;
+      })
+      .catch(() => 0)
+      .finally(() => {
+        unreadRequest = null;
+      });
+  }
+  return unreadRequest;
+}
+
+export function NotificationBell({
+  className = "",
+  countEnabled = true,
+}: {
+  className?: string;
+  countEnabled?: boolean;
+}) {
   const [count, setCount] = useState<number>(0);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
+    if (!countEnabled) return;
     let cancelled = false;
 
-    async function fetchCount() {
-      try {
-        const res = await fetch("/api/notifications/unread-count", {
-          cache: "no-store",
-        });
-        if (!res.ok || cancelled) return;
-        const data = await res.json();
-        if (!cancelled) {
-          setCount(data.count ?? 0);
-          setLoaded(true);
-        }
-      } catch {
-        if (!cancelled) setLoaded(true);
-      }
-    }
-
-    fetchCount();
+    requestUnreadCount().then((nextCount) => {
+      if (cancelled) return;
+      setCount(nextCount);
+      setLoaded(true);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [countEnabled]);
 
   return (
     <Link

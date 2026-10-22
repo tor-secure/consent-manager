@@ -16,6 +16,7 @@ export function WebsiteDomainInput({
   placeholder = "example.com",
   required,
   disabled,
+  autoFocus,
 }: {
   id: string;
   value: string;
@@ -23,6 +24,7 @@ export function WebsiteDomainInput({
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
+  autoFocus?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
   const host = value.trim();
@@ -51,6 +53,7 @@ export function WebsiteDomainInput({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
+        autoFocus={autoFocus}
         inputMode="url"
         autoCapitalize="none"
         autoCorrect="off"

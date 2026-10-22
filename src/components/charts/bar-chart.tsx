@@ -18,12 +18,14 @@ export function GroupedBarChart({
   label,
   emptyTitle,
   emptyDescription,
+  hideLegend = false,
 }: {
   points: GroupedBarPoint[];
   series: BarSeries[];
   label: string;
   emptyTitle: string;
   emptyDescription: string;
+  hideLegend?: boolean;
 }) {
   const hasData = points.some((point) => series.some((item) => (point.values[item.key] ?? 0) > 0));
   if (points.length === 0 || !hasData) {
@@ -114,14 +116,16 @@ export function GroupedBarChart({
           );
         })}
       </svg>
-      <div className="mt-4 flex flex-wrap items-center gap-5">
-        {series.map((item) => (
-          <div key={item.key} className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
-            <span className="text-sm text-[var(--muted-foreground)]">{item.label}</span>
-          </div>
-        ))}
-      </div>
+      {hideLegend ? null : (
+        <div className="mt-4 flex flex-wrap items-center gap-5">
+          {series.map((item) => (
+            <div key={item.key} className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: item.color }} />
+              <span className="text-sm text-[var(--muted-foreground)]">{item.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

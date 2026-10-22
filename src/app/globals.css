@@ -1892,6 +1892,14 @@ html:has(.cmp-auth-page) body {
     animation: dash-card-in 560ms var(--ease-out) var(--dash-stagger, 0ms) both;
   }
 
+  .website-card-in {
+    animation: fade-in var(--duration-slow) var(--ease-out) both;
+  }
+
+  .site-step-in {
+    animation: site-step-in 340ms var(--ease-out) both;
+  }
+
   .dash-card-grid > *:nth-child(1) { --dash-stagger: 0ms; }
   .dash-card-grid > *:nth-child(2) { --dash-stagger: 70ms; }
   .dash-card-grid > *:nth-child(3) { --dash-stagger: 140ms; }
@@ -2167,6 +2175,17 @@ html:has(.cmp-auth-page) body {
   @keyframes fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  @keyframes site-step-in {
+    from {
+      opacity: 0;
+      transform: translateX(var(--site-step-x, 20px));
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
   }
 
   @keyframes logo-marquee {
@@ -2921,6 +2940,8 @@ html.dark .border-white\/80 { border-color: var(--border) !important; }
   .logo-marquee-track,
   .industry-marquee-track,
   .dash-card-in,
+  .website-card-in,
+  .site-step-in,
   .dash-vbar,
   .dash-hbar-fill,
   .dash-pie {

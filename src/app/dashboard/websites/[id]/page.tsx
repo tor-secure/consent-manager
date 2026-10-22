@@ -1,37 +1,19 @@
 import Link from "next/link";
-import { headers } from "next/headers";
-import { Suspense } from "react";
 
-import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
-import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
 import { requireTenantWebsite } from "@/lib/tenant-website";
-import { siteVerificationToken } from "@/lib/website-domain-verify";
-import { DomainVerifyPanel } from "@/components/websites/domain-verify-panel";
-import { WebsiteDetailRelated } from "@/components/websites/website-detail-related";
-import { WebsitePrivacyOverview } from "@/components/websites/website-privacy-overview";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SecretValue, WebsiteIconControl } from "@/components/websites/website-identity-controls";
+import {
+  WebsiteSettingsForm,
+  type WebsiteSettingsData,
+} from "@/components/websites/website-settings-form";
+import { DeleteWebsiteButton } from "@/components/websites/delete-website-button";
 
-function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-2.5 text-sm">
-      <dt className="text-[var(--muted-foreground)]">{label}</dt>
-      <dd className="text-right text-[var(--foreground)]">{value}</dd>
-    </div>
-  );
-}
-
-function RelatedFallback() {
-  return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading website activity">
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-28 rounded-2xl" />
-        <Skeleton className="h-28 rounded-2xl" />
-      </div>
-      <Skeleton className="h-64 rounded-2xl" />
-      <Skeleton className="h-64 rounded-2xl" />
+    <div className="border-t border-[var(--border)] py-4 first:border-t-0 first:pt-0">
+      <dt className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted-foreground)]">{label}</dt>
+      <dd className="mt-1.5 break-all text-sm leading-5 text-[var(--foreground)]">{children}</dd>
     </div>
   );
 }
@@ -43,19 +25,22 @@ export default async function WebsiteDetailPage({
 }) {
   const { id } = await params;
   const website = await requireTenantWebsite(id);
-  const appOrigin = publicOriginFromRequestHeaders(await headers());
-  const sdkScriptUrl = appOrigin
-    ? `${appOrigin}/api/sdk/script`
-    : "/api/sdk/script";
-  const htmlSnippet = buildEmbedSnippet({
-    siteKey: website.siteKey,
-    cdnUrl: sdkScriptUrl,
-  });
 
   const statusVariant: Record<string, "success" | "danger" | "neutral"> = {
     active: "success",
     inactive: "neutral",
     suspended: "danger",
+  };
+
+  const settings: WebsiteSettingsData = {
+    id: website.id,
+    name: website.name,
+    description: website.description,
+    domain: website.domain,
+    environment: website.environment,
+    defaultLanguage: website.defaultLanguage,
+    defaultRegion: website.defaultRegion,
+    siteKey: website.siteKey,
   };
 
   return (
@@ -65,186 +50,69 @@ export default async function WebsiteDetailPage({
           Websites
         </Link>
         <span aria-hidden="true" className="text-[var(--border)]">/</span>
-        <span className="text-[var(--foreground)]">{website.name}</span>
+        <span className="truncate text-[var(--foreground)]">{website.name}</span>
       </nav>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl stat-icon-blue">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"
-              stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="2" y1="12" x2="22" y2="12" />
-              <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
-            </svg>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="page-title truncate">{website.name}</h1>
+            <Badge variant={statusVariant[website.status] ?? "neutral"} size="sm" className="capitalize">
+              {website.status}
+            </Badge>
+            {website.verified ? <Badge variant="success" size="sm">Verified</Badge> : null}
           </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h1 className="page-title">
-                {website.name}
-              </h1>
-              <Badge variant={statusVariant[website.status] ?? "neutral"} size="sm" className="capitalize">
-                {website.status}
-              </Badge>
-              {website.verified && (
+          <p className="mt-0.5 truncate text-sm text-[var(--muted-foreground)]">{website.domain}</p>
+        </div>
+        <WebsiteIconControl websiteId={website.id} domain={website.domain} iconUrl={website.iconUrl} />
+      </div>
+
+      <div className="grid items-start gap-10 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-0">
+        <section className="min-w-0 lg:pr-12">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Website details</h2>
+          <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">
+            Identity for this site. Language, region, and environment are edited on the right.
+          </p>
+          <dl className="mt-6">
+            <Fact label="Domain">
+              <span className="font-mono text-xs">{website.domain}</span>
+            </Fact>
+            <Fact label="Verification">
+              {website.verified ? (
                 <Badge variant="success" size="sm">Verified</Badge>
+              ) : (
+                <Badge variant="neutral" size="sm">Not verified</Badge>
               )}
-            </div>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">{website.domain}</p>
-          </div>
-        </div>
+            </Fact>
+            <Fact label="Site key">
+              <SecretValue value={website.siteKey} />
+            </Fact>
+            <Fact label="Added">
+              {website.createdAt.toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </Fact>
+          </dl>
+        </section>
 
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Link
-            href={`/dashboard/websites/${website.id}/child-protection`}
-            className="btn btn-outline"
-          >
-            Child protection
-          </Link>
-          <Link
-            href={`/dashboard/websites/${website.id}/enforcement`}
-            className="btn btn-outline"
-          >
-            Enforcement
-          </Link>
-          <Link
-            href={`/dashboard/websites/${website.id}/regulations`}
-            className="btn btn-outline"
-          >
-            Regulations
-          </Link>
-          <Link
-            href={`/dashboard/websites/${website.id}/settings`}
-            className="btn btn-outline"
-          >
-            Settings
-          </Link>
-        </div>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <div className="border-b border-[var(--border)] px-6 py-4">
-            <h2 className="text-base font-semibold text-[var(--foreground)]">Website details</h2>
-            <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-              Configuration and identity information for this website.
+        <section className="min-w-0 space-y-6 lg:border-l lg:border-[var(--border)] lg:pl-12">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Settings</h2>
+            <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">
+              Update how this website is identified in the CMP.
             </p>
           </div>
-          <div className="px-6">
-            <dl className="divide-y divide-[var(--border)]">
-              <InfoRow label="Domain" value={
-                <span className="font-mono text-xs text-[var(--foreground)]">{website.domain}</span>
-              } />
-              <InfoRow label="Environment" value={
-                <Badge variant="neutral" size="sm" className="capitalize">
-                  {website.environment}
-                </Badge>
-              } />
-              <InfoRow label="Default language" value={
-                <Badge variant="neutral" size="sm">{website.defaultLanguage.toUpperCase()}</Badge>
-              } />
-              <InfoRow label="Default region" value={
-                website.defaultRegion
-                  ? <Badge variant="neutral" size="sm">{website.defaultRegion}</Badge>
-                  : <span className="text-[var(--muted-foreground)]">—</span>
-              } />
-              <InfoRow label="Verification" value={
-                website.verified
-                  ? <Badge variant="success" size="sm">Verified</Badge>
-                  : <Badge variant="neutral" size="sm">Not verified</Badge>
-              } />
-              <InfoRow label="Site key" value={
-                <code className="rounded-lg bg-[var(--secondary)] px-2 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">
-                  {website.siteKey}
-                </code>
-              } />
-              <InfoRow label="Added" value={
-                <span className="text-[var(--muted-foreground)]">
-                  {website.createdAt.toLocaleDateString("en-GB", {
-                    day: "numeric", month: "short", year: "numeric",
-                  })}
-                </span>
-              } />
-            </dl>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="border-b border-[var(--border)] px-6 py-4">
-            <h2 className="text-base font-semibold text-[var(--foreground)]">Domain verification</h2>
-            <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-              Confirm you control {website.domain} with DNS, a meta tag, or a well-known file.
-            </p>
-          </div>
-          <CardContent>
-            <DomainVerifyPanel
-              websiteId={website.id}
-              domain={website.domain}
-              token={siteVerificationToken(website.id, website.siteKey)}
-              verified={website.verified}
-              verifiedAt={website.verifiedAt}
-            />
-          </CardContent>
-        </Card>
+          <WebsiteSettingsForm website={settings} layout="plain" />
+          <DeleteWebsiteButton
+            websiteId={website.id}
+            name={website.name}
+            domain={website.domain}
+            layout="plain"
+          />
+        </section>
       </div>
-
-      <Card>
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">SDK Installation</h2>
-          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-            Embed the CMP banner on your website using the JavaScript SDK.
-          </p>
-        </div>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3">
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-                Site key
-              </p>
-              <code className="mt-0.5 block truncate font-mono text-sm text-[var(--foreground)]">
-                {website.siteKey}
-              </code>
-            </div>
-          </div>
-          <div className="rounded-2xl border border-[color-mix(in_srgb,var(--primary)_18%,transparent)] bg-[var(--info-soft)] px-4 py-3">
-            <p className="text-xs font-medium text-[var(--primary)]">Quick install</p>
-            <code className="mt-1 block whitespace-pre-wrap text-xs text-[var(--primary)] leading-relaxed break-all">
-              {htmlSnippet}
-            </code>
-          </div>
-          <Link
-            href={`/dashboard/websites/${website.id}/installation`}
-            className="btn btn-primary"
-          >
-            View installation guide
-          </Link>
-        </CardContent>
-      </Card>
-
-      <Suspense fallback={<RelatedFallback />}>
-        <WebsitePrivacyOverview websiteId={website.id} />
-        <WebsiteDetailRelated websiteId={website.id} />
-      </Suspense>
-
-      <Card>
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Integrations</h2>
-          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
-            Connect third-party tools and tag managers.
-          </p>
-        </div>
-        <CardContent>
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <p className="text-sm font-medium text-[var(--muted-foreground)]">Manage integrations</p>
-            <Link
-              href="/dashboard/integrations"
-              className="btn btn-outline"
-            >
-              View integrations →
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

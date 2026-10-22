@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { consentRecords } from "@/db/schema/consent-records";
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadHomeChartAnalytics, loadHomeDashboardCounts } from "@/lib/dashboard/home-queries";
-import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SetupGuide } from "@/components/dashboard/setup-guide";
@@ -16,120 +15,185 @@ import { IconText } from "@/components/ui/icon-text";
 import { PieChart } from "@/components/charts/pie-chart";
 import { GroupedBarChart, HorizontalBarChart } from "@/components/charts/bar-chart";
 
-function IconUsersGroup() {
+type IconTone = "primary" | "success" | "purple" | "warning" | "info" | "danger";
+
+const TONE_CLASS: Record<IconTone, string> = {
+  primary: "bg-[var(--info-soft)] text-[var(--primary)]",
+  success: "bg-[var(--success-soft)] text-[var(--success)]",
+  purple: "bg-[color-mix(in_srgb,var(--purple)_16%,var(--card))] text-[var(--purple)]",
+  warning: "bg-[var(--warning-soft)] text-[var(--warning)]",
+  info: "bg-[var(--info-soft)] text-[var(--info)]",
+  danger: "bg-[var(--danger-soft)] text-[var(--danger)]",
+};
+
+function Mark({
+  tone,
+  size = "md",
+  children,
+}: {
+  tone: IconTone;
+  size?: "md" | "sm";
+  children: ReactNode;
+}) {
+  const box = size === "sm" ? "h-9 w-9 rounded-xl" : "h-11 w-11 rounded-2xl";
+  const svg = size === "sm" ? 18 : 20;
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 00-3-3.87" />
-      <path d="M16 3.13a4 4 0 010 7.75" />
-    </svg>
+    <span className={`flex shrink-0 items-center justify-center ${box} ${TONE_CLASS[tone]}`} aria-hidden="true">
+      <svg width={svg} height={svg} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </svg>
+    </span>
   );
 }
 
-function IconCheckCircle() {
+function RecordsIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-      <polyline points="22 4 12 14.01 9 11.01" />
-    </svg>
+    <>
+      <ellipse cx="12" cy="6.5" rx="7" ry="2.5" />
+      <path d="M5 6.5v5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-5" />
+      <path d="M5 11.5v5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5v-5" />
+    </>
   );
 }
 
-function IconPartial() {
+function AcceptedIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 6v6l4 2" />
-    </svg>
+    <>
+      <path d="M12 3.2l1.8 1.3 2.2-.2 1 2 2 .9-.2 2.2L20.8 12l-1.2 1.9.2 2.2-2 .9-1 2-2.2-.2L12 20.8l-1.8-1.3-2.2.2-1-2-2-.9.2-2.2L3.2 12l1.2-1.9-.2-2.2 2-.9 1-2 2.2.2z" />
+      <path d="M8.8 12.2l2.2 2.2 4.2-4.4" />
+    </>
   );
 }
 
-function IconShieldAlert() {
+function GranularIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <line x1="12" y1="8" x2="12" y2="12" />
-      <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
+    <>
+      <path d="M4 7h16M4 12h16M4 17h16" />
+      <circle cx="8" cy="7" r="2.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="2.1" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="17" r="2.1" fill="currentColor" stroke="none" />
+    </>
   );
 }
 
-function IconGlobe() {
+function WithdrawnIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
+    <>
+      <path d="M4 12a8 8 0 108-8" />
+      <path d="M4 4.5V9h4.5" />
+    </>
   );
 }
 
-function IconPolicy() {
+function BarsIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-      <polyline points="14 2 14 8 20 8" />
-      <line x1="16" y1="13" x2="8" y2="13" />
-      <line x1="16" y1="17" x2="8" y2="17" />
-    </svg>
+    <>
+      <path d="M4 19h16" />
+      <path d="M7 19V11" />
+      <path d="M12 19V6" />
+      <path d="M17 19v-5" />
+    </>
   );
 }
 
-function IconVendor() {
+function DonutIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18" />
-      <path d="M5 21V7l7-4 7 4v14" />
-      <path d="M9 21v-6h6v6" />
-    </svg>
+    <>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3.2" />
+      <path d="M12 4v5" />
+    </>
   );
 }
 
-function IconTracker() {
+function MedalIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="2" />
-      <path d="M16.24 7.76a6 6 0 010 8.48M7.76 7.76a6 6 0 000 8.48" />
-      <path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14" />
-    </svg>
+    <>
+      <circle cx="12" cy="9" r="4.5" />
+      <path d="M9.2 13.1L8 20.5 12 18.2l4 2.3-1.2-7.4" />
+    </>
   );
 }
 
-function IconBars() {
+function BrowserIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 20V10M12 20V4M6 20v-6" />
-    </svg>
+    <>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" />
+      <path d="M3.5 9h17" />
+      <circle cx="6.5" cy="6.75" r="0.7" fill="currentColor" stroke="none" />
+      <circle cx="9" cy="6.75" r="0.7" fill="currentColor" stroke="none" />
+    </>
   );
 }
 
-function IconPie() {
+function PinIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21.21 15.89A10 10 0 118 2.83" />
-      <path d="M22 12A10 10 0 0012 2v10z" />
-    </svg>
+    <>
+      <path d="M12 21s6.5-5.6 6.5-10.2a6.5 6.5 0 10-13 0C5.5 15.4 12 21 12 21z" />
+      <circle cx="12" cy="10.6" r="2" />
+    </>
   );
 }
 
-function IconTarget() {
+function DeviceIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9" />
-      <circle cx="12" cy="12" r="5" />
-      <circle cx="12" cy="12" r="1.5" />
-    </svg>
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="2" />
+      <path d="M11 18h2" />
+    </>
   );
 }
 
-function IconMap() {
+function PolicyIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21" />
-      <line x1="8" y1="3" x2="8" y2="18" />
-      <line x1="16" y1="6" x2="16" y2="21" />
-    </svg>
+    <>
+      <path d="M7 3.5h7l4 4V20a1.5 1.5 0 01-1.5 1.5h-9.5A1.5 1.5 0 015.5 20V5A1.5 1.5 0 017 3.5z" />
+      <path d="M14 3.5V8h4.5" />
+      <path d="M8.5 13h7M8.5 16.5h4.5" />
+    </>
+  );
+}
+
+function StoreIcon() {
+  return (
+    <>
+      <path d="M5 10l1.2-5h11.6L19 10" />
+      <path d="M4 10h16" />
+      <path d="M6 10v9h12v-9" />
+      <path d="M10 19v-5h4v5" />
+    </>
+  );
+}
+
+function RadarIcon() {
+  return (
+    <>
+      <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+      <path d="M7.8 7.8a6 6 0 018.4 8.4" />
+      <path d="M5.1 5.1a9.5 9.5 0 0113.8 13.8" />
+    </>
+  );
+}
+
+function ListIcon() {
+  return (
+    <>
+      <path d="M8 7h11M8 12h11M8 17h11" />
+      <circle cx="4.5" cy="7" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="4.5" cy="17" r="1" fill="currentColor" stroke="none" />
+    </>
+  );
+}
+
+function GridIcon() {
+  return (
+    <>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" />
+    </>
   );
 }
 
@@ -178,23 +242,33 @@ function ChartCardTitle({
   icon,
   title,
   hint,
+  trailing,
 }: {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   hint?: string;
+  trailing?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex min-h-11 flex-wrap items-start justify-between gap-x-4 gap-y-2">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-soft)] text-[var(--primary)]">
-          {icon}
-        </span>
+        {icon}
         <div className="min-w-0">
           <CardTitle>{title}</CardTitle>
-          {hint ? <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">{hint}</p> : null}
+          {hint ? <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">{hint}</p> : null}
         </div>
       </div>
+      {trailing ? <div className="flex flex-wrap items-center gap-x-4 gap-y-1">{trailing}</div> : null}
     </div>
+  );
+}
+
+function SeriesChip({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
+      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
+      {label}
+    </span>
   );
 }
 
@@ -264,9 +338,7 @@ function InventoryRow({
       href={href}
       className="flex items-center gap-3 rounded-xl px-1 py-2 text-[var(--foreground)] transition hover:bg-[var(--muted)]/70"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--muted)] text-[var(--primary)]">
-        {icon}
-      </span>
+      {icon}
       <span className="min-w-0 flex-1 text-sm font-medium">{label}</span>
       <span className="text-sm font-semibold tabular-nums">{value.toLocaleString()}</span>
     </Link>
@@ -277,38 +349,79 @@ export async function HomeStatsSection() {
   const { organization } = await requireDashboardContext();
   const counts = await loadHomeDashboardCounts(organization.id);
   const total = counts.totalConsents;
+  const metrics = [
+    {
+      label: "Total records",
+      value: counts.totalConsents,
+      hint: "All recorded consents",
+      color: "var(--primary)",
+      icon: <Mark tone="primary"><RecordsIcon /></Mark>,
+    },
+    {
+      label: "Accepted",
+      value: counts.acceptedConsents,
+      hint: `${pct(counts.acceptedConsents, total)}% of records`,
+      color: "var(--success)",
+      icon: <Mark tone="success"><AcceptedIcon /></Mark>,
+    },
+    {
+      label: "Granular",
+      value: counts.partialConsents,
+      hint: `${pct(counts.partialConsents, total)}% of records`,
+      color: "var(--purple)",
+      icon: <Mark tone="purple"><GranularIcon /></Mark>,
+    },
+    {
+      label: "Withdrawn",
+      value: counts.withdrawnConsents,
+      hint: `${pct(counts.withdrawnConsents, total)}% of records`,
+      color: "var(--warning)",
+      icon: <Mark tone="warning"><WithdrawnIcon /></Mark>,
+    },
+  ];
+  const share = metrics.slice(1).filter((metric) => metric.value > 0);
 
   return (
-    <div className="dash-card-grid grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <StatCard
-        label="Total records"
-        value={counts.totalConsents}
-        icon={<IconUsersGroup />}
-        iconColor="blue"
-        description="All recorded consents"
-      />
-      <StatCard
-        label="Accepted"
-        value={counts.acceptedConsents}
-        icon={<IconCheckCircle />}
-        iconColor="green"
-        description={`${pct(counts.acceptedConsents, total)}% of records`}
-      />
-      <StatCard
-        label="Granular"
-        value={counts.partialConsents}
-        icon={<IconPartial />}
-        iconColor="purple"
-        description={`${pct(counts.partialConsents, total)}% of records`}
-      />
-      <StatCard
-        label="Withdrawn"
-        value={counts.withdrawnConsents}
-        icon={<IconShieldAlert />}
-        iconColor="rose"
-        description={`${pct(counts.withdrawnConsents, total)}% of records`}
-      />
-    </div>
+    <section className="dash-card-in overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
+      <div className="grid sm:grid-cols-2 xl:grid-cols-4">
+        {metrics.map((metric, index) => (
+          <div
+            key={metric.label}
+            className={[
+              "relative px-5 py-5 sm:px-6 sm:py-6",
+              index > 0 ? "border-t border-[var(--border)]" : "",
+              index % 2 === 1 ? "sm:border-l" : "",
+              index === 1 ? "sm:border-t-0" : "",
+              index > 0 ? "xl:border-l xl:border-t-0" : "",
+            ].join(" ")}
+          >
+            <span className="absolute inset-x-0 top-0 h-1" style={{ background: metric.color }} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-[var(--muted-foreground)]">{metric.label}</p>
+                <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] tabular-nums">
+                  {metric.value.toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs text-[var(--muted-foreground)]">{metric.hint}</p>
+              </div>
+              {metric.icon}
+            </div>
+          </div>
+        ))}
+      </div>
+      {total > 0 ? (
+        <div className="border-t border-[var(--border)] px-5 py-4 sm:px-6">
+          <div className="flex h-2 overflow-hidden rounded-full bg-[var(--secondary)]" aria-hidden="true">
+            {share.map((metric) => (
+              <div
+                key={metric.label}
+                style={{ width: `${(metric.value / total) * 100}%`, background: metric.color }}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -331,6 +444,16 @@ export async function HomeLiveAndChartsSection() {
       },
     };
   });
+
+  const choiceSeries: { key: "acceptAll" | "rejectAll" | "granular"; label: string; color: string }[] = [
+    { key: "acceptAll", label: "Accept all", color: "var(--success)" },
+    { key: "rejectAll", label: "Reject all", color: "var(--danger)" },
+    { key: "granular", label: "Granular", color: "var(--purple)" },
+  ];
+  const choiceTotals = choiceSeries.map((item) => ({
+    ...item,
+    value: barPoints.reduce((sum, point) => sum + (point.values[item.key] ?? 0), 0),
+  }));
 
   const outcomeSlices = [
     { label: "Accepted", value: analytics.overview.accepted, color: "var(--success)" },
@@ -361,31 +484,49 @@ export async function HomeLiveAndChartsSection() {
     <div className="space-y-6">
       <SetupGuide steps={buildGetLiveSteps(counts)} complete={counts.publishedCount > 0 && counts.totalConsents > 0} />
 
-      <div className="dash-card-grid grid gap-5 lg:grid-cols-12">
-        <Card className="dash-card-in min-w-0 lg:col-span-8">
+      <div className="dash-card-grid grid items-stretch gap-5 lg:grid-cols-12">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-8">
           <CardHeader>
-            <ChartCardTitle icon={<IconBars />} title="Daily choices" hint="Accept, reject, and granular · last 30 days" />
+            <ChartCardTitle
+              icon={<Mark tone="primary" size="sm"><BarsIcon /></Mark>}
+              title="Daily choices"
+              hint="Accept, reject, and granular over the last 30 days"
+              trailing={choiceSeries.map((item) => (
+                <SeriesChip key={item.key} color={item.color} label={item.label} />
+              ))}
+            />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col">
             <GroupedBarChart
               points={barPoints}
-              series={[
-                { key: "acceptAll", label: "Accept all", color: "var(--success)" },
-                { key: "rejectAll", label: "Reject all", color: "var(--danger)" },
-                { key: "granular", label: "Granular", color: "var(--purple)" },
-              ]}
+              series={choiceSeries}
+              hideLegend
               label="Daily consent choices over the last 30 days"
               emptyTitle="No consent events in the last 30 days"
               emptyDescription="The bar chart appears after visitors submit a choice on a site with the SDK installed."
             />
+            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-4">
+              {choiceTotals.map((item) => (
+                <div key={item.key} className="min-w-0">
+                  <p className="truncate text-xs font-medium text-[var(--muted-foreground)]">{item.label}</p>
+                  <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
+                    {item.value.toLocaleString()}
+                  </p>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="dash-card-in min-w-0 lg:col-span-4">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-4">
           <CardHeader>
-            <ChartCardTitle icon={<IconPie />} title="Consent mix" hint="Current records" />
+            <ChartCardTitle
+              icon={<Mark tone="success" size="sm"><DonutIcon /></Mark>}
+              title="Consent mix"
+              hint="How current records are split"
+            />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col justify-center">
             <PieChart
               slices={outcomeSlices}
               label="Consent mix by record status"
@@ -396,14 +537,19 @@ export async function HomeLiveAndChartsSection() {
         </Card>
       </div>
 
-      <div className="dash-card-grid grid gap-5 lg:grid-cols-3">
-        <Card className="dash-card-in min-w-0">
+      <div className="dash-card-grid grid items-stretch gap-5 lg:grid-cols-3">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col">
           <CardHeader>
-            <ChartCardTitle icon={<IconTarget />} title="Purpose grants" hint="Top purposes · last 30 days" />
+            <ChartCardTitle
+              icon={<Mark tone="purple" size="sm"><MedalIcon /></Mark>}
+              title="Purpose grants"
+              hint="Top purposes over the last 30 days"
+            />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col justify-center">
             <PieChart
               slices={purposeSlices}
+              centerLabel="grants"
               label="Granted consent decisions by purpose"
               emptyTitle="No purpose decisions yet"
               emptyDescription="Granted choices per purpose show here after visitors save preferences."
@@ -411,11 +557,15 @@ export async function HomeLiveAndChartsSection() {
           </CardContent>
         </Card>
 
-        <Card className="dash-card-in min-w-0">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col">
           <CardHeader>
-            <ChartCardTitle icon={<IconGlobe />} title="By website" hint="Consent records" />
+            <ChartCardTitle
+              icon={<Mark tone="info" size="sm"><BrowserIcon /></Mark>}
+              title="By website"
+              hint="Consent records on each site"
+            />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col justify-center">
             <HorizontalBarChart
               rows={analytics.websiteSummary.map((row) => ({
                 label: row.websiteName,
@@ -430,15 +580,17 @@ export async function HomeLiveAndChartsSection() {
           </CardContent>
         </Card>
 
-        <Card className="dash-card-in min-w-0">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col">
           <CardHeader>
             <ChartCardTitle
-              icon={<IconMap />}
+              icon={geoIsCountry
+                ? <Mark tone="warning" size="sm"><PinIcon /></Mark>
+                : <Mark tone="info" size="sm"><DeviceIcon /></Mark>}
               title={geoIsCountry ? "By country" : "By device"}
-              hint={geoIsCountry ? "Visitor country" : "Device class when country is unknown"}
+              hint={geoIsCountry ? "Where visitors chose" : "Device class when country is unknown"}
             />
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 flex-col justify-center">
             <HorizontalBarChart
               rows={geoRows}
               color="var(--info)"
@@ -499,17 +651,21 @@ export async function HomeRecentSection() {
 
   return (
     <div className="space-y-6">
-      <div className="dash-card-grid grid gap-5 lg:grid-cols-12">
-        <Card className="dash-card-in min-w-0 lg:col-span-8">
+      <div className="dash-card-grid grid items-stretch gap-5 lg:grid-cols-12">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-8">
           <CardHeader>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <CardTitle>Recent consent records</CardTitle>
-              <Link href="/dashboard/consent" className="btn btn-outline">
-                View all
-              </Link>
-            </div>
+            <ChartCardTitle
+              icon={<Mark tone="primary" size="sm"><ListIcon /></Mark>}
+              title="Recent consent records"
+              hint="Latest choices recorded for this organisation"
+              trailing={
+                <Link href="/dashboard/consent" className="btn btn-outline btn-sm">
+                  View all
+                </Link>
+              }
+            />
           </CardHeader>
-          <CardContent className="space-y-1">
+          <CardContent className="flex-1">
             {recentRequests.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--muted)]/40 px-4 py-10 text-center">
                 <p className="text-sm font-medium text-[var(--foreground)]">No consent records yet</p>
@@ -519,7 +675,7 @@ export async function HomeRecentSection() {
               </div>
             ) : (
               recentRequests.map((req, idx) => (
-                <div key={`${req.name}-${idx}`} className="rounded-2xl px-3 -mx-1 py-3 transition-colors hover:bg-[var(--muted)]/60">
+                <div key={`${req.name}-${idx}`} className="border-t border-[var(--border)] px-1 py-3.5 first:border-t-0 first:pt-0">
                   <IconText
                     size="md"
                     icon={<AvatarFallback name={req.name} idx={idx} />}
@@ -541,17 +697,20 @@ export async function HomeRecentSection() {
           </CardContent>
         </Card>
 
-        <Card className="dash-card-in min-w-0 lg:col-span-4">
+        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-4">
           <CardHeader>
-            <CardTitle>Inventory</CardTitle>
-            <p className="text-sm text-[var(--muted-foreground)]">What this organisation has configured</p>
+            <ChartCardTitle
+              icon={<Mark tone="info" size="sm"><GridIcon /></Mark>}
+              title="Inventory"
+              hint="What this organisation has configured"
+            />
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="divide-y divide-[var(--border)]">
-              <InventoryRow href="/dashboard/websites" icon={<IconGlobe />} label="Websites" value={counts.websiteCount} />
-              <InventoryRow href="/dashboard/policies" icon={<IconPolicy />} label="Policies" value={counts.policyCount} />
-              <InventoryRow href="/dashboard/vendors" icon={<IconVendor />} label="Vendors" value={counts.vendorCount} />
-              <InventoryRow href="/dashboard/trackers" icon={<IconTracker />} label="Trackers" value={counts.trackerCount} />
+              <InventoryRow href="/dashboard/websites" icon={<Mark tone="primary" size="sm"><BrowserIcon /></Mark>} label="Websites" value={counts.websiteCount} />
+              <InventoryRow href="/dashboard/policies" icon={<Mark tone="success" size="sm"><PolicyIcon /></Mark>} label="Policies" value={counts.policyCount} />
+              <InventoryRow href="/dashboard/vendors" icon={<Mark tone="warning" size="sm"><StoreIcon /></Mark>} label="Vendors" value={counts.vendorCount} />
+              <InventoryRow href="/dashboard/trackers" icon={<Mark tone="purple" size="sm"><RadarIcon /></Mark>} label="Trackers" value={counts.trackerCount} />
             </div>
             <div className="space-y-2.5 border-t border-[var(--border)] pt-4">
               {complianceChecks.map((item) => (

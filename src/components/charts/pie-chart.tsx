@@ -26,11 +26,13 @@ export function PieChart({
   label,
   emptyTitle,
   emptyDescription,
+  centerLabel = "records",
 }: {
   slices: PieSlice[];
   label: string;
   emptyTitle: string;
   emptyDescription: string;
+  centerLabel?: string;
 }) {
   const visible = slices.filter((slice) => slice.value > 0);
   const total = visible.reduce((sum, slice) => sum + slice.value, 0);
@@ -46,12 +48,12 @@ export function PieChart({
   let cursor = 0;
 
   return (
-    <div className="flex flex-col items-center gap-5">
+    <div className="flex flex-col items-center gap-6">
       <svg
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="dash-pie h-auto w-full max-w-[220px] shrink-0"
+        className="dash-pie h-auto w-full max-w-[200px] shrink-0"
         role="img"
         aria-label={label}
       >
@@ -62,26 +64,49 @@ export function PieChart({
             const start = (cursor / total) * 360;
             cursor += slice.value;
             const end = (cursor / total) * 360;
-            return <path key={slice.label} d={wedgePath(cx, cy, radius, start, end)} fill={slice.color} stroke="var(--card)" strokeWidth="2" />;
+            return <path key={slice.label} d={wedgePath(cx, cy, radius, start, end)} fill={slice.color} stroke="var(--card)" strokeWidth="3" />;
           })
         )}
+        <circle cx={cx} cy={cy} r={58} fill="var(--card)" />
+        <text
+          x={cx}
+          y={cy - 2}
+          textAnchor="middle"
+          fontSize="22"
+          fontWeight="600"
+          fill="var(--foreground)"
+          fontFamily="inherit"
+        >
+          {total.toLocaleString()}
+        </text>
+        <text
+          x={cx}
+          y={cy + 16}
+          textAnchor="middle"
+          fontSize="11"
+          fill="var(--muted-foreground)"
+          fontFamily="inherit"
+        >
+          {centerLabel}
+        </text>
       </svg>
 
-      <ul className="w-full min-w-0 flex-1 space-y-3">
+      <ul className="w-full min-w-0 space-y-3.5">
         {visible.map((slice) => {
-          const pct = Math.round((slice.value / total) * 100);
+          const share = total > 0 ? Math.round((slice.value / total) * 100) : 0;
           return (
-            <li key={slice.label} className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 items-center gap-2.5">
-                <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: slice.color }} />
-                <span className="truncate text-sm font-medium text-[var(--secondary-foreground)]">{slice.label}</span>
-              </span>
-              <span className="shrink-0 text-right text-sm">
-                <span className="font-semibold tabular-nums text-[var(--foreground)]">{pct}%</span>
-                <span className="ml-1.5 tabular-nums text-xs text-[var(--muted-foreground)]">
-                  ({slice.value.toLocaleString()})
+            <li key={slice.label}>
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_2.75rem_2.75rem] items-center gap-2.5">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: slice.color }} />
+                <span className="truncate text-sm font-medium text-[var(--foreground)]">{slice.label}</span>
+                <span className="text-right text-sm font-semibold tabular-nums text-[var(--foreground)]">{share}%</span>
+                <span className="text-right text-xs tabular-nums text-[var(--muted-foreground)]">
+                  {slice.value.toLocaleString()}
                 </span>
-              </span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--secondary)]">
+                <div className="h-full rounded-full" style={{ width: `${share}%`, background: slice.color }} />
+              </div>
             </li>
           );
         })}

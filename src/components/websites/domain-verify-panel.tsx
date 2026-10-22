@@ -52,12 +52,12 @@ export function DomainVerifyPanel({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-[var(--foreground)]">
             {verified ? "This domain is verified" : "Prove you control this domain"}
           </p>
-          <p className="mt-0.5 text-sm text-[var(--muted-foreground)]">
+          <p className="mt-1 text-sm leading-5 text-[var(--muted-foreground)]">
             {verified
               ? verifiedAt
                 ? `Verified ${new Date(verifiedAt).toLocaleDateString("en-GB", {
@@ -66,10 +66,10 @@ export function DomainVerifyPanel({
                     year: "numeric",
                   })}.`
                 : "Ownership was confirmed with a token on this domain."
-              : "Add one of the tokens below on the live site, then click Verify. We look up DNS and fetch the public homepage — we do not mark it verified from this form alone."}
+              : "Add one of the tokens below on the live site, then click Verify. We look up DNS and fetch the public homepage. This form does not mark the domain verified by itself."}
           </p>
         </div>
-        <Button type="button" onClick={handleVerify} loading={pending} disabled={pending}>
+        <Button type="button" className="shrink-0" onClick={handleVerify} loading={pending} disabled={pending}>
           {pending ? "Checking…" : verified ? "Re-check" : "Verify domain"}
         </Button>
       </div>
@@ -82,30 +82,36 @@ export function DomainVerifyPanel({
 
       <ol className="space-y-3 text-sm">
         <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-[var(--foreground)]">1. DNS TXT record</p>
-            <CopyButton text={txtRecord} />
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 font-medium text-[var(--foreground)]">1. DNS TXT record</p>
+            <span className="shrink-0">
+              <CopyButton text={txtRecord} />
+            </span>
           </div>
           <p className="mt-1 text-[var(--muted-foreground)]">
             Host <span className="font-mono text-xs">@</span> on{" "}
             <span className="font-mono text-xs">{domain}</span>
           </p>
-          <code className="mt-2 block break-all font-mono text-xs text-[var(--foreground)]">{txtRecord}</code>
+          <code className="mt-2 block break-all font-mono text-xs leading-5 text-[var(--foreground)]">{txtRecord}</code>
         </li>
         <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-[var(--foreground)]">2. Homepage meta tag</p>
-            <CopyButton text={metaTag} />
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 font-medium text-[var(--foreground)]">2. Homepage meta tag</p>
+            <span className="shrink-0">
+              <CopyButton text={metaTag} />
+            </span>
           </div>
           <p className="mt-1 text-[var(--muted-foreground)]">Paste into the &lt;head&gt; of the homepage.</p>
-          <code className="mt-2 block break-all font-mono text-xs text-[var(--foreground)]">{metaTag}</code>
+          <code className="mt-2 block break-all font-mono text-xs leading-5 text-[var(--foreground)]">{metaTag}</code>
         </li>
         <li className="rounded-2xl border border-[var(--border)] bg-[var(--muted)]/80 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="font-medium text-[var(--foreground)]">3. Well-known file</p>
-            <CopyButton text={token} />
+          <div className="flex items-center justify-between gap-3">
+            <p className="min-w-0 font-medium text-[var(--foreground)]">3. Well-known file</p>
+            <span className="shrink-0">
+              <CopyButton text={token} />
+            </span>
           </div>
-          <p className="mt-1 text-[var(--muted-foreground)]">
+          <p className="mt-1 break-all text-[var(--muted-foreground)]">
             Serve the token as plain text at{" "}
             <span className="font-mono text-xs">{fileUrl}</span>
           </p>

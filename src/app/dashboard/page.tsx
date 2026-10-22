@@ -20,13 +20,17 @@ export default async function DashboardPage() {
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
       <PageHeader
-        title="Dashboard"
-        description={`Overview for ${organization.name}. Last 30 days.`}
+        title={
+          <span className="inline-flex flex-wrap items-center gap-3">
+            Dashboard
+            <span className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--card)] px-2.5 py-1 text-xs font-semibold leading-none tracking-normal text-[var(--muted-foreground)]">
+              Last 30 days
+            </span>
+          </span>
+        }
+        description={`Overview for ${organization.name}.`}
         action={
-          <Link
-            href="/dashboard/analytics"
-            className="text-sm font-medium text-[var(--primary)] hover:underline"
-          >
+          <Link href="/dashboard/analytics" className="btn btn-outline">
             View analytics
           </Link>
         }

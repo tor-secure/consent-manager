@@ -37,6 +37,26 @@ export function isDatabaseUnreachableError(error: unknown): boolean {
   return /ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|getaddrinfo|connect ECONN/i.test(text);
 }
 
+/** Dropped or reset connections. A second attempt usually succeeds. */
+export function isTransientDatabaseError(error: unknown): boolean {
+  if (isDatabaseUnreachableError(error)) return true;
+  const code = postgresErrorCode(error);
+  if (
+    code === "57P01" ||
+    code === "57P02" ||
+    code === "57P03" ||
+    code === "08000" ||
+    code === "08001" ||
+    code === "08003" ||
+    code === "08006"
+  ) {
+    return true;
+  }
+  return /Connection terminated|CONNECTION_CLOSED|CONNECTION_ENDED|CONNECT_TIMEOUT|ECONNRESET|socket hang up|connection error|Connection closed/i.test(
+    errorText(error),
+  );
+}
+
 export function policyValidationFailureMessage(error: unknown): string {
   if (isDatabaseUnreachableError(error)) {
     return "Cannot reach the database. Jio DNS is blocking Neon. Set Windows DNS to 8.8.8.8 and 1.1.1.1, flush DNS, then retry.";
