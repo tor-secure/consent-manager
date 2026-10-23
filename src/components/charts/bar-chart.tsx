@@ -19,6 +19,7 @@ export function GroupedBarChart({
   emptyTitle,
   emptyDescription,
   hideLegend = false,
+  labelStep = 0,
 }: {
   points: GroupedBarPoint[];
   series: BarSeries[];
@@ -26,6 +27,7 @@ export function GroupedBarChart({
   emptyTitle: string;
   emptyDescription: string;
   hideLegend?: boolean;
+  labelStep?: number;
 }) {
   const hasData = points.some((point) => series.some((item) => (point.values[item.key] ?? 0) > 0));
   if (points.length === 0 || !hasData) {
@@ -48,11 +50,15 @@ export function GroupedBarChart({
   const groupW = chartW / points.length;
   const innerPad = Math.min(3, groupW * 0.06);
   const barGap = 1;
-  const barW = Math.max(5, (groupW - innerPad * 2 - barGap * (series.length - 1)) / series.length);
+  const barW = Math.max(1.25, (groupW - innerPad * 2 - barGap * (series.length - 1)) / series.length);
   const labelIndexes =
     points.length <= 8
       ? points.map((_, index) => index)
-      : [0, Math.floor((points.length - 1) / 2), points.length - 1];
+      : labelStep > 0
+        ? Array.from({ length: Math.ceil(points.length / labelStep) }, (_, index) =>
+            Math.min(points.length - 1, index * labelStep),
+          )
+        : [0, Math.floor((points.length - 1) / 2), points.length - 1];
   const labelSet = new Set(labelIndexes);
 
   return (

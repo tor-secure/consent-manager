@@ -1,19 +1,24 @@
 import Link from "next/link";
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import type { ReactNode } from "react";
 
 import { db } from "@/db";
 import { consentRecords } from "@/db/schema/consent-records";
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadHomeChartAnalytics, loadHomeDashboardCounts } from "@/lib/dashboard/home-queries";
+import type { DashboardFilters } from "@/lib/dashboard/home-filters";
+import { parseAnalyticsPeriod } from "@/lib/analytics/consent-metrics";
+import { DashboardSort } from "@/components/dashboard/dashboard-controls";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SetupGuide } from "@/components/dashboard/setup-guide";
 import { buildGetLiveSteps } from "@/lib/dashboard/get-live-path";
 import { EmptyState } from "@/components/ui/empty-state";
 import { IconText } from "@/components/ui/icon-text";
+import { CountryFlag } from "@/components/dashboard/country-flag";
+import { CountryMap } from "@/components/dashboard/country-map";
 import { PieChart } from "@/components/charts/pie-chart";
-import { GroupedBarChart, HorizontalBarChart } from "@/components/charts/bar-chart";
+import { ChoiceChart } from "@/components/charts/choice-chart";
 
 type IconTone = "primary" | "success" | "purple" | "warning" | "info" | "danger";
 
@@ -197,14 +202,11 @@ function GridIcon() {
   );
 }
 
-const PURPOSE_COLORS = [
-  "var(--info)",
-  "var(--purple)",
-  "var(--warning)",
-  "var(--danger)",
-  "var(--pink)",
-  "var(--success)",
-];
+const DEVICE_COLORS: Record<string, string> = {
+  desktop: "#60a5fa",
+  mobile: "#a78bfa",
+  tablet: "#93c5fd",
+};
 
 function pct(part: number, total: number) {
   if (!total) return 0;
@@ -238,6 +240,148 @@ function lastNLocalDays(count: number) {
   return days;
 }
 
+function halfDelta(values: number[]) {
+  if (values.length < 2) return null;
+  const mid = Math.floor(values.length / 2);
+  const prior = values.slice(0, mid).reduce((sum, value) => sum + value, 0);
+  const recent = values.slice(mid).reduce((sum, value) => sum + value, 0);
+  if (prior === 0 && recent === 0) return null;
+  if (prior === 0) return { up: recent >= 0, text: "New" };
+  const change = ((recent - prior) / prior) * 100;
+  const amount = Math.abs(change);
+  const rounded = amount >= 10 ? Math.round(amount) : Math.round(amount * 10) / 10;
+  return { up: change >= 0, text: `${rounded}%` };
+}
+
+function TrendMark({ delta }: { delta: { up: boolean; text: string } | null }) {
+  if (!delta) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs font-semibold tabular-nums ${delta.up ? "text-[var(--success)]" : "text-[var(--danger)]"}`}>
+      <span className="sr-only">{delta.up ? "Up" : "Down"} compared with the previous 15 days.</span>
+      {delta.text}
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        {delta.up ? (
+          <path d="M6 9.5V2.5m0 0L3 5.5m3-3l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M6 2.5v7m0 0l3-3m-3 3l-3-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        )}
+      </svg>
+    </span>
+  );
+}
+
+function AnalyticsPanel({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="flex h-full min-w-0 flex-col rounded-2xl border border-[var(--border)] bg-[var(--card)]">
+      <div className="flex items-center justify-between gap-3 px-5 pt-4">
+        <h2 className="text-sm font-semibold text-[var(--foreground)]">{title}</h2>
+        {action}
+      </div>
+      <div className="flex flex-1 flex-col px-5 pb-5 pt-3">{children}</div>
+    </section>
+  );
+}
+
+const COUNTRY_SORTS = [
+  { value: "records", label: "Most records" },
+  { value: "records-asc", label: "Fewest records" },
+  { value: "name", label: "Name A–Z" },
+  { value: "accepted", label: "Most accepted" },
+  { value: "rejected", label: "Most rejected" },
+  { value: "withdrawn", label: "Most withdrawn" },
+] as const;
+
+const WEBSITE_SORTS = [
+  { value: "records", label: "Most records" },
+  { value: "records-asc", label: "Fewest records" },
+  { value: "name", label: "Name A–Z" },
+  { value: "accepted", label: "Most accepted" },
+  { value: "rate", label: "Highest accept rate" },
+] as const;
+
+const PURPOSE_SORTS = [
+  { value: "granted", label: "Most granted" },
+  { value: "granted-asc", label: "Fewest granted" },
+  { value: "name", label: "Name A–Z" },
+  { value: "rate", label: "Highest grant rate" },
+] as const;
+
+function allowedSort<T extends { value: string }>(value: string | undefined, options: readonly T[], fallback: string) {
+  return options.some((option) => option.value === value) ? value! : fallback;
+}
+
+function chartDays(filters: DashboardFilters, trendDays: string[]) {
+  if (filters.from || filters.to) {
+    const start = filters.from ? new Date(`${filters.from}T00:00:00`) : new Date();
+    const end = filters.to ? new Date(`${filters.to}T00:00:00`) : new Date();
+    if (!filters.from && trendDays.length > 0) {
+      start.setTime(new Date(`${[...trendDays].sort()[0]}T00:00:00`).getTime());
+    }
+    const days: string[] = [];
+    const cursor = new Date(start);
+    cursor.setHours(0, 0, 0, 0);
+    const last = new Date(end);
+    last.setHours(0, 0, 0, 0);
+    while (cursor <= last && days.length < 120) {
+      days.push(localIsoDay(cursor));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    return days.length > 0 ? days : lastNLocalDays(30);
+  }
+  if (!filters.days || filters.days === "all") {
+    const sorted = [...trendDays].sort();
+    return sorted.slice(-90);
+  }
+  const count = Math.min(Number(filters.days) || 30, 120);
+  return lastNLocalDays(count);
+}
+
+function sortCountries<T extends { name: string; total: number; accepted: number; rejected: number; withdrawn: number }>(
+  rows: T[],
+  order: string,
+) {
+  return [...rows].sort((a, b) => {
+    if (order === "name") return a.name.localeCompare(b.name);
+    if (order === "records-asc") return a.total - b.total;
+    if (order === "accepted") return b.accepted - a.accepted || b.total - a.total;
+    if (order === "rejected") return b.rejected - a.rejected || b.total - a.total;
+    if (order === "withdrawn") return b.withdrawn - a.withdrawn || b.total - a.total;
+    return b.total - a.total;
+  });
+}
+
+function sortWebsites<T extends { websiteName: string; total: number; accepted: number; consentRate: number }>(
+  rows: T[],
+  order: string,
+) {
+  return [...rows].sort((a, b) => {
+    if (order === "name") return a.websiteName.localeCompare(b.websiteName);
+    if (order === "records-asc") return a.total - b.total;
+    if (order === "accepted") return b.accepted - a.accepted || b.total - a.total;
+    if (order === "rate") return b.consentRate - a.consentRate || b.total - a.total;
+    return b.total - a.total;
+  });
+}
+
+function sortPurposes<T extends { purposeName: string; granted: number; total: number }>(rows: T[], order: string) {
+  return [...rows].sort((a, b) => {
+    const rateA = a.total > 0 ? a.granted / a.total : 0;
+    const rateB = b.total > 0 ? b.granted / b.total : 0;
+    if (order === "name") return a.purposeName.localeCompare(b.purposeName);
+    if (order === "granted-asc") return a.granted - b.granted;
+    if (order === "rate") return rateB - rateA || b.granted - a.granted;
+    return b.granted - a.granted;
+  });
+}
+
 function ChartCardTitle({
   icon,
   title,
@@ -260,15 +404,6 @@ function ChartCardTitle({
       </div>
       {trailing ? <div className="flex flex-wrap items-center gap-x-4 gap-y-1">{trailing}</div> : null}
     </div>
-  );
-}
-
-function SeriesChip({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-2 text-xs font-medium text-[var(--muted-foreground)]">
-      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-      {label}
-    </span>
   );
 }
 
@@ -345,269 +480,250 @@ function InventoryRow({
   );
 }
 
-export async function HomeStatsSection() {
+export async function HomeStatsSection({ filters }: { filters: DashboardFilters }) {
   const { organization } = await requireDashboardContext();
-  const counts = await loadHomeDashboardCounts(organization.id);
-  const total = counts.totalConsents;
+  const analytics = await loadHomeChartAnalytics(organization.id, filters);
+  const days = [...analytics.trends].sort((a, b) => a.day.localeCompare(b.day));
   const metrics = [
-    {
-      label: "Total records",
-      value: counts.totalConsents,
-      hint: "All recorded consents",
-      color: "var(--primary)",
-      icon: <Mark tone="primary"><RecordsIcon /></Mark>,
-    },
-    {
-      label: "Accepted",
-      value: counts.acceptedConsents,
-      hint: `${pct(counts.acceptedConsents, total)}% of records`,
-      color: "var(--success)",
-      icon: <Mark tone="success"><AcceptedIcon /></Mark>,
-    },
-    {
-      label: "Granular",
-      value: counts.partialConsents,
-      hint: `${pct(counts.partialConsents, total)}% of records`,
-      color: "var(--purple)",
-      icon: <Mark tone="purple"><GranularIcon /></Mark>,
-    },
-    {
-      label: "Withdrawn",
-      value: counts.withdrawnConsents,
-      hint: `${pct(counts.withdrawnConsents, total)}% of records`,
-      color: "var(--warning)",
-      icon: <Mark tone="warning"><WithdrawnIcon /></Mark>,
-    },
+    { label: "Total records", value: analytics.overview.total, delta: halfDelta(days.map((day) => day.interactions)) },
+    { label: "Accepted", value: analytics.overview.accepted, delta: halfDelta(days.map((day) => day.acceptAll)) },
+    { label: "Granular", value: analytics.overview.partial, delta: halfDelta(days.map((day) => day.granular)) },
+    { label: "Withdrawn", value: analytics.overview.withdrawn, delta: halfDelta(days.map((day) => day.withdrawals)) },
   ];
-  const share = metrics.slice(1).filter((metric) => metric.value > 0);
 
   return (
-    <section className="dash-card-in overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
+    <section className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]">
       <div className="grid sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric, index) => (
           <div
             key={metric.label}
             className={[
-              "relative px-5 py-5 sm:px-6 sm:py-6",
+              "px-5 py-4",
               index > 0 ? "border-t border-[var(--border)]" : "",
               index % 2 === 1 ? "sm:border-l" : "",
               index === 1 ? "sm:border-t-0" : "",
+              index >= 2 ? "sm:border-t" : "",
               index > 0 ? "xl:border-l xl:border-t-0" : "",
             ].join(" ")}
           >
-            <span className="absolute inset-x-0 top-0 h-1" style={{ background: metric.color }} />
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-[var(--muted-foreground)]">{metric.label}</p>
-                <p className="mt-2 text-3xl font-semibold tracking-tight text-[var(--foreground)] tabular-nums">
-                  {metric.value.toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[var(--muted-foreground)]">{metric.hint}</p>
-              </div>
-              {metric.icon}
+            <p className="text-sm text-[var(--muted-foreground)]">{metric.label}</p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <p className="text-3xl font-semibold tracking-tight text-[var(--foreground)] tabular-nums">
+                {metric.value.toLocaleString()}
+              </p>
+              <TrendMark delta={metric.delta} />
             </div>
           </div>
         ))}
       </div>
-      {total > 0 ? (
-        <div className="border-t border-[var(--border)] px-5 py-4 sm:px-6">
-          <div className="flex h-2 overflow-hidden rounded-full bg-[var(--secondary)]" aria-hidden="true">
-            {share.map((metric) => (
-              <div
-                key={metric.label}
-                style={{ width: `${(metric.value / total) * 100}%`, background: metric.color }}
-              />
-            ))}
-          </div>
-        </div>
-      ) : null}
     </section>
   );
 }
 
-export async function HomeLiveAndChartsSection() {
+export async function HomeLiveAndChartsSection({
+  filters,
+  countrySort,
+  websiteSort,
+  purposeSort,
+}: {
+  filters: DashboardFilters;
+  countrySort?: string;
+  websiteSort?: string;
+  purposeSort?: string;
+}) {
   const { organization } = await requireDashboardContext();
   const [counts, analytics] = await Promise.all([
     loadHomeDashboardCounts(organization.id),
-    loadHomeChartAnalytics(organization.id),
+    loadHomeChartAnalytics(organization.id, filters),
   ]);
 
   const trendByDay = new Map(analytics.trends.map((row) => [row.day, row]));
-  const barPoints = lastNLocalDays(30).map((day) => {
+  const barPoints = chartDays(filters, analytics.trends.map((row) => row.day)).map((day) => {
     const row = trendByDay.get(day);
     return {
       label: formatChartDay(day),
       values: {
-        acceptAll: row?.acceptAll ?? 0,
-        rejectAll: row?.rejectAll ?? 0,
+        total: (row?.acceptAll ?? 0) + (row?.rejectAll ?? 0) + (row?.granular ?? 0),
+        accepted: row?.acceptAll ?? 0,
+        rejected: row?.rejectAll ?? 0,
         granular: row?.granular ?? 0,
       },
     };
   });
 
-  const choiceSeries: { key: "acceptAll" | "rejectAll" | "granular"; label: string; color: string }[] = [
-    { key: "acceptAll", label: "Accept all", color: "var(--success)" },
-    { key: "rejectAll", label: "Reject all", color: "var(--danger)" },
-    { key: "granular", label: "Granular", color: "var(--purple)" },
-  ];
-  const choiceTotals = choiceSeries.map((item) => ({
-    ...item,
-    value: barPoints.reduce((sum, point) => sum + (point.values[item.key] ?? 0), 0),
-  }));
+  const deviceSlices = analytics.devices
+    .filter((row) => row.total > 0 && row.key.toLowerCase() !== "unknown")
+    .slice(0, 4)
+    .map((row) => ({
+      label: row.name,
+      value: row.total,
+      color: DEVICE_COLORS[row.key.toLowerCase()] ?? "var(--accent)",
+    }));
 
-  const outcomeSlices = [
-    { label: "Accepted", value: analytics.overview.accepted, color: "var(--success)" },
-    { label: "Rejected", value: analytics.overview.rejected, color: "var(--danger)" },
-    { label: "Granular", value: analytics.overview.partial, color: "var(--purple)" },
-    { label: "Withdrawn", value: analytics.overview.withdrawn, color: "var(--warning)" },
-  ];
-
-  const purposeTop = analytics.purposes.filter((row) => row.granted > 0);
-  const purposeHead = purposeTop.slice(0, 5);
-  const purposeRest = purposeTop.slice(5).reduce((sum, row) => sum + row.granted, 0);
-  const purposeSlices = [
-    ...purposeHead.map((row, index) => ({
-      label: row.purposeName,
-      value: row.granted,
-      color: PURPOSE_COLORS[index % PURPOSE_COLORS.length]!,
-    })),
-    ...(purposeRest > 0 ? [{ label: "Other", value: purposeRest, color: "var(--muted-foreground)" }] : []),
-  ];
-
-  const knownCountries = analytics.countries.filter((row) => row.key.toLowerCase() !== "unknown" && row.total > 0);
-  const geoRows = (knownCountries.length > 0 ? knownCountries : analytics.devices)
-    .slice(0, 8)
-    .map((row) => ({ label: row.name, value: row.total }));
-  const geoIsCountry = knownCountries.length > 0;
+  const countryOrder = allowedSort(countrySort, COUNTRY_SORTS, "records");
+  const websiteOrder = allowedSort(websiteSort, WEBSITE_SORTS, "records");
+  const purposeOrder = allowedSort(purposeSort, PURPOSE_SORTS, "granted");
+  const knownCountries = sortCountries(
+    analytics.countries.filter((row) => row.key.toLowerCase() !== "unknown" && row.total > 0),
+    countryOrder,
+  );
+  const countryTotal = knownCountries.reduce((sum, row) => sum + row.total, 0);
+  const topCountries = knownCountries.slice(0, 8);
+  const topWebsites = sortWebsites(
+    analytics.websiteSummary.filter((row) => row.total > 0),
+    websiteOrder,
+  ).slice(0, 8);
+  const topPurposes = sortPurposes(
+    analytics.purposes.filter((row) => row.granted > 0),
+    purposeOrder,
+  ).slice(0, 8);
 
   return (
     <div className="space-y-6">
       <SetupGuide steps={buildGetLiveSteps(counts)} complete={counts.publishedCount > 0 && counts.totalConsents > 0} />
 
-      <div className="dash-card-grid grid items-stretch gap-5 lg:grid-cols-12">
-        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-8">
-          <CardHeader>
-            <ChartCardTitle
-              icon={<Mark tone="primary" size="sm"><BarsIcon /></Mark>}
-              title="Daily choices"
-              hint="Accept, reject, and granular over the last 30 days"
-              trailing={choiceSeries.map((item) => (
-                <SeriesChip key={item.key} color={item.color} label={item.label} />
-              ))}
-            />
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col">
-            <GroupedBarChart
+      <div className="grid items-stretch gap-4 lg:grid-cols-12">
+        <div className="h-full min-w-0 lg:col-span-8">
+          <AnalyticsPanel title="Daily choices">
+            <ChoiceChart
+              replayKey={`${filters.days ?? ""}|${filters.from ?? ""}|${filters.to ?? ""}|${filters.websiteId ?? ""}`}
               points={barPoints}
-              series={choiceSeries}
-              hideLegend
-              label="Daily consent choices over the last 30 days"
-              emptyTitle="No consent events in the last 30 days"
-              emptyDescription="The bar chart appears after visitors submit a choice on a site with the SDK installed."
             />
-            <div className="mt-5 grid grid-cols-3 gap-3 border-t border-[var(--border)] pt-4">
-              {choiceTotals.map((item) => (
-                <div key={item.key} className="min-w-0">
-                  <p className="truncate text-xs font-medium text-[var(--muted-foreground)]">{item.label}</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums text-[var(--foreground)]">
-                    {item.value.toLocaleString()}
-                  </p>
-                </div>
-              ))}
+          </AnalyticsPanel>
+        </div>
+        <div className="h-full min-w-0 lg:col-span-4">
+          <AnalyticsPanel title="Devices">
+            <div className="flex min-h-64 flex-1 items-center justify-center">
+              <PieChart
+                slices={deviceSlices}
+                legend="row"
+                centerLabel="records"
+                label="Consent records by device"
+                emptyTitle="No device data yet"
+                emptyDescription="Desktop, mobile, and tablet appear after the SDK records a visitor choice."
+              />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="dash-card-in flex h-full min-w-0 flex-col lg:col-span-4">
-          <CardHeader>
-            <ChartCardTitle
-              icon={<Mark tone="success" size="sm"><DonutIcon /></Mark>}
-              title="Consent mix"
-              hint="How current records are split"
-            />
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-center">
-            <PieChart
-              slices={outcomeSlices}
-              label="Consent mix by record status"
-              emptyTitle="No consent records yet"
-              emptyDescription="Accepted, rejected, granular, and withdrawn records show here after visitors choose."
-            />
-          </CardContent>
-        </Card>
+          </AnalyticsPanel>
+        </div>
       </div>
 
-      <div className="dash-card-grid grid items-stretch gap-5 lg:grid-cols-3">
-        <Card className="dash-card-in flex h-full min-w-0 flex-col">
-          <CardHeader>
-            <ChartCardTitle
-              icon={<Mark tone="purple" size="sm"><MedalIcon /></Mark>}
-              title="Purpose grants"
-              hint="Top purposes over the last 30 days"
-            />
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-center">
-            <PieChart
-              slices={purposeSlices}
-              centerLabel="grants"
-              label="Granted consent decisions by purpose"
-              emptyTitle="No purpose decisions yet"
-              emptyDescription="Granted choices per purpose show here after visitors save preferences."
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="dash-card-in flex h-full min-w-0 flex-col">
-          <CardHeader>
-            <ChartCardTitle
-              icon={<Mark tone="info" size="sm"><BrowserIcon /></Mark>}
-              title="By website"
-              hint="Consent records on each site"
-            />
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-center">
-            <HorizontalBarChart
-              rows={analytics.websiteSummary.map((row) => ({
-                label: row.websiteName,
-                value: row.total,
-                hint: row.websiteDomain,
-              }))}
-              color="var(--primary)"
-              label="Consent records by website"
-              emptyTitle="No website records yet"
-              emptyDescription="Volume by site appears after the banner is live on a registered website."
-            />
-          </CardContent>
-        </Card>
-
-        <Card className="dash-card-in flex h-full min-w-0 flex-col">
-          <CardHeader>
-            <ChartCardTitle
-              icon={geoIsCountry
-                ? <Mark tone="warning" size="sm"><PinIcon /></Mark>
-                : <Mark tone="info" size="sm"><DeviceIcon /></Mark>}
-              title={geoIsCountry ? "By country" : "By device"}
-              hint={geoIsCountry ? "Where visitors chose" : "Device class when country is unknown"}
-            />
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-center">
-            <HorizontalBarChart
-              rows={geoRows}
-              color="var(--info)"
-              label={geoIsCountry ? "Consent records by country" : "Consent records by device"}
-              emptyTitle="No location or device data yet"
-              emptyDescription="Country and device breakdowns appear after the SDK records a visitor choice."
-            />
-          </CardContent>
-        </Card>
+      <div className="grid items-start gap-4 lg:grid-cols-12">
+        <div className="min-w-0 lg:col-span-7">
+          <AnalyticsPanel
+            title="By country"
+            action={<DashboardSort param="countrySort" value={countryOrder} options={[...COUNTRY_SORTS]} />}
+          >
+            {topCountries.length === 0 ? (
+              <p className="py-10 text-center text-sm text-[var(--muted-foreground)]">
+                Country breakdowns appear after the SDK records a visitor choice.
+              </p>
+            ) : (
+              <>
+              <CountryMap
+                countries={knownCountries.map((row) => ({
+                  code: row.key,
+                  name: row.name,
+                  total: row.total,
+                  accepted: row.accepted,
+                  rejected: row.rejected,
+                  partial: row.partial,
+                  withdrawn: row.withdrawn,
+                }))}
+              />
+              <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                {topCountries.map((row) => {
+                  const share = pct(row.total, countryTotal);
+                  return (
+                    <li key={row.key}>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+                          <CountryFlag code={row.key} />
+                          <span className="truncate">{row.name}</span>
+                        </span>
+                        <span className="shrink-0 text-sm tabular-nums text-[var(--muted-foreground)]">{share}%</span>
+                      </div>
+                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--secondary)]">
+                        <div className="h-full rounded-full bg-[var(--purple)]" style={{ width: `${Math.max(share, share > 0 ? 4 : 0)}%` }} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              </>
+            )}
+          </AnalyticsPanel>
+        </div>
+        <div className="grid min-w-0 gap-4 lg:col-span-5">
+          <AnalyticsPanel
+            title="By website"
+            action={<DashboardSort param="websiteSort" value={websiteOrder} options={[...WEBSITE_SORTS]} />}
+          >
+            {topWebsites.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">No website records yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-[var(--muted-foreground)]">
+                    <th className="pb-2 text-left font-medium">Site</th>
+                    <th className="pb-2 text-right font-medium">Records</th>
+                    <th className="pb-2 text-right font-medium">Accepted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topWebsites.map((row) => (
+                    <tr key={row.websiteId} className="border-t border-[var(--border)]">
+                      <td className="max-w-[12rem] py-2.5 pr-3">
+                        <p className="truncate font-medium text-[var(--foreground)]">{row.websiteDomain || row.websiteName}</p>
+                      </td>
+                      <td className="py-2.5 text-right font-semibold tabular-nums">{row.total.toLocaleString()}</td>
+                      <td className="py-2.5 text-right tabular-nums text-[var(--muted-foreground)]">{row.accepted.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </AnalyticsPanel>
+          <AnalyticsPanel
+            title="Top purposes"
+            action={<DashboardSort param="purposeSort" value={purposeOrder} options={[...PURPOSE_SORTS]} />}
+          >
+            {topPurposes.length === 0 ? (
+              <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">No purpose grants yet.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-[var(--muted-foreground)]">
+                    <th className="pb-2 text-left font-medium">Purpose</th>
+                    <th className="pb-2 text-right font-medium">Granted</th>
+                    <th className="pb-2 text-right font-medium">Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topPurposes.map((row) => (
+                    <tr key={row.purposeKey || row.purposeName} className="border-t border-[var(--border)]">
+                      <td className="max-w-[12rem] py-2.5 pr-3">
+                        <span className="inline-flex max-w-full truncate rounded-md bg-[var(--secondary)] px-2 py-0.5 text-xs font-medium text-[var(--foreground)]">
+                          {row.purposeName}
+                        </span>
+                      </td>
+                      <td className="py-2.5 text-right font-semibold tabular-nums">{row.granted.toLocaleString()}</td>
+                      <td className="py-2.5 text-right tabular-nums text-[var(--muted-foreground)]">{pct(row.granted, row.total)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </AnalyticsPanel>
+        </div>
       </div>
     </div>
   );
 }
 
-export async function HomeRecentSection() {
+export async function HomeRecentSection({ filters }: { filters: DashboardFilters }) {
   const { organization } = await requireDashboardContext();
   const counts = await loadHomeDashboardCounts(organization.id);
+  const period = parseAnalyticsPeriod(filters);
 
   const recentRecords = await db
     .select({
@@ -618,7 +734,12 @@ export async function HomeRecentSection() {
       createdAt: consentRecords.createdAt,
     })
     .from(consentRecords)
-    .where(eq(consentRecords.organizationId, organization.id))
+    .where(and(
+      eq(consentRecords.organizationId, organization.id),
+      ...(filters.websiteId ? [eq(consentRecords.websiteId, filters.websiteId)] : []),
+      ...(period.since ? [gte(consentRecords.updatedAt, period.since)] : []),
+      ...(period.until ? [lte(consentRecords.updatedAt, period.until)] : []),
+    ))
     .orderBy(desc(consentRecords.createdAt))
     .limit(4);
 

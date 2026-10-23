@@ -3,22 +3,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function HomeStatsSkeleton() {
   return (
-    <Skeleton className="h-36 rounded-2xl" aria-busy="true" aria-label="Loading stats" />
+    <Skeleton className="h-24 rounded-2xl" aria-busy="true" aria-label="Loading stats" />
   );
 }
 
 export function HomeChartsSkeleton() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading charts">
-      <Skeleton className="h-44 rounded-2xl" />
-      <div className="grid gap-5 lg:grid-cols-12">
+    <div className="space-y-4" aria-busy="true" aria-label="Loading charts">
+      <Skeleton className="h-16 rounded-2xl" />
+      <div className="grid gap-4 lg:grid-cols-12">
         <Skeleton className="h-80 rounded-2xl lg:col-span-8" />
         <Skeleton className="h-80 rounded-2xl lg:col-span-4" />
       </div>
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Skeleton className="h-72 rounded-2xl" />
-        <Skeleton className="h-72 rounded-2xl" />
-        <Skeleton className="h-72 rounded-2xl" />
+      <div className="grid gap-4 lg:grid-cols-12">
+        <Skeleton className="h-72 rounded-2xl lg:col-span-7" />
+        <div className="grid gap-4 lg:col-span-5">
+          <Skeleton className="h-40 rounded-2xl" />
+          <Skeleton className="h-40 rounded-2xl" />
+        </div>
       </div>
     </div>
   );

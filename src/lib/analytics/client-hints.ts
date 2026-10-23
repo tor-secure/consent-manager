@@ -103,7 +103,15 @@ const COUNTRY_NAMES: Record<string, string> = {
 
 export function countryDisplayName(code: string): string {
   if (code === "unknown" || !code) return "Unknown";
-  return COUNTRY_NAMES[code] ?? code;
+  const upper = code.trim().toUpperCase();
+  if (COUNTRY_NAMES[upper]) return COUNTRY_NAMES[upper];
+  try {
+    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(upper);
+    if (name && name.toUpperCase() !== upper) return name;
+  } catch {
+    return upper;
+  }
+  return upper;
 }
 
 export function deviceDisplayName(value: string): string {
