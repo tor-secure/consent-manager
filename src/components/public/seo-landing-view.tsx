@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StoryDeck } from "@/components/ui/story-deck";
 import type { Metadata } from "next";
 
 import { JsonLd } from "@/components/seo/json-ld";
@@ -48,7 +49,7 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <section className="border-b border-[#D3E0DE] bg-[#F3FAF8]">
+        <section className="public-solution-hero border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div className="mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-12">
             <nav aria-label="Breadcrumb">
               <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[#5D6B73]">
@@ -71,7 +72,6 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
                 })}
               </ol>
             </nav>
-            <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-[#00A88F]">{page.kicker}</p>
             <h1 className="mt-3 max-w-3xl text-balance text-[clamp(1.85rem,1.1rem+2.4vw,3.15rem)] font-bold leading-[1.12] tracking-tight text-[#0B2C4A]">
               {page.h1}
             </h1>
@@ -99,7 +99,7 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
           </section>
         ) : null}
 
-        <section className="mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
+        <section className="solution-editorial mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
           <h2 className="max-w-3xl text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-3xl">{page.problemTitle}</h2>
           <div className="mt-4 max-w-3xl space-y-4 text-[15px] leading-7 text-[#4B5563]">
             {page.problem.map((paragraph) => (
@@ -111,28 +111,13 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
         <section id={page.path === "/resources" ? "guides" : undefined} className="bg-[#F3FAF8]">
           <div className="mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
             <h2 className="text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-3xl">{page.howTitle}</h2>
-            <ol className="mt-8 grid gap-4 md:grid-cols-2">
-              {page.steps.map((step, index) => (
-                <li key={step.title} className="rounded-2xl border border-[#D3E0DE] bg-white p-5">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#00A88F]">Step {index + 1}</p>
-                  <h3 className="mt-2 text-lg font-semibold text-[#0B2C4A]">{step.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-[#4B5563]">{step.body}</p>
-                </li>
-              ))}
-            </ol>
+            <StoryDeck label="How it works" items={page.steps} sequential />
           </div>
         </section>
 
         <section className="mx-auto max-w-[1200px] px-5 py-14 sm:px-8 sm:py-16">
           <h2 className="text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-3xl">Key capabilities</h2>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {page.features.map((feature) => (
-              <article key={feature.title} className="rounded-2xl border border-[#E5E7EB] p-5">
-                <h3 className="text-lg font-semibold text-[#0B2C4A]">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-[#4B5563]">{feature.body}</p>
-              </article>
-            ))}
-          </div>
+          <StoryDeck label="Key capabilities" items={page.features} />
         </section>
 
         <section className="bg-[#0B2C4A] text-white">
@@ -166,14 +151,7 @@ export function SeoLandingView({ page }: { page: SeoLanding }) {
           {page.technical ? (
             <div className="mt-10">
               <h2 className="text-2xl font-bold tracking-tight text-[#0B2C4A] sm:text-3xl">Technical capabilities</h2>
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {page.technical.map((item) => (
-                  <article key={item.title} className="rounded-2xl bg-[#F3FAF8] p-5">
-                    <h3 className="text-lg font-semibold text-[#0B2C4A]">{item.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-[#4B5563]">{item.body}</p>
-                  </article>
-                ))}
-              </div>
+              <StoryDeck label="Technical capabilities" items={page.technical} />
             </div>
           ) : null}
         </section>

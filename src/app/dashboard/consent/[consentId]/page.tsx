@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CopyButton } from "@/components/sdk/copy-snippet";
+import { EvidenceTimeline } from "@/components/consent/evidence-timeline";
 import { PageHeader } from "@/components/ui/page-header";
 
 type ProofPayload = {
@@ -110,7 +111,12 @@ export default function ConsentProofPage() {
         <p className="text-sm text-[var(--muted-foreground)]">Loading proof…</p>
       ) : (
         <Card>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-6 pt-6">
+            <EvidenceTimeline title="From consent to evidence" items={[
+              { id: "policy", title: "Policy context", description: data.evidence.policyVersion ? data.evidence.policyVersion.policyName + " v" + data.evidence.policyVersion.version : "No policy version recorded", provenance: data.evidence.policyVersion ? "configured" : "unknown" },
+              { id: "decision", title: "Consent decision", description: data.evidence.status, provenance: "observed" },
+              ...(proof?.stored ? [{ id: "proof", title: intact ? "Proof verified" : "Proof verification failed", description: intact ? "The recorded evidence matches its cryptographic proof." : "The recorded evidence did not pass cryptographic verification.", timestamp: proof.stored.signedAt, provenance: "observed" }] : []),
+            ]} />
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={proof?.stored ? (intact ? "success" : "danger") : "neutral"}>{proof?.stored ? (intact ? "Intact" : "Not intact") : "No signature stored"}</Badge>
               <Badge variant="neutral">{data.evidence.status}</Badge>

@@ -6,48 +6,66 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Line, RoundedBox } from '@react-three/drei'
 import { DoubleSide, type Group } from 'three'
+import type { StricterScene } from '../../content/law'
 import { useChoices } from '../../state/journey'
+import { useLaw, useSelected } from '../../state/law'
 import { clamp01 } from '../../utils/math'
 import { Bead, Board, Checkpoint, Fiduciary, Flow, Focus, Part, Person, Reveal, Slip, Stop, Tag, approach, useColors } from '../kit'
 import { stage } from '../presence'
 
 type Vec3 = [number, number, number]
 
-const REACHES: { label: string; from: Vec3; to: Vec3 }[] = [
-  { label: 'tracking', from: [-1.85, 0.85, 0], to: [-0.98, 0.35, 0] },
-  { label: 'monitoring', from: [-1.9, -0.55, 0], to: [-1.0, -0.25, 0] },
-  { label: 'targeted ads', from: [1.85, 0.85, 0], to: [0.98, 0.35, 0] },
-  { label: 'detrimental use', from: [1.9, -0.55, 0], to: [1.0, -0.25, 0] },
+/** Where reaches come at the wall from: upper left, lower left, upper right, lower right. */
+const REACHES: { from: Vec3; to: Vec3 }[] = [
+  { from: [-1.85, 0.85, 0], to: [-0.98, 0.35, 0] },
+  { from: [-1.9, -0.55, 0], to: [-1.0, -0.25, 0] },
+  { from: [1.85, 0.85, 0], to: [0.98, 0.35, 0] },
+  { from: [1.9, -0.55, 0], to: [1.0, -0.25, 0] },
 ]
+/** Which of those a law's two, three or four reaches use, kept balanced. */
+const SPREAD: Record<number, number[]> = { 1: [0], 2: [0, 2], 3: [0, 2, 1], 4: [0, 1, 2, 3] }
 
-/** The Consent Manager scene sits beside the children's room. */
+/** The second scene sits beside the first. */
 const M = 5.2
 
 /**
- * 07 Where the rules tighten. Left: a child's data in a double-walled room;
- * a guardian's consent comes through one prescribed check, and tracking,
- * monitoring, targeted ads and detrimental processing are stopped at the wall.
- * Right: two holders that look alike, told apart: a registered Consent Manager
- * on your side, accountable to you; a platform inside the organisation, whose
- * line to the Board is stopped. The camera turns to the one the reader picks
- * (on a phone, only the picked one is shown: see `Focus`).
+ * 07 Where the rules tighten: two scenes side by side, one per option, and
+ * the camera turns to the one the reader picks (on a phone, only the picked
+ * one is shown: see `Focus`). Each is either
+ *
+ * - a room: protected data (in the DPDP Act, a child's) behind a double wall;
+ *   one way in, through one check, and other reaches stopped at the wall; or
+ * - two holders that look alike, told apart: a registered Consent Manager on
+ *   your side, accountable to you; a platform inside the organisation, whose
+ *   line to the Board is stopped.
  */
 export function Stricter() {
+  const law = useLaw()
+  const options = law.stations[6].control.options
   return (
     <>
-      <Focus view="children" at={[0, 0.35, 0]}>
-        <Children />
-      </Focus>
-      <Focus view="manager" at={[M, 0.25, 0]}>
-        <Manager />
-      </Focus>
+      {law.scene.stricter.map((scene, k) => {
+        const option = options[k]?.id ?? String(k)
+        const x = k * M
+        return (
+          <Focus key={option} view={option} at={[x, scene.kind === 'room' ? 0.35 : 0.25, 0]}>
+            {scene.kind === 'room' ? (
+              <group position={[x, 0, 0]}>
+                <Room scene={scene} option={option} order={k * 3} />
+              </group>
+            ) : (
+              <Holders scene={scene} option={option} />
+            )}
+          </Focus>
+        )
+      })}
     </>
   )
 }
 
-function Children() {
+function Room({ scene, option, order }: { scene: Extract<StricterScene, { kind: 'room' }>; option: string; order: number }) {
   const c = useColors()
-  const view = useChoices((s) => s.selection.stricter)
+  const view = useSelected('stricter')
   const pulse = useChoices((s) => s.pulse.stricter)
   const at = useRef(-10)
   const bead = useRef<Group>(null)
@@ -58,17 +76,17 @@ function Children() {
   }, [pulse])
 
   useFrame((_, dt) => {
-    approach(stops, view === 'children' ? 1 : 0.4, dt)
+    approach(stops, view === option ? 1 : 0.4, dt)
     const b = bead.current
     if (!b) return
     const t = stage.still ? 99 : (stage.elapsed - at.current) % 3.2
-    b.visible = view === 'children' && !stage.still
+    b.visible = view === option && !stage.still
     b.position.y = 2.0 - clamp01(t / 1.6) * 1.6
   })
 
   return (
     <>
-      <Reveal order={1}>
+      <Reveal order={order + 1}>
         {/* The double wall: protection, not an alarm. */}
         {[0.72, 0.9].map((r, k) => (
           <mesh key={r} rotation={[0, 0, 0]}>
@@ -88,51 +106,77 @@ function Children() {
             </mesh>
           </group>
         ))}
-        <Tag position={[0, -0.98, 0]} tone="refuse" strong>A child’s data</Tag>
+        <Tag position={[0, -0.98, 0]} tone="refuse" strong>{scene.subject}</Tag>
+        {scene.contents ? <Contents items={scene.contents} option={option} /> : null}
+        {scene.ages ? <Ages {...scene.ages} /> : null}
       </Reveal>
 
-      <Reveal order={2}>
-        <Part id="guardian" label="A parent or lawful guardian" position={[0, 2.3, 0]}>
-          <Person scale={0.8} />
-        </Part>
-        <Tag position={[0, 2.78, 0]}>parent or guardian</Tag>
-        <Flow points={[[0, 2.0, 0], [0, 0.4, 0]]} color={c.grant} width={2} flowing={view === 'children'} />
-        <Part id="check" label="Verification, as the Rules prescribe" position={[0, 1.2, 0]}>
+      <Reveal order={order + 2}>
+        {scene.second ? (
+          <>
+            {/* Two ways in, both through the same check. */}
+            {[
+              { x: -0.55, label: scene.gatekeeper, hover: scene.gatekeeperHover, shape: scene.gatekeeperShape, id: 'gatekeeper' },
+              { x: 0.55, label: scene.second.label, hover: scene.second.hover, shape: scene.second.shape, id: 'second' },
+            ].map((g) => (
+              <group key={g.id}>
+                <Part id={`${option}-${g.id}`} label={g.hover} position={[g.x, 2.3, 0]}>
+                  {g.shape === 'organisation' ? <Fiduciary size={0.38} /> : <Person scale={0.7} />}
+                </Part>
+                <Tag position={[g.x, 2.75, 0]}>{g.label}</Tag>
+                <Flow points={[[g.x, 2.02, 0], [0, 1.42, 0]]} color={c.grant} width={2} flowing={view === option} />
+              </group>
+            ))}
+            <Flow points={[[0, 1.0, 0], [0, 0.4, 0]]} color={c.grant} width={2} flowing={view === option} />
+          </>
+        ) : (
+          <>
+            <Part id={`${option}-gatekeeper`} label={scene.gatekeeperHover} position={[0, 2.3, 0]}>
+              {scene.gatekeeperShape === 'organisation' ? <Fiduciary size={0.42} /> : <Person scale={0.8} />}
+            </Part>
+            <Tag position={[0, 2.78, 0]}>{scene.gatekeeper}</Tag>
+            <Flow points={[[0, 2.0, 0], [0, 0.4, 0]]} color={c.grant} width={2} flowing={view === option} />
+          </>
+        )}
+        <Part id={`${option}-check`} label={scene.checkHover} position={[0, 1.2, 0]}>
           <Checkpoint color={c.grant} radius={0.2} />
         </Part>
-        <Tag position={[0.85, 1.2, 0]}>prescribed check</Tag>
+        <Tag position={[0.85, 1.2, 0]}>{scene.check}</Tag>
         <group ref={bead} position={[0, 2, 0]} visible={false}>
           <Bead color={c.grant} radius={0.07} />
         </group>
       </Reveal>
 
-      <Reveal order={3}>
-        {REACHES.map((r) => (
-          <group key={r.label}>
-            <Flow points={[r.from, r.to]} color={c.inkMuted} width={1.6} dashed />
-            <mesh position={r.from}>
-              <sphereGeometry args={[0.08, 16, 8]} />
-              <meshStandardMaterial color={c.inkSoft} />
-            </mesh>
-            <Stop position={r.to} rotation={Math.atan2(r.to[1] - r.from[1], r.to[0] - r.from[0]) + Math.PI / 2} visibleRef={stops} />
-            <Tag position={[r.from[0], r.from[1] - 0.26, 0]}>{r.label}</Tag>
-          </group>
-        ))}
+      <Reveal order={order + 3}>
+        {scene.reaches.slice(0, 4).map((label, k) => {
+          const r = REACHES[SPREAD[Math.min(scene.reaches.length, 4)][k]]
+          return (
+            <group key={label}>
+              <Flow points={[r.from, r.to]} color={c.inkMuted} width={1.6} dashed />
+              <mesh position={r.from}>
+                <sphereGeometry args={[0.08, 16, 8]} />
+                <meshStandardMaterial color={c.inkSoft} />
+              </mesh>
+              <Stop position={r.to} rotation={Math.atan2(r.to[1] - r.from[1], r.to[0] - r.from[0]) + Math.PI / 2} visibleRef={stops} />
+              <Tag position={[r.from[0], r.from[1] - 0.26, 0]}>{label}</Tag>
+            </group>
+          )
+        })}
       </Reveal>
     </>
   )
 }
 
-function Manager() {
+function Holders({ scene, option }: { scene: Extract<StricterScene, { kind: 'holders' }>; option: string }) {
   const c = useColors()
-  const view = useChoices((s) => s.selection.stricter)
+  const view = useSelected('stricter')
   const apart = useRef(0)
   const left = useRef<Group>(null)
   const right = useRef<Group>(null)
   const divider = useRef<Group>(null)
 
   useFrame((_, dt) => {
-    approach(apart, view === 'manager' ? 1 : 0, dt, 3)
+    approach(apart, view === option ? 1 : 0, dt, 3)
     const a = apart.current
     if (left.current) left.current.position.x = M - 0.35 - a * 1.05
     if (right.current) right.current.position.x = M + 0.35 + a * 1.05
@@ -151,23 +195,23 @@ function Manager() {
         </group>
 
         <group ref={left} position={[M - 0.35, 0.2, 0]}>
-          <Part id="manager" label="Consent Manager: registered, accountable to you">
+          <Part id="manager" label={scene.leftHover}>
             <Holder />
           </Part>
-          <Tag position={[0, -0.72, 0]} strong>Consent Manager</Tag>
+          <Tag position={[0, -0.72, 0]} strong>{scene.left}</Tag>
           <Flow points={[[0, 0.45, 0], [0, 1.25, 0]]} color={c.ink} width={2} />
           <Flow points={[[-0.35, 0, 0], [-1.05, -0.25, 0]]} color={c.data} width={1.8} />
           <group position={[-1.25, -0.3, 0]}>
             <Person scale={0.55} />
           </group>
-          <Tag position={[-1.3, -0.72, 0]}>you</Tag>
+          <Tag position={[-1.3, -0.72, 0]}>{scene.you}</Tag>
         </group>
 
         <group ref={right} position={[M + 0.35, 0.2, 0]}>
-          <Part id="platform" label="A consent management platform: software">
+          <Part id="platform" label={scene.rightHover}>
             <Holder />
           </Part>
-          <Tag position={[0, -0.72, 0]} strong>Platform (software)</Tag>
+          <Tag position={[0, -0.72, 0]} strong>{scene.right}</Tag>
           <Flow points={[[0, 0.45, 0], [-0.55, 1.2, 0]]} color={c.inkMuted} width={1.6} dashed />
           <Stop position={[-0.32, 0.82, 0.05]} rotation={-0.95} />
           <group position={[0.95, -0.15, 0]}>
@@ -182,12 +226,12 @@ function Manager() {
             dashSize={0.08}
             gapSize={0.07}
           />
-          <Tag position={[0.95, 0.9, 0]}>organisation</Tag>
+          <Tag position={[0.95, 0.9, 0]}>{scene.organisation}</Tag>
         </group>
 
         <group position={[M - 1.4, 1.75, 0]}>
           <Board />
-          <Tag position={[0, 0.55, 0]}>Data Protection Board</Tag>
+          <Tag position={[0, 0.55, 0]}>{scene.authority}</Tag>
         </group>
       </Reveal>
     </>
@@ -205,6 +249,48 @@ function Holder() {
       <group position={[0, 0.02, 0.22]} scale={0.42}>
         <Slip rows={3} />
       </group>
+    </group>
+  )
+}
+
+/** What the room protects: a ring of small tiles inside the wall, each named on hover. */
+function Contents({ items, option }: { items: string[]; option: string }) {
+  const c = useColors()
+  return (
+    <>
+      {items.map((item, k) => {
+        const a = Math.PI / 2 - (k / items.length) * Math.PI * 2
+        return (
+          <Part key={item} id={`${option}-content-${k}`} label={item} position={[Math.cos(a) * 0.46, Math.sin(a) * 0.46 * 0.75, 0]}>
+            <mesh rotation={[0.3, 0.5, 0]}>
+              <boxGeometry args={[0.1, 0.1, 0.1]} />
+              <meshStandardMaterial color={c.withdraw} emissive={c.withdraw} emissiveIntensity={0.35} roughness={0.4} />
+            </mesh>
+          </Part>
+        )
+      })}
+    </>
+  )
+}
+
+/** An age scale under the room: its marks, with the span that applies drawn in. */
+function Ages({ marks, from, to, label }: { marks: string[]; from: number; to: number; label: string }) {
+  const c = useColors()
+  const x = (k: number) => -0.66 + (k / Math.max(1, marks.length - 1)) * 1.32
+  return (
+    <group position={[0, -1.35, 0]}>
+      <Line points={[[x(0), 0, 0], [x(marks.length - 1), 0, 0]]} color={c.inkMuted} lineWidth={1.4} />
+      <Line points={[[x(from), 0, 0.01], [x(to), 0, 0.01]]} color={c.withdraw} lineWidth={4} />
+      {marks.map((m, k) => (
+        <group key={m} position={[x(k), 0, 0]}>
+          <mesh>
+            <boxGeometry args={[0.025, 0.14, 0.025]} />
+            <meshStandardMaterial color={k >= from && k <= to ? c.withdraw : c.inkMuted} />
+          </mesh>
+          <Tag position={[0, -0.2, 0]}>{m}</Tag>
+        </group>
+      ))}
+      <Tag position={[0, -0.46, 0]}>{label}</Tag>
     </group>
   )
 }

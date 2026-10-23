@@ -6,6 +6,7 @@ import type { CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { Station } from '../content/stations'
 import { startShowcase, useChoices } from '../state/journey'
+import { usePurposes, useSelected } from '../state/law'
 
 /**
  * The station's one interactive idea, as real buttons. Clicking the matching
@@ -19,8 +20,8 @@ import { startShowcase, useChoices } from '../state/journey'
  */
 export function StationControl({ station }: { station: Station }) {
   const { control } = station
-  const selected = useChoices((s) => s.selection[station.id])
-  const purposes = useChoices((s) => s.purposes)
+  const selected = useSelected(station.id)
+  const purposes = usePurposes()
   const pick = useChoices((s) => s.choose)
   const choose = (station: Station['id'], option: string) => {
     pick(station, option)
@@ -71,9 +72,7 @@ export function StationControl({ station }: { station: Station }) {
           })}
         </div>
         <p className="control__result" role="status" data-tone={declined.length ? 'neutral' : 'grant'}>
-          {declined.length
-            ? `Declined: ${declined.join(' and ')}. Its stream stays open but stops before its vendor, which stays dark. Declining is a supported answer.`
-            : 'Everything allowed: each stream reaches its vendor. Switch one off to decline just that purpose.'}
+          {declined.length ? control.declined?.replace('{list}', declined.join(' and ')) : control.allowed}
         </p>
       </div>
     )

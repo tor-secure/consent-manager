@@ -3,7 +3,8 @@
 'use no memo'
 
 import { create } from 'zustand'
-import { stations, type StationId } from '../content/stations'
+import type { LawDefaults, Selection } from '../content/law'
+import type { StationId } from '../content/stations'
 
 /**
  * Two kinds of state, kept apart on purpose.
@@ -66,14 +67,20 @@ export function wakeJourney() {
   for (const waker of wakers) waker()
 }
 
-type Selection = Record<StationId, string | null>
+const STATION_IDS: StationId[] = ['people', 'reason', 'consent', 'purposes', 'withdrawal', 'rights', 'stricter', 'system']
 
 interface Choices {
   /** The station holding the viewport, −1 in the hero. */
   active: number
-  selection: Selection
-  /** Purpose toggles in station 04. Necessary cannot be switched off. */
+  /**
+   * What the reader has picked. A station not in it shows its law's default
+   * (read it with `useSelected`), so the store needs no law to render.
+   */
+  selection: Partial<Selection>
+  /** Purpose toggles in station 04 the reader has flipped (see `usePurposes`). */
   purposes: Record<string, boolean>
+  /** The mounted law's defaults, for actions that flip a default. */
+  defaults: LawDefaults
   /** Bumped on every choice, so the stage can replay an animation. */
   pulse: Record<StationId, number>
   /** The part of a model under the pointer, for its label. */
@@ -85,40 +92,39 @@ interface Choices {
   setActive: (index: number) => void
   choose: (station: StationId, option: string) => void
   togglePurpose: (id: string) => void
+  /** Sets every purpose that can be switched (accept all, reject all, an opt-out). */
+  setPurposes: (on: boolean) => void
   setHover: (hover: Choices['hover']) => void
   openDetails: (station: StationId | null) => void
-}
-
-const initialSelection: Selection = {
-  people: 'principal',
-  reason: 'consent',
-  consent: null,
-  purposes: null,
-  withdrawal: 'given',
-  rights: 'rights',
-  stricter: 'children',
-  system: 'notice',
+  /** A law has mounted: start from its defaults, with nothing picked. */
+  begin: (defaults: LawDefaults) => void
 }
 
 function togglePurposes(state: Choices, id: string): Partial<Choices> {
-  if (id === 'necessary') return {}
+  if (state.defaults.locked.includes(id)) return {}
+  const on = state.purposes[id] ?? state.defaults.purposes[id] ?? false
   return {
-    purposes: { ...state.purposes, [id]: !state.purposes[id] },
+    purposes: { ...state.purposes, [id]: !on },
     pulse: { ...state.pulse, purposes: state.pulse.purposes + 1 },
   }
 }
 
-const zeroPulse = Object.fromEntries(stations.map((s) => [s.id, 0])) as Record<StationId, number>
+const zeroPulse = () => Object.fromEntries(STATION_IDS.map((id) => [id, 0])) as Record<StationId, number>
 
-export const useChoices = create<Choices>((set) => ({
+const fresh = () => ({
   active: -1,
-  selection: initialSelection,
-  // As in the source's illustration: analytics allowed, advertising declined.
-  purposes: { necessary: true, analytics: true, advertising: false },
-  pulse: zeroPulse,
+  selection: {},
+  purposes: {},
+  pulse: zeroPulse(),
   hover: null,
   details: null,
   showcase: false,
+})
+
+export const useChoices = create<Choices>((set) => ({
+  ...fresh(),
+  defaults: { selection: {} as Selection, purposes: {}, locked: [] },
+  begin: (defaults) => set({ ...fresh(), defaults }),
   setActive: (active) => set({ active }),
   // In station 04 a choice is a toggle: each purpose is answered on its own.
   choose: (station, option) =>
@@ -127,6 +133,14 @@ export const useChoices = create<Choices>((set) => ({
       pulse: { ...state.pulse, [station]: state.pulse[station] + 1 },
     })),
   togglePurpose: (id) => set((state) => togglePurposes(state, id)),
+  setPurposes: (on) =>
+    set((state) => {
+      const purposes = { ...state.purposes }
+      for (const id of Object.keys(state.defaults.purposes)) {
+        if (!state.defaults.locked.includes(id)) purposes[id] = on
+      }
+      return { purposes, pulse: { ...state.pulse, purposes: state.pulse.purposes + 1 } }
+    }),
   setHover: (hover) => set({ hover }),
   openDetails: (details) => set({ details }),
 }))
@@ -168,6 +182,6 @@ export function dataState(state: Choices, position: number): 'raw' | 'consented'
   if (state.selection.withdrawal === 'withdrawn' && position > 3.5) return 'withdrawn'
   const tried = state.selection.consent
   if (tried === 'given') return 'consented'
-  if (tried === null && position > 2.55) return 'consented'
+  if (tried == null && position > 2.55) return 'consented'
   return 'raw'
 }

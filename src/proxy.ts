@@ -37,6 +37,8 @@ const isPublicRoute = createRouteMatcher([
   "/learning/verify(.*)",
   "/learning/certificate(.*)",
   "/dpdp-act(.*)",
+  "/gdpr-guide(.*)",
+  "/ccpa-guide(.*)",
   "/tools(.*)",
   "/blog(.*)",
   ...SEO_PUBLIC_MATCHERS,

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "./dashboard.css";
 import { Suspense } from "react";
 import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
@@ -7,6 +8,7 @@ import { redirect } from "next/navigation";
 import { bootstrapCurrentContext } from "@/lib/bootstrap-current-context";
 import { DashboardProviders } from "@/components/dashboard/dashboard-providers";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
+import { PageTransition } from "@/components/ui/page-transition";
 import { DashboardHelpLink, DashboardSearch } from "@/components/dashboard/dashboard-search";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -105,7 +107,8 @@ export default async function DashboardLayout({
           </Suspense>
         }
       >
-        {children}
+        {/* Not a template.tsx: see the root layout. */}
+        <PageTransition workspace>{children}</PageTransition>
       </DashboardShell>
     </DashboardProviders>
   );

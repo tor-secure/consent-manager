@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
-import { BlogCover } from "@/components/public/blog-cover";
-import { formatBlogDate, getAllBlogs } from "@/content/blogs";
+import { ArticleLibrary } from "@/components/public/article-library";
+import { getAllBlogs } from "@/content/blogs";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
 const blogsTitle = "Blog";
@@ -41,9 +40,6 @@ export default function BlogsPage() {
           }}
         >
           <div className="relative mx-auto max-w-[1200px] px-5 py-3 sm:px-8 sm:py-5">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[#00C4A7] sm:text-base">
-              Blogs
-            </p>
             <h1 className="mt-3 max-w-3xl text-balance text-[clamp(1.85rem,1.1rem+3vw,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#111827]">
               Privacy laws, consent, and the systems that make them real
             </h1>
@@ -54,33 +50,7 @@ export default function BlogsPage() {
         </section>
 
         <section className="bg-white px-5 py-12 sm:px-8 sm:py-16">
-          <div className="mx-auto grid max-w-[1200px] gap-7 sm:grid-cols-2 lg:grid-cols-3">
-            {blogs.map((post) => (
-              <article key={post.slug}>
-                <Link
-                  href={`/blogs/${post.slug}`}
-                  className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-[#00C4A7]/40 hover:shadow-md"
-                >
-                  <BlogCover post={post} />
-                  <div className="flex flex-1 flex-col gap-3 p-5">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">
-                      <span className="rounded-full bg-[#E6F9F5] px-2.5 py-1 text-[#0B2C4A]">
-                        {post.category}
-                      </span>
-                      <span>{post.region}</span>
-                    </div>
-                    <h2 className="text-lg font-semibold leading-snug tracking-tight text-[#111827] group-hover:text-[#0B2C4A]">
-                      {post.title}
-                    </h2>
-                    <p className="line-clamp-3 text-sm leading-6 text-[#4B5563]">{post.excerpt}</p>
-                    <p className="mt-auto pt-2 text-[12px] text-[#6B7280]">
-                      {formatBlogDate(post.publishedAt)} · {post.readMinutes} min read
-                    </p>
-                  </div>
-                </Link>
-              </article>
-            ))}
-          </div>
+          <div className="mx-auto max-w-[1200px]"><ArticleLibrary posts={blogs} /></div>
         </section>
       </main>
       <HomeFooter />

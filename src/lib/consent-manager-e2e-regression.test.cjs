@@ -1396,21 +1396,28 @@ async function testPublishedPolicyRefresh() {
   browser.runConfigRefresh();
   await flush();
 
+  // Publishing v2 while v1 is open swaps the open banner to v2 and says the
+  // policy changed, so the visitor reads v2 before any choice is recorded.
   const banner = browser.document.getElementById("__cmp_banner__");
   const title = collect(banner, (el) => el.tagName === "STRONG")[0];
   assert.equal(
     title.textContent,
-    "Privacy choices",
-    "an open banner must preserve the policy context already shown",
+    "Updated privacy policy",
+    "an open banner must show the policy that a choice will be recorded against",
+  );
+  assert.ok(
+    collect(banner, (el) => el.getAttribute("role") === "status")
+      .some((el) => /This consent policy has changed/.test(el.textContent)),
+    "the swapped banner must tell the visitor the policy changed",
   );
   buttonByText(browser, "Accept all").click();
   await flush();
   assert.equal(
     store.records[0].policyVersionId,
-    ids.versionA,
-    "publishing v2 while v1 is open must still record v1",
+    versionTwoId,
+    "a choice made on the swapped banner must record the v2 the visitor saw",
   );
-  assert.equal(store.evidenceSnapshots[0].policyVersionId, ids.versionA);
+  assert.equal(store.evidenceSnapshots[0].policyVersionId, versionTwoId);
 }
 
 async function testServerConfirmedConsentStateMachine() {

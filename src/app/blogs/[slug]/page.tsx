@@ -7,6 +7,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { ArticleReading } from "@/components/public/article-reading";
 import { BlogCover } from "@/components/public/blog-cover";
 import {
   formatBlogDate,
@@ -135,35 +136,12 @@ export default async function BlogArticlePage({
           </header>
 
           <div className="bg-white">
-            <div className="mx-auto max-w-[800px] px-5 sm:px-8">
+            <div className="mx-auto max-w-[1100px] px-5 sm:px-8">
               <div className="-mt-2 overflow-hidden rounded-2xl border border-[#E5E7EB] shadow-sm sm:-mt-6">
                 <BlogCover post={post} priority />
               </div>
 
-              <div className="py-10 sm:py-12">
-                {post.sections.map((section, index) => (
-                  <section key={`${post.slug}-section-${index}`}>
-                    {section.heading ? (
-                      <h2 className="mt-10 text-xl font-semibold tracking-tight text-[#111827] first:mt-0">
-                        {section.heading}
-                      </h2>
-                    ) : null}
-                    {section.paragraphs.map((paragraph) => (
-                      <p
-                        key={paragraph.slice(0, 48)}
-                        className="mt-4 text-[16px] leading-8 text-[#374151]"
-                      >
-                        {paragraph}
-                      </p>
-                    ))}
-                  </section>
-                ))}
-
-                <p className="mt-10 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] px-4 py-3 text-sm leading-6 text-[#6B7280]">
-                  Educational overview only — not legal advice. Confirm requirements with counsel for
-                  your products and markets.
-                </p>
-              </div>
+              <ArticleReading sections={post.sections} />
             </div>
           </div>
         </article>

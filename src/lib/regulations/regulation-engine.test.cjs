@@ -180,7 +180,10 @@ const { buildIabSignalSnapshot, tcfPingResponse, gppPingResponse } = require(
   assert.match(sdk, /window\.__tcfapi/);
   assert.match(sdk, /window\.__gpp/);
   assert.match(sdk, /window\.__CMP_GEO/);
-  const config = fs.readFileSync(path.join(root, "src/app/api/sdk/[siteKey]/config/route.ts"), "utf8");
+  // The route delegates to the published-config loader; check them together.
+  const config = ["src/app/api/sdk/[siteKey]/config/route.ts", "src/lib/sdk/load-published-config.ts"]
+    .map((file) => fs.readFileSync(path.join(root, file), "utf8"))
+    .join("\n");
   assert.match(config, /resolveWebsiteConsentContext/);
   assert.match(config, /legalEngine/);
   assert.doesNotMatch(config, /searchParams\.get\(["']organizationId["']\)/);

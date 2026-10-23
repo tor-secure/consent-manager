@@ -8,6 +8,7 @@ import { PresentationControls } from '@react-three/drei'
 import type { Group } from 'three'
 import { useNarrow } from '../../hooks/useNarrow'
 import { useChoices } from '../../state/journey'
+import { useLaw } from '../../state/law'
 import { damp } from '../../utils/math'
 import { Plate, StationContext } from '../kit'
 import { placements, viewOf } from '../layout'
@@ -28,11 +29,12 @@ export function StationGroup({ index, children, drag }: { index: number; childre
   const p = placements[index]
   const active = useChoices((s) => s.active === index)
   const narrow = useNarrow()
+  const law = useLaw()
   const plate = useRef<Group>(null)
   useFrame((_, dt) => {
     const g = plate.current
     if (!g) return
-    const view = viewOf(p, useChoices.getState().selection, narrow)
+    const view = viewOf(p, useChoices.getState().selection, narrow, law)
     const x = narrow ? view.center[0] : 0
     const scale = narrow ? Math.min(1, (view.radius * 1.9) / PLATE) : 1
     g.position.x = stage.still ? x : damp(g.position.x, x, 6, dt)

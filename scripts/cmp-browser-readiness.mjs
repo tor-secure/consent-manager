@@ -1117,8 +1117,9 @@ async function collectPerformanceSamples(browser, origin, count) {
 }
 
 async function smoke(browser, origin, browserName, report) {
-  const session = await openFresh(browser, origin, "/fixture?case=main");
+  let session;
   try {
+    session = await openFresh(browser, origin, "/fixture?case=main");
     await waitForBanner(session.page);
     await session.page.waitForTimeout(800);
     const before = await readState(session.page);
@@ -1155,7 +1156,7 @@ async function smoke(browser, origin, browserName, report) {
       result: "FAIL",
     });
   } finally {
-    await session.context.close();
+    await session?.context.close();
   }
 }
 

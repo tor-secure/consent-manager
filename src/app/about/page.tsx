@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { StoryDeck } from "@/components/ui/story-deck";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
 import { SkipLink } from "@/components/ui/skip-link";
@@ -74,12 +75,6 @@ const beliefs = [
   ["Accountability should be visible.", "Organizations should be able to show how privacy choices are respected throughout the data lifecycle."],
 ];
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#00A88F]">{children}</p>
-  );
-}
-
 export default function AboutPage() {
   return (
     <div className="public-page min-h-screen bg-white text-[#111827]">
@@ -91,7 +86,7 @@ export default function AboutPage() {
           <div className="pointer-events-none absolute bottom-0 left-0 h-48 w-48 rounded-full bg-[#0B2C4A]/[0.04]" aria-hidden="true" />
           <div className="relative mx-auto max-w-[1200px] px-5 py-5 sm:px-8 sm:py-7 lg:py-10">
             <div className="max-w-3xl">
-              <SectionLabel>About ConsentGuru</SectionLabel>
+
               <h1 className="mt-5 max-w-3xl text-balance text-[clamp(1.85rem,1.1rem+3.2vw,3.75rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
                 Powering the future of <span className="text-[#00A88F]">digital trust.</span>
               </h1>
@@ -108,7 +103,7 @@ export default function AboutPage() {
         </section>
 
         <section className="mx-auto grid max-w-[1200px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:py-28">
-          <div><SectionLabel>Why we exist</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">The digital world is built on data.</h2></div>
+          <div><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">The digital world is built on data.</h2></div>
           <div className="space-y-5 text-[15px] leading-7 text-[#4B5563] sm:text-base">
             <p>Every website visit, mobile application, transaction, customer interaction, connected device, and digital service involves the collection and use of information. As organizations become increasingly data-driven, the ability to manage that data responsibly is no longer simply a regulatory responsibility.</p>
             <p className="text-xl font-semibold leading-8 text-[#0B2C4A]">It is a matter of trust.</p>
@@ -119,7 +114,7 @@ export default function AboutPage() {
 
         <section className="bg-[#0B2C4A] px-5 py-20 text-white sm:px-8 lg:py-28">
           <div className="mx-auto max-w-[1200px]">
-            <div className="max-w-2xl"><SectionLabel>From consent to trust</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">Consent should be more than a checkbox.</h2><p className="mt-6 text-base leading-7 text-white/70">It should be clear, meaningful, transparent, manageable, and changeable. Consent is one part of a much larger relationship between an organization and the individual.</p></div>
+            <div className="max-w-2xl"><h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">Consent should be more than a checkbox.</h2><p className="mt-6 text-base leading-7 text-white/70">It should be clear, meaningful, transparent, manageable, and changeable. Consent is one part of a much larger relationship between an organization and the individual.</p></div>
             <div className="mt-14 flex flex-wrap items-center gap-x-3 gap-y-5">
               {["Consent", "Privacy", "Accountability", "Trust"].map((item, index) => <div key={item} className="flex items-center gap-2"><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#00C4A7]/50 text-sm font-bold text-[#7DE4D4]">0{index + 1}</div><span className="text-lg font-semibold">{item}</span>{index < 3 ? <span className="text-xl leading-none text-[#00C4A7]" aria-hidden="true">→</span> : null}</div>)}
             </div>
@@ -128,32 +123,30 @@ export default function AboutPage() {
 
         <section className="bg-white px-5 py-20 sm:px-8 lg:py-28">
           <div className="mx-auto max-w-[1200px]">
-            <div className="max-w-2xl"><SectionLabel>Built by experience</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Three founders. One vision.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">Three technology professionals bring together more than 60 years of combined industry experience across cybersecurity, enterprise technology, privacy, cyber law, research, education, governance, and digital transformation.</p></div>
+            <div className="max-w-2xl"><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Three founders. One vision.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">Three technology professionals bring together more than 60 years of combined industry experience across cybersecurity, enterprise technology, privacy, cyber law, research, education, governance, and digital transformation.</p></div>
             <div className="mt-12 grid gap-5 lg:grid-cols-3">
-              {founders.map((founder) => <article key={founder.name} className="flex h-full flex-col rounded-2xl border border-[#D3E0DE] bg-[#F8FCFB] p-7 transition hover:-translate-y-1 hover:border-[#00C4A7] hover:shadow-[0_16px_30px_-20px_rgba(11,44,74,0.4)]"><div className="flex items-center gap-5"><div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-[#0B2C4A]"><Image src={founder.image} alt={`${founder.name} portrait`} fill sizes="96px" className="object-cover" /></div><div><h3 className="text-lg font-bold text-[#0B2C4A]">{founder.name}</h3><p className="mt-1 text-sm font-semibold text-[#00A88F]">{founder.role}</p></div></div><p className="mt-7 text-sm leading-6 text-[#4B5563]">{founder.description}</p><p className="mt-4 text-sm leading-6 text-[#4B5563]">{founder.detail}</p></article>)}
+              {founders.map((founder) => <article key={founder.name} className="flex h-full flex-col rounded-2xl border border-[#D3E0DE] bg-[#F8FCFB] p-7 transition hover:-translate-y-1 hover:border-[#00C4A7] hover:shadow-[0_16px_30px_-20px_rgba(11,44,74,0.4)]"><div className="flex items-center gap-5"><div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-[#0B2C4A]"><Image src={founder.image} alt={`${founder.name} portrait`} fill sizes="96px" className="object-cover" /></div><div><h3 className="text-lg font-bold text-[#0B2C4A]">{founder.name}</h3><p className="mt-1 text-sm font-semibold text-[#00A88F]">{founder.role}</p></div></div><p className="mt-7 text-sm leading-6 text-[#4B5563]">{founder.description}</p><details className="founder-background"><summary>More about {founder.name.split(" ")[0]}</summary><p className="mt-4 text-sm leading-6 text-[#4B5563]">{founder.detail}</p></details></article>)}
             </div>
           </div>
         </section>
 
         <section className="bg-[#F3FAF8] px-5 py-20 sm:px-8 lg:py-28">
           <div className="mx-auto max-w-[1200px]">
-            <div className="max-w-2xl"><SectionLabel>Our digital trust platform</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Privacy operations with a human purpose.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">ConsentGuru is evolving beyond traditional consent management to help organizations manage the privacy relationship throughout the data lifecycle.</p></div>
-            <div className="mt-12 grid gap-x-10 gap-y-0 md:grid-cols-2">
-              {platformPillars.map(([title, description], index) => <div key={title} className="flex gap-4 border-t border-[#C8DEDA] py-6"><span className="text-lg font-bold leading-6 text-[#00A88F]">{String(index + 1).padStart(2, "0")}</span><div><h3 className="font-bold text-[#0B2C4A]">{title}</h3><p className="mt-2 text-sm leading-6 text-[#5D6B73]">{description}</p></div></div>)}
-            </div>
+            <div className="max-w-2xl"><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Privacy operations with a human purpose.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">ConsentGuru is evolving beyond traditional consent management to help organizations manage the privacy relationship throughout the data lifecycle.</p></div>
+            <StoryDeck label="The platform" items={platformPillars.map(([title, body]) => ({ title, body }))} />
           </div>
         </section>
 
         <section className="mx-auto grid max-w-[1200px] gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[1fr_1fr] lg:gap-24 lg:py-28">
-          <div><SectionLabel>Technology with a human purpose</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">Technology should enable trust, not create friction.</h2><div className="mt-6 space-y-4 text-[15px] leading-7 text-[#4B5563]"><p>We believe privacy technology should not make privacy more complicated. It should make it simpler.</p><p>People should be able to understand what they are agreeing to. Organizations should be able to understand and manage their responsibilities. Privacy teams should have the visibility they need. Technology teams should have solutions they can integrate.</p><p>Organizations should be able to demonstrate that they respect the choices people make. That principle is at the heart of ConsentGuru.</p></div></div>
-          <div className="rounded-2xl bg-[#0B2C4A] p-8 text-white sm:p-10"><SectionLabel>Our vision</SectionLabel><h2 className="mt-4 text-3xl font-bold leading-tight">To become a global technology platform for Digital Trust and Privacy.</h2><p className="mt-6 leading-7 text-white/70">We envision a future where every individual has meaningful control over their personal data and every organization has the technology to respect that choice. A future where privacy is built into digital experiences.</p><p className="mt-6 text-lg font-semibold text-[#8BE8DA]">Organizations do not simply collect consent. They build trust.</p></div>
+          <div><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">Technology should enable trust, not create friction.</h2><div className="mt-6 space-y-4 text-[15px] leading-7 text-[#4B5563]"><p>We believe privacy technology should not make privacy more complicated. It should make it simpler.</p><p>People should be able to understand what they are agreeing to. Organizations should be able to understand and manage their responsibilities. Privacy teams should have the visibility they need. Technology teams should have solutions they can integrate.</p><p>Organizations should be able to demonstrate that they respect the choices people make. That principle is at the heart of ConsentGuru.</p></div></div>
+          <div className="rounded-2xl bg-[#0B2C4A] p-8 text-white sm:p-10"><h2 className="mt-4 text-3xl font-bold leading-tight">To become a global technology platform for Digital Trust and Privacy.</h2><p className="mt-6 leading-7 text-white/70">We envision a future where every individual has meaningful control over their personal data and every organization has the technology to respect that choice. A future where privacy is built into digital experiences.</p><p className="mt-6 text-lg font-semibold text-[#8BE8DA]">Organizations do not simply collect consent. They build trust.</p></div>
         </section>
 
-        <section className="bg-[#E6F9F5] px-5 py-20 sm:px-8 lg:py-24"><div className="mx-auto max-w-[900px] text-center"><SectionLabel>Our mission</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Simplify privacy. Empower individuals. Build lasting digital trust.</h2><p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#4B5563]">We are building technology that enables organizations to manage consent and privacy responsibly while creating better experiences for the people they serve.</p></div></section>
+        <section className="bg-[#E6F9F5] px-5 py-20 sm:px-8 lg:py-24"><div className="mx-auto max-w-[900px] text-center"><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-5xl">Simplify privacy. Empower individuals. Build lasting digital trust.</h2><p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-[#4B5563]">We are building technology that enables organizations to manage consent and privacy responsibly while creating better experiences for the people they serve.</p></div></section>
 
-        <section className="bg-white px-5 py-20 sm:px-8 lg:py-28"><div className="mx-auto max-w-[1200px]"><div className="grid gap-12 lg:grid-cols-[0.7fr_1.3fr] lg:gap-20"><div><SectionLabel>What we believe</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">Trust is built into every interaction.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">Privacy is a right. Security is foundational. Technology should simplify. These beliefs guide what we build and how we build it.</p></div><div className="grid gap-x-10 gap-y-0 sm:grid-cols-2">{beliefs.map(([title, description]) => <div key={title} className="border-t border-[#D3E0DE] py-5"><h3 className="font-bold text-[#0B2C4A]">{title}</h3><p className="mt-2 text-sm leading-6 text-[#5D6B73]">{description}</p></div>)}</div></div></div></section>
+        <section className="bg-white px-5 py-20 sm:px-8 lg:py-28"><div className="mx-auto max-w-[1200px]"><div className="grid gap-12 lg:grid-cols-[0.7fr_1.3fr] lg:gap-20"><div><h2 className="mt-4 text-3xl font-bold tracking-tight text-[#0B2C4A] sm:text-4xl">Trust is built into every interaction.</h2><p className="mt-5 text-base leading-7 text-[#5D6B73]">Privacy is a right. Security is foundational. Technology should simplify. These beliefs guide what we build and how we build it.</p></div><StoryDeck label="Our beliefs" items={beliefs.map(([title, body]) => ({ title, body }))} /></div></div></section>
 
-        <section className="relative overflow-hidden bg-[#0B2C4A] px-5 py-20 text-white sm:px-8 lg:py-24"><div className="relative mx-auto max-w-[900px] text-center"><SectionLabel>Built in India. Designed for the world.</SectionLabel><h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">The future of privacy is global.</h2><p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/70">Privacy and digital trust are no longer limited to a single country or regulation. We are building a platform that serves organizations across industries, geographies, and digital ecosystems.</p><div className="mt-9 flex justify-center"><ArrowButton href="/sign-up" tone="inverse" size="lg">Build trust with us</ArrowButton></div></div></section>
+        <section className="relative overflow-hidden bg-[#0B2C4A] px-5 py-20 text-white sm:px-8 lg:py-24"><div className="relative mx-auto max-w-[900px] text-center"><h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-5xl">The future of privacy is global.</h2><p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-white/70">Privacy and digital trust are no longer limited to a single country or regulation. We are building a platform that serves organizations across industries, geographies, and digital ecosystems.</p><div className="mt-9 flex justify-center"><ArrowButton href="/sign-up" tone="inverse" size="lg">Build trust with us</ArrowButton></div></div></section>
       </main>
       <HomeFooter />
     </div>

@@ -574,7 +574,7 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "What should the consent record include?", answer: "At a minimum, keep who or what identifier you use, when the choice was made, which purposes were covered, and which notice version was shown." },
     ],
     related: [
-      { href: "/cookie-banner", label: "Cookie banner", text: "The interface for a prior cookie choice." },
+      { href: "/gdpr-guide", label: "GDPR guide", text: "An interactive walk through the Regulation, station by station." },
       { href: "/blogs/gdpr-consent-vs-legitimate-interest", label: "Consent and legitimate interest", text: "Why those bases are not interchangeable." },
       { href: "/ccpa", label: "CCPA / CPRA", text: "A different model, based more often on opt-out." },
     ],
@@ -633,8 +633,8 @@ export const SEO_LANDINGS: SeoLanding[] = [
       { question: "Does Consent Guru honor Global Privacy Control by itself?", answer: "GPC is a browser signal you should account for in the experience you configure. Enabling a preference center does not automatically interpret every signal unless that behavior is turned on for the site." },
     ],
     related: [
+      { href: "/ccpa-guide", label: "CCPA guide", text: "An interactive walk through California’s rules, station by station." },
       { href: "/privacy-preference-center", label: "Preference center", text: "Where an opt-out should remain available." },
-      { href: "/dsar", label: "DSAR management", text: "Access, deletion, and correction requests." },
       { href: "/blogs/ccpa-cpra-california-opt-out", label: "California opt-out article", text: "Design notes for sale and sharing choices." },
     ],
   },

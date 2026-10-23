@@ -272,7 +272,8 @@ function testTenantIsolationAndSoftDeleteInSource() {
 }
 
 function testSdkOmitsPrivateVendorFields() {
-  const source = read("src/app/api/sdk/[siteKey]/config/route.ts");
+  // The route delegates to the published-config loader; check them together.
+  const source = read("src/app/api/sdk/[siteKey]/config/route.ts") + read("src/lib/sdk/load-published-config.ts");
   assert.match(source, /role: vendors.role/);
   assert.doesNotMatch(source, /dpaStatus: vendors.dpaStatus/);
   assert.doesNotMatch(source, /dpaReference: vendors.dpaReference/);

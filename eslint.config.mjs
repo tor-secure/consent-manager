@@ -6,7 +6,8 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
-    files: ["**/*.test.cjs", "scripts/**/*.cjs"],
+    // Node scripts are CommonJS (no "type": "module"), so require() is how they import.
+    files: ["**/*.test.cjs", "scripts/**/*.cjs", "scripts/**/*.js"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
       "@typescript-eslint/no-unused-vars": [

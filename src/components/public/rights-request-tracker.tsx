@@ -75,20 +75,26 @@ export function RightsRequestTracker({
 }) {
   const [ticket, setTicket] = useState(initialTicket);
   const [email, setEmail] = useState(initialEmail);
-  const [tracking, setTracking] = useState(false);
+  const shouldAutoLookup = autoLookup && Boolean(initialTicket.trim() && initialEmail.trim());
+  const [tracking, setTracking] = useState(shouldAutoLookup);
   const [error, setError] = useState<string | null>(null);
   const [tracked, setTracked] = useState<TrackedRequest | null>(null);
 
-  useEffect(() => {
+  // Follow new initial values (a new link), during render rather than in an effect.
+  const [initialFor, setInitialFor] = useState({ initialTicket, initialEmail });
+  if (initialFor.initialTicket !== initialTicket || initialFor.initialEmail !== initialEmail) {
+    setInitialFor({ initialTicket, initialEmail });
     setTicket(initialTicket);
     setEmail(initialEmail);
-  }, [initialTicket, initialEmail]);
+    if (shouldAutoLookup) {
+      setTracking(true);
+      setError(null);
+    }
+  }
 
   useEffect(() => {
-    if (!autoLookup || !initialTicket.trim() || !initialEmail.trim()) return;
+    if (!shouldAutoLookup) return;
     let cancelled = false;
-    setTracking(true);
-    setError(null);
     lookupRequest(initialTicket, initialEmail)
       .then((request) => {
         if (!cancelled) setTracked(request);
@@ -102,7 +108,7 @@ export function RightsRequestTracker({
     return () => {
       cancelled = true;
     };
-  }, [autoLookup, initialTicket, initialEmail]);
+  }, [shouldAutoLookup, initialTicket, initialEmail]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

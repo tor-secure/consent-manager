@@ -9,7 +9,7 @@ import { WhatsAppFloat } from "@/components/public/whatsapp-float";
 
 export const clerkAuthAppearance = {
   variables: {
-    colorPrimary: "#0B2C4A",
+    colorPrimary: "#087f72",
     colorText: "#111827",
     colorTextSecondary: "#6B7280",
     colorBackground: "#ffffff",
@@ -18,7 +18,7 @@ export const clerkAuthAppearance = {
     colorNeutral: "#374151",
     colorDanger: "#DC2626",
     colorSuccess: "#059669",
-    borderRadius: "0.75rem",
+    borderRadius: "0.5rem",
     fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
   },
   elements: {
@@ -89,9 +89,9 @@ function BrandPanel({
   showPlus?: boolean;
 }) {
   return (
-    <div className="relative flex h-full min-w-0 flex-col justify-between overflow-x-clip bg-[#F3FAF8] px-4 py-6 min-[400px]:px-6 sm:px-8 lg:px-10 lg:py-10">
+    <div className="auth-brand-panel relative flex h-full min-w-0 flex-col justify-between overflow-x-clip bg-[#F3FAF8] px-4 py-6 min-[400px]:px-6 sm:px-8 lg:px-10 lg:py-10">
       <div
-        className="pointer-events-none absolute inset-0 opacity-40"
+        className="auth-old-texture pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage:
             "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.18) 1px, transparent 0)",

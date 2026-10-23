@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { DateField } from "@/components/dashboard/dashboard-controls";
 import { Select } from "@/components/ui/select";
@@ -21,7 +21,12 @@ export function ConsentRecordControls({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [search, setSearch] = useState(query.q);
-  useEffect(() => setSearch(query.q), [query.q]);
+  // Follow the URL when it changes (back/forward, a cleared filter).
+  const [searchFor, setSearchFor] = useState(query.q);
+  if (searchFor !== query.q) {
+    setSearchFor(query.q);
+    setSearch(query.q);
+  }
 
   function go(overrides: Partial<RecordListQuery>) {
     const href = recordListHref(query, { ...overrides, page: 1 });

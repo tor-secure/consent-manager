@@ -15,6 +15,7 @@ import { Field, FormCard } from "@/components/ui/field";
 import { Select } from "@/components/ui/select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { RestoreTwinButton } from "@/components/intelligence/restore-twin-button";
+import { TwinExplorer } from "@/components/intelligence/twin-explorer";
 
 function deltaLabel(delta: number) {
   if (delta === 0) return "no change";
@@ -76,6 +77,7 @@ export default async function DigitalTwinPage({
             />
           ) : (
             <div className="space-y-6">
+              <TwinExplorer snapshot={snapshot} />
               <div className="grid gap-4 md:grid-cols-2">
                 <Card>
                   <CardContent className="p-5">

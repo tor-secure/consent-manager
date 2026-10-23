@@ -3,6 +3,7 @@
 'use no memo'
 
 import { CatmullRomCurve3, Vector3 } from 'three'
+import type { Law, Selection } from '../content/law'
 import type { StationId } from '../content/stations'
 
 /**
@@ -36,6 +37,7 @@ export interface Placement {
   position: Vector3
   /** The y the station's plate sits at, locally. */
   floor: number
+  /** `main`, or for a station whose view can change, one per option, by position. */
   views: Record<string, View>
   /**
    * Views for the phone's narrow stage, where they differ: more room for
@@ -61,16 +63,18 @@ const views: Record<StationId, { floor: number; views: Record<string, View>; nar
     floor: -2.2,
     viewFrom: 'rights',
     views: {
-      rights: { center: [-1.35, 0, 0], radius: 2.45, dir: [-0.2, 0.2, 1] },
-      duties: { center: [1.6, -0.5, 0], radius: 2.7, dir: [0.2, 0.2, 1] },
+      // Your rights, then their duties.
+      0: { center: [-1.35, 0, 0], radius: 2.45, dir: [-0.2, 0.2, 1] },
+      1: { center: [1.6, -0.5, 0], radius: 2.7, dir: [0.2, 0.2, 1] },
     },
   },
   stricter: {
     floor: -1.7,
     viewFrom: 'stricter',
     views: {
-      children: { center: [0, 0.35, 0], radius: 2.35, dir: [-0.15, 0.22, 1] },
-      manager: { center: [5.2, 0.25, 0], radius: 2.6, dir: [0.15, 0.22, 1] },
+      // The scene at the origin, then the one beside it (see `Stricter`).
+      0: { center: [0, 0.35, 0], radius: 2.35, dir: [-0.15, 0.22, 1] },
+      1: { center: [5.2, 0.25, 0], radius: 2.6, dir: [0.15, 0.22, 1] },
     },
   },
   system: { floor: -1.6, views: { main: { center: [0, 0.2, 0], radius: 3.0, dir: [0, 0.42, 1] } } },
@@ -88,11 +92,16 @@ export const placements: Placement[] = order.map((id, i) => {
   }
 })
 
-/** The view a station shows for the reader's current pick, on this layout. */
-export function viewOf(p: Placement, selection: Partial<Record<StationId, string | null>>, narrow: boolean): View {
-  const key = p.viewFrom ? selection[p.viewFrom] ?? Object.keys(p.views)[0] : 'main'
-  const set = narrow && p.narrowViews ? p.narrowViews : p.views
-  return set[key] ?? Object.values(set)[0]
+/**
+ * The view a station shows for the reader's current pick, on this layout. A
+ * station not yet picked shows its first option's view, as its law does.
+ */
+export function viewOf(p: Placement, selection: Partial<Selection>, narrow: boolean, law: Law): View {
+  const set = (narrow && (law.narrowViews?.[p.id] ?? p.narrowViews)) || p.views
+  if (!p.viewFrom) return set.main
+  const options = law.stations.find((s) => s.id === p.viewFrom)?.control.options ?? []
+  const picked = Math.max(0, options.findIndex((o) => o.id === selection[p.viewFrom!]))
+  return set[picked] ?? Object.values(set)[0]
 }
 
 /**

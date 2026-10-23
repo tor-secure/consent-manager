@@ -4,13 +4,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { chapters } from '../content/chapters'
-import type { Chapter } from '../content/types'
-import { stations } from '../content/stations'
+import type { DetailChapter } from '../content/law'
 import { pauseScroll } from '../hooks/useJourneyScroll'
 import { useChoices } from '../state/journey'
-
-const chapterById = new Map(chapters.map((c) => [c.id, c]))
+import { useLaw } from '../state/law'
 
 /**
  * The full text behind a station: every chapter it condenses, as written from
@@ -19,6 +16,7 @@ const chapterById = new Map(chapters.map((c) => [c.id, c]))
  * button that opened it, and page scrolling pauses while it is open.
  */
 export function DetailSheet() {
+  const { stations, chapters, sourcePrefix } = useLaw()
   const details = useChoices((s) => s.details)
   const openDetails = useChoices((s) => s.openDetails)
   const dialog = useRef<HTMLDialogElement>(null)
@@ -88,8 +86,8 @@ export function DetailSheet() {
             </header>
             <div className="sheet__body">
               {station.chapters.map((id) => {
-                const chapter = chapterById.get(id)
-                return chapter ? <ChapterDetail key={id} chapter={chapter} /> : null
+                const chapter = chapters.find((c) => c.id === id)
+                return chapter ? <ChapterDetail key={id} chapter={chapter} sourcePrefix={sourcePrefix} /> : null
               })}
             </div>
           </motion.div>
@@ -99,7 +97,7 @@ export function DetailSheet() {
   )
 }
 
-function ChapterDetail({ chapter }: { chapter: Chapter }) {
+function ChapterDetail({ chapter, sourcePrefix }: { chapter: DetailChapter; sourcePrefix: string }) {
   const definition = (term: string) => chapter.terms?.find((t) => t.term === term)?.definition
   return (
     <section className="detail" aria-labelledby={`detail-${chapter.id}`}>
@@ -140,7 +138,10 @@ function ChapterDetail({ chapter }: { chapter: Chapter }) {
       ) : null}
 
       {chapter.caution ? <p className="detail__caution">{chapter.caution}</p> : null}
-      <p className="detail__source">Source: ConsentGuru DPDP guide, {chapter.source}</p>
+      <p className="detail__source">
+        {sourcePrefix}
+        {chapter.source}
+      </p>
     </section>
   )
 }

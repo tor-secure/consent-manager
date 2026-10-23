@@ -14,13 +14,13 @@ import { RolesFigure } from '../components/RolesFigure'
 import { SplitFigure } from '../components/SplitFigure'
 import { StationControl } from '../components/StationControl'
 import { WithdrawalFigure } from '../components/WithdrawalFigure'
-import { stations, type Station, type StationId } from '../content/stations'
+import type { Station, StationId } from '../content/stations'
 import { scrollToStation } from '../hooks/useJourneyScroll'
 import { useChoices } from '../state/journey'
+import { useLaw } from '../state/law'
 
 /** Flat stand-ins, shown only when the stage cannot exist. */
-const figures: Record<StationId, ReactNode> = {
-  people: <RolesFigure highlight="all" />,
+const figures: Record<Exclude<StationId, 'people'>, ReactNode> = {
   reason: <GroundsFigure step="all" />,
   consent: <ConsentFigure step="all" />,
   purposes: <SplitFigure step="all" />,
@@ -37,6 +37,7 @@ const ease = [0.22, 0.61, 0.36, 1] as const
  * the model is its picture, and the control drives both.
  */
 export function StationSection({ station, index }: { station: Station; index: number }) {
+  const { stations, scene } = useLaw()
   const openDetails = useChoices((s) => s.openDetails)
   const last = index === stations.length - 1
   const titleId = `${station.id}-title`
@@ -50,7 +51,13 @@ export function StationSection({ station, index }: { station: Station; index: nu
         viewport={{ amount: 0.25, margin: '0px 0px -10% 0px' }}
         transition={{ duration: 0.7, ease }}
       >
-        <div className="card__figure">{figures[station.id]}</div>
+        <div className="card__figure">
+          {station.id === 'people' ? (
+            <RolesFigure highlight="all" fiduciary={scene.people.short.fiduciary} processor={scene.people.short.processor} />
+          ) : (
+            figures[station.id]
+          )}
+        </div>
         <p className="card__eyebrow">
           <span className="card__number">{station.number}</span>
           <span className="card__of">/ 0{stations.length}</span>

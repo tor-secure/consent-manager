@@ -62,6 +62,7 @@ compile(
   "compiled",
   [
     "src/lib/dashboard-feedback.ts",
+    "src/lib/privacy-learning-demo.ts",
     "src/lib/dashboard-search.ts",
     "src/lib/logger.ts",
     "src/lib/health.ts",

@@ -4,9 +4,10 @@
 
 import { motion } from 'motion/react'
 import { Arrow } from '../components/Arrow'
+import { LawSwitch } from '../components/LawSwitch'
 import { PrologueFigure } from '../components/PrologueFigure'
-import { stations } from '../content/stations'
 import { scrollToStation } from '../hooks/useJourneyScroll'
+import { useLaw } from '../state/law'
 
 const rise = {
   hidden: { opacity: 0, y: 18 },
@@ -19,22 +20,21 @@ const rise = {
  * there, alone and large, before the reader sets off down the route.
  */
 export function Hero() {
+  const { hero, stations } = useLaw()
   return (
     <section className="hero" id="top" aria-labelledby="hero-title">
       <div className="hero__visual" aria-hidden="true" />
       <div className="hero__inner">
         <PrologueFigure highlight="all" />
         <motion.p className="hero__eyebrow" initial="hidden" animate="show" custom={0} variants={rise}>
-          <span>Digital Personal Data Protection Act</span>
-          <span className="hero__year">2023</span>
+          <span>{hero.name}</span>
+          <span className="hero__year">{hero.year}</span>
         </motion.p>
         <motion.h1 className="hero__title" id="hero-title" initial="hidden" animate="show" custom={1} variants={rise}>
           Follow <span className="hero__title-em">your&nbsp;data</span>
         </motion.h1>
         <motion.p className="hero__lead" initial="hidden" animate="show" custom={2} variants={rise}>
-          India&rsquo;s data protection law in eight stops. Follow one piece of
-          personal data, try each idea on the model, and open the details when
-          you want the full text.
+          {hero.lead}
         </motion.p>
         <motion.div className="hero__actions" initial="hidden" animate="show" custom={3} variants={rise}>
           <button className="button button--primary" type="button" onClick={() => scrollToStation(0)}>
@@ -43,6 +43,7 @@ export function Hero() {
           <span className="hero__meta">{stations.length} stations · about 5 minutes</span>
         </motion.div>
         <p className="hero__disclaimer">An explainer, not legal advice.</p>
+        <LawSwitch />
       </div>
     </section>
   )

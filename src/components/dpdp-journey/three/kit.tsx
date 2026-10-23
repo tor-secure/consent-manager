@@ -11,6 +11,7 @@ import type { StationId } from '../content/stations'
 import { useNarrow } from '../hooks/useNarrow'
 import type { StageColors } from '../hooks/useStageColors'
 import { useChoices } from '../state/journey'
+import { useSelected } from '../state/law'
 import { damp } from '../utils/math'
 import { reveal, stage } from './presence'
 
@@ -31,7 +32,7 @@ export function useColors() {
 export const StationContext = createContext<{ index: number; id: StationId }>({ index: 0, id: 'people' })
 export const useStation = () => useContext(StationContext)
 
-/** False inside a scene a phone has set aside (see `Focus`): its tags hide. */
+/** False inside a scene that is not the picked one (see `Focus`): its tags hide. */
 const FocusContext = createContext(true)
 
 /**
@@ -44,7 +45,7 @@ const FocusContext = createContext(true)
 export function Focus({ view, at, children }: { view: string; at: Vec3; children: ReactNode }) {
   const { id } = useStation()
   const narrow = useNarrow()
-  const picked = useChoices((s) => s.selection[id] === view)
+  const picked = useSelected(id) === view
   const shown = !narrow || picked
   const ref = useRef<Group>(null)
   const size = useRef(shown ? 1 : 0)
@@ -55,8 +56,10 @@ export function Focus({ view, at, children }: { view: string; at: Vec3; children
     g.scale.setScalar(Math.max(0.0001, s))
     g.visible = s > 0.002
   })
+  // Only the picked scene is labelled: the one beside it is context, and its
+  // labels would run out past the card on a desktop.
   return (
-    <FocusContext.Provider value={shown}>
+    <FocusContext.Provider value={picked}>
       <group position={at}>
         <group ref={ref}>
           <group position={[-at[0], -at[1], -at[2]]}>{children}</group>
@@ -97,6 +100,7 @@ export function Part({
   children,
   position,
   tagged,
+  onPick,
 }: {
   id: string
   label: string
@@ -104,6 +108,8 @@ export function Part({
   tagged?: boolean
   /** Option id to choose when clicked. Omit for parts that only name themselves. */
   choose?: string
+  /** Something else to do when clicked, for a part that is not one option. */
+  onPick?: () => void
   children: ReactNode
   position?: Vec3
 }) {
@@ -125,16 +131,17 @@ export function Part({
     if (!active) return
     e.stopPropagation()
     setHover({ station: station.id, part: id })
-    document.body.style.cursor = choose ? 'pointer' : 'help'
+    document.body.style.cursor = choose || onPick ? 'pointer' : 'help'
   }
   const out = () => {
     if (useChoices.getState().hover?.part === id) setHover(null)
     document.body.style.cursor = ''
   }
   const click = (e: ThreeEvent<MouseEvent>) => {
-    if (!active || !choose) return
+    if (!active || !(choose || onPick)) return
     e.stopPropagation()
-    pick(station.id, choose)
+    if (onPick) onPick()
+    else if (choose) pick(station.id, choose)
   }
 
   return (
@@ -301,7 +308,7 @@ export function Slip({ position, rotation, edge, rows = 3 }: { position?: Vec3; 
   )
 }
 
-/** The Data Protection Board: a double square. */
+/** An authority a complaint goes on to (a board, a regulator): a double square. */
 export function Board({ position }: { position?: Vec3 }) {
   const c = useColors()
   return (

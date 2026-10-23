@@ -6,6 +6,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { PrivacyFlowPreview } from "@/components/public/privacy-flow-preview";
 import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
@@ -113,103 +114,20 @@ export default function Home() {
       <HomeInteractions />
       <HomeNavbar />
       <main id="main-content" className="home-copy">
-        <section
-          className="home-section relative flex min-h-[calc(100svh-73px)] flex-col"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 55% at 85% 15%, rgba(0,196,167,0.16), transparent 55%), radial-gradient(ellipse 50% 40% at 10% 90%, rgba(11,44,74,0.08), transparent 50%), linear-gradient(180deg, #ffffff 0%, #F3FAF8 100%)",
-          }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 opacity-[0.35]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, rgba(0,196,167,0.22) 1px, transparent 0)",
-              backgroundSize: "28px 28px",
-              maskImage:
-                "radial-gradient(ellipse 60% 50% at 80% 20%, black, transparent), radial-gradient(ellipse 40% 35% at 8% 92%, black, transparent)",
-            }}
-            aria-hidden="true"
-          />
-
-          <div className="relative mx-auto grid w-full min-w-0 max-w-[1200px] flex-1 content-center items-center gap-6 px-4 pt-3 pb-2 min-[400px]:px-5 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8 xl:gap-10">
-            <div className="home-fade-item min-w-0 max-w-xl lg:max-w-none">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#00A88F]">
-                Build trust. Collect consent. Stay compliant.
-              </p>
-              <h1 className="mt-3 text-balance text-[clamp(1.55rem,1.05rem+2.6vw,2.6rem)] font-bold leading-[1.12] tracking-tight text-[#111827]">
-                Consent Guru —{" "}
-                <span
-                  className="bg-clip-text text-transparent"
-                  style={{
-                    backgroundImage: "linear-gradient(90deg, #0B2C4A 0%, #00C4A7 70%)",
-                  }}
-                >
-                  consent management for privacy compliance
-                </span>
-              </h1>
-
-              <p className="mt-3 max-w-lg text-[14px] leading-6 text-[#4B5563] sm:text-[15px]">
-                Collect digital consent, manage privacy preferences and cookie consent, store consent
-                records, and apply those choices on websites and apps.
-              </p>
-              <p className="mt-2 max-w-lg text-[13px] leading-6 text-[#6B7280]">
-                Review consent analytics and connect a consent API, with workflows for GDPR, CCPA/CPRA,
-                and India&apos;s DPDP Act. The software helps you operationalize those requirements.
-              </p>
-
-              <div className="mt-5 flex flex-col gap-2.5 min-[480px]:flex-row min-[480px]:items-center">
-                <ArrowButton href="/sign-up" size="md" className="w-full justify-center min-[480px]:w-auto">
-                  Sign up
-                </ArrowButton>
-                <Link
-                  href="/#comparison"
-                  className="inline-flex h-10 w-full items-center justify-center rounded-xl border border-[#00C4A7]/40 bg-white px-4 text-center text-sm font-semibold text-[#0B2C4A] transition hover:border-[#00C4A7] hover:bg-[#E6F9F5] min-[480px]:w-auto"
-                >
-                  Compare capabilities
-                </Link>
-              </div>
-
-              <nav aria-label="Key pages" className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
-                {sitelinkPages.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-sm font-semibold text-[#0B2C4A] underline-offset-4 hover:underline"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
-
-              <PenaltyCallout className="mt-4 w-full max-w-lg" />
-
-              <ul className="mt-4 flex min-w-0 flex-col gap-2 text-[12px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1.5">
-                {trustItems.map((item) => (
-                  <li key={item.label} className="inline-flex min-w-0 items-start gap-2 sm:items-center">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
-                      className="shrink-0 text-[#9CA3AF]"
-                      stroke="currentColor"
-                      strokeWidth="1.7"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      {item.icon}
-                    </svg>
-                    {item.label}
-                  </li>
-                ))}
-              </ul>
+        <section className="home-section public-hero">
+          <div className="public-hero-layout">
+            <div>
+              <h1>Build trust.<br />Collect consent.<br /><span>Stay compliant.</span></h1>
+              <p className="public-hero-description">Consent Guru is a consent management platform for cookie consent, privacy preferences, and consent records across websites and apps.</p>
+              <p className="public-hero-detail">Publish a cookie banner, review consent analytics, and connect a consent API, with workflows for GDPR, CCPA/CPRA, and India&apos;s DPDP Act.</p>
+              <div className="public-hero-actions"><ArrowButton href="/sign-up">Create a workspace</ArrowButton><Link href="/#comparison" className="public-hero-secondary">Compare capabilities</Link></div>
+              <nav aria-label="Key pages" className="public-hero-sitelinks">{sitelinkPages.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}</nav>
             </div>
-
-            <HomeProductPreview />
+            <PrivacyFlowPreview />
           </div>
+          <ul className="public-hero-trust">{trustItems.map((item) => <li key={item.label}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{item.icon}</svg>{item.label}</li>)}</ul>
         </section>
+        <section className="home-section border-b border-[#dce4e9] bg-white"><div className="public-preview-section px-5 sm:px-8"><div><h2>A clear view of your consent operations.</h2><p>Review consent records, manage preferences, and inspect the evidence behind your privacy decisions.</p><Link className="mt-6 inline-flex text-sm font-semibold text-[#087f72] hover:underline" href="/developers">Explore the SDK and API</Link><PenaltyCallout className="mt-6" /></div><HomeProductPreview /></div></section>
 
         <HomeTrustedFeatures />
         <HomeComparison />
@@ -222,7 +140,7 @@ export default function Home() {
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[#4B5563]">
               Start with consent collection, then follow the record through enforcement, analytics, and the privacy law you operate under.
             </p>
-            <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="platform-index">
               {topicLinks.map((item) => (
                 <li key={item.href}>
                   <Link

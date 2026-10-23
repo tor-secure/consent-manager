@@ -54,8 +54,11 @@ function InvisibleRecaptcha({
   const widgetIdRef = useRef<number | null>(null);
   const onTokenRef = useRef(onToken);
   const onErrorRef = useRef(onError);
-  onTokenRef.current = onToken;
-  onErrorRef.current = onError;
+  // Keep the latest callbacks for the widget, which captures them once.
+  useEffect(() => {
+    onTokenRef.current = onToken;
+    onErrorRef.current = onError;
+  });
 
   useImperativeHandle(ref, () => ({
     execute() {

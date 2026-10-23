@@ -11,14 +11,14 @@ function normalizeKey(key: string): string {
   return key.trim().toLowerCase().slice(0, 300);
 }
 
-function useSharedRateLimitStore(): boolean {
+function shouldUseSharedRateLimitStore(): boolean {
   if (process.env.RATE_LIMIT_STORE === "memory") return false;
   if (process.env.RATE_LIMIT_STORE === "postgres") return true;
   return process.env.NODE_ENV === "production" && Boolean(process.env.DATABASE_URL?.trim());
 }
 
 export async function consumeRateLimit(options: RateLimitOptions): Promise<RateLimitResult> {
-  if (!useSharedRateLimitStore()) return rateLimit(options);
+  if (!shouldUseSharedRateLimitStore()) return rateLimit(options);
   try {
     return await consumeSharedRateLimit(options);
   } catch {

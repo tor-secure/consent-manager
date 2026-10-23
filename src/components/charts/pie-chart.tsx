@@ -52,11 +52,10 @@ export function PieChart({
   const cx = size / 2;
   const cy = size / 2;
   const radius = 96;
-  let cursor = 0;
-  const arcs = visible.map((slice) => {
-    const start = (cursor / total) * 360;
-    cursor += slice.value;
-    const end = (cursor / total) * 360;
+  const arcs = visible.map((slice, index) => {
+    const before = visible.slice(0, index).reduce((sum, prior) => sum + prior.value, 0);
+    const start = (before / total) * 360;
+    const end = ((before + slice.value) / total) * 360;
     return { ...slice, start, end, share: Math.round((slice.value / total) * 100) };
   });
   const active = arcs.find((slice) => slice.label === hover) ?? null;

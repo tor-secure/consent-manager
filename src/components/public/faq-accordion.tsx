@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { FaqItem } from "@/content/faqs";
 
 function Chevron() {
@@ -20,9 +23,13 @@ function Chevron() {
 }
 
 export function FaqAccordion({ items }: { items: FaqItem[] }) {
+  const [query, setQuery] = useState("");
+  const visible = items.filter(item => `${item.question} ${item.answer}`.toLowerCase().includes(query.toLowerCase()));
   return (
-    <div className="rounded-2xl border border-[#D3E0DE] bg-white px-5 sm:px-7">
-      {items.map((item, index) => (
+    <div className="faq-searchable rounded-2xl border border-[#D3E0DE] bg-white px-5 sm:px-7">
+      <label className="faq-search"><span className="sr-only">Search questions</span><input type="search" placeholder="Find an answer?" value={query} onChange={event => setQuery(event.target.value)} /><span>{visible.length} answers</span></label>
+      {!visible.length && <p className="faq-no-results">No matching answers. Try a different term or clear your search.</p>}
+      {visible.map((item, index) => (
         <details
           key={item.question}
           className="group border-b border-[#D3E0DE] last:border-b-0"
@@ -30,7 +37,7 @@ export function FaqAccordion({ items }: { items: FaqItem[] }) {
         >
           <summary className="flex cursor-pointer list-none items-start justify-between gap-4 py-5 text-left marker:content-none [&::-webkit-details-marker]:hidden">
             <span className="text-[15px] font-semibold leading-6 text-[#0B2C4A] sm:text-base">
-              <span className="mr-2 text-[#00A88F]">{index + 1}.</span>
+
               {item.question}
             </span>
             <Chevron />

@@ -11,7 +11,7 @@ import { Datum, Label, Link, Org, Principal } from './marks'
  * stage when WebGL is unavailable; `highlight` names the role a moment is
  * introducing, and the rest recede.
  */
-export function RolesFigure({ highlight }: { highlight: string }) {
+export function RolesFigure({ highlight, fiduciary = 'Fiduciary', processor = 'Processor' }: { highlight: string; fiduciary?: string; processor?: string }) {
   const on = (id: string) => (highlight === 'all' || highlight === id ? true : undefined)
 
   return (
@@ -24,12 +24,12 @@ export function RolesFigure({ highlight }: { highlight: string }) {
       <g className="stand-in__part" data-on={on('fiduciary')}>
         <Org x={30} y={92} kind="fiduciary" />
         <Link d="M38 92H54" />
-        <Label x={30} y={78} tone="strong">Fiduciary</Label>
+        <Label x={30} y={78} tone="strong">{fiduciary}</Label>
       </g>
       <g className="stand-in__part" data-on={on('processor')}>
         <Link d="M30 100V152H54" />
         <Org x={102} y={152} kind="processor" />
-        <Label x={102} y={176}>Processor</Label>
+        <Label x={102} y={176}>{processor}</Label>
       </g>
       <Datum x={66} y={highlight === 'processor' ? 152 : 92} r={11} />
     </svg>

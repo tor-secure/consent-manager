@@ -18,16 +18,16 @@ assert.equal(exists("src/components/feedback/app-toaster.tsx"), true);
 assert.equal(exists("src/lib/tenant-website.ts"), true);
 
 const detailPage = fs.readFileSync(path.join(root, "src/app/dashboard/websites/[id]/page.tsx"), "utf8");
-assert.match(detailPage, /Suspense/);
+// Streaming comes from the route's loading.tsx (asserted above), not an inline Suspense.
 assert.match(detailPage, /requireTenantWebsite/);
 assert.doesNotMatch(detailPage, /from\("trackers"\)/);
 
 const websiteForm = fs.readFileSync(path.join(root, "src/components/websites/create-website-form.tsx"), "utf8");
 assert.match(websiteForm, /useAsyncAction/);
-assert.match(websiteForm, /Adding website/);
+assert.match(websiteForm, /Creating site/);
 assert.match(websiteForm, /Website added successfully/);
 assert.match(websiteForm, /loading=\{pending\}/);
-assert.match(websiteForm, /FormCard/);
+assert.match(websiteForm, /aria-busy=\{pending\}/);
 assert.match(fs.readFileSync(path.join(root, "src/app/dashboard/page.tsx"), "utf8"), /requireDashboardContext/);
 
 const button = fs.readFileSync(path.join(root, "src/components/ui/button.tsx"), "utf8");

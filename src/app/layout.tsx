@@ -1,8 +1,10 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import localFont from "next/font/local";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
 import { LearningClerkProvider } from "@/components/learning/learning-clerk-provider";
@@ -10,6 +12,8 @@ import {
   CONSENT_GURU_SITE_VERIFICATION,
   ConsentGuruInstall,
 } from "@/components/site/consent-guru-install";
+import { PageExperience } from "@/components/ui/page-experience";
+import { PageTransition } from "@/components/ui/page-transition";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { THEME_BOOTSTRAP_SCRIPT } from "@/components/theme/theme-script";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -24,16 +28,14 @@ import {
 } from "@/lib/site-metadata";
 import { graphSchema, organizationSchema, websiteSchema } from "@/lib/structured-data";
 import "./globals.css";
+import "./public-design.css";
+import "./experience.css";
+import "./dpdp-editorial.css";
+import "./privacy-journey.css";
+import "./privacy-experience.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const manrope = localFont({ src: "../../node_modules/@fontsource-variable/manrope/files/manrope-latin-wght-normal.woff2", variable: "--font-manrope", display: "swap", weight: "200 800" });
+const editorial = localFont({ src: "../../node_modules/@fontsource/instrument-serif/files/instrument-serif-latin-400-italic.woff2", variable: "--font-editorial", display: "swap", weight: "400", style: "italic" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -90,11 +92,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const skipMarketingCmp =
     learningPath.startsWith("/consent/whatsapp") || learningPath.startsWith("/e-learning") || onLearning;
 
+  // Rendered here rather than from a root template.tsx: Next 16.3 emits a
+  // template's client chunk as a <script> without the CSP nonce, which the
+  // strict policy then blocks, so no page hydrates.
+  const page = <PageTransition>{children}</PageTransition>;
+
   return (
     <html
       lang="en-IN"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${manrope.variable} ${editorial.variable} h-full antialiased`}
     >
       <head>
         <link rel="preconnect" href="https://www.consentguru.com" crossOrigin="anonymous" />
@@ -109,12 +116,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full min-w-0 max-w-full flex-col bg-background text-foreground">
         <JsonLd id="cmp-jsonld" data={graphSchema([organizationSchema(), websiteSchema()])} />
         <ThemeProvider>
+          <PageExperience />
           {onLearning ? (
             // Never mount the workspace/dashboard Clerk app on e-learning routes.
             // Sign-in/up also wrap LearningClerkProvider in their own layouts.
-            learningSignIn ? <LearningClerkProvider>{children}</LearningClerkProvider> : children
+            learningSignIn ? <LearningClerkProvider>{page}</LearningClerkProvider> : page
           ) : (
-            <OptionalClerkProvider>{children}</OptionalClerkProvider>
+            <OptionalClerkProvider>{page}</OptionalClerkProvider>
           )}
         </ThemeProvider>
       </body>

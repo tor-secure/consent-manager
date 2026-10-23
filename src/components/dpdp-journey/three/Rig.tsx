@@ -6,6 +6,7 @@ import { useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Fog, PerspectiveCamera, Vector3 } from 'three'
 import { journey, useChoices } from '../state/journey'
+import { useLaw } from '../state/law'
 import { clamp01, damp, lerp } from '../utils/math'
 import { hero, placements, thread, toWorld, viewOf } from './layout'
 import { stage } from './presence'
@@ -45,6 +46,7 @@ export function Rig({ reducedMotion }: { reducedMotion: boolean }) {
   const camera = useThree((s) => s.camera) as PerspectiveCamera
   const scene = useThree((s) => s.scene)
   const invalidate = useThree((s) => s.invalidate)
+  const law = useLaw()
   const scratch = useRef({
     a: makePose(),
     b: makePose(),
@@ -78,7 +80,7 @@ export function Rig({ reducedMotion }: { reducedMotion: boolean }) {
 
   const stationPose = (index: number, out: Pose) => {
     const p = placements[index]
-    const view = viewOf(p, useChoices.getState().selection, narrow())
+    const view = viewOf(p, useChoices.getState().selection, narrow(), law)
     const s = scratch.current
     toWorld(p, view.center[0], view.center[1], view.center[2], out.target)
     // The view direction, rotated into the world like the station is.

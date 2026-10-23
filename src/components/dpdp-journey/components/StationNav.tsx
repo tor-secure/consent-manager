@@ -3,15 +3,16 @@
 'use no memo'
 
 import { motion } from 'motion/react'
-import { stations } from '../content/stations'
 import { scrollToStation } from '../hooks/useJourneyScroll'
 import { useChoices } from '../state/journey'
+import { useLaw } from '../state/law'
 
 /**
  * The route at a glance, on the right edge from tablet up: one mark per
  * station, the current one filled. Each is a link to its station.
  */
 export function StationNav() {
+  const { stations } = useLaw()
   const active = useChoices((s) => s.active)
   return (
     <nav className="route" aria-label="Stations">

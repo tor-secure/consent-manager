@@ -6,8 +6,10 @@ import { useEffect } from 'react'
 import { useThree } from '@react-three/fiber'
 import { Environment, Lightformer } from '@react-three/drei'
 import { Color, Fog } from 'three'
+import type { Law } from '../content/law'
 import type { StageColors } from '../hooks/useStageColors'
 import { onJourneyChange } from '../state/journey'
+import { LawContext } from '../state/law'
 import { ColorsContext } from './kit'
 import { Rig } from './Rig'
 import { DataToken, Thread } from './Thread'
@@ -28,7 +30,7 @@ const MODELS = [People, Reason, Consent, Purposes, Withdrawal, Rights, Stricter,
  * them, and your data travelling it. The rig is mounted first so its frame
  * callback (which sets the shared position) runs before anything reads it.
  */
-export function World({ colors, reducedMotion, drag }: { colors: StageColors; reducedMotion: boolean; drag: boolean }) {
+export function World({ law, colors, reducedMotion, drag }: { law: Law; colors: StageColors; reducedMotion: boolean; drag: boolean }) {
   const scene = useThree((s) => s.scene)
   const invalidate = useThree((s) => s.invalidate)
 
@@ -43,24 +45,26 @@ export function World({ colors, reducedMotion, drag }: { colors: StageColors; re
   useEffect(() => onJourneyChange(invalidate), [invalidate])
 
   return (
-    <ColorsContext.Provider value={colors}>
-      <Rig reducedMotion={reducedMotion} />
+    <LawContext.Provider value={law}>
+      <ColorsContext.Provider value={colors}>
+        <Rig reducedMotion={reducedMotion} />
 
-      <hemisphereLight args={['#ffffff', '#8a94a3', 0.9]} />
-      <directionalLight position={[6, 10, 8]} intensity={1.4} />
-      <Environment resolution={128} frames={1}>
-        <Lightformer form="rect" intensity={2.2} position={[0, 6, 6]} scale={[12, 4, 1]} />
-        <Lightformer form="rect" intensity={1.2} position={[-8, 2, -2]} rotation-y={Math.PI / 2} scale={[8, 3, 1]} />
-        <Lightformer form="ring" intensity={1.6} color={colors.data} position={[8, -2, 4]} scale={3} />
-      </Environment>
+        <hemisphereLight args={['#ffffff', '#8a94a3', 0.9]} />
+        <directionalLight position={[6, 10, 8]} intensity={1.4} />
+        <Environment resolution={128} frames={1}>
+          <Lightformer form="rect" intensity={2.2} position={[0, 6, 6]} scale={[12, 4, 1]} />
+          <Lightformer form="rect" intensity={1.2} position={[-8, 2, -2]} rotation-y={Math.PI / 2} scale={[8, 3, 1]} />
+          <Lightformer form="ring" intensity={1.6} color={colors.data} position={[8, -2, 4]} scale={3} />
+        </Environment>
 
-      <Thread />
-      {MODELS.map((Model, index) => (
-        <StationGroup key={index} index={index} drag={drag}>
-          <Model />
-        </StationGroup>
-      ))}
-      <DataToken />
-    </ColorsContext.Provider>
+        <Thread />
+        {MODELS.map((Model, index) => (
+          <StationGroup key={index} index={index} drag={drag}>
+            <Model />
+          </StationGroup>
+        ))}
+        <DataToken />
+      </ColorsContext.Provider>
+    </LawContext.Provider>
   )
 }

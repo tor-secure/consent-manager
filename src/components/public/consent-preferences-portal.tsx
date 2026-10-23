@@ -159,10 +159,14 @@ export function ConsentPreferencesPortal() {
     setSnapshot(null);
   }, []);
 
+  // Poll the SDK, which loads on its own schedule; the first read runs as a callback too.
   useEffect(() => {
-    refresh();
+    const first = window.setTimeout(refresh, 0);
     const timer = window.setInterval(refresh, 1500);
-    return () => window.clearInterval(timer);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(timer);
+    };
   }, [refresh]);
 
   const purposes = useMemo(() => {

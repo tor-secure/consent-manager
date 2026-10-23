@@ -33,14 +33,15 @@ export function NewsFeed({
   sources: NewsSourceStatus[];
 }) {
   const [active, setActive] = useState("all");
+  const [query, setQuery] = useState("");
 
   const visible = useMemo(() => {
-    if (active === "all") return articles;
-    return articles.filter((item) => item.sourceId === active);
-  }, [active, articles]);
+    return articles.filter(item => (active === "all" || item.sourceId === active) && `${item.title} ${item.excerpt ?? ""}`.toLowerCase().includes(query.toLowerCase()));
+  }, [active, articles, query]);
 
   return (
     <div>
+      <label className="news-search"><span className="sr-only">Search privacy news</span><input type="search" placeholder="Search the latest stories…" value={query} onChange={event => setQuery(event.target.value)} /><span aria-live="polite">{visible.length} stories</span></label>
       <div
         className="flex flex-wrap gap-2"
         role="tablist"

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContextDescription } from "@/components/ui/context-description";
 import type { ReactNode } from "react";
 
 export function CreatePageHeader({
@@ -15,7 +16,7 @@ export function CreatePageHeader({
   description: string;
 }) {
   return (
-    <div className="space-y-6">
+    <div className="create-workflow-heading space-y-6">
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
         <Link href={backHref} className="transition hover:text-[var(--foreground)]">
           {backLabel}
@@ -27,7 +28,7 @@ export function CreatePageHeader({
       </nav>
       <div>
         <h1 className="page-title">{title}</h1>
-        <p className="page-description">{description}</p>
+        <ContextDescription>{description}</ContextDescription>
       </div>
     </div>
   );
@@ -75,10 +76,10 @@ export function CreateFormShell({
   aside?: ReactNode;
 }) {
   if (!aside) {
-    return <div className="mx-auto w-full max-w-3xl">{children}</div>;
+    return <div className="create-workflow-shell mx-auto w-full max-w-3xl">{children}</div>;
   }
   return (
-    <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18.5rem]">
+    <div className="create-workflow-shell grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_18.5rem]">
       <div className="min-w-0">{children}</div>
       <aside className="hidden lg:block">{aside}</aside>
     </div>

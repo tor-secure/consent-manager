@@ -1,0 +1,1201 @@
+{
+  "schemaVersion": null,
+  "generatedAt": "2026-10-03T06:25:24.770086+00:00",
+  "title": "Design System: Consent Guru",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Action teal"
+      },
+      "ink": {
+        "role": "secondary",
+        "displayName": "Navigation navy"
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Cool workspace"
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Working surface"
+      },
+      "primary-hover": {
+        "displayName": "Primary hover",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "primary-foreground": {
+        "displayName": "Primary foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "foreground": {
+        "displayName": "Foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "muted": {
+        "displayName": "Muted",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "muted-foreground": {
+        "displayName": "Muted foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "border": {
+        "displayName": "Border",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "input": {
+        "displayName": "Input",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "accent-soft": {
+        "displayName": "Accent soft",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "success": {
+        "displayName": "Success",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "success-soft": {
+        "displayName": "Success soft",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "info": {
+        "displayName": "Info",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "info-soft": {
+        "displayName": "Info soft",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-background": {
+        "displayName": "Dark background",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-foreground": {
+        "displayName": "Dark foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-card": {
+        "displayName": "Dark card",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-muted": {
+        "displayName": "Dark muted",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-muted-foreground": {
+        "displayName": "Dark muted foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-border": {
+        "displayName": "Dark border",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-input": {
+        "displayName": "Dark input",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-primary": {
+        "displayName": "Dark primary",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-primary-hover": {
+        "displayName": "Dark primary hover",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-primary-foreground": {
+        "displayName": "Dark primary foreground",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "dark-accent-soft": {
+        "displayName": "Dark accent soft",
+        "role": "neutral",
+        "source": "Existing workspace theme"
+      },
+      "experience-ink": {
+        "displayName": "Experience ink",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-ink": {
+        "displayName": "Reading ink",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-muted": {
+        "displayName": "Reading muted",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "article-body": {
+        "displayName": "Article body",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-background": {
+        "displayName": "Reading background",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "editorial-hero": {
+        "displayName": "Editorial hero",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "deck-background": {
+        "displayName": "Deck background",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "deck-border": {
+        "displayName": "Deck border",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-border": {
+        "displayName": "Reading border",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-input": {
+        "displayName": "Reading input",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "library-input": {
+        "displayName": "Library input",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-selected": {
+        "displayName": "Reading selected",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-selected-ink": {
+        "displayName": "Reading selected ink",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-hover": {
+        "displayName": "Reading hover",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "document-hover": {
+        "displayName": "Document hover",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "article-selected": {
+        "displayName": "Article selected",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-track": {
+        "displayName": "Reading track",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "reading-disabled": {
+        "displayName": "Reading disabled",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "pricing-navigation": {
+        "displayName": "Pricing navigation",
+        "role": "neutral",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-background": {
+        "displayName": "Lifecycle background",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-selected": {
+        "displayName": "Lifecycle selected",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-hover": {
+        "displayName": "Lifecycle hover",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-foreground": {
+        "displayName": "Lifecycle foreground",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-muted": {
+        "displayName": "Lifecycle muted",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-intro": {
+        "displayName": "Lifecycle intro",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-border": {
+        "displayName": "Lifecycle border",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-accent": {
+        "displayName": "Lifecycle accent",
+        "role": "secondary",
+        "source": "src/app/experience.css"
+      },
+      "editorial-background": {
+        "displayName": "Ivory reading paper",
+        "role": "neutral",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-ink": {
+        "displayName": "Deep green reading ink",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-muted": {
+        "displayName": "Muted green prose",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-sage": {
+        "displayName": "Sage story",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-sand": {
+        "displayName": "Sand notice story",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-deep-green": {
+        "displayName": "Deep green consent story",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-soft-green": {
+        "displayName": "Muted green rights story",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-record": {
+        "displayName": "Pale green record story",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "editorial-close": {
+        "displayName": "Sage closing surface",
+        "role": "secondary",
+        "source": "src/app/dpdp-editorial.css"
+      },
+      "journey-background": {
+        "displayName": "Journey background",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-foreground": {
+        "displayName": "Journey foreground",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-accent": {
+        "displayName": "Journey accent",
+        "role": "secondary",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-body": {
+        "displayName": "Journey body",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-border": {
+        "displayName": "Journey border",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-topline": {
+        "displayName": "Journey topline",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-path-label": {
+        "displayName": "Journey path label",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-progress": {
+        "displayName": "Journey progress",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-progress-track": {
+        "displayName": "Journey progress track",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-progress-active": {
+        "displayName": "Journey progress active",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-reference-border": {
+        "displayName": "Journey reference border",
+        "role": "neutral",
+        "source": "src/app/privacy-journey.css"
+      },
+      "journey-orb": {
+        "displayName": "Journey orb",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-orbit": {
+        "displayName": "Journey orbit",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-gate": {
+        "displayName": "Journey gate",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-path": {
+        "displayName": "Journey path",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-analytics": {
+        "displayName": "Journey analytics",
+        "role": "secondary",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-advertising": {
+        "displayName": "Journey advertising",
+        "role": "secondary",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-fallback-stroke": {
+        "displayName": "Journey fallback stroke",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx"
+      },
+      "journey-flow-border": {
+        "role": "neutral",
+        "displayName": "Optional-path source border",
+        "source": "src/app/privacy-journey.css; existing scoped source value"
+      },
+      "journey-flow-stem": {
+        "role": "neutral",
+        "displayName": "Optional-path connector",
+        "source": "src/app/privacy-journey.css; existing scoped source value"
+      },
+      "journey-record-border": {
+        "role": "neutral",
+        "displayName": "Record row divider",
+        "source": "src/app/privacy-journey.css; existing scoped source value"
+      },
+      "privacy-hero": {
+        "displayName": "Privacy hero",
+        "role": "secondary",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-ivory": {
+        "displayName": "Privacy ivory",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-foreground": {
+        "displayName": "Privacy foreground",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-hero-foreground": {
+        "displayName": "Privacy hero foreground",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-hero-accent": {
+        "displayName": "Privacy hero accent",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-caption": {
+        "displayName": "Privacy caption",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-sage": {
+        "displayName": "Privacy sage",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-sand": {
+        "displayName": "Privacy sand",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-green-surface": {
+        "displayName": "Privacy green surface",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-stage": {
+        "displayName": "Privacy stage",
+        "role": "secondary",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-stage-foreground": {
+        "displayName": "Privacy stage foreground",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-object-control": {
+        "displayName": "Privacy object control",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-object-hover": {
+        "displayName": "Privacy object hover",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-topic-control": {
+        "displayName": "Privacy topic control",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-topic-hover": {
+        "displayName": "Privacy topic hover",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-modal-foreground": {
+        "displayName": "Privacy modal foreground",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-modal-muted": {
+        "displayName": "Privacy modal muted",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-modal-shadow": {
+        "displayName": "Privacy modal shadow",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-backdrop": {
+        "displayName": "Privacy backdrop",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-focus": {
+        "displayName": "Privacy focus",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-progression-active": {
+        "displayName": "Privacy progression active",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-demo-action": {
+        "displayName": "Privacy demo action",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-more-border": {
+        "displayName": "Privacy more border",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-more-hover": {
+        "displayName": "Privacy more hover",
+        "role": "neutral",
+        "source": "src/app/privacy-experience.css",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-notice-page": {
+        "displayName": "Privacy notice page",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-notice-line": {
+        "displayName": "Privacy notice line",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-evidence-choice": {
+        "displayName": "Privacy evidence choice",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-evidence-plate": {
+        "displayName": "Privacy evidence plate",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-gate-post": {
+        "displayName": "Privacy gate post",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-selection": {
+        "displayName": "Privacy selection",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-selection-emissive": {
+        "displayName": "Privacy selection emissive",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-particle": {
+        "displayName": "Privacy particle",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-core-structure": {
+        "displayName": "Privacy core structure",
+        "role": "neutral",
+        "source": "src/components/public/privacy-journey-canvas.tsx",
+        "purpose": "Intentional local privacy exhibit value; scoped to this public experience."
+      },
+      "privacy-model-enamel": {
+        "displayName": "Clear-coated sage enamel",
+        "source": "src/components/public/privacy-scene-models.ts",
+        "purpose": "Observed chapter-model material; scoped to the DPDP exhibit.",
+        "role": "neutral"
+      },
+      "privacy-model-metal": {
+        "displayName": "Dark studio metal",
+        "source": "src/components/public/privacy-scene-models.ts",
+        "purpose": "Observed chapter-model material; scoped to the DPDP exhibit.",
+        "role": "neutral"
+      },
+      "privacy-model-brass": {
+        "displayName": "Machined brass",
+        "source": "src/components/public/privacy-scene-models.ts",
+        "purpose": "Observed chapter-model material; scoped to the DPDP exhibit.",
+        "role": "neutral"
+      },
+      "privacy-model-ivory": {
+        "displayName": "Ivory model surfaces",
+        "source": "src/components/public/privacy-scene-models.ts",
+        "purpose": "Observed chapter-model material; scoped to the DPDP exhibit.",
+        "role": "neutral"
+      },
+      "privacy-model-rubber": {
+        "displayName": "Rubber cable and switch details",
+        "source": "src/components/public/privacy-scene-models.ts",
+        "purpose": "Observed chapter-model material; scoped to the DPDP exhibit.",
+        "role": "neutral"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Public hero",
+        "purpose": "Public hero heading."
+      },
+      "headline": {
+        "displayName": "Workspace title",
+        "purpose": "Dashboard page titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "metadata": {
+        "displayName": "Metadata",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "supporting": {
+        "displayName": "Supporting",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "article-body": {
+        "displayName": "Article body",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "module-body": {
+        "displayName": "Module body",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "transcript-body": {
+        "displayName": "Transcript body",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "comparison-title": {
+        "displayName": "Comparison title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "library-title": {
+        "displayName": "Library title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "plan-label": {
+        "displayName": "Plan label",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-title": {
+        "displayName": "Lifecycle title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "article-title": {
+        "displayName": "Article title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "lifecycle-slide": {
+        "displayName": "Lifecycle slide",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "plan-title": {
+        "displayName": "Plan title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "public-editorial-display": {
+        "displayName": "Public editorial display",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "dpdp-display": {
+        "displayName": "Dpdp Display",
+        "purpose": "Implemented public reading typography; exact roles in DESIGN.md.",
+        "source": "src/app/dpdp-editorial.css; src/app/layout.tsx"
+      },
+      "dpdp-display-mobile": {
+        "displayName": "Dpdp Display Mobile",
+        "purpose": "Implemented public reading typography; exact roles in DESIGN.md.",
+        "source": "src/app/dpdp-editorial.css; src/app/layout.tsx"
+      },
+      "solution-title": {
+        "displayName": "Solution title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "featured-article-title": {
+        "displayName": "Featured article title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "deck-title": {
+        "displayName": "Deck title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "chapter-title": {
+        "displayName": "Chapter title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "guide-close-title": {
+        "displayName": "Guide close title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "workspace-title": {
+        "displayName": "Workspace title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "workspace-metric": {
+        "displayName": "Workspace metric",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "document-title": {
+        "displayName": "Document title",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "auth-statement": {
+        "displayName": "Auth statement",
+        "purpose": "Implemented reading or workspace role; exact size and fluid endpoints are normative in DESIGN.md.",
+        "source": "src/app/experience.css"
+      },
+      "public-body": {
+        "displayName": "Public Body",
+        "purpose": "Implemented public reading typography; exact roles in DESIGN.md.",
+        "source": "src/app/dpdp-editorial.css; src/app/layout.tsx"
+      },
+      "editorial-accent": {
+        "displayName": "Editorial Accent",
+        "purpose": "Implemented public reading typography; exact roles in DESIGN.md.",
+        "source": "src/app/dpdp-editorial.css; src/app/layout.tsx"
+      },
+      "scroll-story-title": {
+        "displayName": "Scroll Story Title",
+        "purpose": "Implemented public reading typography; exact roles in DESIGN.md.",
+        "source": "src/app/dpdp-editorial.css; src/app/layout.tsx"
+      },
+      "journey-accent": {
+        "displayName": "Journey accent",
+        "purpose": "Retained shared base/reference role; the privacy-prefixed roles govern the current exhibit headings and captions.",
+        "source": "src/app/privacy-journey.css, .journey-vertical variants"
+      },
+      "journey-reference-title": {
+        "displayName": "Journey reference title",
+        "purpose": "Retained shared base/reference role; the privacy-prefixed roles govern the current exhibit headings and captions.",
+        "source": "src/app/privacy-journey.css, .journey-vertical variants"
+      },
+      "privacy-hero-display": {
+        "displayName": "Privacy hero display",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-hero-display-medium": {
+        "displayName": "Privacy hero display medium",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-hero-display-compact": {
+        "displayName": "Privacy hero display compact",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-section-title": {
+        "displayName": "Privacy section title",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-scene-title": {
+        "displayName": "Privacy scene title",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-scene-title-compact": {
+        "displayName": "Privacy scene title compact",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-caption": {
+        "displayName": "Privacy caption",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-hero-body": {
+        "displayName": "Privacy hero body",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-hero-body-compact": {
+        "displayName": "Privacy hero body compact",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-object-label": {
+        "displayName": "Privacy object label",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-demo-label": {
+        "displayName": "Privacy demo label",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-more-label": {
+        "displayName": "Privacy more label",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-modal-title": {
+        "displayName": "Privacy modal title",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-modal-title-compact": {
+        "displayName": "Privacy modal title compact",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-modal-body": {
+        "displayName": "Privacy modal body",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      },
+      "privacy-modal-term": {
+        "displayName": "Privacy modal term",
+        "purpose": "Current fixed privacy exhibit role; exact values normative in DESIGN.md.",
+        "source": "src/app/privacy-experience.css"
+      }
+    },
+    "shadows": [
+      {
+        "name": "selection",
+        "value": "0 2px 6px rgb(18 38 54 / 5%)",
+        "purpose": "Selected segmented control."
+      },
+      {
+        "name": "drawer",
+        "value": "-12px 0 40px rgb(12 28 39 / 15%)",
+        "purpose": "Modal detail drawer."
+      },
+      {
+        "name": "public-preview",
+        "value": "0 22px 56px rgb(3 18 29 / 22%)",
+        "purpose": "Hero privacy-flow illustration."
+      },
+      {
+        "name": "privacy-info-window",
+        "value": "0 30px 110px #15261945",
+        "purpose": "Native educational modal; backdrop #14231cc9 with blur(12px)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "150ms",
+        "purpose": "Workspace buttons and hover states."
+      },
+      {
+        "name": "motion-default",
+        "value": "0.2s cubic-bezier(0.22,1,0.36,1)",
+        "purpose": "MotionProvider transition with reducedMotion=user."
+      },
+      {
+        "name": "drawer-entry",
+        "value": "translateX(24px) to translateX(0), opacity 0 to 1",
+        "purpose": "Native drawer content entry; reduced motion removes translation."
+      },
+      {
+        "name": "route-entry",
+        "value": "350ms cubic-bezier(.22,1,.36,1); opacity .8 to 1; translateY(8px) to 0",
+        "purpose": "PageTransition on pathname change; visible default and reduced-motion bypass."
+      },
+      {
+        "name": "section-entry",
+        "value": "500ms cubic-bezier(.22,1,.36,1); opacity .8 to 1; translateY(16px) to 0",
+        "purpose": "PageExperience enters observed sections once, skips hidden/tall blocks, discovers new blocks and completes animations on cleanup or reduced-motion changes."
+      },
+      {
+        "name": "topic-slide",
+        "value": "220ms cubic-bezier(.22,1,.36,1); entry translateX(24px times direction), exit translateX(-16px times direction); opacity .65 to 1",
+        "purpose": "User-controlled StoryDeck; zero duration/translation for reduced motion, no autoplay, first slide visible."
+      },
+      {
+        "name": "module-reading",
+        "value": "200ms; translateX(12px) to 0; opacity .65 to 1",
+        "purpose": "Manual paragraph change with full-module disclosure; zero duration/translation for reduced motion."
+      },
+      {
+        "name": "native-disclosure",
+        "value": "320ms cubic-bezier(.22,1,.36,1); block-size 0 to auto",
+        "purpose": "Progressive enhancement behind interpolate-size support; native disclosures remain functional without the animation."
+      },
+      {
+        "name": "interactive-feedback",
+        "value": "180?300ms color, border, transform; active translateY(1px) scale(.985); linked features/articles hover translateY(-3px)",
+        "purpose": "Short control and linked-row feedback; metrics retain no lift; reduced-motion duration minimized."
+      },
+      {
+        "name": "dpdp-journey",
+        "value": "Per-stage useScroll start-end/end-start; spring stiffness 110/damping 28; fixed panels; chapter-specific compass, book and vault mechanisms; depth/light and pointer camera tilt; per-article vertical/opacity/blur entrance",
+        "purpose": "Overview plus seven fixed models. Canvas mounts within 80px viewport margin and disposes offscreen. Compact/reduced-motion/SSR diagrams and same controls; no idle loop."
+      },
+      {
+        "name": "dpdp-semantic-objects",
+        "value": "Exponential bounded object/branch settling and brief purpose packet flow; native dialog y 18px and scale .97 to rest, spring stiffness 260/damping 28; reduced-motion bypass",
+        "purpose": "Purpose is a machined compass with 48 tick marks and five data tiles. Notice is an opening book with layered pages, leather covers, spine, bookmark and brass corners. Consent is a beveled console with two independent switches and recorded-choice indicators. Withdrawal uses separating keyed plugs, copper-colored pins and rubber cables. Children uses an arched guardian portal with two figurines, lock and gate. Responsibility is an inset vault with wheel, hinges and locking bolts. Evidence is a layered archive with backing, rivets, an Example seal and three labelled evidence nodes. The orb and its rings appear only in the Overview hero. Raycast and DOM controls open native modal explanations with Escape/backdrop dismissal, body scroll lock and focus restoration."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "graph-stack",
+        "value": "1100px"
+      },
+      {
+        "name": "public-stack",
+        "value": "900px"
+      },
+      {
+        "name": "workspace-mobile",
+        "value": "640px"
+      },
+      {
+        "name": "public-mobile",
+        "value": "540px"
+      },
+      {
+        "name": "reading-index-stack",
+        "value": "800px"
+      },
+      {
+        "name": "guide-reader-form-stack",
+        "value": "760px"
+      },
+      {
+        "name": "dpdp-stack",
+        "value": "767px"
+      },
+      {
+        "name": "dpdp-short-viewport-static",
+        "value": "700px height"
+      }
+    ],
+    "provenance": {
+      "directionContract": ".impeccable/ui-direction.md",
+      "seed": "fd4b7635",
+      "seedMeaning": "Earlier session provenance; not an approved visual comp.",
+      "approvedImageComp": null,
+      "approvedQualityCard": null,
+      "source": "Local implementation and synthetic fixture screenshots in .tmp/ui-review; no live tenants.",
+      "coverage": "docs/ui-route-coverage.md inventories 109 route modules in shared families; no claim of unique design or authenticated verification for every route.",
+      "direction": "Latest user asks why mobile lacks 3D figures. Enable the real overview hero and seven unique Three.js chapter models on mobile and short viewports, retaining ordinary reading flow there and the established desktop stack, fit guards, palette, typography and detail windows.",
+      "reviewScreens": [
+        ".tmp/ui-review/dpdp-notice-inspection-desktop.png",
+        ".tmp/ui-review/dpdp-guardian-desktop.png",
+        ".tmp/ui-review/dpdp-evidence-inspection-desktop.png",
+        ".tmp/ui-review/dpdp-notice-inspection-mobile.png",
+        ".tmp/ui-review/dpdp-overview-mobile.png",
+        ".tmp/ui-review/dpdp-responsibility-desktop.png",
+        ".tmp/ui-review/dpdp-model-purpose.png",
+        ".tmp/ui-review/dpdp-model-notice.png",
+        ".tmp/ui-review/dpdp-model-consent.png",
+        ".tmp/ui-review/dpdp-model-withdrawal.png",
+        ".tmp/ui-review/dpdp-model-children.png",
+        ".tmp/ui-review/dpdp-model-responsibility.png",
+        ".tmp/ui-review/dpdp-model-evidence.png",
+        ".tmp/ui-review/dpdp-model-purpose-mobile.png",
+        ".tmp/ui-review/dpdp-model-notice-mobile.png",
+        ".tmp/ui-review/dpdp-model-consent-mobile.png",
+        ".tmp/ui-review/dpdp-model-withdrawal-mobile.png",
+        ".tmp/ui-review/dpdp-model-children-mobile.png",
+        ".tmp/ui-review/dpdp-model-responsibility-mobile.png",
+        ".tmp/ui-review/dpdp-model-evidence-mobile.png",
+        ".tmp/ui-review/dpdp-touch-mobile.png"
+      ],
+      "detector": "Latest current-target Impeccable detector ran once and returned an empty issue list ([]).",
+      "finishReview": "Latest mobile revision: ship; fresh finish review found no defects.",
+      "verification": "Latest mobile revision: all 17 actual-component synthetic Chromium desktop/mobile fixture views passed, including the mobile overview hero and seven distinct displayed-canvas screenshots, at most three simultaneous GPU contexts, and pan-y touch behavior. Separate 390x844 touch emulation at devicePixelRatio 3 confirmed the 1.25 render-density cap and a CDP swipe over the figure increased document scroll. Reduced motion produced no canvases; no page errors or demonstration API requests occurred. Typecheck and targeted ESLint passed. The production build passed with 219 generated pages using an invalid local DATABASE_URL without migrations. git diff --check passed with existing LF/CRLF warnings. Current-target detector returned no findings ([]). Prior 44-file unit baseline was not rerun for this revision. Fixtures do not verify live authentication, tenant data, physical phones or Safari."
+    },
+    "readingBehavior": {
+      "dpdp": "Purpose is a machined compass with 48 tick marks and five data tiles. Notice is an opening book with layered pages, leather covers, spine, bookmark and brass corners. Consent is a beveled console with two independent switches and recorded-choice indicators. Withdrawal uses separating keyed plugs, copper-colored pins and rubber cables. Children uses an arched guardian portal with two figurines, lock and gate. Responsibility is an inset vault with wheel, hinges and locking bolts. Evidence is a layered archive with backing, rivets, an Example seal and three labelled evidence nodes. The orb and its rings appear only in the Overview hero. The DPDP overview hero uses two equal columns, 2rem gap, 64px top/52px bottom padding and a 720px minimum height. Its 470px-high model anchors notice, choice, safeguards and evidence in one overview. Below 1000px the hero stacks and its stage becomes 390px tall. The seven mounted scene articles form a scroll-stacking tile gallery on hydrated desktop layouts with motion enabled. Zero-height natural-flow markers track the original chapter positions. Sticky tiles start at 164px plus 10px per chapter, with increasing z-index, 140px trailing spacing, a 1400px gallery perspective and top-centered transforms. Previous tiles shrink from 1 to 0.92 and tilt from 0 to -2 degrees as scrolling advances; their covered controls become inert. For viewport heights from 701px to 850px, chapter offsets narrow to 6px, panel padding becomes 20px and model stages become 280px tall. Compact layouts, heights at most 700px, reduced motion and SSR retain ordinary reading flow. A ResizeObserver also measures each tile against its sticky top and a 16px viewport reserve. If any tile cannot fit, including an expanded withdrawal history, the journey switches to ordinary reading flow even above the compact breakpoints. A layout effect preserves the active chapter at a 140px reading offset; viewport resizing retries the stack. Desktop scene panels use 1.05fr/1fr columns, a 32px to 90px gap, 490px minimum height and 36px corners. At widths of 1100px and above, even panels reverse the visual and copy; each visual stays within its own panel. Stage heights are 410px desktop and 350px below 1000px. Progression sticks at 80px desktop and 64px compact and scrolls horizontally when necessary. Widths below 768px and viewport heights at most 700px use stacked, auto-height panels and 280px model stages with real Three.js renders. These layout thresholds no longer disable WebGL. Reduced motion, SSR/pre-hydration, no JavaScript and WebGL failure show diagrams with the same DOM controls. Native detail windows are at most 560px wide, viewport width minus 32px, and 85dvh tall. The complete reference remains one native disclosure containing thirteen continuous chapter articles, with chapter hash links and a full-guide open/close control. The contact speech bubble is hidden on this page. Other legal readers, plan details and shared forms become one column at 760px; legal reading uses a 230px index and 64px gap, articles a 210px index and 48px gap, stacking at 800px. The article library combines a featured story with two columns of bordered rows, becoming one column at 800px. Pricing pairs a 280px plan index with a two-column detail area and a complete comparison disclosure. The DPDP guide uses PrivacyHero plus PrivacyJourney: eight independent stages, with an overview followed by purpose, notice, consent, withdrawal, children, responsibility and evidence. Each article stays mounted and its canvas stays inside its panel. Motion reads its natural-flow marker from 160px to -640px and smooths tile scale/tilt with a stiffness-180/damping-36 spring. Active-chapter tracking uses passive scroll and resize listeners scheduled through requestAnimationFrame. Named progression buttons scroll to the original marker and sticky offset, so navigation does not jump to a displaced sticky article. Covered tiles are inert. Desktop stacking mode limits live stages to the active and next chapter within the viewport gate; ordinary reading flow uses the viewport gate alone. The bottom summary shows optional paths and written notice/choice/record explanations. Raycast selection has equivalent DOM buttons, with object descriptions, legal notes and the example evidence record in PrivacyInfoWindow. A pale-sage outline identifies keyboard focus. Legacy privacy-journey.css remains a shared base; privacy-experience.css overrides its earlier travelling-stage layout and type rules. Notice unfolds into two labelled 3D pages, \"Your data\" and \"The purpose\". Pointer raycasting and equivalent DOM buttons inspect the notice, guardian gate and three evidence plates labelled Notice, Choice and Time. The responsibility scene uses an inset vault labelled Safeguards, with a locking wheel, hinges and bolts. Object and chapter explanations open a native `dialog` with browser focus containment, Escape and close controls, backdrop dismissal, body scroll lock and restoration of the previously focused trigger. Modals contain fuller prose while scene captions stay short. Scroll moves the compass needle and data tiles, unfolds the notice book, turns the vault wheel and adjusts stage depth and lighting; pointer movement tilts the camera. The consent switches and withdrawal plugs settle from the existing bounded recorded-choice state. Draft choices do not activate optional paths. Frames stop after settling and pause when hidden. Physically based enamel, dark metal, brass, ivory and rubber materials use studio environment reflections from RoomEnvironment/PMREM, ACES filmic tone mapping at exposure 0.9 and restrained key/fill lighting. The reflection target is disposed with geometry, materials, textures, renderer and context. In desktop stacking mode, only the active and next chapter may mount a live stage within an 80px viewport margin. In normal reading flow, each stage uses the viewport gate alone, so mobile and short viewports render the real Three.js figures when visible, enabled and motion is allowed. Distant stages release their resources. Rendering density is capped at 1.25 below 768px and 1.5 on desktop, recalculated by ResizeObserver; canvas touch-action is pan-y. Disposal includes textures, geometry, materials, event listeners, renderer and context. WebGL failure retains diagrams and equivalent DOM controls. Every demonstration remains in page memory and calls no API or actual consent service. Page-memory draft/record/withdraw/reset keeps at most twelve history events and never reactivates current consent through history inspection. Full thirteen-chapter reference and legal caveats retained.",
+      "decks": "Other manual StoryDeck surfaces retain buttons, arrows and swipe with complete transcripts; no autoplay. DPDP uses PrivacyJourney and LegalTopics static reference explanations.",
+      "legal": "Native section disclosures, title search, hash links, expand/collapse all; print rules reveal content.",
+      "learning": "Manual paragraphs plus complete-module disclosure.",
+      "tabs": "Linked tab/panel IDs, roving tab stop, ArrowLeft/ArrowRight wrap, Home/End focus and selection."
+    },
+    "privacyModelInventory": {
+      "source": [
+        "src/components/public/privacy-scene-models.ts",
+        "src/components/public/privacy-journey-canvas.tsx"
+      ],
+      "models": "Purpose is a machined compass with 48 tick marks and five data tiles. Notice is an opening book with layered pages, leather covers, spine, bookmark and brass corners. Consent is a beveled console with two independent switches and recorded-choice indicators. Withdrawal uses separating keyed plugs, copper-colored pins and rubber cables. Children uses an arched guardian portal with two figurines, lock and gate. Responsibility is an inset vault with wheel, hinges and locking bolts. Evidence is a layered archive with backing, rivets, an Example seal and three labelled evidence nodes. The orb and its rings appear only in the Overview hero.",
+      "materials": "Physically based enamel, dark metal, brass, ivory and rubber materials use studio environment reflections from RoomEnvironment/PMREM, ACES filmic tone mapping at exposure 0.9 and restrained key/fill lighting. The reflection target is disposed with geometry, materials, textures, renderer and context.",
+      "motion": "Scroll moves the compass needle and data tiles, unfolds the notice book, turns the vault wheel and adjusts stage depth and lighting; pointer movement tilts the camera. The consent switches and withdrawal plugs settle from the existing bounded recorded-choice state. Draft choices do not activate optional paths. Frames stop after settling and pause when hidden.",
+      "fallback": "Matching chapter diagrams on reduced motion, server rendering/no JavaScript and WebGL failure retain equivalent controls. Mobile and short viewports render real Three.js models when visible and enabled."
+    },
+    "privacyTileStack": {
+      "source": [
+        "src/components/public/privacy-journey.tsx",
+        "src/app/privacy-experience.css"
+      ],
+      "layout": "The seven mounted scene articles form a scroll-stacking tile gallery on hydrated desktop layouts with motion enabled. Zero-height natural-flow markers track the original chapter positions. Sticky tiles start at 164px plus 10px per chapter, with increasing z-index, 140px trailing spacing, a 1400px gallery perspective and top-centered transforms. Previous tiles shrink from 1 to 0.92 and tilt from 0 to -2 degrees as scrolling advances; their covered controls become inert. For viewport heights from 701px to 850px, chapter offsets narrow to 6px, panel padding becomes 20px and model stages become 280px tall. Compact layouts, heights at most 700px, reduced motion and SSR retain ordinary reading flow. A ResizeObserver also measures each tile against its sticky top and a 16px viewport reserve. If any tile cannot fit, including an expanded withdrawal history, the journey switches to ordinary reading flow even above the compact breakpoints. A layout effect preserves the active chapter at a 140px reading offset; viewport resizing retries the stack.",
+      "motion": "Each article stays mounted and its canvas stays inside its panel. Motion reads its natural-flow marker from 160px to -640px and smooths tile scale/tilt with a stiffness-180/damping-36 spring. Active-chapter tracking uses passive scroll and resize listeners scheduled through requestAnimationFrame. Named progression buttons scroll to the original marker and sticky offset, so navigation does not jump to a displaced sticky article. Covered tiles are inert. Desktop stacking mode limits live stages to the active and next chapter within the viewport gate; ordinary reading flow uses the viewport gate alone.",
+      "resources": "In desktop stacking mode, only the active and next chapter may mount a live stage within an 80px viewport margin. In normal reading flow, each stage uses the viewport gate alone, so mobile and short viewports render the real Three.js figures when visible, enabled and motion is allowed. Distant stages release their resources. Rendering density is capped at 1.25 below 768px and 1.5 on desktop, recalculated by ResizeObserver; canvas touch-action is pan-y. Disposal includes textures, geometry, materials, event listeners, renderer and context.",
+      "verification": "Latest mobile revision: all 17 actual-component synthetic Chromium desktop/mobile fixture views passed, including the mobile overview hero and seven distinct displayed-canvas screenshots, at most three simultaneous GPU contexts, and pan-y touch behavior. Separate 390x844 touch emulation at devicePixelRatio 3 confirmed the 1.25 render-density cap and a CDP swipe over the figure increased document scroll. Reduced motion produced no canvases; no page errors or demonstration API requests occurred. Typecheck and targeted ESLint passed. The production build passed with 219 generated pages using an invalid local DATABASE_URL without migrations. git diff --check passed with existing LF/CRLF warnings. Current-target detector returned no findings ([]). Prior 44-file unit baseline was not rerun for this revision. Fixtures do not verify live authentication, tenant data, physical phones or Safari.",
+      "paletteAdvisory": "Current-target Impeccable detector returned no findings ([]). Existing forest-green, sage, ivory and model-material colors retain their documented exhibit roles.",
+      "fitGuard": "A ResizeObserver also measures each tile against its sticky top and a 16px viewport reserve. If any tile cannot fit, including an expanded withdrawal history, the journey switches to ordinary reading flow even above the compact breakpoints. A layout effect preserves the active chapter at a 140px reading offset; viewport resizing retries the stack."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary workspace action.",
+      "html": "<button class=\"ds-control ds-primary\">Inspect evidence</button>",
+      "css": ".ds-control{font:500 14px Geist,system-ui,sans-serif;border:1px solid transparent;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms}.ds-control:focus-visible{outline:2px solid var(--ring,#087f72);outline-offset:3px}.ds-primary{background:var(--primary,#087f72);border-color:var(--primary,#087f72);color:var(--primary-foreground,#fff)}.ds-primary:hover{background:var(--primary-hover,#06695f);border-color:var(--primary-hover,#06695f)}"
+    },
+    {
+      "name": "Secondary button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary workspace action.",
+      "html": "<button class=\"ds-control ds-secondary\">Export</button>",
+      "css": ".ds-control{font:500 14px Geist,system-ui,sans-serif;border:1px solid transparent;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms}.ds-control:focus-visible{outline:2px solid var(--ring,#087f72);outline-offset:3px}.ds-secondary{background:var(--card,#fff);color:var(--foreground,#172b3a);border-color:var(--input,#cbd5df)}.ds-secondary:hover{background:var(--muted,#f0f3f6)}"
+    },
+    {
+      "name": "Ghost button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet workspace action.",
+      "html": "<button class=\"ds-control ds-ghost\">Reset view</button>",
+      "css": ".ds-control{font:500 14px Geist,system-ui,sans-serif;border:1px solid transparent;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;transition:background-color 150ms,color 150ms,border-color 150ms}.ds-control:focus-visible{outline:2px solid var(--ring,#087f72);outline-offset:3px}.ds-ghost{background:transparent;color:var(--muted-foreground,#586b79)}.ds-ghost:hover{background:var(--muted,#f0f3f6);color:var(--foreground,#172b3a)}"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Entity search with visible keyboard focus.",
+      "html": "<input class=\"ds-field\" aria-label=\"Search graph entities\" placeholder=\"Find a page, tracker or purpose…\">",
+      "css": ".ds-field{font:14px Geist,system-ui,sans-serif;min-height:44px;padding:8px 14px;border:1px solid var(--border,#dce3e9);border-radius:8px;background:var(--card,#fff);color:var(--foreground,#172b3a)}.ds-field::placeholder{color:var(--muted-foreground,#586b79)}.ds-field:hover{border-color:var(--ring,#087f72)}.ds-field:focus-visible{outline:2px solid var(--ring,#087f72);outline-offset:3px;box-shadow:0 0 0 3px color-mix(in srgb,var(--ring,#087f72) 22%,transparent)}"
+    },
+    {
+      "name": "Sidebar link",
+      "kind": "nav",
+      "description": "Navy navigation with a selected destination.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Preview navigation\"><a href=\"#intelligence\" aria-current=\"page\">Intelligence</a></nav>",
+      "css": ".ds-nav{padding:16px;background:#102a3b;font:500 14px Geist,system-ui,sans-serif}.ds-nav a{display:block;padding:12px;border-radius:8px;color:#f4fffb;text-decoration:none;background:#244b5b}.ds-nav a:hover{background:#1c3c4e}.ds-nav a:focus-visible{outline:2px solid #99e4d3;outline-offset:3px}"
+    },
+    {
+      "name": "Observed provenance",
+      "kind": "chip",
+      "refersTo": "provenance-observed",
+      "description": "Written provenance plus a visual marker.",
+      "html": "<span class=\"ds-provenance\"><span aria-hidden=\"true\"></span>Observed</span>",
+      "css": ".ds-provenance{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:5px;font:600 11px Geist,system-ui,sans-serif;color:var(--success,#157454);background:var(--success-soft,#e8f5ed);white-space:nowrap}.ds-provenance>span{width:6px;height:6px;border-radius:50%;background:currentColor}"
+    },
+    {
+      "name": "Workspace panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Bordered working surface with restrained depth.",
+      "html": "<section class=\"ds-panel\"><h2>Relationship inspector</h2><p>Select a node to inspect its evidence.</p></section>",
+      "css": ".ds-panel{padding:24px;border:1px solid var(--border,#dce3e9);border-radius:20px;background:var(--card,#fff);color:var(--foreground,#172b3a);font:14px Geist,system-ui,sans-serif}.ds-panel h2{font:600 14px Manrope,Geist,sans-serif;margin:0}.ds-panel p{color:var(--muted-foreground,#586b79);line-height:1.65}"
+    },
+    {
+      "name": "View selection",
+      "kind": "custom",
+      "description": "Map/list control with pressed-state styling; static preview of source state.",
+      "html": "<div class=\"ds-segments\" aria-label=\"Graph view\"><button aria-pressed=\"true\">Map</button><button aria-pressed=\"false\">List</button></div>",
+      "css": ".ds-segments{display:inline-flex;gap:3px;padding:3px;border-radius:8px;background:var(--muted,#f0f3f6)}.ds-segments button{border:0;padding:7px 12px;border-radius:6px;background:transparent;color:var(--muted-foreground,#586b79);font:12px Geist,system-ui,sans-serif;cursor:pointer}.ds-segments button[aria-pressed=true]{background:var(--card,#fff);color:var(--foreground,#172b3a);box-shadow:0 2px 6px rgb(18 38 54 / 5%)}.ds-segments button:focus-visible{outline:2px solid var(--ring,#087f72);outline-offset:3px}"
+    },
+    {
+      "name": "Topic deck",
+      "kind": "custom",
+      "refersTo": "story-deck",
+      "description": "Static preview of manual StoryDeck used on other public reading surfaces; DPDP uses PrivacyJourney and a continuous native full guide.",
+      "html": "<section class=\"ds-deck\" aria-label=\"Topic deck preview\"><div class=\"ds-topic\"><h3>Digital personal data</h3><p>Read one topic at a time, or open the complete transcript.</p><button type=\"button\" aria-label=\"Next topic\">Next topic</button></div><details><summary>Read all topics</summary><p>The complete source transcript remains available in this disclosure.</p></details></section>",
+      "css": ".ds-deck{font:14px Manrope,Geist,sans-serif;color:#163b45;border:1px solid #ccdadb;border-radius:16px;overflow:hidden}.ds-topic{padding:28px;background:#f0f5f4}.ds-topic h3{font-size:clamp(1.4rem,2vw,2rem);line-height:1.2;font-weight:600;letter-spacing:-.025em;margin:0}.ds-deck p{color:#526b73;line-height:1.9;max-width:65ch}.ds-topic button{padding:10px 14px;border:1px solid #ccdadb;border-radius:8px;background:#fff;color:#087f72;font:500 13px Geist,system-ui,sans-serif;cursor:pointer;transition:background 200ms}.ds-topic button:hover{background:#e9efed}.ds-topic button:active{transform:translateY(1px)}.ds-deck details{padding:14px 24px;border-top:1px solid #ccdadb;background:#fff}.ds-deck summary{cursor:pointer;font-size:12px}.ds-deck :is(button,summary):focus-visible{outline:2px solid #087f72;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-topic button{transition:none}}"
+    },
+    {
+      "name": "Document section",
+      "kind": "custom",
+      "refersTo": "document-reader",
+      "description": "Native section disclosure from the searchable legal reading family.",
+      "html": "<details class=\"ds-document\" open><summary><h2><span>1.</span> Introduction</h2><svg aria-hidden=\"true\" width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><path d=\"M5 12h14M12 5v14\"/></svg></summary><p>Complete section content remains available in the document reader.</p></details>",
+      "css": ".ds-document{font:14px Manrope,Geist,sans-serif;color:#163b45;border-top:1px solid #ccdadb;border-bottom:1px solid #ccdadb}.ds-document summary{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:24px 0;cursor:pointer;list-style:none}.ds-document summary::-webkit-details-marker{display:none}.ds-document h2{font-size:clamp(1.1rem,1.5vw,1.5rem);line-height:1.5;margin:0;font-weight:550}.ds-document h2 span{font-size:13px;color:#087f72;margin-right:10px}.ds-document svg{color:#087f72;flex-shrink:0;transition:transform 250ms cubic-bezier(.22,1,.36,1)}.ds-document[open] svg{transform:rotate(45deg)}.ds-document summary:hover{color:#087f72}.ds-document summary:focus-visible{outline:2px solid #087f72;outline-offset:4px}.ds-document p{max-width:72ch;line-height:1.9;padding-bottom:32px}@media(prefers-reduced-motion:reduce){.ds-document svg{transition:none}}"
+    },
+    {
+      "name": "DPDP exhibit scene",
+      "kind": "custom",
+      "refersTo": "privacy-scene",
+      "description": "Static shadow-DOM preview of the fixed scene caption and explore action. Actual models stay inside scene panels; fuller explanations open native modal windows, and equivalent controls remain available without WebGL.",
+      "html": "<article class=\"ds-privacy-scene\"><h3>Every journey<em>needs a purpose.</em></h3><p>Start with a reason. Keep the data within its scope.</p><button type=\"button\">Explore purpose <span aria-hidden=\"true\">?</span></button></article>",
+      "css": ".ds-privacy-scene{padding:32px 40px;border-radius:36px;background:#e9eddf;color:#243d2d;font-family:Manrope,Geist,sans-serif}.ds-privacy-scene h3{font-size:clamp(30px,3.3vw,48px);font-weight:500;line-height:1.1;letter-spacing:-.04em;margin:0 0 20px}.ds-privacy-scene em{display:block;color:#557042;font-family:\"Instrument Serif\",Georgia,serif;font-weight:400}.ds-privacy-scene p{font-size:18px;line-height:1.65;color:#56634e}.ds-privacy-scene button{display:flex;align-items:center;justify-content:space-between;gap:24px;background:transparent;color:#27402b;border:1px solid #97ac87;border-radius:14px;padding:13px 18px;font:13px Manrope,sans-serif;transition:background .25s,transform .25s}.ds-privacy-scene button:hover{background:#d1dfbf;transform:translateY(-2px)}.ds-privacy-scene button:focus-visible{outline:2px solid #90ab66;outline-offset:4px}@media(max-width:767px){.ds-privacy-scene{padding:24px;border-radius:28px}.ds-privacy-scene h3{font-size:34px}}@media(prefers-reduced-motion:reduce){.ds-privacy-scene button{transition:none}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The evidence workspace",
+    "overview": "This descriptive shorthand records the user-approved enterprise direction: navy navigation, neutral working surfaces, precise teal selection, and restrained Motion interactions. Retain the Consent Guru name and logo. Evidence and configuration should remain readable in ordinary controls, tables, timelines, and the 2D graph.\n\nThe public website uses Manrope with generous space and curved surfaces. The DPDP guide pairs ivory, sage and deep green with Instrument Serif italic accents in an interactive privacy exhibit: one overview hero and seven fixed scene models for purpose, notice, consent, withdrawal, children, responsibility and evidence. Short captions sit beside the models; compact native modal windows hold object explanations, chapter notes and the example evidence record. A single native disclosure opens all thirteen legal chapters in continuous reading flow. Articles, learning and pricing retain their respective outlines, manual decks and reading controls. Dashboard tools share contextual navigation, task tabs and guidance alongside fields. Optional 3D exploration supplements the dependency map.\n\nThe latest pinned request in `.impeccable/ui-direction.md` asks why mobile lacks the 3D figures. Mobile and short viewports now render the Three.js complete-flow hero and seven distinct chapter models in ordinary reading flow; the established desktop stack, fixed panels, minimal captions, compact detail windows and professional curved green/ivory presentation remain the composition contract. Its five-block contract records thesis, typography, palette and material, composition, and interaction. The earlier session seed `fd4b7635` is provenance, not an approved image comp; no image comp or separate QUALITY BAR card was approved. The north star above is descriptive shorthand for the requested enterprise appearance.",
+    "keyCharacteristics": [
+      "Dense but readable operational content.",
+      "Navy navigation and teal action emphasis.",
+      "Visible provenance and keyboard focus.",
+      "Optional spatial exploration with a readable map and list.",
+      "Natural scroll storytelling with complete legal content available.",
+      "Manrope reading typography, selective serif italics and broad curved story panels."
+    ],
+    "rules": [
+      {
+        "name": "The Provenance Rule",
+        "body": "Pair provenance color with a written label; color alone must not imply proof or enforcement.",
+        "section": "colors"
+      },
+      {
+        "name": "The Unique Model Rule",
+        "body": "Give every DPDP chapter its own detailed object and mechanism; reserve the orb and rings for the Overview hero.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** reuse scoped theme variables and existing logo assets.",
+      "**Do** preserve written provenance, visible focus, and readable alternatives to 3D.",
+      "**Do** use Motion for short user-triggered state changes and honor reduced motion.",
+      "**Do** distinguish fixture screenshots and illustrative public diagrams from live evidence.",
+      "**Do** preserve public factual copy, pricing terms, links, and legal content."
+    ],
+    "donts": [
+      "**Don't** add decorative continuous motion or motion that steers consent choices.",
+      "**Don't** invent metrics, evidence, enforcement status, or backend capabilities.",
+      "**Don't** hide graph truncation limits or make 3D the only inspection path.",
+      "**Don't** assume public fixed-color sections automatically support dashboard dark tokens."
+    ]
+  }
+}

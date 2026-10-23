@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
+import { PricingExplorer } from "@/components/public/pricing-explorer";
 import { PricingEnquiryForm } from "@/components/public/pricing-enquiry-form";
 import { recaptchaSiteKey } from "@/lib/recaptcha";
 import { SkipLink } from "@/components/ui/skip-link";
@@ -79,13 +80,12 @@ export default function PricingPage() {
       <SkipLink />
       <HomeNavbar />
       <main id="main-content">
-        <section className="relative overflow-x-clip overflow-y-visible bg-[#F8FAFF]">
+        <section className="pricing-hero relative overflow-x-clip overflow-y-visible bg-[#F8FAFF]">
           <div
             className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#6D28D9]/10"
             aria-hidden="true"
           />
           <div className="relative mx-auto max-w-[1200px] px-5 py-12 sm:px-8 lg:py-16">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6D28D9]">Pricing</p>
             <h1 className="mt-4 max-w-3xl text-balance text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
               Choose the plan that fits. Ask us for a quote.
             </h1>
@@ -95,40 +95,7 @@ export default function PricingPage() {
               request a plan.
             </p>
 
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {tiers.map((tier) => (
-                <article
-                  key={tier.id}
-                  className={`flex flex-col rounded-2xl border bg-white p-6 ${
-                    "featured" in tier
-                      ? "border-[#F59E0B] shadow-[0_16px_40px_-24px_rgba(245,158,11,0.65)]"
-                      : "border-[#E5E7EB]"
-                  }`}
-                >
-                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-[#6D28D9]">
-                    {tier.badge}
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold text-[#111827]">{tier.name}</h2>
-                  <p className="mt-2 text-justify text-sm text-[#4B5563]">{tier.detail}</p>
-                  <ul className="mt-5 flex-1 space-y-2 text-sm text-[#4B5563]">
-                    {tier.points.map((point) => (
-                      <li key={point} className="flex gap-2">
-                        <span className="text-[#00C4A7]" aria-hidden="true">
-                          ✓
-                        </span>
-                        {point}
-                      </li>
-                    ))}
-                  </ul>
-                  <a
-                    href={`/pricing?plan=${tier.id}#enquiry`}
-                    className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-[#0B2C4A] px-4 text-sm font-semibold text-white transition hover:bg-[#00C4A7]"
-                  >
-                    Request a quote
-                  </a>
-                </article>
-              ))}
-            </div>
+            <PricingExplorer plans={tiers} />
           </div>
         </section>
 

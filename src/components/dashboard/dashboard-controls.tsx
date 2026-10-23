@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { createPortal } from "react-dom";
 
 import { Select } from "@/components/ui/select";
+
+const subscribeNever = () => () => {};
 
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
@@ -44,14 +46,13 @@ export function DateField({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  // True on the client only, so the portal never renders during SSR.
+  const mounted = useSyncExternalStore(subscribeNever, () => true, () => false);
   const selected = parseIso(value);
   const [cursor, setCursor] = useState(() => selected ?? new Date());
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
   const minDate = min ? parseIso(min) : null;
   const maxDate = max ? parseIso(max) : null;
-
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!open) return;

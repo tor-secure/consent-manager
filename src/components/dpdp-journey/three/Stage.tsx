@@ -8,6 +8,7 @@ import { AdaptiveDpr, PerformanceMonitor } from '@react-three/drei'
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing'
 import { useStageColors } from '../hooks/useStageColors'
 import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion'
+import { useLaw } from '../state/law'
 import { markStageLost } from './stageStatus'
 import { World } from './World'
 
@@ -35,6 +36,8 @@ function capabilities() {
 export function Stage() {
   const reducedMotion = usePrefersReducedMotion()
   const colors = useStageColors()
+  // Read here and handed in: the canvas is its own React root.
+  const law = useLaw()
   const [caps] = useState(capabilities)
   const [visible, setVisible] = useState(!document.hidden)
   const [ready, setReady] = useState(false)
@@ -74,7 +77,7 @@ export function Stage() {
       >
         <PerformanceMonitor onDecline={() => setEffects(false)} />
         <AdaptiveDpr pixelated={false} />
-        <World colors={colors} reducedMotion={reducedMotion} drag={caps.drag} />
+        <World law={law} colors={colors} reducedMotion={reducedMotion} drag={caps.drag} />
         {effects ? (
           <EffectComposer multisampling={4}>
             <Bloom mipmapBlur luminanceThreshold={1} luminanceSmoothing={0.05} intensity={0.7} />

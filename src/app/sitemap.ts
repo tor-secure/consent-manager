@@ -23,6 +23,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${SITE_URL}/news`, lastModified: CONTENT_UPDATED, changeFrequency: "hourly", priority: 0.8 },
     { url: `${SITE_URL}/e-learning`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE_URL}/dpdp-act`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/gdpr-guide`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.8 },
+    { url: `${SITE_URL}/ccpa-guide`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/tools`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.8 },
     { url: `${SITE_URL}/tools/penalty-risk`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/tools/readiness-gap`, lastModified: CONTENT_UPDATED, changeFrequency: "monthly", priority: 0.6 },

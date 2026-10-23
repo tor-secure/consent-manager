@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { WorkspaceSectionNav } from "./workspace-section-nav";
 import { SidebarNav } from "@/components/dashboard/sidebar-nav";
 import { SkipLink } from "@/components/ui/skip-link";
-import { BrandLogo } from "@/components/brand/brand-logo";
+import { DetailDrawer } from "@/components/ui/detail-drawer";
 
 const SIDEBAR_STORAGE_KEY = "cmp:sidebar:collapsed";
 const SIDEBAR_EVENT = "cmp-sidebar-change";
@@ -96,7 +97,7 @@ export function DashboardShell({
   const onMobileToggle = () => setMobileOpen((v) => !v);
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="dashboard-workspace min-h-screen bg-[var(--background)]">
       <SkipLink />
       <div className="flex min-h-screen">
         {/* Desktop Sidebar */}
@@ -105,8 +106,8 @@ export function DashboardShell({
           data-collapsed={collapsed}
           suppressHydrationWarning
           className={[
-            "hidden lg:flex shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)] transition-[width] duration-300 ease-out",
-            collapsed ? "lg:w-[4.75rem]" : "lg:w-72 xl:w-[18.5rem]",
+            "workspace-sidebar hidden lg:flex shrink-0 flex-col transition-[width] duration-200 ease-out",
+            collapsed ? "lg:w-[4.75rem]" : "lg:w-[15.5rem]",
           ].join(" ")}
         >
           <div className="h-full overflow-y-auto overflow-x-hidden scrollbar-thin">
@@ -115,50 +116,14 @@ export function DashboardShell({
         </aside>
 
         {/* Mobile Sidebar Overlay */}
-        {mobileOpen && (
-          <div
-            className="fixed inset-0 z-50 lg:hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Sidebar navigation"
-          >
-            <div
-              className="absolute inset-0 bg-[color-mix(in_srgb,var(--foreground)_40%,transparent)] animate-fade-in"
-              onClick={() => setMobileOpen(false)}
-            />
-            <aside
-              id="dashboard-mobile-sidebar"
-              className="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-[var(--card)] shadow-[var(--shadow-md)] border-r border-[var(--border)] animate-slide-in"
-            >
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between px-4 py-4 border-b border-[var(--border)]">
-                  <div className="flex min-w-0 items-center px-1">
-                    <BrandLogo height={36} />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMobileOpen(false)}
-                    aria-label="Close sidebar"
-                    className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] transition-[background-color,color] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
-                    </svg>
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin">
-                  <SidebarNav collapsed={false} onToggle={() => {}} setupMode={setupMode} />
-                </div>
-              </div>
-            </aside>
-          </div>
-        )}
+        <DetailDrawer title="Workspace navigation" open={mobileOpen} onClose={() => setMobileOpen(false)}>
+          <div id="dashboard-mobile-sidebar" onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setMobileOpen(false); }}><SidebarNav collapsed={false} onToggle={() => {}} setupMode={setupMode} /></div>
+        </DetailDrawer>
 
         {/* Main content area */}
         <div className="flex min-h-screen flex-1 flex-col min-w-0">
           {/* Top header */}
-          <header className="sticky top-0 z-40 shrink-0 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--card)_92%,transparent)] backdrop-blur-md">
+          <header className="workspace-header sticky top-0 z-40 shrink-0 border-b border-[var(--border)]">
             <div className="flex h-16 min-w-0 items-center gap-1.5 overflow-x-auto overscroll-x-contain px-3 sm:gap-2 sm:overflow-visible sm:px-4 md:gap-3 md:px-6">
               <div className="flex min-w-0 shrink items-center gap-1.5 sm:gap-2">
                 <button
@@ -192,9 +157,10 @@ export function DashboardShell({
               </div>
             </div>
           </header>
+          <WorkspaceSectionNav />
 
           {/* Page content — no wrapper padding; each page owns its own spacing */}
-          <main id="main-content" className="min-w-0 flex-1 overflow-x-auto animate-fade-in">
+          <main id="main-content" className="min-w-0 flex-1 overflow-x-auto">
             {children}
           </main>
         </div>

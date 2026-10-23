@@ -261,7 +261,7 @@ export function HomeNavbar({ learningAuth }: { learningAuth?: { signedIn: boolea
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-[#E5E7EB] bg-white">
+      <header className="public-navbar sticky top-0 z-50 border-b border-[#E5E7EB] bg-white">
         <nav
           aria-label="Primary"
           className="mx-auto flex min-h-[72px] w-full min-w-0 max-w-[1200px] items-center justify-between gap-3 px-4 sm:gap-4 sm:px-8"

@@ -10,7 +10,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={[
-          "rounded-2xl bg-[var(--card)] text-[var(--card-foreground)] border border-[var(--border)] card-shadow",
+          "surface-panel rounded-2xl bg-[var(--card)] text-[var(--card-foreground)] border border-[var(--border)] card-shadow",
           hover ? "card-lift" : "",
           className,
         ].join(" ")}

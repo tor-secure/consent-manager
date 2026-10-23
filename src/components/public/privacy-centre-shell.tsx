@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DocumentReader } from "./document-reader";
 import type { ReactNode } from "react";
 
 import { HomeFooter } from "@/components/public/home-footer";
@@ -79,7 +80,6 @@ export function LegalBlocks({ blocks }: { blocks: LegalBlock[] }) {
 
 export function PrivacyCentreLayout({
   title,
-  kicker,
   intro,
   children,
 }: {
@@ -96,7 +96,6 @@ export function PrivacyCentreLayout({
         <section className="relative overflow-x-clip overflow-y-visible border-b border-[#D3E0DE] bg-[#F3FAF8]">
           <div className="pointer-events-none absolute -right-24 -top-28 h-96 w-96 rounded-full border-[40px] border-[#00C4A7]/10" aria-hidden="true" />
           <div className="relative mx-auto max-w-[1200px] px-5 py-8 sm:px-8 sm:py-10 lg:py-12">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#00A88F]">{kicker}</p>
             <h1 className="mt-4 max-w-3xl text-balance text-[clamp(1.75rem,1.2rem+2.4vw,3rem)] font-bold leading-[1.08] tracking-tight text-[#0B2C4A]">
               {title}
             </h1>
@@ -145,52 +144,8 @@ export function PrivacyPartNav({ current }: { current?: string }) {
   );
 }
 
-export function LegalDocument({
-  sections,
-  current,
-}: {
-  sections: LegalSection[];
-  current: string;
-}) {
-  return (
-    <section className="bg-white px-5 py-12 sm:px-8 sm:py-16">
-      <div className="mx-auto grid min-w-0 max-w-[1200px] gap-10 lg:grid-cols-[minmax(0,240px)_minmax(0,1fr)] lg:gap-16">
-        <aside className="lg:sticky lg:top-24 lg:self-start">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#00A88F]">On this page</p>
-          <ul className="mt-4 space-y-2">
-            {sections.map((section) => (
-              <li key={section.id}>
-                <a
-                  href={`#${section.id}`}
-                  className="text-sm leading-6 text-[#5D6B73] hover:text-[#0B2C4A]"
-                >
-                  {section.number ? `${section.number}. ` : null}
-                  {section.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </aside>
-        <div>
-          <PrivacyPartNav current={current} />
-          <div className="space-y-12">
-            {sections.map((section) => (
-              <article key={section.id} id={section.id} className="scroll-mt-28">
-                <h2 className="text-2xl font-bold tracking-tight text-[#0B2C4A]">
-                  {section.number ? <span className="mr-2 text-[#00A88F]">{section.number}.</span> : null}
-                  {section.title}
-                </h2>
-                <div className="mt-4">
-                  <LegalBlocks blocks={section.blocks} />
-                </div>
-              </article>
-            ))}
-          </div>
-          <ContactCard />
-        </div>
-      </div>
-    </section>
-  );
+export function LegalDocument({ sections, current }: { sections: LegalSection[]; current: string }) {
+  return <section className="legal-reading-surface bg-white px-5 py-12 sm:px-8 sm:py-16"><div className="mx-auto max-w-[1200px]"><DocumentReader sections={sections.map(section => ({ id: section.id, title: section.title, number: section.number, content: <LegalBlocks blocks={section.blocks} /> }))}><PrivacyPartNav current={current} /></DocumentReader><ContactCard /></div></section>;
 }
 
 export function ContactCard() {

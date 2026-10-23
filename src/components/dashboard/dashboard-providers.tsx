@@ -4,6 +4,7 @@ import { useAuth, useOrganizationList } from "@clerk/nextjs";
 import { useEffect } from "react";
 
 import { AppToaster } from "@/components/feedback/app-toaster";
+import { MotionProvider } from "@/components/ui/motion-provider";
 
 function EnsureActiveOrganization() {
   const { orgId } = useAuth();
@@ -23,10 +24,10 @@ function EnsureActiveOrganization() {
 
 export function DashboardProviders({ children }: { children: React.ReactNode }) {
   return (
-    <>
+    <MotionProvider>
       <EnsureActiveOrganization />
       {children}
       <AppToaster />
-    </>
+    </MotionProvider>
   );
 }

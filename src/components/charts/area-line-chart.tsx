@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { ChartEmpty } from "@/components/charts/chart-empty";
 
@@ -150,10 +150,13 @@ export function AreaLineChart({
   const [yIndex, setYIndex] = useState(0);
   const [xIndex, setXIndex] = useState(() => defaultXIndex(xLevels));
 
-  useEffect(() => {
+  // Reset the zoom when the data changes, during render rather than in an effect.
+  const [zoomFor, setZoomFor] = useState({ replayKey, xLevels });
+  if (zoomFor.replayKey !== replayKey || zoomFor.xLevels !== xLevels) {
+    setZoomFor({ replayKey, xLevels });
     setYIndex(0);
     setXIndex(defaultXIndex(xLevels));
-  }, [replayKey, xLevels]);
+  }
 
   const hasData = points.length > 0 && peak > 0;
   if (!hasData) {

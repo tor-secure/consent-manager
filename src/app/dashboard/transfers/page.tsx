@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { WorkspaceTabs } from "@/components/ui/workspace-tabs";
+import { WorkflowDisclosure } from "@/components/ui/workflow-disclosure";
 
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
 import { loadTransfersPage } from "@/lib/processing/dashboard-queries";
@@ -27,7 +29,8 @@ export default async function TransfersPage() {
         </StatusBanner>
       )}
 
-      <Card>
+      <WorkspaceTabs label="Transfer workspace" tabs={[
+{ title: "Transfers", content: <><Card>
         <CardHeader>
           <CardTitle>Transfer records</CardTitle>
         </CardHeader>
@@ -66,11 +69,8 @@ export default async function TransfersPage() {
           </div>
         )}
         </CardContent>
-      </Card>
-
-      <TransferForm vendors={orgVendors} websites={orgWebsites} />
-
-      <Card>
+      </Card><WorkflowDisclosure title="Record a transfer" description="Link a vendor, destination, and transfer mechanism."><TransferForm vendors={orgVendors} websites={orgWebsites} /></WorkflowDisclosure></> },
+{ title: "Processing activities", content: <><Card>
         <CardHeader>
           <CardTitle>Processing activities</CardTitle>
         </CardHeader>
@@ -88,9 +88,8 @@ export default async function TransfersPage() {
           </ul>
         )}
         </CardContent>
-      </Card>
-
-      <ProcessingActivityForm vendors={orgVendors} websites={orgWebsites} purposes={orgPurposes} />
+      </Card><WorkflowDisclosure title="Add processing activity" description="Document a vendor's role, purposes, and data categories."><ProcessingActivityForm vendors={orgVendors} websites={orgWebsites} purposes={orgPurposes} /></WorkflowDisclosure></> },
+]} />
     </div>
   );
 }

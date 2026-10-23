@@ -12,7 +12,7 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="workflow-field flex flex-col gap-1.5">
       <label htmlFor={htmlFor} className="field-label mb-0">
         {label}
       </label>
@@ -38,7 +38,7 @@ export function FormCard({
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] card-shadow ${className}`}>
+    <section className={`workflow-form-card rounded-2xl border border-[var(--border)] bg-[var(--card)] text-[var(--card-foreground)] card-shadow ${className}`}>
       {(title || description) && (
         <div className="border-b border-[var(--border)] px-5 py-4 sm:px-6">
           {title ? (
@@ -56,7 +56,7 @@ export function FormCard({
           ) : null}
         </div>
       )}
-      <div className="space-y-5 p-5 sm:p-6">{children}</div>
+      <div className="workflow-form-card-fields space-y-5 p-5 sm:p-6">{children}</div>
     </section>
   );
 }

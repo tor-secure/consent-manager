@@ -1,3 +1,4 @@
+import { ContextDescription } from "@/components/ui/context-description";
 import type { ReactNode } from "react";
 import Link from "next/link";
 
@@ -17,18 +18,14 @@ export function PageHeader({
   return (
     <header
       className={[
-        "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+        "page-header flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
         className,
       ].join(" ")}
     >
       <div className="min-w-0">
-        {eyebrow ? (
-          <p className="mb-1.5 text-sm font-medium leading-none text-[var(--muted-foreground)]">
-            {eyebrow}
-          </p>
-        ) : null}
         <h1 className="page-title">{title}</h1>
-        {description ? <p className="page-description">{description}</p> : null}
+        {description ? <ContextDescription>{description}</ContextDescription> : null}
+        {eyebrow ? <div className="page-context">{eyebrow}</div> : null}
       </div>
       {action ? (
         <div className="flex flex-wrap items-center gap-2 shrink-0 sm:pt-0.5">{action}</div>

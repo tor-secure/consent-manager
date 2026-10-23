@@ -13,12 +13,12 @@ function WhatsAppGlyph({ className = "" }: { className?: string }) {
 
 export function WhatsAppFloat() {
   return (
-    <div className="pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex items-end gap-2">
+    <div className="whatsapp-contact pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex items-end gap-2">
       <a
         href={whatsappHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="whatsapp-float-bubble pointer-events-auto mb-0.5 max-w-[168px] rounded-2xl rounded-br-md border border-[#D1FADF] bg-white px-2.5 py-1.5 text-left text-[12px] font-medium leading-4 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
+        className="whatsapp-float-bubble pointer-events-auto mb-0.5 hidden max-w-[168px] rounded-2xl rounded-br-md border border-[#D1FADF] bg-white px-2.5 py-1.5 text-left text-[12px] font-medium leading-4 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)] md:block"
       >
         Chat on WhatsApp
       </a>

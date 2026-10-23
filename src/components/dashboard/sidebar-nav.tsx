@@ -318,9 +318,9 @@ function BrandLockup({ collapsed }: { collapsed: boolean }) {
       className={`px-1 py-2 ${collapsed ? "flex justify-center px-0" : ""}`}
     >
       {collapsed ? (
-        <BrandLogo markOnly height={36} />
+        <><BrandLogo className="sidebar-logo-light" markOnly height={32} /><BrandLogo className="sidebar-logo-dark" tone="on-dark" markOnly height={32} /></>
       ) : (
-        <BrandLogo height={42} />
+        <><BrandLogo className="sidebar-logo-light" height={38} /><BrandLogo className="sidebar-logo-dark" tone="on-dark" height={38} /></>
       )}
     </div>
   );

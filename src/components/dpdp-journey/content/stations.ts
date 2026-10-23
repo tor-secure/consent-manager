@@ -28,6 +28,10 @@ export interface StationOption {
   result: string
   /** The tone the result is reported in. */
   tone?: 'grant' | 'refuse' | 'neutral'
+  /** Toggles: where this purpose's stream ends on the stage. */
+  vendor?: string
+  /** Toggles: on before the reader touches it. */
+  defaultOn?: boolean
 }
 
 export interface StationControl {
@@ -38,6 +42,12 @@ export interface StationControl {
   options: StationOption[]
   /** Toggles that cannot be switched off, with the reason. */
   locked?: { id: string; reason: string }[]
+  /** Single: nothing is picked until the reader tries one. Otherwise the first option is. */
+  startEmpty?: boolean
+  /** Toggles: the result when something is off. `{list}` names what. */
+  declined?: string
+  /** Toggles: the result when everything is on. */
+  allowed?: string
 }
 
 export interface Station {
@@ -57,6 +67,7 @@ export interface Station {
   marks: MarkId[]
 }
 
+/** The DPDP Act's eight stations. Other laws' are in `content/laws/`. */
 export const stations: Station[] = [
   {
     id: 'people',
@@ -121,6 +132,7 @@ export const stations: Station[] = [
     control: {
       prompt: 'Send a consent through the three checks',
       kind: 'single',
+      startEmpty: true,
       options: [
         { id: 'silence', label: 'Pre-ticked box', result: 'Stopped at check 1. Silence, inactivity and a pre-ticked box are not a clear affirmative action.', tone: 'refuse' },
         { id: 'uninformed', label: 'No notice', result: 'Stopped at check 2. Consent is for a specified purpose; without a notice you could understand, it is not informed.', tone: 'refuse' },
@@ -147,11 +159,14 @@ export const stations: Station[] = [
       prompt: 'Your choices',
       kind: 'toggle',
       options: [
-        { id: 'necessary', label: 'Necessary', result: 'Processing the service needs runs, kept apart from the optional purposes.' },
-        { id: 'analytics', label: 'Analytics', result: 'Analytics allowed: its stream lights and reaches its vendor.', tone: 'grant' },
-        { id: 'advertising', label: 'Advertising', result: 'Advertising allowed: its stream lights and reaches its vendor.', tone: 'grant' },
+        { id: 'necessary', label: 'Necessary', vendor: 'the service', defaultOn: true, result: 'Processing the service needs runs, kept apart from the optional purposes.' },
+        // As in the source's illustration: analytics allowed, advertising declined.
+        { id: 'analytics', label: 'Analytics', vendor: 'analytics vendor', defaultOn: true, result: 'Analytics allowed: its stream lights and reaches its vendor.', tone: 'grant' },
+        { id: 'advertising', label: 'Advertising', vendor: 'ad vendor', result: 'Advertising allowed: its stream lights and reaches its vendor.', tone: 'grant' },
       ],
       locked: [{ id: 'necessary', reason: 'What the service needs is kept apart from the optional purposes.' }],
+      declined: 'Declined: {list}. Its stream stays open but stops before its vendor, which stays dark. Declining is a supported answer.',
+      allowed: 'Everything allowed: each stream reaches its vendor. Switch one off to decline just that purpose.',
     },
     chapters: ['granularity', 'enforcement'],
     marks: ['data', 'purpose', 'processor'],

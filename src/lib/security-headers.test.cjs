@@ -193,7 +193,8 @@ assert.match(proxy, /isPublicCrossOriginApiPath/);
 assert.match(proxy, /OPTIONS/);
 assert.doesNotMatch(proxy, /unsafe-eval/);
 
-const websitePage = read("src/app/dashboard/websites/[id]/page.tsx");
+// The embed snippet lives on the website's installation page.
+const websitePage = read("src/app/dashboard/websites/[id]/installation/page.tsx");
 assert.doesNotMatch(websitePage, /src="\/api\/sdk\/script\?siteKey=/);
 assert.doesNotMatch(websitePage, /async><\/script>/);
 assert.match(websitePage, /buildEmbedSnippet/);
