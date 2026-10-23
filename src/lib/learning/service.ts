@@ -27,6 +27,7 @@ import {
   COURSE_CONTENT_VERSION,
   COURSE_DISCLAIMER,
   COURSE_LAST_REVIEWED,
+  FINAL_EXAM_DURATION_SECONDS,
   MODULE_QUIZ_DRAW_COUNT,
   assertCatalogShape,
   lessonText,
@@ -235,15 +236,28 @@ export async function completeLessonAndStartQuiz(
 
 export async function startQuiz(ctx: LearnerContext, slug: string) {
   const course = await ensureCatalog();
-  const enrollment = await activeEnrollment(ctx, course.id);
+  const [enrollment, courseModule] = await Promise.all([
+    activeEnrollment(ctx, course.id),
+    quizModuleBySlug(course.id, slug),
+  ]);
   if (!enrollment) return { error: "not_enrolled" as const };
-  const courseModule = await requireUnlockedModule(ctx, enrollment.id, course.id, slug);
-  if ("error" in courseModule) return courseModule;
-  const lessonDone = await lessonCompletionSet(enrollment.id);
+  if (!courseModule) return { error: "not_found" as const };
+  const [passed, lessonDone, existingQuiz] = await Promise.all([
+    passedModuleNumbers(enrollment.id),
+    lessonCompletionSet(enrollment.id),
+    openQuizAttempt(enrollment.id, courseModule.id),
+  ]);
+  if (!moduleUnlocked(courseModule.moduleNumber, passed)) {
+    return {
+      error: "locked" as const,
+      prerequisiteNumber: nextLockedModuleNumber(courseModule.moduleNumber),
+      message: `Complete Module ${nextLockedModuleNumber(courseModule.moduleNumber)} to unlock this module.`,
+    };
+  }
   if (!lessonDone.has(courseModule.id)) {
     return { error: "lesson_required" as const, message: "Mark the lesson complete before the quiz." };
   }
-  const quiz = await openModuleQuiz(ctx, enrollment.id, course, courseModule.id);
+  const quiz = await openModuleQuiz(ctx, enrollment.id, course, courseModule.id, existingQuiz);
   return { error: null, ...quiz };
 }
 
@@ -295,19 +309,20 @@ async function openModuleQuiz(
   enrollmentId: string,
   course: { id: string; passPercent: number },
   moduleId: string,
+  existingQuiz?: Awaited<ReturnType<typeof openQuizAttempt>>,
 ) {
-  const existingQuiz = await openQuizAttempt(enrollmentId, moduleId);
-  const openQuiz =
-    existingQuiz &&
-    existingQuiz.questionIds.length === MODULE_QUIZ_DRAW_COUNT &&
-    (await attemptStillMatches(existingQuiz.questionIds))
-      ? existingQuiz
-      : null;
-  if (existingQuiz && !openQuiz) {
-    await db.delete(learningQuizAttempts).where(eq(learningQuizAttempts.id, existingQuiz.id));
+  const existing = existingQuiz === undefined ? await openQuizAttempt(enrollmentId, moduleId) : existingQuiz;
+  const reusableQuestions =
+    existing && existing.questionIds.length === MODULE_QUIZ_DRAW_COUNT ? await publicQuestions(existing.questionIds) : [];
+  const reusable =
+    existing &&
+    reusableQuestions.length === MODULE_QUIZ_DRAW_COUNT &&
+    reusableQuestions.every((question) => question.options.length > 0);
+  if (existing && !reusable) {
+    await db.delete(learningQuizAttempts).where(eq(learningQuizAttempts.id, existing.id));
   }
-  const attempt = openQuiz ?? (await createQuizAttempt(ctx, enrollmentId, course.id, moduleId));
-  const questions = await publicQuestions(attempt.questionIds);
+  const attempt = reusable && existing ? existing : await createQuizAttempt(ctx, enrollmentId, course.id, moduleId);
+  const questions = reusable ? reusableQuestions : await publicQuestions(attempt.questionIds);
   after(() => recordEvent(ctx, course.id, "quiz_started", attempt.id));
   return {
     attemptId: attempt.id,
@@ -400,6 +415,8 @@ export async function startExam(ctx: LearnerContext) {
   }
   const attempt = openExam ?? (await createExamAttempt(ctx, enrollment.id, course));
   await recordEvent(ctx, course.id, "final_exam_started", attempt.id);
+  const started = attempt.startedAt instanceof Date ? attempt.startedAt : new Date(attempt.startedAt);
+  const startedAt = Number.isNaN(started.getTime()) ? new Date().toISOString() : started.toISOString();
   return {
     error: null,
     attemptId: attempt.id,
@@ -407,6 +424,8 @@ export async function startExam(ctx: LearnerContext) {
     passPercent: course.examPassPercent,
     questionCount: attempt.questionIds.length,
     questions: await publicQuestions(attempt.questionIds),
+    startedAt,
+    durationSeconds: FINAL_EXAM_DURATION_SECONDS,
   };
 }
 
@@ -423,8 +442,10 @@ export async function submitExam(ctx: LearnerContext, attemptId: string, answers
     .limit(1);
   if (!attempt) return { error: "not_found" as const };
   if (attempt.submittedAt) return replayExamSubmission(attempt);
+  const started = attempt.startedAt instanceof Date ? attempt.startedAt : new Date(attempt.startedAt);
+  const timeUp = Date.now() + 5_000 >= started.getTime() + FINAL_EXAM_DURATION_SECONDS * 1000;
   const answerCheck = validateAttemptAnswers(attempt.questionIds, answers);
-  if (answerCheck) return answerCheck;
+  if (answerCheck && !(timeUp && answerCheck.error === "incomplete")) return answerCheck;
   const course = await ensureCatalog();
   const scored = await scoreStoredQuestions(attempt.questionIds, answers, course.examPassPercent);
   const passedModules = await passedModuleNumbers(attempt.enrollmentId);
@@ -535,7 +556,7 @@ export async function getExamHistory(ctx: LearnerContext) {
     completedModules: passed.size,
     questionCount: course.examQuestionCount,
     passPercent: course.examPassPercent,
-    estimatedMinutes: 60,
+    estimatedMinutes: FINAL_EXAM_DURATION_SECONDS / 60,
     attempts,
   };
 }
@@ -768,12 +789,14 @@ const COURSE_CACHE_TTL_MS = 60_000;
 let cachedCourse: { row: typeof learningCourses.$inferSelect; expiresAt: number } | null = null;
 let cachedSummaries: { courseId: string; rows: ModuleSummary[]; expiresAt: number } | null = null;
 const lessonCache = new Map<string, { row: LearnerModuleRow; expiresAt: number }>();
+const quizQuestionIdCache = new Map<string, { ids: string[]; expiresAt: number }>();
 let catalogShapeChecked = false;
 
 function clearLearningContentCache() {
   cachedCourse = null;
   cachedSummaries = null;
   lessonCache.clear();
+  quizQuestionIdCache.clear();
 }
 
 let catalogInflight: Promise<typeof learningCourses.$inferSelect> | null = null;
@@ -811,9 +834,7 @@ async function loadOrSeedCatalog() {
   let existing = row;
   if (existing) {
     if (existing.contentVersion !== COURSE_CONTENT_VERSION) {
-      await refreshCatalogContent(existing.id);
-      const [updated] = await db.select().from(learningCourses).where(eq(learningCourses.id, existing.id)).limit(1);
-      existing = updated ?? existing;
+      scheduleCatalogRefresh(existing.id);
     }
     // Defaults apply only on initial seed. Operator pass/exam settings must persist.
     const metadata = courseEnsureMetadataPatch(existing, { difficulty: COURSE_DIFFICULTY });
@@ -915,10 +936,250 @@ async function insertModuleQuestions(
   }
 }
 
+let catalogRefresh: Promise<void> | null = null;
+
+/** Question-bank updates must not block the module or quiz the learner is opening. */
+function scheduleCatalogRefresh(courseId: string) {
+  if (catalogRefresh) return;
+  catalogRefresh = refreshCatalogContent(courseId)
+    .catch(() => {
+      // The next course read schedules another attempt. The open page stays usable.
+    })
+    .finally(() => {
+      catalogRefresh = null;
+    });
+}
+
 async function refreshCatalogContent(courseId: string) {
   const minutes = COURSE_CATALOG.reduce((sum, courseModule) => sum + courseModule.minutes, 0);
+  const storedModules = await db
+    .select({ id: learningModules.id, moduleNumber: learningModules.moduleNumber })
+    .from(learningModules)
+    .where(eq(learningModules.courseId, courseId));
+  const moduleIdByNumber = new Map(storedModules.map((row) => [row.moduleNumber, row.id]));
+  const storedQuestions = await db
+    .select({
+      id: learningQuestions.id,
+      moduleId: learningQuestions.moduleId,
+      questionKey: learningQuestions.questionKey,
+    })
+    .from(learningQuestions)
+    .where(eq(learningQuestions.courseId, courseId));
+  const storedOptions =
+    storedQuestions.length === 0
+      ? []
+      : await db
+          .select({
+            id: learningQuestionOptions.id,
+            questionId: learningQuestionOptions.questionId,
+            sortOrder: learningQuestionOptions.sortOrder,
+          })
+          .from(learningQuestionOptions)
+          .where(
+            inArray(
+              learningQuestionOptions.questionId,
+              storedQuestions.map((question) => question.id),
+            ),
+          )
+          .orderBy(asc(learningQuestionOptions.sortOrder));
+  const questionsByModule = new Map<string, typeof storedQuestions>();
+  for (const question of storedQuestions) {
+    const group = questionsByModule.get(question.moduleId) ?? [];
+    group.push(question);
+    questionsByModule.set(question.moduleId, group);
+  }
+  const optionsByQuestion = new Map<string, typeof storedOptions>();
+  for (const option of storedOptions) {
+    const group = optionsByQuestion.get(option.questionId) ?? [];
+    group.push(option);
+    optionsByQuestion.set(option.questionId, group);
+  }
+
+  const questionUpdates: Array<{
+    id: string;
+    bank: string;
+    questionType: string;
+    prompt: string;
+    explanation: string;
+    difficulty: string;
+    sortOrder: number;
+  }> = [];
+  const optionUpdates: Array<{ id: string; label: string; correct: boolean; sortOrder: number }> = [];
+  const optionReplacements: Array<{ questionId: string; options: Array<{ label: string; correct: boolean }> }> = [];
+  const missingQuestions: Array<{ moduleId: string; question: (typeof COURSE_CATALOG)[number]["quiz"][number]; sortOrder: number }> = [];
+  const removable: string[] = [];
+
   await db.transaction(async (tx) => {
-    // Preserve operator pass/exam settings; only refresh catalog metadata and version.
+    const protectedQuestionIds = await questionIdsWithHistory(tx, courseId);
+    for (const courseModule of COURSE_CATALOG) {
+      const moduleId = moduleIdByNumber.get(courseModule.number);
+      if (!moduleId) throw new Error(`Missing module ${courseModule.number}`);
+      const existing = questionsByModule.get(moduleId) ?? [];
+      const desired = [...courseModule.quiz, ...courseModule.exam];
+      const desiredKeys = new Set(desired.map((question) => question.key));
+      for (const question of existing) {
+        if (!desiredKeys.has(question.questionKey) && !protectedQuestionIds.has(question.id)) removable.push(question.id);
+      }
+      desired.forEach((question, index) => {
+        const found = existing.find((item) => item.questionKey === question.key);
+        const sortOrder = index + 1;
+        if (!found) {
+          missingQuestions.push({ moduleId, question, sortOrder });
+          return;
+        }
+        questionUpdates.push({
+          id: found.id,
+          bank: question.bank,
+          questionType: question.type,
+          prompt: question.prompt,
+          explanation: question.explanation,
+          difficulty: question.difficulty,
+          sortOrder,
+        });
+        const existingOptions = optionsByQuestion.get(found.id) ?? [];
+        if (existingOptions.length === question.options.length) {
+          question.options.forEach((option, optionIndex) => {
+            optionUpdates.push({
+              id: existingOptions[optionIndex].id,
+              label: option.label,
+              correct: option.correct,
+              sortOrder: optionIndex + 1,
+            });
+          });
+          return;
+        }
+        if (!protectedQuestionIds.has(found.id)) {
+          optionReplacements.push({ questionId: found.id, options: question.options });
+        }
+      });
+    }
+
+    await tx.execute(sql`
+      UPDATE learning_modules
+      SET slug = 'refresh-' || module_number::text
+      WHERE course_id = ${courseId}::uuid
+    `);
+    const moduleRows = sql.join(
+      COURSE_CATALOG.map(
+        (courseModule) => sql`(
+          ${courseModule.number}::int,
+          ${courseModule.slug},
+          ${courseModule.title},
+          ${JSON.stringify(courseModule.objectives)}::jsonb,
+          ${courseModule.minutes}::int,
+          ${JSON.stringify(courseModule.concepts)}::jsonb,
+          ${courseModule.example},
+          ${courseModule.caseStudy},
+          ${JSON.stringify(courseModule.takeaways)}::jsonb
+        )`,
+      ),
+      sql`, `,
+    );
+    await tx.execute(sql`
+      UPDATE learning_modules AS module_row
+      SET slug = incoming.slug,
+          title = incoming.title,
+          learning_objectives = incoming.objectives,
+          estimated_minutes = incoming.minutes,
+          key_concepts = incoming.concepts,
+          practical_example = incoming.example,
+          case_study = incoming.case_study,
+          key_takeaways = incoming.takeaways,
+          updated_at = now()
+      FROM (VALUES ${moduleRows}) AS incoming(module_number, slug, title, objectives, minutes, concepts, example, case_study, takeaways)
+      WHERE module_row.course_id = ${courseId}::uuid
+        AND module_row.module_number = incoming.module_number
+    `);
+    if (removable.length > 0) {
+      await tx.delete(learningQuestions).where(inArray(learningQuestions.id, removable));
+    }
+    for (let offset = 0; offset < questionUpdates.length; offset += 80) {
+      const slice = questionUpdates.slice(offset, offset + 80);
+      const rows = sql.join(
+        slice.map(
+          (question) => sql`(
+            ${question.id}::uuid,
+            ${question.bank},
+            ${question.questionType},
+            ${question.prompt},
+            ${question.explanation},
+            ${question.difficulty},
+            ${question.sortOrder}::int
+          )`,
+        ),
+        sql`, `,
+      );
+      await tx.execute(sql`
+        UPDATE learning_questions AS question_row
+        SET bank = incoming.bank,
+            question_type = incoming.question_type,
+            prompt = incoming.prompt,
+            explanation = incoming.explanation,
+            difficulty = incoming.difficulty,
+            sort_order = incoming.sort_order,
+            updated_at = now()
+        FROM (VALUES ${rows}) AS incoming(id, bank, question_type, prompt, explanation, difficulty, sort_order)
+        WHERE question_row.id = incoming.id
+      `);
+    }
+    for (let offset = 0; offset < optionUpdates.length; offset += 200) {
+      const slice = optionUpdates.slice(offset, offset + 200);
+      const rows = sql.join(
+        slice.map(
+          (option) => sql`(
+            ${option.id}::uuid,
+            ${option.label},
+            ${option.correct}::boolean,
+            ${option.sortOrder}::int
+          )`,
+        ),
+        sql`, `,
+      );
+      await tx.execute(sql`
+        UPDATE learning_question_options AS option_row
+        SET label = incoming.label,
+            is_correct = incoming.is_correct,
+            sort_order = incoming.sort_order
+        FROM (VALUES ${rows}) AS incoming(id, label, is_correct, sort_order)
+        WHERE option_row.id = incoming.id
+      `);
+    }
+    for (const replacement of optionReplacements) {
+      await tx.delete(learningQuestionOptions).where(eq(learningQuestionOptions.questionId, replacement.questionId));
+      await tx.insert(learningQuestionOptions).values(
+        replacement.options.map((option, index) => ({
+          questionId: replacement.questionId,
+          label: option.label,
+          isCorrect: option.correct,
+          sortOrder: index + 1,
+        })),
+      );
+    }
+    for (const missing of missingQuestions) {
+      const [saved] = await tx
+        .insert(learningQuestions)
+        .values({
+          courseId,
+          moduleId: missing.moduleId,
+          questionKey: missing.question.key,
+          bank: missing.question.bank,
+          questionType: missing.question.type,
+          prompt: missing.question.prompt,
+          explanation: missing.question.explanation,
+          points: 1,
+          difficulty: missing.question.difficulty,
+          sortOrder: missing.sortOrder,
+        })
+        .returning({ id: learningQuestions.id });
+      await tx.insert(learningQuestionOptions).values(
+        missing.question.options.map((option, index) => ({
+          questionId: saved.id,
+          label: option.label,
+          isCorrect: option.correct,
+          sortOrder: index + 1,
+        })),
+      );
+    }
     await tx
       .update(learningCourses)
       .set({
@@ -932,86 +1193,6 @@ async function refreshCatalogContent(courseId: string) {
         updatedAt: new Date(),
       })
       .where(eq(learningCourses.id, courseId));
-    for (const courseModule of COURSE_CATALOG) {
-      await tx
-        .update(learningModules)
-        .set({ slug: `refresh-${courseModule.number}` })
-        .where(and(eq(learningModules.courseId, courseId), eq(learningModules.moduleNumber, courseModule.number)));
-    }
-    const protectedQuestionIds = await questionIdsWithHistory(tx, courseId);
-    for (const courseModule of COURSE_CATALOG) {
-      // Preserve operator-owned lesson/video fields; refresh structured catalog fields only.
-      const [row] = await tx
-        .update(learningModules)
-        .set({
-          slug: courseModule.slug,
-          title: courseModule.title,
-          learningObjectives: courseModule.objectives,
-          estimatedMinutes: courseModule.minutes,
-          keyConcepts: courseModule.concepts,
-          practicalExample: courseModule.example,
-          caseStudy: courseModule.caseStudy,
-          keyTakeaways: courseModule.takeaways,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(learningModules.courseId, courseId), eq(learningModules.moduleNumber, courseModule.number)))
-        .returning({ id: learningModules.id });
-      if (!row) throw new Error(`Missing module ${courseModule.number}`);
-      const existing = await tx
-        .select({ id: learningQuestions.id, questionKey: learningQuestions.questionKey })
-        .from(learningQuestions)
-        .where(eq(learningQuestions.moduleId, row.id));
-      const desired = [...courseModule.quiz, ...courseModule.exam];
-      const desiredKeys = new Set(desired.map((question) => question.key));
-      const removable = existing
-        .filter((question) => !desiredKeys.has(question.questionKey) && !protectedQuestionIds.has(question.id))
-        .map((question) => question.id);
-      if (removable.length > 0) {
-        await tx.delete(learningQuestions).where(inArray(learningQuestions.id, removable));
-      }
-      let order = 0;
-      for (const question of desired) {
-        order += 1;
-        const found = existing.find((item) => item.questionKey === question.key);
-        const values = {
-          bank: question.bank,
-          questionType: question.type,
-          prompt: question.prompt,
-          explanation: question.explanation,
-          difficulty: question.difficulty,
-          sortOrder: order,
-          updatedAt: new Date(),
-        };
-        const questionId = found
-          ? found.id
-          : (
-              await tx
-                .insert(learningQuestions)
-                .values({
-                  courseId,
-                  moduleId: row.id,
-                  questionKey: question.key,
-                  points: 1,
-                  ...values,
-                })
-                .returning({ id: learningQuestions.id })
-            )[0].id;
-        if (found) {
-          await tx.update(learningQuestions).set(values).where(eq(learningQuestions.id, found.id));
-        }
-        // Keep option IDs stable when attempts/answers already reference this question.
-        if (protectedQuestionIds.has(questionId)) continue;
-        await tx.delete(learningQuestionOptions).where(eq(learningQuestionOptions.questionId, questionId));
-        await tx.insert(learningQuestionOptions).values(
-          question.options.map((option, index) => ({
-            questionId,
-            label: option.label,
-            isCorrect: option.correct,
-            sortOrder: index + 1,
-          })),
-        );
-      }
-    }
   });
   clearLearningContentCache();
 }
@@ -1331,24 +1512,40 @@ async function openQuizAttempt(enrollmentId: string, moduleId: string) {
   return row ?? null;
 }
 
-async function createQuizAttempt(ctx: LearnerContext, enrollmentId: string, courseId: string, moduleId: string) {
-  const questions = await db
+async function quizModuleBySlug(courseId: string, slug: string) {
+  const [row] = await db
+    .select({
+      id: learningModules.id,
+      moduleNumber: learningModules.moduleNumber,
+      status: learningModules.status,
+    })
+    .from(learningModules)
+    .where(and(eq(learningModules.courseId, courseId), eq(learningModules.slug, slug), eq(learningModules.status, "published")))
+    .limit(1);
+  return row ?? null;
+}
+
+async function moduleQuizQuestionIds(moduleId: string) {
+  const hit = quizQuestionIdCache.get(moduleId);
+  if (hit && hit.expiresAt > Date.now()) return hit.ids;
+  const rows = await db
     .select({ id: learningQuestions.id })
     .from(learningQuestions)
     .where(and(eq(learningQuestions.moduleId, moduleId), eq(learningQuestions.bank, "module")))
     .orderBy(asc(learningQuestions.sortOrder));
-  const questionIds = shuffle(questions.map((question) => question.id)).slice(0, MODULE_QUIZ_DRAW_COUNT);
+  const ids = rows.map((question) => question.id);
+  quizQuestionIdCache.set(moduleId, { ids, expiresAt: Date.now() + COURSE_CACHE_TTL_MS });
+  return ids;
+}
+
+async function createQuizAttempt(ctx: LearnerContext, enrollmentId: string, courseId: string, moduleId: string) {
+  const bank = await moduleQuizQuestionIds(moduleId);
+  const questionIds = shuffle([...bank]).slice(0, MODULE_QUIZ_DRAW_COUNT);
   if (questionIds.length < MODULE_QUIZ_DRAW_COUNT) {
     throw new Error("Module quiz bank does not have enough questions");
   }
   void courseId;
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const open = await openQuizAttempt(enrollmentId, moduleId);
-    if (open) return open;
-    const [countRow] = await db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(learningQuizAttempts)
-      .where(and(eq(learningQuizAttempts.enrollmentId, enrollmentId), eq(learningQuizAttempts.moduleId, moduleId)));
     try {
       const [created] = await db
         .insert(learningQuizAttempts)
@@ -1356,7 +1553,7 @@ async function createQuizAttempt(ctx: LearnerContext, enrollmentId: string, cour
           enrollmentId,
           learnerId: ctx.learnerId,
           moduleId,
-          attemptNumber: Number(countRow?.count ?? 0) + 1,
+          attemptNumber: sql`COALESCE((SELECT MAX(${learningQuizAttempts.attemptNumber}) FROM ${learningQuizAttempts} WHERE ${learningQuizAttempts.enrollmentId} = ${enrollmentId} AND ${learningQuizAttempts.moduleId} = ${moduleId}), 0) + 1`,
           questionIds,
         })
         .returning();

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { CertificationLogos } from "@/components/public/certification-logos";
 
 const offices = [
   {
@@ -57,7 +58,7 @@ const footerColumns = [
   {
     title: "Product",
     links: [
-      { label: "Consent platform", href: "/consent-management-platform" },
+      { label: "Platform", href: "/consent-management-platform" },
       { label: "Consent management", href: "/consent-management" },
       { label: "Consent records", href: "/consent-records" },
       { label: "Consent enforcement", href: "/consent-enforcement" },
@@ -70,6 +71,7 @@ const footerColumns = [
   {
     title: "Compliance",
     links: [
+      { label: "DPDP", href: "/dpdp" },
       { label: "DPDP compliance", href: "/dpdp-compliance" },
       { label: "DPDP consent requirements", href: "/dpdp-consent-requirements" },
       { label: "DPDP Act guide", href: "/dpdp-act" },
@@ -120,6 +122,12 @@ const footerColumns = [
 
 export function HomeFooter() {
   return (
+    <>
+      <section className="border-t border-[#E5E7EB]/70 bg-[#F3FAF8]" aria-label="Organizations and standards">
+        <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-10 min-[400px]:px-5 sm:px-8 sm:py-12">
+          <CertificationLogos compact />
+        </div>
+      </section>
       <footer id="site-footer" className="home-section bg-[#0B1220] text-white">
         <div className="home-fade-item w-full min-w-0 px-4 py-14 pb-[calc(5.5rem+env(safe-area-inset-bottom))] sm:px-10 lg:px-12 lg:py-16 xl:px-16">
           <div className="flex flex-col gap-12 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
@@ -148,12 +156,15 @@ export function HomeFooter() {
                   <ul className="mt-4 space-y-2.5">
                     {column.links.map((link) => (
                       <li key={`${column.title}-${link.label}`}>
-                        <Link
-                          href={link.href}
-                          className="text-sm leading-5 text-white/55 transition hover:text-white"
-                        >
-                          {link.label}
-                        </Link>
+                        {link.href === "/e-learning" || link.href.startsWith("/e-learning/") ? (
+                          <a href={link.href} className="text-sm leading-5 text-white/55 transition hover:text-white">
+                            {link.label}
+                          </a>
+                        ) : (
+                          <Link href={link.href} className="text-sm leading-5 text-white/55 transition hover:text-white">
+                            {link.label}
+                          </Link>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -197,5 +208,6 @@ export function HomeFooter() {
           </div>
         </div>
       </footer>
+    </>
   );
 }

@@ -43,12 +43,18 @@ function HeaderCenter() {
   return <DashboardSearch />;
 }
 
-function HeaderRight({ setupComplete }: { setupComplete: boolean }) {
+function HeaderRight({
+  setupComplete,
+  countNotifications = true,
+}: {
+  setupComplete: boolean;
+  countNotifications?: boolean;
+}) {
   return (
     <div className="flex items-center gap-1.5 sm:gap-2">
       <SetupGuideHeaderButton complete={setupComplete} />
       <ThemeToggle />
-      <NotificationBell />
+      <NotificationBell countEnabled={countNotifications} />
       <DashboardHelpLink />
       <div className="mx-0.5 hidden h-8 w-px bg-[var(--border)] md:block" />
       <UserButton
@@ -94,7 +100,7 @@ export default async function DashboardLayout({
         headerLeft={<HeaderLeft />}
         headerCenter={<HeaderCenter />}
         headerRight={
-          <Suspense fallback={<HeaderRight setupComplete />}>
+          <Suspense fallback={<HeaderRight setupComplete countNotifications={false} />}>
             <HeaderRightLoader organizationId={context.organization.id} />
           </Suspense>
         }

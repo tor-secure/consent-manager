@@ -19,7 +19,8 @@ ALTER TABLE "purposes"
 
 ALTER TABLE "websites"
   ADD COLUMN IF NOT EXISTS "default_regulation_key" varchar(32),
-  ADD COLUMN IF NOT EXISTS "consent_integrations" jsonb DEFAULT '{}'::jsonb NOT NULL;
+  ADD COLUMN IF NOT EXISTS "consent_integrations" jsonb DEFAULT '{}'::jsonb NOT NULL,
+  ADD COLUMN IF NOT EXISTS "icon_url" text;
 
 ALTER TABLE "scan_results"
   ADD COLUMN IF NOT EXISTS "page_url" varchar(2048);

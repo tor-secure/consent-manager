@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { ShieldLoader } from "@/components/ui/shield-loader";
 import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { quizStartStorageKey, type PreloadedQuizStart } from "@/lib/learning/quiz-start-cache";
 
@@ -78,7 +79,14 @@ export function LessonActions({
         </Link>
       ) : (
         <button type="button" className={primaryBtn} onClick={complete} disabled={pending || !sectionsReady} aria-busy={pending}>
-          {pending ? "Opening quiz…" : "Mark lesson complete"}
+          {pending ? (
+            <>
+              <ShieldLoader />
+              Opening quiz…
+            </>
+          ) : (
+            "Mark lesson complete"
+          )}
         </button>
       )}
       <div aria-live="polite" className="text-sm">

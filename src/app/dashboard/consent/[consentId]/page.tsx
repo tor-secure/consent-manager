@@ -14,18 +14,46 @@ type ProofPayload = {
   verification: { hashMatches: boolean; signatureValid: boolean; intact: boolean };
 };
 
+type EvidenceDecision = {
+  name: string | null;
+  decision: string;
+  granted: boolean;
+  decidedAt?: string;
+};
+
+type EvidenceHistory = {
+  noticeHash?: string;
+  policyVersionNumber?: number;
+  choice?: string | null;
+  consentedAt?: string;
+  noticeSnapshot?: { policy?: { name?: string; version?: number } };
+};
+
 type EvidenceResponse = {
   success: boolean;
   message?: string;
   evidence?: {
     consentId: string;
     status: string;
+    source?: string;
     jurisdiction: string | null;
+    consentedAt?: string | null;
+    expiresAt?: string | null;
+    withdrawnAt?: string | null;
     website: { name: string; domain: string } | null;
     policyVersion: { policyName: string | null; version: number } | null;
-    proof: ProofPayload;
+    decisions?: EvidenceDecision[];
+    history?: EvidenceHistory[];
+    proof: ProofPayload | null;
   };
 };
+
+function formatWhen(value: string | null | undefined) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 export default function ConsentProofPage() {
   const params = useParams<{ consentId: string }>();
@@ -55,6 +83,11 @@ export default function ConsentProofPage() {
 
   const proof = data?.evidence?.proof;
   const intact = proof?.verification.intact === true;
+  const evidence = data?.evidence;
+  const notice = evidence?.history && evidence.history.length > 0 ? evidence.history[evidence.history.length - 1] : null;
+  const noticePolicy = notice?.noticeSnapshot?.policy;
+  const jurisdiction = evidence?.jurisdiction?.trim();
+  const unknownJurisdiction = !jurisdiction || jurisdiction.toLowerCase() === "unknown";
 
   return (
     <div className="page-wrap space-y-6">
@@ -79,7 +112,7 @@ export default function ConsentProofPage() {
         <Card>
           <CardContent className="space-y-4 pt-6">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant={intact ? "success" : "danger"}>{intact ? "Intact" : "Not intact"}</Badge>
+              <Badge variant={proof?.stored ? (intact ? "success" : "danger") : "neutral"}>{proof?.stored ? (intact ? "Intact" : "Not intact") : "No signature stored"}</Badge>
               <Badge variant="neutral">{data.evidence.status}</Badge>
             </div>
             <p className="text-sm text-[var(--muted-foreground)]">
@@ -91,6 +124,41 @@ export default function ConsentProofPage() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Consent ID</p>
               <code className="mt-1 block break-all font-mono text-xs">{data.evidence.consentId}</code>
+            </div>
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <p className="text-[var(--muted-foreground)]">Consented: <span className="text-[var(--foreground)]">{formatWhen(evidence?.consentedAt)}</span></p>
+              <p className="text-[var(--muted-foreground)]">Expires: <span className="text-[var(--foreground)]">{evidence?.expiresAt ? formatWhen(evidence.expiresAt) : "Not configured"}</span></p>
+              <p className="text-[var(--muted-foreground)]">Withdrawn: <span className="text-[var(--foreground)]">{formatWhen(evidence?.withdrawnAt)}</span></p>
+              <p className="text-[var(--muted-foreground)]">Source: <span className="capitalize text-[var(--foreground)]">{evidence?.source || "—"}</span></p>
+              <p className="text-[var(--muted-foreground)]">Jurisdiction: <span className="text-[var(--foreground)]">{unknownJurisdiction ? "Unknown" : jurisdiction}</span></p>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Notice</p>
+              {notice ? (
+                <div className="mt-1 space-y-1 text-sm">
+                  <p className="text-[var(--foreground)]">
+                    {noticePolicy?.name ? `${noticePolicy.name} · v${noticePolicy.version ?? notice.policyVersionNumber ?? "—"}` : `Policy version ${notice.policyVersionNumber ?? "—"}`}
+                  </p>
+                  {notice.choice ? <p className="text-[var(--muted-foreground)]">Choice: {notice.choice}</p> : null}
+                  {notice.noticeHash ? <code className="block break-all font-mono text-xs text-[var(--muted-foreground)]">{notice.noticeHash}</code> : null}
+                </div>
+              ) : (
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">No notice snapshot is stored for this record.</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted-foreground)]">Choices</p>
+              {evidence?.decisions && evidence.decisions.length > 0 ? (
+                <ul className="mt-1 space-y-1 text-sm">
+                  {evidence.decisions.map((decision) => (
+                    <li key={`${decision.name ?? "purpose"}-${decision.decision}`} className="text-[var(--foreground)]">
+                      {decision.name ?? "Purpose"} · {decision.granted ? "Granted" : "Not granted"} · {decision.decision}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm text-[var(--muted-foreground)]">No individual choices are stored for this record.</p>
+              )}
             </div>
             {proof?.stored ? (
               <>

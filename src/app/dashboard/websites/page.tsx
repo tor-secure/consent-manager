@@ -1,15 +1,13 @@
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
-import { consentPolicies } from "@/db/schema/consent-policies";
-import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import {
   WebsiteList,
   type WebsiteRow,
 } from "@/components/websites/website-list";
-import { PageHeader, PageHeaderLink } from "@/components/ui/page-header";
+import { CreateWebsiteForm } from "@/components/websites/create-website-form";
 
 export default async function WebsitesPage() {
   const { organization } = await requireDashboardContext();
@@ -25,56 +23,57 @@ export default async function WebsitesPage() {
       defaultRegion: websites.defaultRegion,
       verified: websites.verified,
       createdAt: websites.createdAt,
+      iconUrl: websites.iconUrl,
+      policyId: sql<string | null>`(
+        SELECT p.id
+        FROM consent_policies p
+        WHERE p.website_id = websites.id
+        ORDER BY p.created_at ASC
+        LIMIT 1
+      )`,
+      hasPublished: sql<boolean | string | null>`EXISTS (
+        SELECT 1
+        FROM consent_policy_versions v
+        INNER JOIN consent_policies p ON p.id = v.policy_id
+        WHERE p.website_id = websites.id
+          AND v.is_published = true
+      )`,
     })
     .from(websites)
-    .where(eq(websites.organizationId, organization.id))
+    .where(and(eq(websites.organizationId, organization.id), isNull(websites.deletedAt)))
     .orderBy(websites.createdAt);
 
-  const siteIds = rows.map((row) => row.id);
-  const policyRows =
-    siteIds.length === 0
-      ? []
-      : await db
-          .select({
-            id: consentPolicies.id,
-            websiteId: consentPolicies.websiteId,
-            isPublished: consentPolicyVersions.isPublished,
-          })
-          .from(consentPolicies)
-          .leftJoin(
-            consentPolicyVersions,
-            and(
-              eq(consentPolicyVersions.policyId, consentPolicies.id),
-              eq(consentPolicyVersions.isPublished, true),
-            ),
-          )
-          .where(inArray(consentPolicies.websiteId, siteIds));
-
   const websiteList: WebsiteRow[] = rows.map((row) => {
-    const sitePolicies = policyRows.filter((policy) => policy.websiteId === row.id);
-    const published = sitePolicies.find((policy) => policy.isPublished);
-    const draft = sitePolicies[0];
-    const nextAction = !draft
-      ? { label: "Create policy", href: `/dashboard/policies/new?websiteId=${row.id}` }
+    const { policyId, hasPublished, ...site } = row;
+    const hasPolicy = Boolean(policyId);
+    const published = hasPublished === true || hasPublished === "t" || hasPublished === "true";
+    const setupStatus = !hasPolicy
+      ? "needs_policy"
       : !published
-        ? { label: "Publish policy", href: `/dashboard/policies/${draft.id}#policy-publish` }
-        : !row.verified
-          ? { label: "Install SDK", href: `/dashboard/websites/${row.id}/installation` }
-          : { label: "Run scan", href: `/dashboard/scanner?websiteId=${row.id}` };
-    return { ...row, nextAction };
+        ? "ready_to_publish"
+        : !site.verified
+          ? "install_sdk"
+          : "ready_to_scan";
+    const nextAction = !hasPolicy
+      ? { label: "Create policy", href: `/dashboard/policies/new?websiteId=${site.id}` }
+      : !published
+        ? { label: "Publish policy", href: `/dashboard/policies/${policyId}#policy-publish` }
+        : !site.verified
+          ? { label: "Install SDK", href: `/dashboard/websites/${site.id}/installation` }
+          : { label: "Run scan", href: `/dashboard/scanner?websiteId=${site.id}` };
+    return { ...site, setupStatus, nextAction };
   });
 
+  if (websiteList.length === 0) {
+    return (
+      <div className="page-wrap flex min-h-[70vh] items-center justify-center p-4 md:p-6 xl:p-10">
+        <CreateWebsiteForm cancelHref="/dashboard" />
+      </div>
+    );
+  }
+
   return (
-    <div className="page-wrap">
-      <PageHeader
-        title="Websites"
-        description="Manage the websites connected to your Consent Management Platform."
-        action={
-          <PageHeaderLink href="/dashboard/websites/new">
-            Add website
-          </PageHeaderLink>
-        }
-      />
+    <div className="page-wrap p-4 md:p-6 xl:p-10">
       <WebsiteList websites={websiteList} />
     </div>
   );

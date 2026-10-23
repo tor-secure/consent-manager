@@ -93,6 +93,10 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
+  if (pathname.startsWith("/e-learning/sign-in") || pathname.startsWith("/e-learning/sign-up")) {
+    return children;
+  }
+
   if (!signedIn) {
     return (
       <div className="min-h-screen bg-[#f3f7f6] text-[#0B2C4A]">
@@ -101,12 +105,12 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
             <Link href="/e-learning" className="inline-flex items-center gap-2">
               <BrandLogo height={28} />
             </Link>
-            <Link
+            <a
               href="/e-learning/sign-in"
               className="inline-flex h-10 items-center rounded-xl bg-[#0B2C4A] px-4 text-sm font-semibold text-white transition-colors hover:bg-[#123a5c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]"
             >
               Log in
-            </Link>
+            </a>
           </div>
         </header>
         <main id="main-content" className="mx-auto w-full max-w-6xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
@@ -126,7 +130,7 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
   const examStatus = progress?.examPassed ? "completed" : examUnlocked ? "available" : "locked";
 
   const sidebar = (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="shrink-0 border-b border-[#e4eeec] px-4 py-4">
         <Link href="/e-learning" className="inline-flex items-center gap-2" onClick={() => setOpen(false)}>
           <BrandLogo height={28} />
@@ -143,30 +147,31 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
         </Link>
       </div>
 
-      <div className="mx-3 mt-4 shrink-0 rounded-2xl border border-[#e4eeec] bg-[#fbfdfc] p-4">
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Overall progress</p>
-        <div className="mt-3">
-          <ProgressRing value={enrolled ? percent : 0} />
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm ring-1 ring-[#e4eeec]">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#4d6570]">Done</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums text-[#0B2C4A]">{enrolled ? done : 0}</p>
+      <div className="lesson-scroll mt-4 flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-y-contain px-3 pb-3">
+        <div className="shrink-0 rounded-2xl border border-[#e4eeec] bg-[#fbfdfc] p-4">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Overall progress</p>
+          <div className="mt-3">
+            <ProgressRing value={enrolled ? percent : 0} />
           </div>
-          <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm ring-1 ring-[#e4eeec]">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-[#4d6570]">Left</p>
-            <p className="mt-0.5 text-lg font-bold tabular-nums text-[#0B2C4A]">{enrolled ? left : total}</p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm ring-1 ring-[#e4eeec]">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#4d6570]">Completed</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-[#0B2C4A]">{enrolled ? done : 0}</p>
+            </div>
+            <div className="rounded-xl bg-white px-3 py-2 text-center shadow-sm ring-1 ring-[#e4eeec]">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#4d6570]">Remaining</p>
+              <p className="mt-0.5 text-lg font-bold tabular-nums text-[#0B2C4A]">{enrolled ? left : total}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Recent modules</p>
+            <MiniBars modules={modules} />
           </div>
         </div>
-        <div className="mt-4">
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Recent modules</p>
-          <MiniBars modules={modules} />
-        </div>
-      </div>
 
-      <div className="mt-4 flex min-h-0 flex-1 flex-col px-3 pb-2">
-        <p className="shrink-0 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Curriculum</p>
-        <ol className="lesson-scroll mt-2 min-h-0 flex-1 space-y-0.5 overflow-y-auto pr-1">
+        <div className="mt-4 flex flex-col">
+          <p className="shrink-0 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Curriculum</p>
+          <ol className="mt-2 space-y-0.5 pr-1">
           {modules.map((item) => {
             const status = toModuleStatus(item.status);
             const href = item.unlocked === false ? "/e-learning" : `/e-learning/module/${item.slug}`;
@@ -210,6 +215,7 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
             )}
           </li>
         </ol>
+        </div>
       </div>
 
       <div className="shrink-0 space-y-2 border-t border-[#e4eeec] px-4 py-3">
@@ -240,7 +246,7 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
   return (
     <div className="min-h-screen bg-[#f3f7f6] text-[#0B2C4A]">
       <div className="flex min-h-screen w-full">
-        <aside className="sticky top-0 hidden h-screen w-[17.5rem] shrink-0 border-r border-[#e4eeec] bg-white lg:block xl:w-[19rem]">
+        <aside className="sticky top-0 hidden h-dvh w-[17.5rem] shrink-0 overflow-hidden border-r border-[#e4eeec] bg-white lg:flex lg:flex-col xl:w-[19rem]">
           {sidebar}
         </aside>
 
@@ -264,7 +270,7 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
           {open ? (
             <div className="fixed inset-0 z-40 lg:hidden">
               <button type="button" className="absolute inset-0 bg-[#0B2C4A]/35" aria-label="Close menu" onClick={() => setOpen(false)} />
-              <aside id="learning-sidebar" className="absolute inset-y-0 left-0 w-[18rem] max-w-[85vw] bg-white shadow-xl">
+              <aside id="learning-sidebar" className="absolute inset-y-0 left-0 flex h-full w-[18rem] max-w-[85vw] flex-col overflow-hidden bg-white shadow-xl">
                 {sidebar}
               </aside>
             </div>

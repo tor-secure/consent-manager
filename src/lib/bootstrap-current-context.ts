@@ -17,7 +17,7 @@ import {
 } from "@/lib/schema-selects";
 import { ensureMembershipForClerkRole, ensureNamedRole } from "@/lib/local-membership";
 import { OWNER_ROLE } from "@/lib/org-roles";
-import { isDatabaseUnreachableError, isSchemaMismatchError } from "@/lib/schema-mismatch";
+import { isDatabaseUnreachableError, isSchemaMismatchError, isTransientDatabaseError } from "@/lib/schema-mismatch";
 
 export type BootstrapContext = {
   user: typeof users.$inferSelect;
@@ -56,6 +56,9 @@ function rethrowBootstrapDbError(error: unknown): never {
       "Cannot reach the database. Neon hostname lookup failed. Set Windows DNS to 8.8.8.8 and 1.1.1.1, run ipconfig /flushdns, then retry.",
       { cause: error },
     );
+  }
+  if (isTransientDatabaseError(error)) {
+    throw new Error("The database connection dropped. Refresh the page.", { cause: error });
   }
   if (isSchemaMismatchError(error)) {
     throw new Error(
@@ -110,25 +113,35 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
   // Returning visitors already have local rows. Skip Clerk's currentUser()
   // (a network hop) and load user + org + membership in one query.
   if (orgId) {
-    const [hot] = await db
-      .select({
-        user: userCoreSelect,
-        organization: organizationCoreSelect,
-        membership: getTableColumns(memberships),
-        roleName: roles.name,
-      })
-      .from(users)
-      .innerJoin(organizations, eq(organizations.clerkOrganizationId, orgId))
-      .innerJoin(
-        memberships,
-        and(
-          eq(memberships.userId, users.id),
-          eq(memberships.organizationId, organizations.id),
-        ),
-      )
-      .leftJoin(roles, eq(roles.id, memberships.roleId))
-      .where(eq(users.clerkUserId, userId))
-      .limit(1);
+    const loadHotContext = () =>
+      db
+        .select({
+          user: userCoreSelect,
+          organization: organizationCoreSelect,
+          membership: getTableColumns(memberships),
+          roleName: roles.name,
+        })
+        .from(users)
+        .innerJoin(organizations, eq(organizations.clerkOrganizationId, orgId))
+        .innerJoin(
+          memberships,
+          and(
+            eq(memberships.userId, users.id),
+            eq(memberships.organizationId, organizations.id),
+          ),
+        )
+        .leftJoin(roles, eq(roles.id, memberships.roleId))
+        .where(eq(users.clerkUserId, userId))
+        .limit(1);
+
+    let hotRows: Awaited<ReturnType<typeof loadHotContext>>;
+    try {
+      hotRows = await loadHotContext();
+    } catch (error) {
+      if (!isTransientDatabaseError(error)) throw error;
+      hotRows = await loadHotContext();
+    }
+    const [hot] = hotRows;
 
     if (hot) {
       return {

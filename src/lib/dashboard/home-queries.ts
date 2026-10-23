@@ -4,7 +4,8 @@ import { cache } from "react";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { loadConsentAnalytics } from "@/lib/analytics/queries";
+import { loadConsentAnalytics, type ConsentAnalyticsFilters } from "@/lib/analytics/queries";
+import type { DashboardFilters } from "@/lib/dashboard/home-filters";
 import { readTtlCache, writeTtlCache } from "@/lib/ttl-cache";
 
 const HOME_CACHE_TTL_MS = 30_000;
@@ -131,11 +132,17 @@ export type HomeDashboardCounts = {
   firstUnpublishedPolicyId: string | null;
 };
 
-export const loadHomeChartAnalytics = cache(async (organizationId: string) => {
-  const cacheKey = `home-charts:${organizationId}`;
+export const loadHomeChartAnalytics = cache(async (organizationId: string, filters: DashboardFilters) => {
+  const cacheKey = `home-charts:${organizationId}:${filters.days ?? ""}:${filters.from ?? ""}:${filters.to ?? ""}:${filters.websiteId ?? ""}`;
   const cached = readTtlCache<Awaited<ReturnType<typeof loadConsentAnalytics>>>(cacheKey);
   if (cached) return cached;
-  const value = await loadConsentAnalytics(organizationId, { days: "30" }, "home");
+  const query: ConsentAnalyticsFilters = {
+    days: filters.days,
+    from: filters.from,
+    to: filters.to,
+    websiteId: filters.websiteId,
+  };
+  const value = await loadConsentAnalytics(organizationId, query, "home");
   writeTtlCache(cacheKey, value, HOME_CACHE_TTL_MS);
   return value;
 });

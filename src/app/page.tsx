@@ -6,7 +6,6 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeInteractions } from "@/components/public/home-interactions";
 import { HomeNavbar } from "@/components/public/home-navbar";
-import { CertificationLogos } from "@/components/public/certification-logos";
 import { HomeProductPreview } from "@/components/public/home-product-preview";
 import { HomeTrustedFeatures } from "@/components/public/home-trusted-features";
 import { HomeUseCasesCta } from "@/components/public/home-use-cases-cta";
@@ -15,6 +14,7 @@ import { HomeComparison } from "@/components/public/home-comparison";
 import { ArrowButton } from "@/components/ui/arrow-button";
 import { PenaltyCallout } from "@/components/public/penalty-callout";
 import Link from "next/link";
+import { sitelinkPages } from "@/content/primary-nav";
 import {
   DEFAULT_DESCRIPTION,
   DEFAULT_TITLE,
@@ -170,6 +170,18 @@ export default function Home() {
                 </Link>
               </div>
 
+              <nav aria-label="Key pages" className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+                {sitelinkPages.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="text-sm font-semibold text-[#0B2C4A] underline-offset-4 hover:underline"
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+
               <PenaltyCallout className="mt-4 w-full max-w-lg" />
 
               <ul className="mt-4 flex min-w-0 flex-col gap-2 text-[12px] text-[#6B7280] sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-5 sm:gap-y-1.5">
@@ -196,12 +208,6 @@ export default function Home() {
             </div>
 
             <HomeProductPreview />
-          </div>
-        </section>
-
-        <section className="home-section border-t border-[#E5E7EB]/70 bg-[#F3FAF8]">
-          <div className="mx-auto w-full min-w-0 max-w-[1200px] px-4 py-10 min-[400px]:px-5 sm:px-8 sm:py-12">
-            <CertificationLogos compact />
           </div>
         </section>
 

@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -17,6 +17,7 @@ export type TenantWebsite = {
   environment: string;
   status: string;
   siteKey: string;
+  iconUrl: string | null;
   defaultLanguage: string;
   defaultRegion: string | null;
   defaultRegulationKey: string | null;
@@ -55,6 +56,7 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
   const where = and(
     eq(websites.id, websiteId),
     eq(organizations.clerkOrganizationId, orgId),
+    isNull(websites.deletedAt),
   );
 
   try {
@@ -64,6 +66,7 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
         defaultRegulationKey: websites.defaultRegulationKey,
         consentIntegrations: websites.consentIntegrations,
         iabRegistration: websites.iabRegistration,
+        iconUrl: websites.iconUrl,
       })
       .from(websites)
       .innerJoin(organizations, eq(websites.organizationId, organizations.id))
@@ -89,6 +92,7 @@ export const getTenantWebsite = cache(async function getTenantWebsite(
       defaultRegulationKey: null,
       consentIntegrations: {},
       iabRegistration: null,
+      iconUrl: null,
     };
   }
 });

@@ -46,7 +46,13 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData }) {
+export function WebsiteSettingsForm({
+  website,
+  layout = "cards",
+}: {
+  website: WebsiteSettingsData;
+  layout?: "cards" | "plain";
+}) {
   const router = useRouter();
   const [name, setName] = useState(website.name);
   const [description, setDescription] = useState(website.description ?? "");
@@ -84,18 +90,23 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
     });
   }
 
+  const sectionClass = layout === "plain" ? "space-y-5" : "rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow";
+  const sectionBodyClass = layout === "plain" ? "space-y-5" : "space-y-5 p-6";
+  const localeBodyClass = layout === "plain" ? "grid gap-5 sm:grid-cols-2" : "grid gap-5 p-6 sm:grid-cols-2";
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {/* General */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">General</h2>
-        </div>
-        <div className="space-y-5 p-6">
+    <form onSubmit={handleSubmit} className={layout === "plain" ? "space-y-6" : "space-y-8"}>
+      <section className={sectionClass}>
+        {layout === "cards" ? (
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">General</h2>
+          </div>
+        ) : null}
+        <div className={sectionBodyClass}>
           <Field label="Website name">
             <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={255} className={inputCls} />
           </Field>
-          <Field label="Description" hint="Optional — visible only to your team.">
+          <Field label="Description" hint="Optional. Visible only to your team.">
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} maxLength={1000} className={inputCls} />
           </Field>
           <Field label="Environment">
@@ -106,14 +117,17 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
             </Select>
           </Field>
         </div>
-      </div>
+      </section>
 
-      {/* Locale */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Locale defaults</h2>
-        </div>
-        <div className="grid gap-5 p-6 sm:grid-cols-2">
+      <section className={sectionClass}>
+        {layout === "cards" ? (
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Locale defaults</h2>
+          </div>
+        ) : (
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">Locale defaults</h2>
+        )}
+        <div className={localeBodyClass}>
           <Field label="Default language">
             <LocaleSelect
               value={defaultLanguage}
@@ -123,7 +137,7 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
           </Field>
           <Field label="Default region">
             <Select value={defaultRegion} onChange={(e) => setDefaultRegion(e.target.value)}>
-              <option value="">— None —</option>
+              <option value="">None</option>
               <option value="IN">India</option>
               <option value="EU">European Union</option>
               <option value="US">United States</option>
@@ -133,18 +147,19 @@ export function WebsiteSettingsForm({ website }: { website: WebsiteSettingsData 
             </Select>
           </Field>
         </div>
-      </div>
+      </section>
 
-      {/* Identity (read-only) */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] card-shadow">
-        <div className="border-b border-[var(--border)] px-6 py-4">
-          <h2 className="text-base font-semibold text-[var(--foreground)]">Identity</h2>
-        </div>
-        <div className="space-y-5 p-6">
-          <ReadOnlyField label="Domain" value={website.domain} />
-          <ReadOnlyField label="Site key" value={website.siteKey} />
-        </div>
-      </div>
+      {layout === "cards" ? (
+        <section className={sectionClass}>
+          <div className="border-b border-[var(--border)] px-6 py-4">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Identity</h2>
+          </div>
+          <div className={sectionBodyClass}>
+            <ReadOnlyField label="Domain" value={website.domain} />
+            <ReadOnlyField label="Site key" value={website.siteKey} />
+          </div>
+        </section>
+      ) : null}
 
       {/* Feedback */}
       {error && (

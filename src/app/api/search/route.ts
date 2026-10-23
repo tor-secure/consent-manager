@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import { and, eq, ilike, or } from "drizzle-orm";
+import { and, eq, ilike, isNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
@@ -77,6 +77,7 @@ export async function GET(request: Request) {
         .where(
           and(
             eq(websites.organizationId, organization.id),
+            isNull(websites.deletedAt),
             or(ilike(websites.name, pattern), ilike(websites.domain, pattern)),
           ),
         )

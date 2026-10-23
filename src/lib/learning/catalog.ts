@@ -2,11 +2,13 @@ import { PROGRAMME_MODULES } from "./programme";
 import type { CatalogModule } from "./question";
 import { COURSE_SLUG, MODULE_COUNT } from "./engine";
 
-export const COURSE_CONTENT_VERSION = "2026-10-10-mcq";
+export const COURSE_CONTENT_VERSION = "2026-10-19-quiz";
 /** Questions stored for each module. A quiz attempt draws from this bank. */
 export const MODULE_QUIZ_BANK_COUNT = 15;
 /** Questions shown in one module quiz attempt. */
 export const MODULE_QUIZ_DRAW_COUNT = 5;
+/** Final examination length. The attempt submits when this time has passed. */
+export const FINAL_EXAM_DURATION_SECONDS = 60 * 60;
 export const COURSE_LAST_REVIEWED = "";
 
 export const COURSE_DISCLAIMER =

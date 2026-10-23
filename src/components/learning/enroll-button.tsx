@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 
+import { ShieldLoader } from "@/components/ui/shield-loader";
 import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
 import { primaryBtn } from "@/components/learning/ui";
 
@@ -20,18 +20,13 @@ export function EnrollButton({
 
   if (!signedIn) {
     return (
-      <div className="flex flex-col items-start gap-2 lg:items-end">
-        <Link
-          href={GUEST_ENROLL_HREF}
-          aria-label={`Log in to enroll in all ${moduleCount} modules`}
-          className={`${primaryBtn} h-12 min-w-40 px-8 text-base`}
-        >
-          Enroll
-        </Link>
-        <p className="max-w-xs text-sm leading-5 text-[#4d6570] lg:text-right">
-          Log in with your e-learning account to enrol. Workspace login is separate.
-        </p>
-      </div>
+      <a
+        href={GUEST_ENROLL_HREF}
+        aria-label={`Log in to enroll in all ${moduleCount} modules`}
+        className={`${primaryBtn} h-12 min-w-40 px-8 text-base`}
+      >
+        Enroll
+      </a>
     );
   }
 
@@ -45,7 +40,7 @@ export function EnrollButton({
   }
 
   return (
-    <div className="flex flex-col items-start gap-2 lg:items-end">
+    <div className="flex flex-col items-start gap-2">
       <button
         type="button"
         onClick={enroll}
@@ -56,7 +51,7 @@ export function EnrollButton({
       >
         {pending ? (
           <>
-            <span aria-hidden="true" className="h-4 w-4 rounded-full border-2 border-white/40 border-t-white motion-safe:animate-spin" />
+            <ShieldLoader />
             Enrolling…
           </>
         ) : (
