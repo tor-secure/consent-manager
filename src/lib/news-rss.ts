@@ -15,7 +15,7 @@ export type NewsFeedResult = {
   fetchedAt: string;
 };
 
-const FETCH_TIMEOUT_MS = 8_000;
+const FETCH_TIMEOUT_MS = 2_500;
 const REVALIDATE_SECONDS = 600;
 const MAX_ITEMS_PER_SOURCE = 18;
 const MAX_FEED_ITEMS = 90;
@@ -292,16 +292,28 @@ async function fetchXml(url: string): Promise<string | null> {
 }
 
 async function loadSource(source: NewsSource): Promise<{ articles: NewsArticle[]; ok: boolean }> {
-  for (const feed of source.feeds) {
-    const xml = await fetchXml(feed);
-    if (!xml) continue;
-    const articles = parseFeedXml(xml, source);
-    if (articles.length > 0) return { articles, ok: true };
+  try {
+    const parsed = await Promise.all(
+      source.feeds.map(async (feed) => {
+        const xml = await fetchXml(feed);
+        if (!xml) return null;
+        const articles = parseFeedXml(xml, source);
+        return articles.length > 0 ? articles : null;
+      }),
+    );
+    const articles = parsed.find((item) => item && item.length > 0);
+    if (articles) return { articles, ok: true };
+  } catch {
+    return { articles: [], ok: false };
   }
   return { articles: [], ok: false };
 }
 
-export async function getNewsFeed(): Promise<NewsFeedResult> {
+const CACHE_MS = REVALIDATE_SECONDS * 1000;
+let cachedFeed: { at: number; feed: NewsFeedResult } | null = null;
+let inflight: Promise<NewsFeedResult> | null = null;
+
+async function loadFresh(): Promise<NewsFeedResult> {
   const settled = await Promise.all(NEWS_SOURCES.map((source) => loadSource(source)));
   const articles: NewsArticle[] = [];
   const sources: NewsSourceStatus[] = NEWS_SOURCES.map((source, index) => {
@@ -322,12 +334,34 @@ export async function getNewsFeed(): Promise<NewsFeedResult> {
     return bTime - aTime;
   });
 
-  const visible = articles.slice(0, MAX_FEED_ITEMS);
-  await fillMissingImages(visible);
-
   return {
-    articles: visible,
+    articles: articles.slice(0, MAX_FEED_ITEMS),
     sources,
     fetchedAt: new Date().toISOString(),
   };
+}
+
+function refreshInBackground(): Promise<NewsFeedResult> {
+  if (inflight) return inflight;
+  inflight = loadFresh()
+    .then((feed) => {
+      cachedFeed = { at: Date.now(), feed };
+      void fillMissingImages(feed.articles).catch(() => undefined);
+      return feed;
+    })
+    .finally(() => {
+      inflight = null;
+    });
+  return inflight;
+}
+
+export async function getNewsFeed(): Promise<NewsFeedResult> {
+  if (cachedFeed && Date.now() - cachedFeed.at < CACHE_MS) {
+    return cachedFeed.feed;
+  }
+  if (cachedFeed) {
+    void refreshInBackground();
+    return cachedFeed.feed;
+  }
+  return refreshInBackground();
 }

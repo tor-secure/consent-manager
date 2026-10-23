@@ -5,6 +5,8 @@ export default function SignUpPage() {
   return (
     <AuthPageShell mode="sign-up">
       <SignUp
+        path="/sign-up"
+        routing="path"
         fallbackRedirectUrl="/dashboard"
         signInUrl="/sign-in"
         appearance={clerkAuthAppearance}

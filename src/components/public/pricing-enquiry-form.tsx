@@ -1,36 +1,10 @@
 "use client";
 
-import { useEffect, useImperativeHandle, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
+import { InvisibleRecaptcha, type InvisibleRecaptchaHandle } from "@/components/public/invisible-recaptcha";
 import { ArrowButton } from "@/components/ui/arrow-button";
-
-type Grecaptcha = {
-  render: (
-    element: HTMLElement,
-    options: {
-      sitekey: string;
-      size: "invisible";
-      callback: (token: string) => void;
-      "expired-callback": () => void;
-      "error-callback": () => void;
-    },
-  ) => number;
-  execute: (widgetId: number) => void;
-  reset: (widgetId: number) => void;
-};
-
-type InvisibleRecaptchaHandle = {
-  execute: () => void;
-  reset: () => void;
-};
-
-declare global {
-  interface Window {
-    grecaptcha?: Grecaptcha;
-    recaptchaOnLoad?: () => void;
-  }
-}
+import { RECAPTCHA_DID_NOT_RUN, RECAPTCHA_FAILED } from "@/lib/recaptcha-messages";
 
 const PLANS = [
   { id: "silver", label: "Silver", hint: "Essential compliance" },
@@ -39,91 +13,33 @@ const PLANS = [
   { id: "unsure", label: "Not sure yet", hint: "Help me choose" },
 ] as const;
 
-function InvisibleRecaptcha({
-  ref,
-  siteKey,
-  onToken,
-  onError,
-}: {
-  ref: React.Ref<InvisibleRecaptchaHandle>;
-  siteKey: string;
-  onToken: (token: string) => void;
-  onError: () => void;
-}) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const widgetIdRef = useRef<number | null>(null);
-  const onTokenRef = useRef(onToken);
-  const onErrorRef = useRef(onError);
-  onTokenRef.current = onToken;
-  onErrorRef.current = onError;
-
-  useImperativeHandle(ref, () => ({
-    execute() {
-      const widgetId = widgetIdRef.current;
-      if (widgetId == null || !window.grecaptcha) {
-        onErrorRef.current();
-        return;
-      }
-      window.grecaptcha.execute(widgetId);
-    },
-    reset() {
-      const widgetId = widgetIdRef.current;
-      if (widgetId == null || !window.grecaptcha) return;
-      window.grecaptcha.reset(widgetId);
-    },
-  }));
-
-  useEffect(() => {
-    let cancelled = false;
-
-    function renderWidget() {
-      if (cancelled || !containerRef.current || !window.grecaptcha || widgetIdRef.current != null) return;
-      widgetIdRef.current = window.grecaptcha.render(containerRef.current, {
-        sitekey: siteKey,
-        size: "invisible",
-        callback: (token) => onTokenRef.current(token),
-        "expired-callback": () => onErrorRef.current(),
-        "error-callback": () => onErrorRef.current(),
-      });
-    }
-
-    if (window.grecaptcha) {
-      renderWidget();
-    } else {
-      window.recaptchaOnLoad = () => {
-        if (!cancelled) renderWidget();
-      };
-      if (!document.querySelector("script[data-recaptcha-api]")) {
-        const script = document.createElement("script");
-        script.src = "https://www.google.com/recaptcha/api.js?render=explicit&onload=recaptchaOnLoad";
-        script.async = true;
-        script.defer = true;
-        script.dataset.recaptchaApi = "true";
-        document.head.appendChild(script);
-      }
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [siteKey]);
-
-  return <div ref={containerRef} className="hidden" aria-hidden="true" />;
+function planFromLocation(): string {
+  if (typeof window === "undefined") return "silver";
+  const requested = new URLSearchParams(window.location.search).get("plan")?.toLowerCase();
+  return PLANS.some((plan) => plan.id === requested) ? requested! : "silver";
 }
 
 export function PricingEnquiryForm({ siteKey }: { siteKey: string }) {
-  const searchParams = useSearchParams();
-  const requestedPlan = searchParams.get("plan")?.toLowerCase();
-  const selectedPlan = PLANS.some((plan) => plan.id === requestedPlan) ? requestedPlan : "silver";
+  const [selectedPlan, setSelectedPlan] = useState("silver");
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const captchaRef = useRef<InvisibleRecaptchaHandle>(null);
 
+  useEffect(() => {
+    setSelectedPlan(planFromLocation());
+  }, []);
+
+  function captchaMissing() {
+    captchaRef.current?.reset();
+    setStatus("error");
+    setMessage(RECAPTCHA_DID_NOT_RUN);
+  }
+
   function captchaFailed() {
     captchaRef.current?.reset();
     setStatus("error");
-    setMessage("Security check failed. Try sending the enquiry again.");
+    setMessage(RECAPTCHA_FAILED);
   }
 
   async function postForm(recaptchaToken: string) {
@@ -158,6 +74,7 @@ export function PricingEnquiryForm({ siteKey }: { siteKey: string }) {
       setStatus("sent");
       setMessage(payload.message ?? "Thanks. We will be in touch.");
       form.reset();
+      setSelectedPlan(planFromLocation());
       captchaRef.current?.reset();
     } catch {
       setStatus("error");
@@ -252,7 +169,8 @@ export function PricingEnquiryForm({ siteKey }: { siteKey: string }) {
                 name="plan"
                 value={plan.id}
                 required
-                defaultChecked={plan.id === selectedPlan}
+                checked={plan.id === selectedPlan}
+                onChange={() => setSelectedPlan(plan.id)}
                 className="mt-1"
               />
               <span>
@@ -292,7 +210,8 @@ export function PricingEnquiryForm({ siteKey }: { siteKey: string }) {
           onToken={(token) => {
             void postForm(token);
           }}
-          onError={captchaFailed}
+          onMissing={captchaMissing}
+          onFailed={captchaFailed}
         />
       ) : null}
 

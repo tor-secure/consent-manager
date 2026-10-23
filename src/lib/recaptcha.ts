@@ -1,5 +1,9 @@
 import "server-only";
 
+import { logger } from "@/lib/logger";
+
+export type RecaptchaVerdict = "ok" | "missing" | "rejected";
+
 export function recaptchaSiteKey(): string {
   return (
     process.env.RECAPTCHA_SITE_KEY?.trim() ||
@@ -8,9 +12,13 @@ export function recaptchaSiteKey(): string {
   );
 }
 
-export async function verifyRecaptcha(token: string, remoteIp: string | null): Promise<boolean> {
+export async function verifyRecaptcha(
+  token: string,
+  remoteIp: string | null,
+): Promise<RecaptchaVerdict> {
   const secret = process.env.RECAPTCHA_SECRET?.trim();
-  if (!secret || !token) return false;
+  if (!token.trim()) return "missing";
+  if (!secret) return "rejected";
 
   const body = new URLSearchParams({ secret, response: token });
   if (remoteIp) body.set("remoteip", remoteIp);
@@ -20,8 +28,13 @@ export async function verifyRecaptcha(token: string, remoteIp: string | null): P
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
-  if (!response.ok) return false;
+  if (!response.ok) {
+    logger.warn("recaptcha_verify_http", { status: response.status });
+    return "rejected";
+  }
 
-  const payload = (await response.json()) as { success?: boolean };
-  return payload.success === true;
+  const payload = (await response.json()) as { success?: boolean; "error-codes"?: string[] };
+  if (payload.success === true) return "ok";
+  logger.warn("recaptcha_verify_rejected", { codes: payload["error-codes"] ?? [] });
+  return "rejected";
 }

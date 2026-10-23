@@ -390,6 +390,7 @@ export function AuthPageShell({
             <div className="order-1 flex min-w-0 items-center justify-center bg-[#F9FAFB] px-3 py-6 min-[400px]:px-5 sm:px-8 sm:py-8 lg:order-2 lg:px-10">
               <div id="auth-form" key={mode} className="cmp-auth-form-enter w-full min-w-0 max-w-[420px]" tabIndex={-1}>
                 {children}
+                <div id="clerk-captcha" />
                 <p className="mt-5 flex items-start gap-2 text-[12px] leading-5 break-words text-[#6B7280]">
                   <svg
                     width="14"

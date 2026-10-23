@@ -42,7 +42,7 @@ export const BASELINE_SECURITY_HEADERS: Record<string, string> = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "X-Frame-Options": "SAMEORIGIN",
   "Permissions-Policy": PERMISSIONS_POLICY,
-  "Cross-Origin-Opener-Policy": "same-origin",
+  "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
   "X-Permitted-Cross-Domain-Policies": "none",
   "X-XSS-Protection": "0",
   "Origin-Agent-Cluster": "?1",

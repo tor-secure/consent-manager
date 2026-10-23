@@ -53,7 +53,7 @@ const featureCards = [
     title: "Analytics & Insights",
     description:
       "Track consent rates, user preferences and performance with detailed reports.",
-    href: "#features",
+    href: "/consent-analytics",
     iconBg: "bg-[#E6F9F5]",
     iconColor: "text-[#0B2C4A]",
     icon: <path d="M5.25 18.75V12m6.75 6.75V5.25m6.75 13.5v-9" />,
@@ -62,7 +62,7 @@ const featureCards = [
     title: "Secure & Reliable",
     description:
       "Enterprise-grade security, scalability and 99.99% uptime you can trust.",
-    href: "#features",
+    href: "/security",
     iconBg: "bg-[#E6F9F5]",
     iconColor: "text-[#0B2C4A]",
     icon: (

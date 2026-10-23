@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
 
 import { HomeFooter } from "@/components/public/home-footer";
 import { HomeNavbar } from "@/components/public/home-navbar";
@@ -141,9 +140,7 @@ export default function PricingPage() {
                 with a quote. Checkout is not enabled on this page.
               </p>
             </div>
-            <Suspense fallback={<div className="h-96 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFF]" />}>
-              <PricingEnquiryForm siteKey={recaptchaSiteKey()} />
-            </Suspense>
+            <PricingEnquiryForm siteKey={recaptchaSiteKey()} />
           </div>
         </section>
       </main>

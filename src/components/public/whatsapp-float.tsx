@@ -1,7 +1,19 @@
+"use client";
+
+import { useEffect, useId, useRef, useState } from "react";
+
 const WHATSAPP_NUMBER = "918951511111";
 const WHATSAPP_TEXT = "Hey,I had a doubt regarding Consent Guru";
 
-const whatsappHref = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_TEXT)}`;
+const MESSAGE_PRESETS = [
+  { id: "general", label: "General question", text: "Hey, I have a general question about Consent Guru." },
+  { id: "pricing", label: "Pricing", text: "Hey, I have a question about Consent Guru pricing." },
+  { id: "training", label: "DPDP training", text: "Hey, I have a question about Consent Guru DPDP training." },
+] as const;
+
+function whatsappHref(text: string) {
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
+}
 
 function WhatsAppGlyph({ className = "" }: { className?: string }) {
   return (
@@ -12,18 +24,66 @@ function WhatsAppGlyph({ className = "" }: { className?: string }) {
 }
 
 export function WhatsAppFloat() {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    }
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
   return (
-    <div className="pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex items-end gap-2">
+    <div
+      ref={rootRef}
+      className="pointer-events-none fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] flex items-end gap-2"
+    >
+      <div className="flex flex-col items-end gap-2">
+        {open ? (
+          <div
+            id={menuId}
+            role="menu"
+            aria-label="WhatsApp messages"
+            className="pointer-events-auto max-h-40 w-52 overflow-y-auto rounded-2xl border border-[#D1FADF] bg-white py-1 text-left shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
+          >
+            {MESSAGE_PRESETS.map((item) => (
+              <a
+                key={item.id}
+                role="menuitem"
+                href={whatsappHref(item.text)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-3 py-2 text-[13px] font-medium leading-5 text-[#14532D] hover:bg-[#F0FDF4]"
+                onClick={() => setOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+          </div>
+        ) : null}
+        <button
+          type="button"
+          className="whatsapp-float-bubble pointer-events-auto mb-0.5 max-w-[168px] rounded-2xl rounded-br-md border border-[#D1FADF] bg-white px-2.5 py-1.5 text-left text-[12px] font-medium leading-4 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
+          aria-expanded={open}
+          aria-controls={menuId}
+          onClick={() => setOpen((value) => !value)}
+        >
+          Chat on WhatsApp
+        </button>
+      </div>
       <a
-        href={whatsappHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="whatsapp-float-bubble pointer-events-auto mb-0.5 max-w-[168px] rounded-2xl rounded-br-md border border-[#D1FADF] bg-white px-2.5 py-1.5 text-left text-[12px] font-medium leading-4 text-[#14532D] shadow-[0_10px_24px_-12px_rgba(15,23,42,0.35)]"
-      >
-        Chat on WhatsApp
-      </a>
-      <a
-        href={whatsappHref}
+        href={whatsappHref(WHATSAPP_TEXT)}
         target="_blank"
         rel="noopener noreferrer"
         className="whatsapp-float-btn pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_8px_20px_-6px_rgba(18,140,70,0.7)] transition hover:scale-105 hover:bg-[#1EBE57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"

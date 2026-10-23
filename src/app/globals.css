@@ -299,7 +299,7 @@ html, body {
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -321,11 +321,6 @@ html, body {
 
 .cmp-auth-fade-item:nth-child(3) {
   animation-delay: 0.19s;
-}
-
-html:has(.cmp-auth-page),
-html:has(.cmp-auth-page) body {
-  overflow-x: clip;
 }
 
 .cmp-auth-page {
@@ -378,12 +373,36 @@ html:has(.cmp-auth-page) body {
 .cmp-auth-page .cl-formField,
 .cmp-auth-page .cl-formField__password,
 .cmp-auth-page .cl-formFieldLabelRow,
-.cmp-auth-page .cl-formFieldInputGroup,
-.cmp-auth-page [class*="cl-internal-linmqy"] {
+.cmp-auth-page .cl-formFieldInputGroup {
   width: 100% !important;
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box;
+}
+
+.cmp-auth-page .cl-formFieldInput,
+.cmp-auth-page .cl-formFieldError,
+.cmp-auth-page .cl-formFieldErrorText,
+.cmp-auth-page .cl-alert,
+.cmp-auth-page .cl-formButtonPrimary,
+.cmp-auth-page .cl-socialButtonsBlockButton {
+  pointer-events: auto !important;
+}
+
+#clerk-captcha,
+.cmp-auth-page .cl-captcha {
+  position: static !important;
+  width: auto !important;
+  max-width: 100% !important;
+  height: auto !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
+}
+
+.cmp-auth-page .cl-footer {
+  height: auto !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
 }
 
 .cmp-auth-page .cl-formFieldInput,

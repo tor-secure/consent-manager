@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { recaptchaSiteKey, verifyRecaptcha } from "@/lib/recaptcha";
+import { RECAPTCHA_DID_NOT_RUN, RECAPTCHA_FAILED } from "@/lib/recaptcha-messages";
 import { logger } from "@/lib/logger";
 import { isNodemailerConfigured } from "@/lib/mail/send-email";
 import { sendPricingEnquiryEmail } from "@/lib/mail/send-pricing-enquiry";
@@ -52,10 +53,10 @@ export async function POST(request: Request) {
 
     if (recaptchaSiteKey()) {
       const recaptchaToken = String(body.recaptchaToken ?? "").trim();
-      const captchaOk = await verifyRecaptcha(recaptchaToken, getClientIp(request));
-      if (!captchaOk) {
+      const captcha = await verifyRecaptcha(recaptchaToken, getClientIp(request));
+      if (captcha !== "ok") {
         return NextResponse.json(
-          { success: false, message: "Security check failed. Try sending the enquiry again." },
+          { success: false, message: captcha === "missing" ? RECAPTCHA_DID_NOT_RUN : RECAPTCHA_FAILED },
           { status: 400 },
         );
       }
