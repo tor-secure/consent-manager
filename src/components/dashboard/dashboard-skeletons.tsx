@@ -48,7 +48,15 @@ export function DashboardPageSkeleton() {
 }
 
 export function ConsentPageSkeleton() {
-  return <PageLoader label="Loading consent records" />;
+  return (
+    <div className="page-wrap space-y-6" aria-busy="true" aria-label="Loading consent records">
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-8 w-64" />
+      </div>
+      <Skeleton className="h-[32rem] rounded-2xl" />
+    </div>
+  );
 }
 
 export function AnalyticsPageSkeleton() {

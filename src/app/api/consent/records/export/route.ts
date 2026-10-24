@@ -32,6 +32,7 @@ export async function GET(request: Request) {
   const query = parseRecordListQuery({
     q: url.searchParams.get("q") ?? undefined,
     status: url.searchParams.get("status") ?? undefined,
+    website: url.searchParams.get("website") ?? undefined,
     policy: url.searchParams.get("policy") ?? undefined,
     jurisdiction: url.searchParams.get("jurisdiction") ?? undefined,
     from: url.searchParams.get("from") ?? undefined,

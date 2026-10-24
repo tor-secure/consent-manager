@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, sql, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
 import { consentDecisions } from "@/db/schema/consent-decisions";
@@ -75,6 +75,7 @@ function listWhere(organizationId: string, query: RecordListQuery) {
   }
   const status = statusCondition(query.status);
   if (status) filters.push(status);
+  if (query.websiteId) filters.push(eq(consentRecords.websiteId, query.websiteId));
   if (query.policyId) filters.push(eq(consentPolicies.id, query.policyId));
   if (query.jurisdiction === "unknown") {
     filters.push(sql`(
@@ -85,8 +86,8 @@ function listWhere(organizationId: string, query: RecordListQuery) {
   } else if (query.jurisdiction) {
     filters.push(eq(consentRecords.jurisdiction, query.jurisdiction));
   }
-  if (query.from) filters.push(sql`${consentRecords.consentedAt} >= ${dayStart(query.from)}`);
-  if (query.to) filters.push(sql`${consentRecords.consentedAt} < ${nextDay(query.to)}`);
+  if (query.from) filters.push(gte(consentRecords.consentedAt, dayStart(query.from)));
+  if (query.to) filters.push(lt(consentRecords.consentedAt, nextDay(query.to)));
   return and(...filters);
 }
 
@@ -125,21 +126,37 @@ function fromRecords() {
 
 export async function loadConsentRecordPage(organizationId: string, query: RecordListQuery) {
   const where = listWhere(organizationId, query);
-  const [countRow, rows] = await Promise.all([
-    db
-      .select({ total: sql<number>`count(*)::int` })
-      .from(consentRecords)
-      .innerJoin(websites, eq(consentRecords.websiteId, websites.id))
-      .innerJoin(consentPolicyVersions, eq(consentRecords.policyVersionId, consentPolicyVersions.id))
-      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
-      .where(where),
-    fromRecords()
-      .where(where)
-      .orderBy(...listOrder(query))
-      .limit(query.size)
-      .offset((query.page - 1) * query.size),
-  ]);
-  return { rows, total: countRow[0]?.total ?? 0 };
+  const pageRows = await db
+    .select({
+      ...listSelection(),
+      total: sql<number>`count(*) over()::int`.as("filtered_total"),
+    })
+    .from(consentRecords)
+    .innerJoin(websites, eq(consentRecords.websiteId, websites.id))
+    .innerJoin(consentPolicyVersions, eq(consentRecords.policyVersionId, consentPolicyVersions.id))
+    .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+    .where(where)
+    .orderBy(...listOrder(query))
+    .limit(query.size)
+    .offset((query.page - 1) * query.size);
+
+  if (pageRows.length > 0) {
+    const total = Number(pageRows[0]?.total ?? 0);
+    return {
+      rows: pageRows.map(({ total: _total, ...row }) => row),
+      total,
+    };
+  }
+  if (query.page <= 1) return { rows: [], total: 0 };
+
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(consentRecords)
+    .innerJoin(websites, eq(consentRecords.websiteId, websites.id))
+    .innerJoin(consentPolicyVersions, eq(consentRecords.policyVersionId, consentPolicyVersions.id))
+    .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+    .where(where);
+  return { rows: [], total: Number(countRow?.total ?? 0) };
 }
 
 export async function loadConsentRecordExport(organizationId: string, query: RecordListQuery) {

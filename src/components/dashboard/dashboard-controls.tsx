@@ -33,12 +33,14 @@ export function DateField({
   min,
   max,
   onChange,
+  className = "w-44",
 }: {
   label: string;
   value: string;
   min?: string;
   max?: string;
   onChange: (value: string) => void;
+  className?: string;
 }) {
   const autoId = useId();
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -203,7 +205,7 @@ export function DateField({
     : null;
 
   return (
-    <label className="w-44 text-xs font-medium text-[var(--muted-foreground)]">
+    <label className={`${className} text-xs font-medium text-[var(--muted-foreground)]`}>
       {label}
       <button
         ref={buttonRef}

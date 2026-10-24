@@ -10,6 +10,7 @@ export type RecordStatusFilter = "" | "accepted" | "partial" | "rejected" | "wit
 export type RecordListQuery = {
   q: string;
   status: RecordStatusFilter;
+  websiteId: string;
   policyId: string;
   jurisdiction: string;
   from: string;
@@ -25,6 +26,7 @@ const STATUS_FILTERS = new Set<RecordStatusFilter>(["", "accepted", "partial", "
 export function parseRecordListQuery(params: {
   q?: string;
   status?: string;
+  website?: string;
   policy?: string;
   jurisdiction?: string;
   from?: string;
@@ -42,6 +44,7 @@ export function parseRecordListQuery(params: {
   return {
     q: (params.q ?? "").trim().slice(0, 120),
     status,
+    websiteId: params.website && UUID_RE.test(params.website) ? params.website : "",
     policyId: params.policy && UUID_RE.test(params.policy) ? params.policy : "",
     jurisdiction: (params.jurisdiction ?? "").trim().slice(0, 100),
     from: params.from && DAY_RE.test(params.from) ? params.from : "",
@@ -58,6 +61,7 @@ export function recordListHref(query: RecordListQuery, overrides: Partial<Record
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
   if (next.status) params.set("status", next.status);
+  if (next.websiteId) params.set("website", next.websiteId);
   if (next.policyId) params.set("policy", next.policyId);
   if (next.jurisdiction) params.set("jurisdiction", next.jurisdiction);
   if (next.from) params.set("from", next.from);
