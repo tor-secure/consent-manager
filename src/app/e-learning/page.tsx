@@ -23,7 +23,7 @@ import { breadcrumbSchema, courseSchema, graphSchema } from "@/lib/structured-da
 
 const title = "DPDP Act Training";
 const description =
-  "Consent Guru’s free 30-module e-learning course on India’s DPDP Act, 2023 and DPDP Rules, 2025. Pass module quizzes and the final exam for a certificate of completion (not government accreditation).";
+  "Free 30-module e-learning course on India’s DPDP Act, 2023 and DPDP Rules, 2025. Pass the quizzes and final exam to earn a certificate of completion.";
 const ENROLL_BANNER_SRC = "/certification/cg_banner.png";
 
 export const metadata: Metadata = {

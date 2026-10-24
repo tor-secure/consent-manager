@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
@@ -12,7 +11,7 @@ import {
   DPDP_REQUEST_TYPE_OPTIONS,
   PREFERRED_LANGUAGE_OPTIONS,
 } from "@/lib/privacy-rights/intake-fields";
-import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
+import { PRIVACY_CENTRE_ORG, type PortalQuery } from "@/content/privacy-centre";
 
 const RIGHTS = [
   {
@@ -51,10 +50,9 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-export function DataPrincipalPortal() {
-  const searchParams = useSearchParams();
-  const siteKey = searchParams.get("siteKey")?.trim() ?? "";
-  const presetType = searchParams.get("type")?.trim().toLowerCase() ?? "";
+export function DataPrincipalPortal({ query }: { query: PortalQuery }) {
+  const siteKey = query.siteKey?.trim() ?? "";
+  const presetType = query.type?.trim().toLowerCase() ?? "";
 
   const initialRequestType = useMemo(() => {
     return DPDP_REQUEST_TYPE_OPTIONS.some((option) => option.value === presetType)
@@ -68,8 +66,8 @@ export function DataPrincipalPortal() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [dueAt, setDueAt] = useState<string | null>(null);
-  const [trackTicket, setTrackTicket] = useState(searchParams.get("ticket")?.trim() ?? "");
-  const [trackEmail, setTrackEmail] = useState(searchParams.get("email")?.trim() ?? "");
+  const [trackTicket, setTrackTicket] = useState(query.ticket?.trim() ?? "");
+  const [trackEmail, setTrackEmail] = useState(query.email?.trim() ?? "");
 
   function toggleCategory(value: string) {
     setCategories((current) =>

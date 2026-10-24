@@ -29,7 +29,7 @@ export const TOOL_CARDS: ToolCard[] = [
     id: "readiness-gap",
     href: "/tools/readiness-gap",
     name: "Readiness gap analyser",
-    description: "Score consent, notices, rights, breach, governance, and processors.",
+    description: "Score your DPDP readiness across consent, notices, rights, breach, governance, and processors.",
     purpose: "Turn a yes / partial / no review into pillar scores and a gap list.",
     minutes: "10–12 min",
     version: READINESS_VERSION,

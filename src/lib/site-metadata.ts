@@ -5,9 +5,9 @@ export const SITE_URL = "https://www.consentguru.com";
 export const SITE_NAME = "Consent Guru";
 /** Brand-first title for the homepage SERP (absolute title on `/`). */
 export const DEFAULT_TITLE =
-  "Consent Guru — Consent Management Platform for Privacy & Cookie Consent";
+  "Consent Guru — Consent Management Platform & Cookie Consent";
 export const DEFAULT_DESCRIPTION =
-  "Consent Guru is a consent management platform for organizations that need to collect digital consent, manage cookie and privacy preferences, store consent records, and run privacy workflows for DPDP, GDPR, and CCPA/CPRA.";
+  "Consent management platform to collect consent, run cookie banners, manage preferences, and keep audit-ready consent records for DPDP, GDPR, and CCPA.";
 
 export const SHARE_IMAGE_PATH = "/og/consent-guru-share.png";
 export const SHARE_IMAGE_ALT =

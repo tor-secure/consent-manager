@@ -5,7 +5,7 @@ export const DPDP_PAGE_PATH = "/dpdp-act";
 export const DPDP_PAGE_TITLE = "Digital Personal Data Protection Act (DPDP)";
 
 export const DPDP_PAGE_DESCRIPTION =
-  "A practical guide to India's Digital Personal Data Protection Act, 2023: consent, notices, Data Principal rights, Data Fiduciary duties, and how a consent management platform can support them. Informational only — not legal advice.";
+  "A practical guide to India's DPDP Act, 2023: consent, notices, Data Principal rights, Data Fiduciary duties, and how a consent management platform helps.";
 
 export const DPDP_SECTIONS = [
   { id: "overview", label: "Overview" },

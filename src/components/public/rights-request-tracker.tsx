@@ -65,9 +65,11 @@ export function RightsRequestTracker({
   initialTicket = "",
   initialEmail = "",
   autoLookup = false,
+  headingLevel: Heading = "h2",
 }: {
   id?: string;
   title?: string;
+  headingLevel?: "h1" | "h2";
   description?: string;
   initialTicket?: string;
   initialEmail?: string;
@@ -130,7 +132,7 @@ export function RightsRequestTracker({
           </svg>
         </span>
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#0B2C4A]">{title}</h2>
+          <Heading className="text-xl font-bold tracking-tight text-[#0B2C4A]">{title}</Heading>
           <p className="mt-1 text-sm leading-6 text-[#4B5563]">{description}</p>
         </div>
       </div>

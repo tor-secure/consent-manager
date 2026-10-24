@@ -32,8 +32,9 @@ export async function generateMetadata({
   if (!post) {
     return { title: "Article not found — Consent Guru" };
   }
+  const brandedTitle = `${post.title} — Consent Guru`;
   return {
-    title: post.title,
+    title: brandedTitle.length > 65 ? { absolute: post.title } : post.title,
     description: post.excerpt,
     robots: INDEXABLE_ROBOTS,
     alternates: pageAlternates(`/blogs/${post.slug}`),

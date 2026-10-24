@@ -1,11 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
-import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
+import { PRIVACY_CENTRE_ORG, type PortalQuery } from "@/content/privacy-centre";
 
 type PurposeRow = {
   id: string;
@@ -130,9 +129,8 @@ function IconAlert() {
   );
 }
 
-export function ConsentPreferencesPortal() {
-  const searchParams = useSearchParams();
-  const siteKey = searchParams.get("siteKey")?.trim() ?? "";
+export function ConsentPreferencesPortal({ query }: { query: PortalQuery }) {
+  const siteKey = query.siteKey?.trim() ?? "";
   const [snapshot, setSnapshot] = useState<PreferenceSnapshot | null>(null);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [reason, setReason] = useState("");

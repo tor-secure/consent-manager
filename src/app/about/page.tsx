@@ -8,7 +8,7 @@ import { pageAlternates, socialMetadata, INDEXABLE_ROBOTS } from "@/lib/site-met
 
 const aboutTitle = "About";
 const aboutDescription =
-  "Meet Consent Guru: the consent management platform from TechensGlobal that helps organizations collect consent, honour preferences, and build trusted digital relationships.";
+  "Meet Consent Guru, the consent management platform from TechensGlobal that helps organizations collect consent, honour preferences, and build digital trust.";
 
 export const metadata: Metadata = {
   title: aboutTitle,

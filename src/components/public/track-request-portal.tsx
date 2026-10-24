@@ -1,16 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { RightsRequestTracker } from "@/components/public/rights-request-tracker";
-import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
+import { PRIVACY_CENTRE_ORG, type PortalQuery } from "@/content/privacy-centre";
 
-export function TrackRequestPortal() {
-  const searchParams = useSearchParams();
-  const ticket = searchParams.get("ticket")?.trim() ?? "";
-  const email = searchParams.get("email")?.trim() ?? "";
+export function TrackRequestPortal({ query }: { query: PortalQuery }) {
+  const ticket = query.ticket?.trim() ?? "";
+  const email = query.email?.trim() ?? "";
 
   return (
     <div className="mx-auto max-w-[760px] space-y-5 px-5 py-8 sm:px-8 sm:py-10">
@@ -25,6 +23,7 @@ export function TrackRequestPortal() {
 
       <RightsRequestTracker
         id="track-request"
+        headingLevel="h1"
         title="Track a Data Principal request or grievance"
         description="Use the ticket ID issued after you submitted a Data Principal Rights form (DPR-) or a grievance (GRV-), plus the same email address."
         initialTicket={ticket}

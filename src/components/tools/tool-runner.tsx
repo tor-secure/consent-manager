@@ -2,7 +2,7 @@
 
 import { useOrganization } from "@clerk/nextjs";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toolCard, wizardSteps } from "@/config/tools/catalog";
@@ -39,25 +39,33 @@ function readDraft(key: string): Draft | null {
   }
 }
 
-export function ToolRunner({ tool }: { tool: ToolId }) {
+export function ToolRunner({ tool, reportId }: { tool: ToolId; reportId?: string }) {
   if (!isClerkPublishableKeySet()) {
-    return <Runner tool={tool} orgKey="local" signedIn={false} />;
+    return <Runner tool={tool} reportId={reportId} orgKey="local" signedIn={false} />;
   }
-  return <ClerkRunner tool={tool} />;
+  return <ClerkRunner tool={tool} reportId={reportId} />;
 }
 
-function ClerkRunner({ tool }: { tool: ToolId }) {
+function ClerkRunner({ tool, reportId }: { tool: ToolId; reportId?: string }) {
   const { organization, isLoaded } = useOrganization();
   const orgKey = isLoaded && organization?.id ? organization.id : "local";
-  return <Runner tool={tool} orgKey={orgKey} signedIn={Boolean(isLoaded && organization)} />;
+  return <Runner tool={tool} reportId={reportId} orgKey={orgKey} signedIn={Boolean(isLoaded && organization)} />;
 }
 
-function Runner({ tool, orgKey, signedIn }: { tool: ToolId; orgKey: string; signedIn: boolean }) {
+function Runner({
+  tool,
+  reportId,
+  orgKey,
+  signedIn,
+}: {
+  tool: ToolId;
+  reportId?: string;
+  orgKey: string;
+  signedIn: boolean;
+}) {
   const card = toolCard(tool);
   const steps = useMemo(() => wizardSteps(tool), [tool]);
-  const params = useSearchParams();
   const router = useRouter();
-  const reportId = params.get("report");
   const loadedKey = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState(0);

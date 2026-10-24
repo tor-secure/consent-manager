@@ -118,29 +118,17 @@ export function HomeInteractions() {
       ),
     );
 
+    sections.forEach((item) => item.classList.add("is-inview"));
+    revealItems.forEach((item) => {
+      item.classList.add("is-visible");
+      item.classList.add("is-inview");
+    });
+
     if (reducedMotion.matches || !("IntersectionObserver" in window)) {
-      sections.forEach((item) => item.classList.add("is-inview"));
-      revealItems.forEach((item) => {
-        item.classList.add("is-visible");
-        item.classList.add("is-inview");
-      });
       return;
     }
 
     document.documentElement.classList.add("public-io-ready");
-
-    // Mark already-visible content before enabling fade styles to avoid a blank flash.
-    const markIfVisible = (el: HTMLElement) => {
-      const rect = el.getBoundingClientRect();
-      if (rect.top < window.innerHeight * 0.92 && rect.bottom > window.innerHeight * 0.08) {
-        el.classList.add("is-inview");
-        el.classList.add("is-visible");
-        el.classList.remove("is-outview");
-      }
-    };
-    sections.forEach(markIfVisible);
-    revealItems.forEach(markIfVisible);
-
     document.documentElement.classList.add("home-io-ready");
 
     const groupedParents = new Map<Element, number>();

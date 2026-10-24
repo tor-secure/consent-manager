@@ -14,6 +14,24 @@ export const PRIVACY_CENTRE_ORG = {
   website: "www.consentguru.com",
 } as const;
 
+export type PortalQuery = {
+  siteKey?: string;
+  type?: string;
+  ticket?: string;
+  email?: string;
+};
+
+type RawSearchParams = Record<string, string | string[] | undefined>;
+
+export async function readPortalQuery(searchParams: Promise<RawSearchParams>): Promise<PortalQuery> {
+  const raw = await searchParams;
+  const first = (key: keyof PortalQuery) => {
+    const value = raw[key];
+    return Array.isArray(value) ? value[0] : value;
+  };
+  return { siteKey: first("siteKey"), type: first("type"), ticket: first("ticket"), email: first("email") };
+}
+
 export type LegalBlock =
   | { type: "p"; text: string }
   | { type: "lead"; text: string }

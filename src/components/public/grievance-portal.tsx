@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { PortalSelect } from "@/components/public/portal-select";
 import { RightsRequestTracker } from "@/components/public/rights-request-tracker";
-import { PRIVACY_CENTRE_ORG } from "@/content/privacy-centre";
+import { PRIVACY_CENTRE_ORG, type PortalQuery } from "@/content/privacy-centre";
 import {
   GRIEVANCE_CATEGORY_OPTIONS,
   PREFERRED_LANGUAGE_OPTIONS,
@@ -73,9 +72,8 @@ function IconPen() {
   );
 }
 
-export function GrievancePortal() {
-  const searchParams = useSearchParams();
-  const siteKey = searchParams.get("siteKey")?.trim() ?? "";
+export function GrievancePortal({ query }: { query: PortalQuery }) {
+  const siteKey = query.siteKey?.trim() ?? "";
 
   const [contact, setContact] = useState<PortalContact>(FALLBACK_CONTACT);
   const [category, setCategory] = useState("");
@@ -84,8 +82,8 @@ export function GrievancePortal() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [dueAt, setDueAt] = useState<string | null>(null);
-  const [trackTicket, setTrackTicket] = useState(searchParams.get("ticket")?.trim() ?? "");
-  const [trackEmail, setTrackEmail] = useState(searchParams.get("email")?.trim() ?? "");
+  const [trackTicket, setTrackTicket] = useState(query.ticket?.trim() ?? "");
+  const [trackEmail, setTrackEmail] = useState(query.email?.trim() ?? "");
 
   const remaining = Math.max(0, 50 - description.trim().length);
   const officerEmail = contact.dpoEmail || contact.grievanceOfficerEmail;

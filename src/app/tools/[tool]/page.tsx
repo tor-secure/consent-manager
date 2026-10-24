@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-
 import { toolCard, toolIds } from "@/config/tools/catalog";
 import { ToolRunner } from "@/components/tools/tool-runner";
-import { PageLoader } from "@/components/ui/page-loader";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 import { isToolId } from "@/lib/tools/types";
 
@@ -35,14 +32,13 @@ export async function generateMetadata({
 
 export default async function ToolPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ tool: string }>;
+  searchParams: Promise<{ report?: string }>;
 }) {
   const { tool } = await params;
   if (!isToolId(tool)) notFound();
-  return (
-    <Suspense fallback={<PageLoader label="Loading the tool" />}>
-      <ToolRunner tool={tool} />
-    </Suspense>
-  );
+  const { report } = await searchParams;
+  return <ToolRunner tool={tool} reportId={report} />;
 }

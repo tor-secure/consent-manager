@@ -1,12 +1,10 @@
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { headers } from "next/headers";
 
 import { LearningPortal } from "@/components/learning/learning-portal";
 import { SkipLink } from "@/components/ui/skip-link";
 import { getLearningSession } from "@/lib/learning/auth";
 import { getCourseHome, getPublicCourseCatalog } from "@/lib/learning/service";
-import ELearningLoading from "./loading";
-
 export default async function ELearningLayout({ children }: { children: ReactNode }) {
   const path = (await headers()).get("x-cg-path") ?? "";
   if (path.startsWith("/e-learning/sign-in") || path.startsWith("/e-learning/sign-up")) return children;
@@ -14,9 +12,7 @@ export default async function ELearningLayout({ children }: { children: ReactNod
   return (
     <>
       <SkipLink />
-      <Suspense fallback={<ELearningLoading />}>
-        <LearningFrame>{children}</LearningFrame>
-      </Suspense>
+      <LearningFrame>{children}</LearningFrame>
     </>
   );
 }

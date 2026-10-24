@@ -2290,33 +2290,14 @@ html, body {
     scroll-behavior: smooth;
   }
 
-  .home-io-ready .home-section {
-    opacity: 0;
-    transform: translateY(28px);
-    will-change: opacity, transform;
-  }
-
-  .home-io-ready .home-section.is-inview {
-    animation: home-section-fade-in 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  }
-
-  .home-io-ready .home-section.is-outview {
-    opacity: 1;
-    transform: none;
-    animation: none;
-  }
-
-  .home-io-ready .home-fade-item {
-    opacity: 0;
-    transform: translateY(18px);
-    will-change: opacity, transform;
-  }
-
+  /* Keep homepage copy painted on the first frame. A fade that starts at
+     opacity 0 is what Google’s renderer screenshots: header only, blank hero. */
+  .home-io-ready .home-section,
+  .home-io-ready .home-fade-item,
+  .home-io-ready .home-section.is-inview,
+  .home-io-ready .home-section.is-outview,
   .home-io-ready .home-fade-item.is-inview,
-  .home-io-ready .home-fade-item.is-visible {
-    animation: home-item-fade-in 620ms cubic-bezier(0.22, 1, 0.36, 1) var(--public-stagger, 0ms) both;
-  }
-
+  .home-io-ready .home-fade-item.is-visible,
   .home-io-ready .home-fade-item.is-outview {
     opacity: 1;
     transform: none;

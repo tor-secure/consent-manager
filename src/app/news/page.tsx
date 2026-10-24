@@ -12,7 +12,7 @@ export const revalidate = 600;
 
 const title = "News";
 const description =
-  "Live privacy, security, and consent headlines from IAPP, TechCrunch, The Hacker News, BleepingComputer, Dark Reading, SecurityWeek, CyberScoop, KrebsOnSecurity, SC Media, and Privacy Affairs.";
+  "Live privacy, security, and consent headlines from IAPP, TechCrunch, The Hacker News, BleepingComputer, Dark Reading, SecurityWeek, and more.";
 
 export const metadata: Metadata = {
   title,
