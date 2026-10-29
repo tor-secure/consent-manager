@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
+import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { vendors } from "@/db/schema/vendors";
 import { vendorPurposes } from "@/db/schema/vendor-purposes";
@@ -108,13 +109,47 @@ export async function DELETE(
       );
     }
 
-    // ── Delete all vendor_purposes links between vendor and policy purposes ──
+    // vendor_purposes is org-global. Never remove links still required by another
+    // published policy version in this organization.
+    const protectedLinks = await db
+      .select({ purposeId: policyPurposes.purposeId })
+      .from(policyPurposes)
+      .innerJoin(
+        consentPolicyVersions,
+        eq(policyPurposes.policyVersionId, consentPolicyVersions.id),
+      )
+      .innerJoin(consentPolicies, eq(consentPolicyVersions.policyId, consentPolicies.id))
+      .innerJoin(websites, eq(consentPolicies.websiteId, websites.id))
+      .where(
+        and(
+          eq(websites.organizationId, organization.id),
+          eq(consentPolicyVersions.isPublished, true),
+          ne(consentPolicies.id, policy.id),
+          inArray(policyPurposes.purposeId, attachedPurposeIds),
+        ),
+      );
+
+    const protectedPurposeIds = new Set(protectedLinks.map((row) => row.purposeId));
+    const removablePurposeIds = attachedPurposeIds.filter((id) => !protectedPurposeIds.has(id));
+
+    if (removablePurposeIds.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "This vendor’s purpose links are still required by another published policy in your organization.",
+          protectedPurposeCount: protectedPurposeIds.size,
+        },
+        { status: 409 },
+      );
+    }
+
     const deleted = await db
       .delete(vendorPurposes)
       .where(
         and(
           eq(vendorPurposes.vendorId, vendor.id),
-          inArray(vendorPurposes.purposeId, attachedPurposeIds),
+          inArray(vendorPurposes.purposeId, removablePurposeIds),
         ),
       )
       .returning();
@@ -126,7 +161,11 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json({ success: true, removedCount: deleted.length });
+    return NextResponse.json({
+      success: true,
+      removedCount: deleted.length,
+      retainedForPublishedPolicies: protectedPurposeIds.size,
+    });
   } catch (error) {
     logger.error("Detach vendor from policy failed", { error });
     return NextResponse.json(

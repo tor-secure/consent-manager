@@ -352,9 +352,9 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     for (var i = 0; i < _submitButtons.length; i++) {
       var button = _submitButtons[i];
       if (!button) continue;
-      button.disabled = _consentState === 'PENDING';
-      button.style.opacity = _consentState === 'PENDING' ? '0.55' : '';
-      button.style.cursor = _consentState === 'PENDING' ? 'wait' : 'pointer';
+      button.disabled = !!_submitBusy;
+      button.style.opacity = _submitBusy ? '0.55' : '';
+      button.style.cursor = _submitBusy ? 'wait' : 'pointer';
     }
     var ids = ['__cmp_banner_status__', '__cmp_pc_status__', '__cmp_prefs_status__'];
     for (var j = 0; j < ids.length; j++) {
@@ -2446,12 +2446,41 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _submitBusy = false;
       if (_consentState === 'GRANTED' || _consentState === 'DENIED') {
         renderSubmissionState('Consent confirmed');
+        return;
       }
+      var statusEl = document.getElementById('__cmp_banner_status__')
+        || document.getElementById('__cmp_pc_status__')
+        || document.getElementById('__cmp_prefs_status__');
+      renderSubmissionState(statusEl && statusEl.style.display !== 'none' ? statusEl.textContent : '');
     });
   }
 
+  function queueStoredSubmission(stored) {
+    if (!stored || !stored.submissionId || !stored.choice) return false;
+    if (_submitBusy || _queuedSubmit) return false;
+    var job = {
+      submissionId: stored.submissionId,
+      signature: stored.signature || '',
+      choice: stored.choice,
+      purposeDecisions: stored.purposeDecisions || [],
+      vendorDecisions: stored.vendorDecisions || [],
+      startedAt: stored.startedAt || Date.now()
+    };
+    _retryJob = job;
+    _queuedSubmit = {
+      choice: job.choice,
+      purposeDecisions: job.purposeDecisions,
+      vendorDecisions: job.vendorDecisions,
+      callback: function(err) { finishChoice(err); },
+      submissionId: job.submissionId,
+      signature: job.signature,
+      startedAt: job.startedAt
+    };
+    return true;
+  }
+
   function submitConsent(choice, purposeDecisions, vendorDecisions, callback) {
-    if (_submitBusy || _queuedSubmit) {
+    if (_submitBusy) {
       return false;
     }
     var retrySignature = JSON.stringify({
@@ -2540,6 +2569,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function removeCookiePreferencesPanel() {
     var el = document.getElementById('__cmp_prefs__');
     if (el && el.parentNode) el.parentNode.removeChild(el);
+    var backdrop = document.getElementById('__cmp_prefs_backdrop__');
+    if (backdrop && backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
   }
 
   function formatReceiptDate(value) {
@@ -2665,11 +2696,38 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     }
   }
 
-  function renderToggle(on, locked, onChange) {
+  function renderToggle(on, locked, onChange, style) {
+    var useCheckbox = style === 'checkbox';
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.setAttribute('role', 'switch');
+    btn.setAttribute('role', useCheckbox ? 'checkbox' : 'switch');
+    btn.setAttribute('aria-checked', on ? 'true' : 'false');
     if (locked) btn.disabled = true;
+    if (useCheckbox) {
+      btn.style.cssText = 'flex-shrink:0;width:18px;height:18px;border-radius:4px;border:2px solid '
+        + (on ? (_config && _config.bannerConfig && _config.bannerConfig.primaryColor) || '#2563EB' : '#CBD5E1')
+        + ';background:' + (on ? ((_config && _config.bannerConfig && _config.bannerConfig.primaryColor) || '#2563EB') : '#fff')
+        + ';padding:0;cursor:' + (locked ? 'not-allowed' : 'pointer') + ';display:inline-flex;align-items:center;justify-content:center;';
+      btn.innerHTML = on
+        ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>'
+        : '';
+      btn._cmpOn = !!on;
+      if (!locked) {
+        btn.addEventListener('click', function() {
+          var next = !btn._cmpOn;
+          btn._cmpOn = next;
+          btn.setAttribute('aria-checked', next ? 'true' : 'false');
+          var color = (_config && _config.bannerConfig && _config.bannerConfig.primaryColor) || '#2563EB';
+          btn.style.borderColor = next ? color : '#CBD5E1';
+          btn.style.background = next ? color : '#fff';
+          btn.innerHTML = next
+            ? '<svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#fff" stroke-width="2"><path d="M2 6l3 3 5-5"/></svg>'
+            : '';
+          onChange(next);
+        });
+      }
+      return btn;
+    }
     btn.style.cssText = 'flex-shrink:0;width:42px;height:24px;border-radius:999px;border:none;padding:2px;cursor:'
       + (locked ? 'not-allowed' : 'pointer') + ';';
     var knob = document.createElement('span');
@@ -2699,14 +2757,42 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       : 'left:16px;right:auto;';
 
     var extra = extraUiFor(_config.resolvedLanguage);
+    var prefsTitle = cfg.cookiePreferencesTitle || extra.cookiePreferences || 'Cookie Preferences';
+    var prefsLayout = cfg.cookiePrefsLayout || 'corner';
+    var prefsBtnStyle = cfg.cookiePrefsButtonStyle === 'row' ? 'row' : 'stack';
+    var prefsToggleStyle = cfg.cookiePrefsToggleStyle === 'checkbox' ? 'checkbox' : 'switch';
+    var prefsRadius = (typeof cfg.cookiePrefsBorderRadius === 'number' ? cfg.cookiePrefsBorderRadius : 18);
     var panel = document.createElement('div');
     panel.id = '__cmp_prefs__';
     panel.setAttribute('role', 'dialog');
-    panel.setAttribute('aria-label', extra.cookiePreferences || 'Cookie Preferences');
+    panel.setAttribute('aria-label', prefsTitle);
     panel.setAttribute('dir', noticeDirection());
-    panel.style.cssText = 'position:fixed;bottom:16px;' + corner
-      + 'z-index:2147483646;width:min(360px,calc(100vw - 24px));background:#fff;color:#0F172A;'
-      + 'border-radius:18px;box-shadow:0 18px 50px rgba(15,23,42,0.22);padding:16px 16px 14px;'
+    var panelPos =
+      prefsLayout === 'center'
+        ? 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(400px,calc(100vw - 32px));max-height:min(86vh,640px);border-radius:' + prefsRadius + 'px;'
+        : prefsLayout === 'sheet'
+          ? 'position:fixed;left:0;right:0;bottom:0;width:100%;max-height:min(72vh,560px);border-radius:' + prefsRadius + 'px ' + prefsRadius + 'px 0 0;'
+          : prefsLayout === 'drawer'
+            ? ('position:fixed;top:0;bottom:0;' + (cfg.preferenceWidgetPosition === 'bottom-right' ? 'right:0;' : 'left:0;')
+              + 'width:min(380px,92vw);max-height:100%;border-radius:'
+              + (cfg.preferenceWidgetPosition === 'bottom-right'
+                ? (prefsRadius + 'px 0 0 ' + prefsRadius + 'px')
+                : ('0 ' + prefsRadius + 'px ' + prefsRadius + 'px 0')) + ';')
+            : 'position:fixed;bottom:16px;' + corner + 'width:min(360px,calc(100vw - 24px));max-height:min(86vh,560px);border-radius:' + prefsRadius + 'px;';
+    if (prefsLayout === 'center') {
+      var backdrop = document.createElement('div');
+      backdrop.id = '__cmp_prefs_backdrop__';
+      backdrop.style.cssText = 'position:fixed;inset:0;z-index:2147483645;background:rgba(15,23,42,0.45);';
+      backdrop.addEventListener('click', function() {
+        _prefsDraft = null;
+        removeCookiePreferencesPanel();
+        syncPreferenceWidget();
+      });
+      (document.body || document.documentElement).appendChild(backdrop);
+    }
+    panel.style.cssText = panelPos
+      + 'z-index:2147483646;background:#fff;color:#0F172A;overflow:auto;'
+      + 'box-shadow:0 18px 50px rgba(15,23,42,0.22);padding:16px 16px 14px;'
       + 'font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;';
 
     var header = document.createElement('div');
@@ -2715,11 +2801,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     title.style.cssText = 'display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:#0B2C4A;flex:1;min-width:0;';
     title.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0B2C4A" stroke-width="2" aria-hidden="true"><path d="M12 3l7 3v6c0 5-3.5 8.5-7 9-3.5-.5-7-4-7-9V6z"/></svg>';
     var titleText = document.createElement('span');
-    titleText.textContent = extra.cookiePreferences || 'Cookie Preferences';
+    titleText.textContent = prefsTitle;
     title.appendChild(titleText);
 
     var locales = availableLocales();
-    if (locales.length) {
+    header.appendChild(title);
+    if (cfg.cookiePrefsShowLanguage !== false && locales.length) {
       var langWrap = document.createElement('label');
       langWrap.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:12px;color:#475569;';
       langWrap.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg>';
@@ -2737,10 +2824,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         window.CMP.setLanguage(langSelect.value);
       });
       langWrap.appendChild(langSelect);
-      header.appendChild(title);
       header.appendChild(langWrap);
-    } else {
-      header.appendChild(title);
     }
 
     var close = document.createElement('button');
@@ -2769,14 +2853,18 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       p.appendChild(v);
       metaBox.appendChild(p);
     }
-    metaLine(extra.status || 'Status:', currentReceiptStatusLabel());
-    metaLine(extra.consentGiven || 'Consent given:', formatReceiptDate(meta.consentedAt));
-    metaLine(extra.expires || 'Expires:', formatReceiptDate(meta.expiresAt));
-    metaLine(extra.consentKey || 'Key:', meta.consentId);
-    panel.appendChild(metaBox);
+    if (cfg.cookiePrefsShowStatusMeta !== false) {
+      metaLine(extra.status || 'Status:', currentReceiptStatusLabel());
+      metaLine(extra.consentGiven || 'Consent given:', formatReceiptDate(meta.consentedAt));
+      metaLine(extra.expires || 'Expires:', formatReceiptDate(meta.expiresAt));
+      if (cfg.showConsentReceiptKey !== false) {
+        metaLine(extra.consentKey || 'Key:', meta.consentId);
+      }
+      panel.appendChild(metaBox);
+    }
 
     var catLabel = document.createElement('div');
-    catLabel.textContent = extra.activeCategories || 'Active categories:';
+    catLabel.textContent = cfg.activeCategoriesLabel || extra.activeCategories || 'Active categories:';
     catLabel.style.cssText = 'font-size:12px;color:#475569;margin:4px 0 6px;';
     panel.appendChild(catLabel);
 
@@ -2794,7 +2882,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       var toggle = renderToggle(granted, locked, function(next) {
         if (!draft.purposes) draft.purposes = {};
         draft.purposes[purpose.id] = next;
-      });
+      }, prefsToggleStyle);
       row.appendChild(name);
       row.appendChild(toggle);
       list.appendChild(row);
@@ -2807,40 +2895,64 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     prefsStatus.style.cssText = 'display:none;margin:0 0 8px;font-size:12px;font-weight:600;color:#B45309;';
     panel.appendChild(prefsStatus);
 
+    var actionsWrap = document.createElement('div');
+    actionsWrap.style.cssText = prefsBtnStyle === 'row'
+      ? 'display:flex;flex-direction:column;gap:8px;'
+      : 'display:flex;flex-direction:column;gap:8px;';
+
     var saveBtn = document.createElement('button');
     saveBtn.type = 'button';
-    saveBtn.textContent = extra.saveChanges || (uiStringsFor(_config.resolvedLanguage).savePreferencesLabel) || 'Save changes';
-    saveBtn.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#2563EB;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-bottom:8px;';
+    saveBtn.textContent = cfg.cookiePrefsSaveLabel || extra.saveChanges
+      || (uiStringsFor(_config.resolvedLanguage).savePreferencesLabel) || 'Save changes';
+    saveBtn.style.cssText = (prefsBtnStyle === 'row' ? 'flex:1;' : 'width:100%;')
+      + 'padding:10px 12px;border-radius:10px;border:none;background:'
+      + (cfg.primaryColor || '#2563EB') + ';color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
     saveBtn.addEventListener('click', function() {
       saveCookiePreferenceToggles();
     });
     _submitButtons.push(saveBtn);
-    panel.appendChild(saveBtn);
 
-    var download = document.createElement('button');
-    download.type = 'button';
-    download.textContent = extra.downloadReceipt || 'Download Receipt';
-    download.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:1px solid #E2E8F0;background:#fff;color:#0F172A;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px;';
-    download.addEventListener('click', downloadConsentReceipt);
-    _submitButtons.push(download);
-    panel.appendChild(download);
+    var download = null;
+    if (cfg.showDownloadReceipt !== false) {
+      download = document.createElement('button');
+      download.type = 'button';
+      download.textContent = cfg.downloadReceiptLabel || extra.downloadReceipt || 'Download Receipt';
+      download.style.cssText = (prefsBtnStyle === 'row' ? 'flex:1;' : 'width:100%;')
+        + 'padding:10px 12px;border-radius:10px;border:1px solid #E2E8F0;background:#fff;color:#0F172A;font-size:13px;font-weight:600;cursor:pointer;';
+      download.addEventListener('click', downloadConsentReceipt);
+      _submitButtons.push(download);
+    }
 
-    var revoke = document.createElement('button');
-    revoke.type = 'button';
-    revoke.textContent = extra.revokeConsent || 'Revoke Consent (DPDP Section 6(4))';
-    revoke.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#EF4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
-    revoke.addEventListener('click', function() {
-      revoke.disabled = true;
-      window.CMP.withdrawConsent().then(function() {
-        _prefsDraft = null;
-        removeCookiePreferencesPanel();
-      }).catch(function() {
-        revoke.disabled = false;
-        renderSubmissionState('Withdrawal could not be confirmed. Please retry.');
+    if (prefsBtnStyle === 'row') {
+      var rowBtns = document.createElement('div');
+      rowBtns.style.cssText = 'display:flex;gap:8px;';
+      rowBtns.appendChild(saveBtn);
+      if (download) rowBtns.appendChild(download);
+      actionsWrap.appendChild(rowBtns);
+    } else {
+      actionsWrap.appendChild(saveBtn);
+      if (download) actionsWrap.appendChild(download);
+    }
+
+    if (cfg.showRevokeConsent !== false) {
+      var revoke = document.createElement('button');
+      revoke.type = 'button';
+      revoke.textContent = cfg.revokeConsentLabel || extra.revokeConsent || 'Revoke Consent (DPDP Section 6(4))';
+      revoke.style.cssText = 'width:100%;padding:10px 12px;border-radius:10px;border:none;background:#EF4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer;';
+      revoke.addEventListener('click', function() {
+        revoke.disabled = true;
+        window.CMP.withdrawConsent().then(function() {
+          _prefsDraft = null;
+          removeCookiePreferencesPanel();
+        }).catch(function() {
+          revoke.disabled = false;
+          renderSubmissionState('Withdrawal could not be confirmed. Please retry.');
+        });
       });
-    });
-    _submitButtons.push(revoke);
-    panel.appendChild(revoke);
+      _submitButtons.push(revoke);
+      actionsWrap.appendChild(revoke);
+    }
+    panel.appendChild(actionsWrap);
 
     var status = document.createElement('div');
     status.id = '__cmp_prefs_status__';
@@ -2873,9 +2985,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (links.childNodes.length) panel.appendChild(links);
 
     var dpoEmail = String(g.dpoEmail || g.grievanceOfficerEmail || '').trim();
+    var legalNote = cfg.cookiePrefsLegalNote || 'DPDP Act, 2023';
     var dpo = document.createElement('div');
     dpo.style.cssText = 'margin-top:8px;font-size:11px;color:#64748B;';
-    dpo.textContent = (dpoEmail ? ('DPO: ' + dpoEmail + ' · ') : '') + 'DPDP Act, 2023';
+    dpo.textContent = (dpoEmail ? ('DPO: ' + dpoEmail + ' · ') : '') + legalNote;
     panel.appendChild(dpo);
 
     (document.body || document.documentElement).appendChild(panel);
@@ -4510,7 +4623,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       blockOptionalProcessing(
         stored && stored.status === 'pending' ? 'PENDING' : 'FAILED',
         stored && stored.status === 'pending'
-          ? 'Consent confirmation is pending. Optional processing remains blocked.'
+          ? 'Your last choice was not confirmed. Please Accept or Reject again.'
           : ''
       );
       if (callback) callback(false);
@@ -4843,20 +4956,26 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     // UNKNOWN, PENDING, FAILED, legacy, and withdrawn local states all fail
     // closed. Operator defaults never create server-confirmed consent.
+    var resumedPending = false;
     if (
       stored &&
       (stored.status === 'pending' || stored.status === 'failed') &&
       stored.submissionId
     ) {
       _consentId = stored.consentId || null;
-      _retryJob = {
-        submissionId: stored.submissionId,
-        signature: stored.signature || '',
-        choice: stored.choice || '',
-        purposeDecisions: stored.purposeDecisions || [],
-        vendorDecisions: stored.vendorDecisions || [],
-        startedAt: stored.startedAt || Date.now()
-      };
+      if (stored.status === 'pending') {
+        resumedPending = queueStoredSubmission(stored);
+      }
+      if (!resumedPending) {
+        _retryJob = {
+          submissionId: stored.submissionId,
+          signature: stored.signature || '',
+          choice: stored.choice || '',
+          purposeDecisions: stored.purposeDecisions || [],
+          vendorDecisions: stored.vendorDecisions || [],
+          startedAt: stored.startedAt || Date.now()
+        };
+      }
     }
     blockOptionalProcessing(
       stored && stored.status === 'pending'
@@ -4867,7 +4986,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
               : (stored && stored.status === 'failed' ? 'FAILED' : 'UNKNOWN')
           ),
       stored && stored.status === 'pending'
-        ? 'Consent confirmation is pending. Optional processing remains blocked.'
+        ? (
+            resumedPending
+              ? 'Confirming your last choice. You can still Accept or Reject.'
+              : 'Your last choice was not confirmed. Please Accept or Reject again.'
+          )
         : (
             stored && stored.status === 'failed'
               ? 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
@@ -4881,7 +5004,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (stored && (stored.status === 'pending' || stored.status === 'failed')) {
       renderSubmissionState(
         stored.status === 'pending'
-          ? 'Consent confirmation is pending. Optional processing remains blocked.'
+          ? (
+              resumedPending
+                ? 'Confirming your last choice. You can still Accept or Reject.'
+                : 'Your last choice was not confirmed. Please Accept or Reject again.'
+            )
           : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
       );
     }

@@ -95,7 +95,7 @@ export function CreatePolicyForm({
           ? (result.data as { policy: { id: string } }).policy.id
           : null;
       if (policyId) router.push(`/dashboard/policies/${policyId}`);
-      else router.push("/dashboard/policies");
+      else router.push(`/dashboard/policies?websiteId=${encodeURIComponent(websiteId)}`);
       router.refresh();
     });
   }
@@ -129,6 +129,19 @@ export function CreatePolicyForm({
             <p className="text-sm text-[var(--muted-foreground)]">
               No websites found. Add a website before creating a policy.
             </p>
+          ) : defaultWebsiteId && websites.some((site) => site.id === defaultWebsiteId) ? (
+            <>
+              <input type="hidden" name="websiteId" value={websiteId} />
+              <p id="policy-website" className="rounded-xl border border-[var(--border)] bg-[var(--muted)]/40 px-4 py-3 text-sm text-[var(--foreground)]">
+                {websites.find((site) => site.id === websiteId)?.name}{" "}
+                <span className="text-[var(--muted-foreground)]">
+                  ({websites.find((site) => site.id === websiteId)?.domain})
+                </span>
+              </p>
+              <p className="mt-1.5 text-xs text-[var(--muted-foreground)]">
+                This policy will be added to the selected website. A site can have more than one policy.
+              </p>
+            </>
           ) : (
             <Select
               id="policy-website"

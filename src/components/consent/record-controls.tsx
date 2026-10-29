@@ -33,7 +33,7 @@ export function ConsentRecordControls({
     startTransition(() => router.push(href));
   }
 
-  const filtered = Boolean(query.q || query.status || query.websiteId || query.policyId || query.jurisdiction || query.from || query.to);
+  const filtered = Boolean(query.q || query.status || query.websiteId || query.policyId || query.jurisdiction || query.source || query.from || query.to);
 
   return (
     <form

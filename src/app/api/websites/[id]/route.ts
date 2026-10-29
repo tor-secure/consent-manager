@@ -12,6 +12,7 @@ import {
 } from "@/lib/api-auth-helpers";
 import { requireOperatorRole } from "@/lib/org-roles";
 import { invalidateSdkConfigForWebsite } from "@/lib/sdk/invalidate-site-config";
+import { purgeWebsiteAndRelatedData } from "@/lib/websites/purge-website";
 
 // Allowed environment values — validated server-side, never trusted from body.
 import { parseStoredLocale } from "@/lib/i18n/locale-registry";
@@ -190,11 +191,6 @@ export async function PUT(
   }
 }
 
-function releasedDomain(id: string, domain: string) {
-  const suffix = `.deleted.${id.replace(/-/g, "").slice(0, 8)}`;
-  return `${domain.slice(0, 255 - suffix.length)}${suffix}`;
-}
-
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -241,21 +237,11 @@ export async function DELETE(
       return NextResponse.json({ success: false, message: "Website not found" }, { status: 404 });
     }
 
-    await db
-      .update(websites)
-      .set({
-        status: "inactive",
-        deletedAt: new Date(),
-        domain: releasedDomain(existing.id, existing.domain),
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(websites.id, existing.id),
-          eq(websites.organizationId, organization.id),
-          isNull(websites.deletedAt),
-        ),
-      );
+    await purgeWebsiteAndRelatedData({
+      websiteId: existing.id,
+      organizationId: organization.id,
+      domain: existing.domain,
+    });
 
     await invalidateSdkConfigForWebsite(existing.id);
     return NextResponse.json({ success: true });

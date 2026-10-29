@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { IconText } from "@/components/ui/icon-text";
 import { CountryFlag } from "@/components/dashboard/country-flag";
 import { CountryMap } from "@/components/dashboard/country-map";
+import { HorizontalBarChart } from "@/components/charts/bar-chart";
 import { PieChart } from "@/components/charts/pie-chart";
 import { ChoiceChart } from "@/components/charts/choice-chart";
 
@@ -595,6 +596,7 @@ export async function HomeLiveAndChartsSection({
           <AnalyticsPanel title="Devices">
             <div className="flex min-h-64 flex-1 items-center justify-center">
               <PieChart
+                variant="donut"
                 slices={deviceSlices}
                 legend="row"
                 centerLabel="records"
@@ -619,36 +621,36 @@ export async function HomeLiveAndChartsSection({
               </p>
             ) : (
               <>
-              <CountryMap
-                countries={knownCountries.map((row) => ({
-                  code: row.key,
-                  name: row.name,
-                  total: row.total,
-                  accepted: row.accepted,
-                  rejected: row.rejected,
-                  partial: row.partial,
-                  withdrawn: row.withdrawn,
-                }))}
-              />
-              <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
-                {topCountries.map((row) => {
-                  const share = pct(row.total, countryTotal);
-                  return (
-                    <li key={row.key}>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-[var(--foreground)]">
-                          <CountryFlag code={row.key} />
-                          <span className="truncate">{row.name}</span>
-                        </span>
-                        <span className="shrink-0 text-sm tabular-nums text-[var(--muted-foreground)]">{share}%</span>
-                      </div>
-                      <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--secondary)]">
-                        <div className="h-full rounded-full bg-[var(--purple)]" style={{ width: `${Math.max(share, share > 0 ? 4 : 0)}%` }} />
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                <CountryMap
+                  countries={knownCountries.map((row) => ({
+                    code: row.key,
+                    name: row.name,
+                    total: row.total,
+                    accepted: row.accepted,
+                    rejected: row.rejected,
+                    partial: row.partial,
+                    withdrawn: row.withdrawn,
+                  }))}
+                />
+                <ul className="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+                  {topCountries.map((row) => {
+                    const share = pct(row.total, countryTotal);
+                    return (
+                      <li key={row.key}>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-[var(--foreground)]">
+                            <CountryFlag code={row.key} />
+                            <span className="truncate">{row.name}</span>
+                          </span>
+                          <span className="shrink-0 text-sm tabular-nums text-[var(--muted-foreground)]">{share}%</span>
+                        </div>
+                        <div className="mt-2 h-1 overflow-hidden rounded-full bg-[var(--secondary)]">
+                          <div className="h-full rounded-full bg-[var(--purple)]" style={{ width: `${Math.max(share, share > 0 ? 4 : 0)}%` }} />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
               </>
             )}
           </AnalyticsPanel>
@@ -661,26 +663,16 @@ export async function HomeLiveAndChartsSection({
             {topWebsites.length === 0 ? (
               <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">No website records yet.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-[var(--muted-foreground)]">
-                    <th className="pb-2 text-left font-medium">Site</th>
-                    <th className="pb-2 text-right font-medium">Records</th>
-                    <th className="pb-2 text-right font-medium">Accepted</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topWebsites.map((row) => (
-                    <tr key={row.websiteId} className="border-t border-[var(--border)]">
-                      <td className="max-w-[12rem] py-2.5 pr-3">
-                        <p className="truncate font-medium text-[var(--foreground)]">{row.websiteDomain || row.websiteName}</p>
-                      </td>
-                      <td className="py-2.5 text-right font-semibold tabular-nums">{row.total.toLocaleString()}</td>
-                      <td className="py-2.5 text-right tabular-nums text-[var(--muted-foreground)]">{row.accepted.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <HorizontalBarChart
+                rows={topWebsites.map((row) => ({
+                  label: row.websiteDomain || row.websiteName,
+                  value: row.total,
+                  hint: `${row.accepted.toLocaleString()} accepted`,
+                }))}
+                label="Consent records by website"
+                emptyTitle="No website records yet"
+                emptyDescription="Website totals appear after the SDK records a visitor choice."
+              />
             )}
           </AnalyticsPanel>
           <AnalyticsPanel
@@ -690,28 +682,17 @@ export async function HomeLiveAndChartsSection({
             {topPurposes.length === 0 ? (
               <p className="py-8 text-center text-sm text-[var(--muted-foreground)]">No purpose grants yet.</p>
             ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-[var(--muted-foreground)]">
-                    <th className="pb-2 text-left font-medium">Purpose</th>
-                    <th className="pb-2 text-right font-medium">Granted</th>
-                    <th className="pb-2 text-right font-medium">Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {topPurposes.map((row) => (
-                    <tr key={row.purposeKey || row.purposeName} className="border-t border-[var(--border)]">
-                      <td className="max-w-[12rem] py-2.5 pr-3">
-                        <span className="inline-flex max-w-full truncate rounded-md bg-[var(--secondary)] px-2 py-0.5 text-xs font-medium text-[var(--foreground)]">
-                          {row.purposeName}
-                        </span>
-                      </td>
-                      <td className="py-2.5 text-right font-semibold tabular-nums">{row.granted.toLocaleString()}</td>
-                      <td className="py-2.5 text-right tabular-nums text-[var(--muted-foreground)]">{pct(row.granted, row.total)}%</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <HorizontalBarChart
+                rows={topPurposes.map((row) => ({
+                  label: row.purposeName,
+                  value: row.granted,
+                  hint: `${pct(row.granted, row.total)}% granted`,
+                }))}
+                color="var(--primary)"
+                label="Granted consent by purpose"
+                emptyTitle="No purpose grants yet"
+                emptyDescription="Purpose totals appear after visitors grant a purpose."
+              />
             )}
           </AnalyticsPanel>
         </div>

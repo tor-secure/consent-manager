@@ -29,11 +29,18 @@ export async function POST(
     return NextResponse.json({ success: false, message: "Schedule time must be in the future" }, { status: 400 });
   }
   const updated = await schedulePolicyVersion({
+    policyId: authz.policy.policyId,
     versionId: parsed.data.versionId,
     scheduledPublishAt: when,
   });
   if (!updated) {
-    return NextResponse.json({ success: false, message: "Only unpublished versions can be scheduled" }, { status: 409 });
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Version not found for this policy, or only unpublished versions can be scheduled",
+      },
+      { status: 404 },
+    );
   }
   return NextResponse.json({
     success: true,

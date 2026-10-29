@@ -96,7 +96,7 @@ export function DashboardShell({
   const onMobileToggle = () => setMobileOpen((v) => !v);
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="cg-dashboard-shell min-h-screen bg-[var(--background)]">
       <SkipLink />
       <div className="flex min-h-screen">
         {/* Desktop Sidebar */}

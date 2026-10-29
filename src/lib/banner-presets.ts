@@ -1,6 +1,6 @@
 import type { BannerConfiguration } from "@/lib/banner-config";
 
-export type BannerPresetCategory = "layout" | "look" | "region";
+export type BannerPresetCategory = "layout" | "look" | "region" | "prefs";
 
 export type BannerPreset = {
   id: string;
@@ -14,7 +14,51 @@ export const BANNER_PRESET_CATEGORIES: { id: BannerPresetCategory; label: string
   { id: "layout", label: "Layout" },
   { id: "look", label: "Look" },
   { id: "region", label: "Region" },
+  { id: "prefs", label: "Cookie prefs" },
 ];
+
+/** Shared Cookie Preferences panel defaults for region-aware templates. */
+const COOKIE_PREFS_DPDP: Partial<BannerConfiguration> = {
+  showPreferenceWidget: true,
+  preferenceWidgetPosition: "bottom-left",
+  cookiePreferencesTitle: "Cookie Preferences",
+  cookiePrefsSaveLabel: "Save changes",
+  downloadReceiptLabel: "Download Receipt",
+  revokeConsentLabel: "Revoke Consent (DPDP Section 6(4))",
+  activeCategoriesLabel: "Active categories:",
+  cookiePrefsLegalNote: "DPDP Act, 2023",
+  showDownloadReceipt: true,
+  showRevokeConsent: true,
+  showConsentReceiptKey: true,
+};
+
+const COOKIE_PREFS_GDPR: Partial<BannerConfiguration> = {
+  showPreferenceWidget: true,
+  preferenceWidgetPosition: "bottom-left",
+  cookiePreferencesTitle: "Cookie settings",
+  cookiePrefsSaveLabel: "Save choices",
+  downloadReceiptLabel: "Download receipt",
+  revokeConsentLabel: "Withdraw consent",
+  activeCategoriesLabel: "Your choices:",
+  cookiePrefsLegalNote: "GDPR — you can change or withdraw consent anytime",
+  showDownloadReceipt: true,
+  showRevokeConsent: true,
+  showConsentReceiptKey: true,
+};
+
+const COOKIE_PREFS_US: Partial<BannerConfiguration> = {
+  showPreferenceWidget: true,
+  preferenceWidgetPosition: "bottom-right",
+  cookiePreferencesTitle: "Your privacy choices",
+  cookiePrefsSaveLabel: "Save preferences",
+  downloadReceiptLabel: "Download my choices",
+  revokeConsentLabel: "Opt out of sale/share",
+  activeCategoriesLabel: "Categories:",
+  cookiePrefsLegalNote: "Your Privacy Choices",
+  showDownloadReceipt: true,
+  showRevokeConsent: true,
+  showConsentReceiptKey: false,
+};
 
 export const BANNER_PRESETS: BannerPreset[] = [
   {
@@ -242,6 +286,7 @@ export const BANNER_PRESETS: BannerPreset[] = [
       title: "We use cookies",
       description:
         "We use necessary cookies to make this site work. With your consent, we also use analytics and advertising cookies. You can change your choices at any time.",
+      ...COOKIE_PREFS_GDPR,
     },
   },
   {
@@ -264,6 +309,10 @@ export const BANNER_PRESETS: BannerPreset[] = [
       title: "Your privacy choices",
       description:
         "We use cookies to run this site and to measure and advertise. You can opt out of sale/share-style advertising and analytics cookies below.",
+      ...COOKIE_PREFS_US,
+      doNotSellEnabled: true,
+      doNotShareEnabled: true,
+      gpcHonored: true,
     },
   },
   {
@@ -287,6 +336,7 @@ export const BANNER_PRESETS: BannerPreset[] = [
       title: "Your privacy choices",
       description:
         "We process personal data for the purposes described here. Necessary processing keeps the site working. Other purposes require your consent, which you can withdraw later.",
+      ...COOKIE_PREFS_DPDP,
     },
   },
   {
@@ -356,6 +406,141 @@ export const BANNER_PRESETS: BannerPreset[] = [
       title: "Cookies on this site",
       description:
         "We use necessary cookies to make this site work. With your consent we also use analytics and advertising cookies. You can reject non-essential cookies or change your choices at any time.",
+      ...COOKIE_PREFS_GDPR,
+      cookiePrefsLegalNote: "UK GDPR — change or withdraw consent anytime",
+    },
+  },
+
+  // ── Cookie Preferences panel templates ───────────────────────────────────
+  {
+    id: "prefs-dpdp-full",
+    label: "DPDP corner card",
+    description: "Corner layout · stacked buttons · switches",
+    category: "prefs",
+    overrides: {
+      ...COOKIE_PREFS_DPDP,
+      primaryColor: "#b45309",
+      preferenceWidgetPosition: "bottom-left",
+      cookiePrefsLayout: "corner",
+      cookiePrefsButtonStyle: "stack",
+      cookiePrefsToggleStyle: "switch",
+      cookiePrefsShowStatusMeta: true,
+      cookiePrefsShowLanguage: true,
+      cookiePrefsBorderRadius: 18,
+    },
+  },
+  {
+    id: "prefs-gdpr-panel",
+    label: "GDPR center modal",
+    description: "Centered modal · row buttons · EU copy",
+    category: "prefs",
+    overrides: {
+      ...COOKIE_PREFS_GDPR,
+      primaryColor: "#1d4ed8",
+      preferenceWidgetPosition: "bottom-left",
+      cookiePrefsLayout: "center",
+      cookiePrefsButtonStyle: "row",
+      cookiePrefsToggleStyle: "switch",
+      cookiePrefsShowStatusMeta: true,
+      cookiePrefsShowLanguage: true,
+      cookiePrefsBorderRadius: 16,
+    },
+  },
+  {
+    id: "prefs-us-panel",
+    label: "US bottom sheet",
+    description: "Sheet layout · checkboxes · opt-out wording",
+    category: "prefs",
+    overrides: {
+      ...COOKIE_PREFS_US,
+      primaryColor: "#1e3a5f",
+      doNotSellEnabled: true,
+      doNotShareEnabled: true,
+      gpcHonored: true,
+      cookiePrefsLayout: "sheet",
+      cookiePrefsButtonStyle: "stack",
+      cookiePrefsToggleStyle: "checkbox",
+      cookiePrefsShowStatusMeta: true,
+      cookiePrefsShowLanguage: false,
+      cookiePrefsBorderRadius: 20,
+    },
+  },
+  {
+    id: "prefs-minimal",
+    label: "Minimal drawer",
+    description: "Side drawer · save + revoke · no receipt",
+    category: "prefs",
+    overrides: {
+      showPreferenceWidget: true,
+      preferenceWidgetPosition: "bottom-right",
+      cookiePreferencesTitle: "Manage cookies",
+      cookiePrefsSaveLabel: "Save",
+      downloadReceiptLabel: "Download Receipt",
+      revokeConsentLabel: "Withdraw consent",
+      activeCategoriesLabel: "Categories:",
+      cookiePrefsLegalNote: "You can update these choices anytime",
+      showDownloadReceipt: false,
+      showRevokeConsent: true,
+      showConsentReceiptKey: false,
+      primaryColor: "#0B2C4A",
+      cookiePrefsLayout: "drawer",
+      cookiePrefsButtonStyle: "stack",
+      cookiePrefsToggleStyle: "switch",
+      cookiePrefsShowStatusMeta: false,
+      cookiePrefsShowLanguage: false,
+      cookiePrefsBorderRadius: 14,
+    },
+  },
+  {
+    id: "prefs-receipt-focus",
+    label: "Receipt focus",
+    description: "Corner · row buttons · receipt emphasized",
+    category: "prefs",
+    overrides: {
+      showPreferenceWidget: true,
+      preferenceWidgetPosition: "bottom-right",
+      cookiePreferencesTitle: "Your consent record",
+      cookiePrefsSaveLabel: "Update preferences",
+      downloadReceiptLabel: "Download Receipt",
+      revokeConsentLabel: "Revoke all consent",
+      activeCategoriesLabel: "Active categories:",
+      cookiePrefsLegalNote: "Keep a copy of your consent choices",
+      showDownloadReceipt: true,
+      showRevokeConsent: true,
+      showConsentReceiptKey: true,
+      primaryColor: "#0d9488",
+      cookiePrefsLayout: "corner",
+      cookiePrefsButtonStyle: "row",
+      cookiePrefsToggleStyle: "switch",
+      cookiePrefsShowStatusMeta: true,
+      cookiePrefsShowLanguage: true,
+      cookiePrefsBorderRadius: 16,
+    },
+  },
+  {
+    id: "prefs-compact-right",
+    label: "Compact checkboxes",
+    description: "Corner right · checkboxes · short labels",
+    category: "prefs",
+    overrides: {
+      showPreferenceWidget: true,
+      preferenceWidgetPosition: "bottom-right",
+      cookiePreferencesTitle: "Cookies",
+      cookiePrefsSaveLabel: "Save",
+      downloadReceiptLabel: "Receipt",
+      revokeConsentLabel: "Revoke",
+      activeCategoriesLabel: "On:",
+      cookiePrefsLegalNote: "DPDP Act, 2023",
+      showDownloadReceipt: true,
+      showRevokeConsent: true,
+      showConsentReceiptKey: false,
+      primaryColor: "#0f766e",
+      cookiePrefsLayout: "corner",
+      cookiePrefsButtonStyle: "stack",
+      cookiePrefsToggleStyle: "checkbox",
+      cookiePrefsShowStatusMeta: false,
+      cookiePrefsShowLanguage: false,
+      cookiePrefsBorderRadius: 12,
     },
   },
 ];

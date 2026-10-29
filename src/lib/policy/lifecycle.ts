@@ -7,7 +7,10 @@ import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import { policyPurposes } from "@/db/schema/policy-purposes";
 import { websites } from "@/db/schema/websites";
+import { validateOwnedPolicy, writeComplianceAudit } from "@/lib/compliance/service";
+import { COMPLIANCE_AUDIT_ACTIONS } from "@/lib/compliance/types";
 import { hashForPublishedVersion } from "@/lib/policy/lifecycle-core";
+import { buildLivePolicyProcessingSnapshot } from "@/lib/processing/service";
 import { invalidateSdkConfigCache } from "@/lib/sdk/config-cache-next";
 
 export async function archiveOtherPublishedVersions(policyId: string, keepVersionId: string, now: Date) {
@@ -108,11 +111,13 @@ async function invalidatePublishedSdkConfig(policyId: string) {
 }
 
 export async function schedulePolicyVersion(input: {
+  policyId: string;
   versionId: string;
   scheduledPublishAt: Date;
   now?: Date;
 }) {
   const now = input.now ?? new Date();
+  // Bind versionId to policyId so callers cannot schedule another policy's version (IDOR).
   const [updated] = await db
     .update(consentPolicyVersions)
     .set({
@@ -121,7 +126,11 @@ export async function schedulePolicyVersion(input: {
       updatedAt: now,
     })
     .where(
-      and(eq(consentPolicyVersions.id, input.versionId), eq(consentPolicyVersions.isPublished, false)),
+      and(
+        eq(consentPolicyVersions.id, input.versionId),
+        eq(consentPolicyVersions.policyId, input.policyId),
+        eq(consentPolicyVersions.isPublished, false),
+      ),
     )
     .returning();
   return updated ?? null;
@@ -188,7 +197,6 @@ export async function promoteDueScheduledPolicies(now = new Date()) {
       id: consentPolicyVersions.id,
       policyId: consentPolicyVersions.policyId,
       configuration: consentPolicyVersions.configuration,
-      processingSnapshot: consentPolicyVersions.processingSnapshot,
     })
     .from(consentPolicyVersions)
     .where(
@@ -199,15 +207,80 @@ export async function promoteDueScheduledPolicies(now = new Date()) {
       ),
     );
   const published: string[] = [];
+  const skipped: Array<{ versionId: string; reason: string }> = [];
+
   for (const row of due) {
+    const [ctx] = await db
+      .select({
+        organizationId: websites.organizationId,
+        websiteId: websites.id,
+        policyName: consentPolicies.name,
+        websiteName: websites.name,
+        defaultRegulationKey: websites.defaultRegulationKey,
+        defaultRegion: websites.defaultRegion,
+        consentIntegrations: websites.consentIntegrations,
+      })
+      .from(consentPolicies)
+      .innerJoin(websites, eq(consentPolicies.websiteId, websites.id))
+      .where(eq(consentPolicies.id, row.policyId))
+      .limit(1);
+
+    if (!ctx) {
+      skipped.push({ versionId: row.id, reason: "policy_context_missing" });
+      continue;
+    }
+
+    // Fail-closed: same compliance gate as interactive publish.
+    const validated = await validateOwnedPolicy({
+      organizationId: ctx.organizationId,
+      policyId: row.policyId,
+      websiteId: ctx.websiteId,
+      policyName: ctx.policyName,
+      websiteName: ctx.websiteName,
+      defaultRegulationKey: ctx.defaultRegulationKey,
+      defaultRegion: ctx.defaultRegion,
+      consentIntegrations: ctx.consentIntegrations,
+      auditAction: COMPLIANCE_AUDIT_ACTIONS.validated,
+    });
+
+    if (!validated.ok) {
+      skipped.push({ versionId: row.id, reason: "no_version" });
+      continue;
+    }
+
+    // Only promote the scheduled row itself — never a newer draft that appeared after scheduling.
+    if (validated.versionId !== row.id) {
+      skipped.push({ versionId: row.id, reason: "scheduled_version_not_current_draft" });
+      continue;
+    }
+
+    if (validated.result.errors.length > 0) {
+      await writeComplianceAudit({
+        organizationId: ctx.organizationId,
+        policyId: row.policyId,
+        websiteId: ctx.websiteId,
+        versionId: row.id,
+        action: COMPLIANCE_AUDIT_ACTIONS.publishRejected,
+        result: validated.result,
+        description: `Scheduled publish blocked with ${validated.result.errors.length} compliance error(s)`,
+      });
+      skipped.push({ versionId: row.id, reason: "compliance_errors" });
+      continue;
+    }
+
     const configuration =
       row.configuration && typeof row.configuration === "object" && !Array.isArray(row.configuration)
         ? (row.configuration as Record<string, unknown>)
         : {};
-    const processingSnapshot =
-      row.processingSnapshot && typeof row.processingSnapshot === "object" && !Array.isArray(row.processingSnapshot)
-        ? (row.processingSnapshot as Record<string, unknown>)
-        : {};
+    const processingSnapshot = await buildLivePolicyProcessingSnapshot({
+      organizationId: ctx.organizationId,
+      websiteId: ctx.websiteId,
+      policyVersionId: validated.versionId,
+      policyVersion: validated.versionNumber,
+      vendorIds: validated.vendorIds,
+      frozenAt: now,
+    });
+
     await markVersionPublished({
       policyId: row.policyId,
       versionId: row.id,
@@ -217,5 +290,6 @@ export async function promoteDueScheduledPolicies(now = new Date()) {
     });
     published.push(row.id);
   }
-  return { promoted: published.length, versionIds: published };
+
+  return { promoted: published.length, versionIds: published, skipped };
 }

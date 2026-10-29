@@ -4,7 +4,7 @@ import { ToolsHome } from "@/components/tools/tools-home";
 import { INDEXABLE_ROBOTS, pageAlternates, socialMetadata } from "@/lib/site-metadata";
 
 const title = "DPDP compliance tools";
-const description = "Preliminary DPDP assessments for penalty exposure, readiness, notices, a roadmap, and Significant Data Fiduciary screening. Not legal advice or an official determination.";
+const description = "Preliminary DPDP assessments for penalty exposure, readiness, a gap review, notices, a roadmap, and Significant Data Fiduciary screening. Not legal advice or an official determination.";
 
 export const metadata: Metadata = {
   title,

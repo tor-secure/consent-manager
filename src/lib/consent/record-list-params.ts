@@ -13,6 +13,7 @@ export type RecordListQuery = {
   websiteId: string;
   policyId: string;
   jurisdiction: string;
+  source: string;
   from: string;
   to: string;
   sort: RecordSort;
@@ -29,6 +30,7 @@ export function parseRecordListQuery(params: {
   website?: string;
   policy?: string;
   jurisdiction?: string;
+  source?: string;
   from?: string;
   to?: string;
   sort?: string;
@@ -38,15 +40,17 @@ export function parseRecordListQuery(params: {
 }): RecordListQuery {
   const status = STATUS_FILTERS.has(params.status as RecordStatusFilter) ? (params.status as RecordStatusFilter) : "";
   const sizeNumber = Number(params.size);
-  const size = RECORD_PAGE_SIZES.find((value) => value === sizeNumber) ?? 50;
+  const size = RECORD_PAGE_SIZES.find((value) => value === sizeNumber) ?? 10;
   const pageNumber = Number(params.page);
   const page = Number.isInteger(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+  const source = (params.source ?? "").trim().toLowerCase().slice(0, 50);
   return {
     q: (params.q ?? "").trim().slice(0, 120),
     status,
     websiteId: params.website && UUID_RE.test(params.website) ? params.website : "",
     policyId: params.policy && UUID_RE.test(params.policy) ? params.policy : "",
     jurisdiction: (params.jurisdiction ?? "").trim().slice(0, 100),
+    source: /^[a-z0-9_-]+$/.test(source) ? source : "",
     from: params.from && DAY_RE.test(params.from) ? params.from : "",
     to: params.to && DAY_RE.test(params.to) ? params.to : "",
     sort: params.sort === "expires" ? "expires" : "consented",
@@ -64,18 +68,19 @@ export function recordListHref(query: RecordListQuery, overrides: Partial<Record
   if (next.websiteId) params.set("website", next.websiteId);
   if (next.policyId) params.set("policy", next.policyId);
   if (next.jurisdiction) params.set("jurisdiction", next.jurisdiction);
+  if (next.source) params.set("source", next.source);
   if (next.from) params.set("from", next.from);
   if (next.to) params.set("to", next.to);
   if (next.sort !== "consented") params.set("sort", next.sort);
   if (next.dir !== "desc") params.set("dir", next.dir);
-  if (next.size !== 50) params.set("size", String(next.size));
+  if (next.size !== 10) params.set("size", String(next.size));
   if (next.page > 1) params.set("page", String(next.page));
   const search = params.toString();
   return search ? `/dashboard/consent?${search}` : "/dashboard/consent";
 }
 
 export function recordExportHref(query: RecordListQuery) {
-  const pageHref = recordListHref({ ...query, page: 1, size: 50 });
+  const pageHref = recordListHref({ ...query, page: 1, size: 10 });
   const search = pageHref.split("?")[1] ?? "";
   return search ? `/api/consent/records/export?${search}` : "/api/consent/records/export";
 }

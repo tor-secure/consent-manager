@@ -73,6 +73,7 @@ const NOTICE_FIELDS: QuestionView[] = [
 ];
 
 export function questionView(tool: ToolId, id: string): QuestionView | null {
+  if (tool === "dpdp-gap-assessment") return null;
   if (tool === "penalty-risk") {
     const factor = PENALTY_FACTORS.find((item) => item.id === id);
     if (!factor) return null;

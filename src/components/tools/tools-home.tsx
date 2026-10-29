@@ -58,7 +58,7 @@ export function ToolsHome() {
         Plan consent work without treating a score as a legal result
       </h1>
       <p className="mt-4 max-w-3xl text-sm leading-6 text-[#4B5563] sm:text-base">
-        Five preliminary assessments for penalty exposure, readiness, notices, a roadmap, and Significant Data Fiduciary screening. They use your answers and configured checks. They do not certify compliance.
+        Six preliminary assessments for penalty exposure, readiness, a DPDP gap review, notices, a roadmap, and Significant Data Fiduciary screening. They use your answers and configured checks. They do not certify compliance.
       </p>
       <div className="mt-6 max-w-md">
         <SearchInput label="Filter tools" placeholder="Filter tools" value={query} onChange={(event) => setQuery(event.target.value)} />
@@ -68,12 +68,21 @@ export function ToolsHome() {
         {cards.map((tool) => {
           const server = saved.find((item) => item.toolType === tool.id);
           const state = local[tool.id];
-          const href = server ? `${tool.href}?report=${server.id}` : tool.href;
-          const action = server || state === "report" ? "View report" : state === "draft" ? "Continue" : "Start";
+          const gap = tool.id === "dpdp-gap-assessment";
+          const href = gap ? tool.href : server ? `${tool.href}?report=${server.id}` : tool.href;
+          const action = gap ? "Launch Tool" : server || state === "report" ? "View report" : state === "draft" ? "Continue" : "Start";
           return (
             <Card key={tool.id} hover className="flex flex-col">
               <CardHeader>
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[#00A88F]">{tool.minutes}</p>
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#00A88F]">
+                  {tool.id === "dpdp-gap-assessment" ? (
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
+                      <path d="M12 3 5 6v6c0 4.2 2.8 7.2 7 8.5 4.2-1.3 7-4.3 7-8.5V6l-7-3Z" />
+                      <path d="m8.5 12 2.2 2.2 4.8-4.8" />
+                    </svg>
+                  ) : null}
+                  {tool.minutes}
+                </p>
                 <CardTitle>{tool.name}</CardTitle>
                 <CardDescription>{tool.description}</CardDescription>
               </CardHeader>

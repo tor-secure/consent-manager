@@ -1,3 +1,4 @@
+import { GAP_VERSION } from "./gap";
 import { NOTICE_VERSION } from "./notice";
 import { PENALTY_FACTORS, PENALTY_STEPS, PENALTY_VERSION } from "./penalty";
 import { READINESS_PILLARS, READINESS_QUESTIONS, READINESS_VERSION } from "./readiness";
@@ -61,6 +62,15 @@ export const TOOL_CARDS: ToolCard[] = [
     minutes: "5–7 min",
     version: SDF_VERSION,
   },
+  {
+    id: "dpdp-gap-assessment",
+    href: "/tools/dpdp-gap-assessment",
+    name: "DPDP Compliance Gap Assessment",
+    description: "Assess your organisation's readiness under India's DPDP Act, 2023 and DPDP Rules, 2025. Identify compliance gaps, evaluate risks and receive actionable recommendations.",
+    purpose: "A control-by-control readiness review. It does not certify compliance or decide Significant Data Fiduciary status.",
+    minutes: "25–40 min",
+    version: GAP_VERSION,
+  },
 ];
 
 export function toolCard(id: string): ToolCard | undefined {
@@ -91,6 +101,7 @@ export function wizardSteps(tool: ToolId): WizardStep[] {
       questionIds: TIMELINE_INPUTS.filter((input) => input.step === title).map((input) => input.id),
     }));
   }
+  if (tool === "dpdp-gap-assessment") return [];
   if (tool === "sdf-checker") {
     const mid = Math.ceil(SDF_QUESTIONS.length / 2);
     return [

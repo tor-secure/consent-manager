@@ -1,5 +1,23 @@
+"use client";
+
+import { useLayoutEffect, useState } from "react";
+import { createPortal } from "react-dom";
+
 export function PageLoader({ label = "Consent Guru is loading" }: { label?: string }) {
-  return (
+  const [mounted, setMounted] = useState(false);
+
+  useLayoutEffect(() => {
+    setMounted(true);
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.setAttribute("data-cg-loading", "true");
+    return () => {
+      document.body.style.overflow = previous;
+      document.documentElement.removeAttribute("data-cg-loading");
+    };
+  }, []);
+
+  const loader = (
     <div className="cg-page-loader" role="status" aria-live="polite" aria-label={label}>
       <div className="cg-page-loader-content" aria-hidden="true">
         <div className="cg-page-loader-brand">
@@ -20,4 +38,10 @@ export function PageLoader({ label = "Consent Guru is loading" }: { label?: stri
       </div>
     </div>
   );
+
+  if (!mounted) {
+    return loader;
+  }
+
+  return createPortal(loader, document.body);
 }

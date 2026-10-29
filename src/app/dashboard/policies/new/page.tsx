@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
@@ -32,13 +32,13 @@ export default async function NewPolicyPage({
   const orgWebsites: WebsiteOption[] = await db
     .select({ id: websites.id, name: websites.name, domain: websites.domain })
     .from(websites)
-    .where(eq(websites.organizationId, localOrg.id))
+    .where(and(eq(websites.organizationId, localOrg.id), isNull(websites.deletedAt)))
     .orderBy(websites.name);
 
   return (
     <div className="page-wrap space-y-8">
       <CreatePageHeader
-        backHref="/dashboard/policies"
+        backHref={defaultWebsiteId ? `/dashboard/policies?websiteId=${defaultWebsiteId}` : "/dashboard/policies"}
         backLabel="Policies"
         current="New policy"
         title="Create consent policy"

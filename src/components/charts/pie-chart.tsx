@@ -32,6 +32,7 @@ export function PieChart({
   emptyDescription,
   centerLabel = "records",
   legend = "bars",
+  variant = "donut",
 }: {
   slices: PieSlice[];
   label: string;
@@ -39,6 +40,7 @@ export function PieChart({
   emptyDescription: string;
   centerLabel?: string;
   legend?: "bars" | "row";
+  variant?: "pie" | "donut";
 }) {
   const [hover, setHover] = useState<string | null>(null);
   const visible = slices.filter((slice) => slice.value > 0);
@@ -96,30 +98,34 @@ export function PieChart({
             />
           ))
         )}
-        <circle cx={cx} cy={cy} r={58} fill="var(--card)" pointerEvents="none" />
-        <text
-          x={cx}
-          y={cy - 2}
-          textAnchor="middle"
-          fontSize="22"
-          fontWeight="600"
-          fill="var(--foreground)"
-          fontFamily="inherit"
-          pointerEvents="none"
-        >
-          {total.toLocaleString()}
-        </text>
-        <text
-          x={cx}
-          y={cy + 16}
-          textAnchor="middle"
-          fontSize="11"
-          fill="var(--muted-foreground)"
-          fontFamily="inherit"
-          pointerEvents="none"
-        >
-          {centerLabel}
-        </text>
+        {variant === "donut" ? (
+          <>
+            <circle cx={cx} cy={cy} r={58} fill="var(--card)" pointerEvents="none" />
+            <text
+              x={cx}
+              y={cy - 2}
+              textAnchor="middle"
+              fontSize="22"
+              fontWeight="600"
+              fill="var(--foreground)"
+              fontFamily="inherit"
+              pointerEvents="none"
+            >
+              {total.toLocaleString()}
+            </text>
+            <text
+              x={cx}
+              y={cy + 16}
+              textAnchor="middle"
+              fontSize="11"
+              fill="var(--muted-foreground)"
+              fontFamily="inherit"
+              pointerEvents="none"
+            >
+              {centerLabel}
+            </text>
+          </>
+        ) : null}
         </svg>
         {active ? (
           <div className="pointer-events-none absolute left-1/2 top-0 z-10 w-40 -translate-x-1/2 -translate-y-[110%] rounded-xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 shadow-md">

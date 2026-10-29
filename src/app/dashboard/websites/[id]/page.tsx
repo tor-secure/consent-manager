@@ -8,6 +8,8 @@ import {
   type WebsiteSettingsData,
 } from "@/components/websites/website-settings-form";
 import { DeleteWebsiteButton } from "@/components/websites/delete-website-button";
+import { DomainVerifyPanel } from "@/components/websites/domain-verify-panel";
+import { siteVerificationToken } from "@/lib/website-domain-verify";
 
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -31,6 +33,8 @@ export default async function WebsiteDetailPage({
     inactive: "neutral",
     suspended: "danger",
   };
+
+  const verificationToken = siteVerificationToken(website.id, website.siteKey);
 
   const settings: WebsiteSettingsData = {
     id: website.id,
@@ -60,12 +64,38 @@ export default async function WebsiteDetailPage({
             <Badge variant={statusVariant[website.status] ?? "neutral"} size="sm" className="capitalize">
               {website.status}
             </Badge>
-            {website.verified ? <Badge variant="success" size="sm">Verified</Badge> : null}
+            {website.verified ? (
+              <Badge variant="success" size="sm">Verified</Badge>
+            ) : (
+              <Badge variant="neutral" size="sm">Not verified</Badge>
+            )}
           </div>
           <p className="mt-0.5 truncate text-sm text-[var(--muted-foreground)]">{website.domain}</p>
         </div>
-        <WebsiteIconControl websiteId={website.id} domain={website.domain} iconUrl={website.iconUrl} />
+        <div className="flex shrink-0 items-center gap-3">
+          {website.verified ? null : (
+            <Link href="#domain-verify" className="btn btn-primary btn-sm">
+              Verify
+            </Link>
+          )}
+          <WebsiteIconControl websiteId={website.id} domain={website.domain} iconUrl={website.iconUrl} />
+        </div>
       </div>
+
+      {website.verified ? null : (
+        <section id="domain-verify" className="scroll-mt-24 rounded-3xl border border-[var(--border)] bg-[var(--card)] p-6">
+          <h2 className="text-base font-semibold text-[var(--foreground)]">Verify this website</h2>
+          <div className="mt-4">
+            <DomainVerifyPanel
+              websiteId={website.id}
+              domain={website.domain}
+              token={verificationToken}
+              verified={false}
+              verifiedAt={null}
+            />
+          </div>
+        </section>
+      )}
 
       <div className="grid items-start gap-10 lg:grid-cols-[minmax(16rem,22rem)_minmax(0,1fr)] lg:gap-0">
         <section className="min-w-0 lg:pr-12">
@@ -81,7 +111,12 @@ export default async function WebsiteDetailPage({
               {website.verified ? (
                 <Badge variant="success" size="sm">Verified</Badge>
               ) : (
-                <Badge variant="neutral" size="sm">Not verified</Badge>
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  <Badge variant="neutral" size="sm">Not verified</Badge>
+                  <Link href="#domain-verify" className="text-sm font-semibold text-[var(--primary)]">
+                    Verify domain
+                  </Link>
+                </span>
               )}
             </Fact>
             <Fact label="Site key">

@@ -8,14 +8,17 @@ import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
 import {
+  BANNER_BORDER_RADIUS_MAX,
   parseBannerConfig,
   type BannerConfiguration,
   type NoticeTranslation,
 } from "@/lib/banner-config";
+// BANNER_BORDER_RADIUS_MAX also clamps cookiePrefsBorderRadius
 import { BANNER_TEXT_FIELDS, PREFERENCE_TEXT_FIELDS } from "@/lib/i18n/resolve-notice";
 import { isRegisteredLocale, normalizeLocaleTag, languageOf } from "@/lib/i18n/locale-registry";
 import { resolveLocalOrganization, resolveLocalUser, resolveActiveMembership, resolveActiveClerkOrgId } from "@/lib/api-auth-helpers";
 import { ensureDraftPolicyVersion } from "@/lib/policy-draft-version";
+import { sanitizeHttpUrl } from "@/lib/safe-url";
 
 const VALID_POSITIONS = ["bottom", "top", "bottom-left", "bottom-right", "center"] as const;
 const VALID_LAYOUTS = ["bar", "box", "dialog"] as const;
@@ -118,7 +121,9 @@ export async function PUT(
 
     const consentExpireDays = Math.max(1, Math.min(3650, Number(raw.consentExpireDays) || 365));
     const radiusRaw = Number(raw.borderRadius);
-    const borderRadius = Number.isFinite(radiusRaw) ? Math.max(0, Math.min(24, radiusRaw)) : 8;
+    const borderRadius = Number.isFinite(radiusRaw)
+      ? Math.max(0, Math.min(BANNER_BORDER_RADIUS_MAX, radiusRaw))
+      : 8;
 
     const TEXT_MAX: Record<string, number> = {
       title: 255, description: 2000,
@@ -126,6 +131,9 @@ export async function PUT(
       savePreferencesLabel: 100, privacyPolicyText: 100,
       closeLabel: 100, preferenceCenterTitle: 255, preferenceCenterDescription: 2000,
       purposesHeading: 100, vendorsHeading: 100, requiredLabel: 100,
+      cookiePreferencesTitle: 100, cookiePrefsSaveLabel: 100,
+      downloadReceiptLabel: 100, revokeConsentLabel: 160,
+      activeCategoriesLabel: 100, cookiePrefsLegalNote: 160,
     };
 
     const sanitizedTranslations: Record<string, NoticeTranslation> = {};
@@ -193,6 +201,23 @@ export async function PUT(
         ? (draftVersion.configuration as Record<string, unknown>)
         : {};
 
+    const privacyPolicyUrlRaw = String(raw.privacyPolicyUrl).trim().slice(0, 500);
+    const cookiePolicyUrlRaw = String(raw.cookiePolicyUrl ?? "").trim().slice(0, 500);
+    const privacyPolicyUrl = privacyPolicyUrlRaw ? sanitizeHttpUrl(privacyPolicyUrlRaw, 500) : "";
+    const cookiePolicyUrl = cookiePolicyUrlRaw ? sanitizeHttpUrl(cookiePolicyUrlRaw, 500) : "";
+    if (privacyPolicyUrlRaw && !privacyPolicyUrl) {
+      return NextResponse.json(
+        { success: false, message: "privacyPolicyUrl must be a valid http(s) URL" },
+        { status: 400 },
+      );
+    }
+    if (cookiePolicyUrlRaw && !cookiePolicyUrl) {
+      return NextResponse.json(
+        { success: false, message: "cookiePolicyUrl must be a valid http(s) URL" },
+        { status: 400 },
+      );
+    }
+
     const config: BannerConfiguration = {
       ...raw,
       consentExpireDays,
@@ -204,9 +229,9 @@ export async function PUT(
       customizeLabel: String(raw.customizeLabel).trim().slice(0, 100),
       savePreferencesLabel: String(raw.savePreferencesLabel).trim().slice(0, 100),
       privacyPolicyText: String(raw.privacyPolicyText).trim().slice(0, 100),
-      privacyPolicyUrl: String(raw.privacyPolicyUrl).trim().slice(0, 500),
+      privacyPolicyUrl,
       cookiePolicyText: String(raw.cookiePolicyText ?? "Cookie Policy").trim().slice(0, 100),
-      cookiePolicyUrl: String(raw.cookiePolicyUrl ?? "").trim().slice(0, 500),
+      cookiePolicyUrl,
       poweredByText: String(raw.poweredByText).trim().slice(0, 100),
       closeLabel: String(raw.closeLabel ?? "").trim().slice(0, 100),
       preferenceCenterTitle: String(raw.preferenceCenterTitle ?? "").trim().slice(0, 255),
@@ -219,6 +244,34 @@ export async function PUT(
       showPreferenceWidget: raw.showPreferenceWidget !== false,
       preferenceWidgetPosition:
         raw.preferenceWidgetPosition === "bottom-right" ? "bottom-right" : "bottom-left",
+      cookiePreferencesTitle: String(raw.cookiePreferencesTitle ?? "").trim().slice(0, 100)
+        || "Cookie Preferences",
+      cookiePrefsSaveLabel: String(raw.cookiePrefsSaveLabel ?? "").trim().slice(0, 100)
+        || "Save changes",
+      downloadReceiptLabel: String(raw.downloadReceiptLabel ?? "").trim().slice(0, 100)
+        || "Download Receipt",
+      revokeConsentLabel: String(raw.revokeConsentLabel ?? "").trim().slice(0, 160)
+        || "Revoke Consent (DPDP Section 6(4))",
+      activeCategoriesLabel: String(raw.activeCategoriesLabel ?? "").trim().slice(0, 100)
+        || "Active categories:",
+      cookiePrefsLegalNote: String(raw.cookiePrefsLegalNote ?? "").trim().slice(0, 160)
+        || "DPDP Act, 2023",
+      showDownloadReceipt: raw.showDownloadReceipt !== false,
+      showRevokeConsent: raw.showRevokeConsent !== false,
+      showConsentReceiptKey: raw.showConsentReceiptKey !== false,
+      cookiePrefsLayout:
+        raw.cookiePrefsLayout === "center" ||
+        raw.cookiePrefsLayout === "sheet" ||
+        raw.cookiePrefsLayout === "drawer"
+          ? raw.cookiePrefsLayout
+          : "corner",
+      cookiePrefsButtonStyle: raw.cookiePrefsButtonStyle === "row" ? "row" : "stack",
+      cookiePrefsToggleStyle: raw.cookiePrefsToggleStyle === "checkbox" ? "checkbox" : "switch",
+      cookiePrefsShowStatusMeta: raw.cookiePrefsShowStatusMeta !== false,
+      cookiePrefsShowLanguage: raw.cookiePrefsShowLanguage !== false,
+      cookiePrefsBorderRadius: Number.isFinite(Number(raw.cookiePrefsBorderRadius))
+        ? Math.max(0, Math.min(BANNER_BORDER_RADIUS_MAX, Number(raw.cookiePrefsBorderRadius)))
+        : 18,
     };
 
     const payload = {

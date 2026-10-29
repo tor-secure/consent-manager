@@ -268,18 +268,28 @@ export function WebsiteList({ websites }: { websites: WebsiteRow[] }) {
 
                 <SetupProgress status={website.setupStatus} />
 
-                <div className="mt-auto flex w-full items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+                <div className="mt-auto flex w-full flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
                   <span className="min-w-0">
                     <VerifiedBadge verified={website.verified} />
                   </span>
-                  {website.nextAction ? (
-                    <Link
-                      href={website.nextAction.href}
-                      className="btn btn-primary btn-sm relative z-10"
-                    >
-                      {website.nextAction.label}
-                    </Link>
-                  ) : null}
+                  <span className="flex flex-wrap items-center justify-end gap-2">
+                    {website.verified ? null : (
+                      <Link
+                        href={`/dashboard/websites/${website.id}#domain-verify`}
+                        className="btn btn-secondary btn-sm relative z-10"
+                      >
+                        Verify
+                      </Link>
+                    )}
+                    {website.nextAction ? (
+                      <Link
+                        href={website.nextAction.href}
+                        className="btn btn-primary btn-sm relative z-10"
+                      >
+                        {website.nextAction.label}
+                      </Link>
+                    ) : null}
+                  </span>
                 </div>
               </HoverGlassCard>
             </li>

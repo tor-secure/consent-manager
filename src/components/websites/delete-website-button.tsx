@@ -50,7 +50,9 @@ export function DeleteWebsiteButton({
         {open ? (
           <div className="space-y-3" role="alertdialog" aria-labelledby="delete-website-confirm">
             <p id="delete-website-confirm" className="text-sm font-medium text-[var(--foreground)]">
-              Are you sure you are deleting {name}? This removes {domain} from your dashboard.
+              Are you sure you are deleting {name}? This permanently removes {domain} and its policies,
+              consent records, trackers, scans, and other site data. Shared organisation vendors and
+              purposes are kept.
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <Button
@@ -88,7 +90,8 @@ export function DeleteWebsiteButton({
       <section className="space-y-3 border-t border-[var(--border)] pt-8">
         <h2 className="text-base font-semibold text-[var(--foreground)]">Delete website</h2>
         <p className="text-sm leading-5 text-[var(--muted-foreground)]">
-          Remove {name} from your dashboard. The domain can be added again later.
+          Remove {name} and all data tied to this website. Shared organisation vendors and purposes stay.
+          The domain can be added again later.
         </p>
         {body}
       </section>
@@ -100,7 +103,8 @@ export function DeleteWebsiteButton({
       <div className="border-b border-[var(--border)] px-6 py-4">
         <h2 className="text-base font-semibold text-[var(--foreground)]">Delete website</h2>
         <p className="mt-0.5 text-sm leading-5 text-[var(--muted-foreground)]">
-          Remove {name} from your dashboard. The domain can be added again later.
+          Remove {name} and all data tied to this website. Shared organisation vendors and purposes stay.
+          The domain can be added again later.
         </p>
       </div>
       <div className="px-6 py-5">{body}</div>

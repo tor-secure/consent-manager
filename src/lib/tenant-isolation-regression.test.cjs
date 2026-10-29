@@ -582,5 +582,53 @@ for (const route of [
   assertIncludes(stripeWebhook, "claimInboundWebhook", "Stripe webhook is replay-safe");
 }
 
+{
+  const scheduleRoute = compact(read("src/app/api/policies/[id]/schedule/route.ts"));
+  assertIncludes(scheduleRoute, "authorizeOwnedPolicy(policyId)", "schedule authorizes the URL policy");
+  assertIncludes(scheduleRoute, "requireOperatorRole", "schedule is Owner/Admin only");
+  assertIncludes(scheduleRoute, "policyId: authz.policy.policyId", "schedule passes owned policyId into lifecycle");
+  assertIncludes(scheduleRoute, "schedulePolicyVersion({", "schedule calls lifecycle helper");
+
+  const lifecycle = compact(read("src/lib/policy/lifecycle.ts"));
+  assertIncludes(lifecycle, "policyId: string", "schedulePolicyVersion requires policyId");
+  assertIncludes(
+    lifecycle,
+    "eq(consentPolicyVersions.policyId, input.policyId)",
+    "schedule binds versionId to policyId (IDOR guard)",
+  );
+  assertIncludes(lifecycle, "eq(consentPolicyVersions.id, input.versionId)", "schedule still matches versionId");
+  assertIncludes(lifecycle, "validateOwnedPolicy(", "scheduled promote runs compliance validation");
+  assertIncludes(
+    lifecycle,
+    "validated.versionId !== row.id",
+    "scheduled promote refuses when draft identity diverges",
+  );
+  assertIncludes(lifecycle, "skipped.push", "non-compliant scheduled promotes are skipped fail-closed");
+
+  const rollback = compact(read("src/app/api/policies/[id]/rollback/route.ts"));
+  assertIncludes(rollback, "validateOwnedPolicy(", "rollback validates before publish");
+  assertIncludes(rollback, "validated.result.errors.length > 0", "rollback blocks on compliance errors");
+  assertIncludes(rollback, "validated.versionId !== cloned.id", "rollback refuses mismatched draft identity");
+
+  const vendorDetach = compact(read("src/app/api/policies/[id]/vendors/[vendorId]/route.ts"));
+  assertIncludes(vendorDetach, "isPublished, true", "vendor detach protects published policy purpose links");
+  assertIncludes(vendorDetach, "ne(consentPolicies.id, policy.id)", "vendor detach scopes protection to other policies");
+  assertIncludes(vendorDetach, "removablePurposeIds", "vendor detach only deletes unprotected purpose links");
+  assertIncludes(vendorDetach, "status: 409", "vendor detach conflicts when all links are protected");
+
+  const bannerConfig = compact(read("src/app/api/policies/[id]/banner-config/route.ts"));
+  assertIncludes(bannerConfig, "sanitizeHttpUrl", "banner config validates policy URLs server-side");
+  assertIncludes(bannerConfig, "privacyPolicyUrl must be a valid http(s) URL", "banner rejects unsafe privacy URLs");
+  assertIncludes(bannerConfig, "cookiePolicyUrl must be a valid http(s) URL", "banner rejects unsafe cookie URLs");
+
+  const editor = read("src/components/policies/policy-editor-workspace.tsx");
+  assertIncludes(editor, "Nothing new to save here", "Save Draft does not claim a false durable write");
+  assert.doesNotMatch(
+    editor,
+    /notify\.success\(\s*["']Draft is current/,
+    "Save Draft must not pretend identity metadata was persisted",
+  );
+}
+
 console.log("tenant isolation regression tests passed");
 

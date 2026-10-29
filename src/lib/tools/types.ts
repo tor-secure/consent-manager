@@ -4,6 +4,7 @@ export const TOOL_IDS = [
   "notice-auditor",
   "compliance-timeline",
   "sdf-checker",
+  "dpdp-gap-assessment",
 ] as const;
 
 export type ToolId = (typeof TOOL_IDS)[number];

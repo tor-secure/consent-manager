@@ -243,6 +243,11 @@ export function AreaLineChart({
                 pathLength={1}
                 style={{ animationDelay: `${seriesIndex * 500}ms` }}
               />
+              {filled
+                ? null
+                : coords.map((point, index) => (
+                    <circle key={index} cx={point.x} cy={point.y} r="3.5" fill="var(--card)" stroke={item.color} strokeWidth="2" />
+                  ))}
             </g>
           );
         })}

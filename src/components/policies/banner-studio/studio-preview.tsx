@@ -1,36 +1,109 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { BannerConfiguration } from "@/lib/banner-config";
 import {
   BannerOverlay,
   BannerRenderer,
   CmpScrollStyles,
+  CookiePreferencesPreview,
   PreferenceCenterPreview,
+  PreferenceWidgetPreview,
 } from "./banner-renderer";
 
 type Viewport = "desktop" | "mobile";
-type PreviewSurface = "banner" | "preferences";
+type PreviewSurface = "banner" | "preferences" | "cookie-prefs";
 
 interface StudioPreviewProps {
   config: BannerConfiguration;
   websiteUrl: string | null;
   viewport: Viewport;
   onViewportChange: (v: Viewport) => void;
+  /** When true, device toggle is owned by the studio toolbar above. */
+  hideDeviceToggle?: boolean;
+  /** Parent can request a surface (e.g. Cookie prefs after applying a prefs template). */
+  requestedSurface?: PreviewSurface | null;
+  onRequestedSurfaceHandled?: () => void;
 }
 
 // ---------------------------------------------------------------------------
-// FallbackMockPage — realistic website skeleton shown when no URL or blocked
+// Overlay layer: banner, preferences, or post-choice cookie widget
 // ---------------------------------------------------------------------------
+
+function PreviewBannerLayer({
+  config,
+  surface,
+  bannerVisible,
+  onCustomize,
+  onOpenCookiePrefs,
+  onDismiss,
+  onClosePreferences,
+}: {
+  config: BannerConfiguration;
+  surface: PreviewSurface;
+  bannerVisible: boolean;
+  onCustomize: () => void;
+  onOpenCookiePrefs: () => void;
+  onDismiss: () => void;
+  onClosePreferences: () => void;
+}) {
+  if (surface === "preferences") {
+    return (
+      <PreferenceCenterPreview
+        config={config}
+        onClose={onClosePreferences}
+        onSave={onClosePreferences}
+      />
+    );
+  }
+
+  if (surface === "cookie-prefs") {
+    return (
+      <CookiePreferencesPreview
+        config={config}
+        onClose={onClosePreferences}
+        onSave={onClosePreferences}
+      />
+    );
+  }
+
+  if (bannerVisible) {
+    return (
+      <>
+        <BannerOverlay config={config} />
+        <BannerRenderer
+          config={config}
+          onAccept={onDismiss}
+          onReject={onDismiss}
+          onCustomize={onCustomize}
+          onClose={onDismiss}
+        />
+      </>
+    );
+  }
+
+  // After Accept / Reject / Close: floating cookie button opens Cookie Preferences panel.
+  return <PreferenceWidgetPreview config={config} onOpen={onOpenCookiePrefs} />;
+}
 
 function FallbackMockPage({
   config,
   reason,
   surface,
+  onCustomize,
+  onOpenCookiePrefs,
+  onDismiss,
+  onClosePreferences,
+  bannerVisible,
 }: {
   config: BannerConfiguration;
   reason: "no-url" | "blocked" | "error";
   surface: PreviewSurface;
+  onCustomize: () => void;
+  onOpenCookiePrefs: () => void;
+  onDismiss: () => void;
+  onClosePreferences: () => void;
+  bannerVisible: boolean;
 }) {
   return (
     <div className="relative h-full w-full overflow-hidden bg-[var(--card)]">
@@ -81,14 +154,15 @@ function FallbackMockPage({
         </div>
       )}
 
-      {surface === "banner" ? (
-        <>
-          <BannerOverlay config={config} />
-          <BannerRenderer config={config} />
-        </>
-      ) : (
-        <PreferenceCenterPreview config={config} />
-      )}
+      <PreviewBannerLayer
+        config={config}
+        surface={surface}
+        bannerVisible={bannerVisible}
+        onCustomize={onCustomize}
+        onOpenCookiePrefs={onOpenCookiePrefs}
+        onDismiss={onDismiss}
+        onClosePreferences={onClosePreferences}
+      />
     </div>
   );
 }
@@ -98,20 +172,32 @@ function FallbackMockPage({
 // ---------------------------------------------------------------------------
 
 function IframePreview({
-  url, config, onBlock, surface,
+  url, config, onBlock, surface, onCustomize, onOpenCookiePrefs, onDismiss, onClosePreferences, bannerVisible,
 }: {
   url: string;
   config: BannerConfiguration;
   onBlock: () => void;
   surface: PreviewSurface;
+  onCustomize: () => void;
+  onOpenCookiePrefs: () => void;
+  onDismiss: () => void;
+  onClosePreferences: () => void;
+  bannerVisible: boolean;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loaded, setLoaded] = useState(false);
 
+  // Remount timer only when URL changes — config edits must not remount the iframe.
   useEffect(() => {
-    const timer = setTimeout(() => { if (!loaded) onBlock(); }, 8000);
+    setLoaded(false);
+    const timer = setTimeout(() => {
+      setLoaded((current) => {
+        if (!current) onBlock();
+        return current;
+      });
+    }, 8000);
     return () => clearTimeout(timer);
-  }, [url, loaded, onBlock]);
+  }, [url, onBlock]);
 
   function handleLoad() {
     setLoaded(true);
@@ -124,6 +210,7 @@ function IframePreview({
   return (
     <div className="relative h-full w-full overflow-hidden">
       <iframe
+        key={url}
         ref={iframeRef}
         src={url}
         title="Website preview"
@@ -146,22 +233,21 @@ function IframePreview({
         </div>
       )}
 
-      {loaded && (
+      {loaded ? (
         <div className="pointer-events-none absolute inset-0">
-          {surface === "banner" ? (
-            <>
-              <BannerOverlay config={config} />
-              <div className="pointer-events-auto absolute inset-0">
-                <BannerRenderer config={config} />
-              </div>
-            </>
-          ) : (
-            <div className="pointer-events-auto absolute inset-0">
-              <PreferenceCenterPreview config={config} />
-            </div>
-          )}
+          <div className="pointer-events-auto absolute inset-0">
+            <PreviewBannerLayer
+              config={config}
+              surface={surface}
+              bannerVisible={bannerVisible}
+              onCustomize={onCustomize}
+              onOpenCookiePrefs={onOpenCookiePrefs}
+              onDismiss={onDismiss}
+              onClosePreferences={onClosePreferences}
+            />
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -171,12 +257,27 @@ function IframePreview({
 // ---------------------------------------------------------------------------
 
 export function StudioPreview({
-  config, websiteUrl, viewport, onViewportChange,
+  config,
+  websiteUrl,
+  viewport,
+  onViewportChange,
+  hideDeviceToggle = false,
+  requestedSurface = null,
+  onRequestedSurfaceHandled,
 }: StudioPreviewProps) {
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [urlInput, setUrlInput]           = useState(websiteUrl ?? "");
   const [activeUrl, setActiveUrl]         = useState<string | null>(websiteUrl);
   const [surface, setSurface]             = useState<PreviewSurface>("banner");
+  /** Local preview dismiss only — never writes consent records. */
+  const [bannerVisible, setBannerVisible] = useState(true);
+
+  useEffect(() => {
+    if (!requestedSurface) return;
+    setSurface(requestedSurface);
+    setBannerVisible(requestedSurface === "banner");
+    onRequestedSurfaceHandled?.();
+  }, [requestedSurface, onRequestedSurfaceHandled]);
 
   function handleUrlSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -185,7 +286,46 @@ export function StudioPreview({
     if (!/^https?:\/\//i.test(url)) url = "https://" + url;
     setActiveUrl(url);
     setIframeBlocked(false);
+    setBannerVisible(true);
+    setSurface("banner");
   }
+
+  const handleCustomize = useCallback(() => {
+    setSurface("preferences");
+  }, []);
+
+  const handleOpenCookiePrefs = useCallback(() => {
+    setBannerVisible(false);
+    setSurface("cookie-prefs");
+  }, []);
+
+  const handleDismiss = useCallback(() => {
+    // Accept / Reject / Close — show floating cookie button to edit again.
+    setBannerVisible(false);
+    setSurface("banner");
+  }, []);
+
+  const handleClosePreferences = useCallback(() => {
+    // After editing prefs, keep the cookie widget available (do not force banner).
+    setBannerVisible(false);
+    setSurface("banner");
+  }, []);
+
+  const handleIframeBlock = useCallback(() => {
+    setIframeBlocked(true);
+  }, []);
+
+  const surfaceRef = useRef(surface);
+  surfaceRef.current = surface;
+
+  // Re-show banner when config changes — but stay on Cookie prefs / Customize while editing those UIs.
+  useEffect(() => {
+    if (requestedSurface) return;
+    const current = surfaceRef.current;
+    if (current === "cookie-prefs" || current === "preferences") return;
+    setBannerVisible(true);
+    setSurface("banner");
+  }, [config, requestedSurface]);
 
   const previewWidth = viewport === "mobile" ? "360px" : "100%";
   const previewHeight = viewport === "mobile" ? "640px" : "100%";
@@ -227,13 +367,17 @@ export function StudioPreview({
           {(
             [
               { id: "banner" as PreviewSurface, label: "Banner" },
-              { id: "preferences" as PreviewSurface, label: "Preferences" },
+              { id: "preferences" as PreviewSurface, label: "Customize" },
+              { id: "cookie-prefs" as PreviewSurface, label: "Cookie prefs" },
             ]
           ).map((item) => (
             <button
               key={item.id}
               type="button"
-              onClick={() => setSurface(item.id)}
+              onClick={() => {
+                setSurface(item.id);
+                setBannerVisible(item.id === "banner");
+              }}
               aria-pressed={surface === item.id}
               className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
                 surface === item.id
@@ -246,48 +390,51 @@ export function StudioPreview({
           ))}
         </div>
 
-        <div className="h-5 w-px bg-[var(--secondary)]" />
-
-        {/* Viewport toggle */}
-        <div className="flex items-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">
-          {[
-            {
-              id: "desktop" as Viewport,
-              label: "Desktop",
-              icon: (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
-                  <rect x="1" y="2" width="14" height="10" rx="1.5" />
-                  <path strokeLinecap="round" d="M5 14h6M8 12v2" />
-                </svg>
-              ),
-            },
-            {
-              id: "mobile" as Viewport,
-              label: "Mobile",
-              icon: (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
-                  <rect x="4" y="1" width="8" height="14" rx="1.5" />
-                  <circle cx="8" cy="13" r="0.75" fill="currentColor" />
-                </svg>
-              ),
-            },
-          ].map((v) => (
-            <button
-              key={v.id}
-              onClick={() => onViewportChange(v.id)}
-              title={`${v.label} preview`}
-              aria-pressed={viewport === v.id}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
-                viewport === v.id
-                  ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
-                  : "text-[var(--muted-foreground)] hover:text-[var(--muted-foreground)]"
-              }`}
-            >
-              {v.icon}
-              <span className="hidden sm:inline">{v.label}</span>
-            </button>
-          ))}
-        </div>
+        {!hideDeviceToggle ? (
+          <>
+            <div className="h-5 w-px bg-[var(--secondary)]" />
+            <div className="flex items-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-0.5 shadow-sm">
+              {[
+                {
+                  id: "desktop" as Viewport,
+                  label: "Desktop",
+                  icon: (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
+                      <rect x="1" y="2" width="14" height="10" rx="1.5" />
+                      <path strokeLinecap="round" d="M5 14h6M8 12v2" />
+                    </svg>
+                  ),
+                },
+                {
+                  id: "mobile" as Viewport,
+                  label: "Mobile",
+                  icon: (
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 16 16" stroke="currentColor" strokeWidth={1.5}>
+                      <rect x="4" y="1" width="8" height="14" rx="1.5" />
+                      <circle cx="8" cy="13" r="0.75" fill="currentColor" />
+                    </svg>
+                  ),
+                },
+              ].map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => onViewportChange(v.id)}
+                  title={`${v.label} preview`}
+                  aria-pressed={viewport === v.id}
+                  className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${
+                    viewport === v.id
+                      ? "bg-[var(--card)] text-[var(--foreground)] shadow-sm"
+                      : "text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  {v.icon}
+                  <span className="hidden sm:inline">{v.label}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        ) : null}
       </div>
 
       {/* ── Canvas ──────────────────────────────────────────────────────── */}
@@ -314,15 +461,38 @@ export function StudioPreview({
           )}
 
           {!activeUrl ? (
-            <FallbackMockPage config={config} reason="no-url" surface={surface} />
+            <FallbackMockPage
+              config={config}
+              reason="no-url"
+              surface={surface}
+              onCustomize={handleCustomize}
+              onOpenCookiePrefs={handleOpenCookiePrefs}
+              onDismiss={handleDismiss}
+              onClosePreferences={handleClosePreferences}
+              bannerVisible={bannerVisible}
+            />
           ) : iframeBlocked ? (
-            <FallbackMockPage config={config} reason="blocked" surface={surface} />
+            <FallbackMockPage
+              config={config}
+              reason="blocked"
+              surface={surface}
+              onCustomize={handleCustomize}
+              onOpenCookiePrefs={handleOpenCookiePrefs}
+              onDismiss={handleDismiss}
+              onClosePreferences={handleClosePreferences}
+              bannerVisible={bannerVisible}
+            />
           ) : (
             <IframePreview
               url={activeUrl}
               config={config}
-              onBlock={() => setIframeBlocked(true)}
+              onBlock={handleIframeBlock}
               surface={surface}
+              onCustomize={handleCustomize}
+              onOpenCookiePrefs={handleOpenCookiePrefs}
+              onDismiss={handleDismiss}
+              onClosePreferences={handleClosePreferences}
+              bannerVisible={bannerVisible}
             />
           )}
         </div>

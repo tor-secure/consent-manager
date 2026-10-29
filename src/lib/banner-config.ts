@@ -26,6 +26,12 @@ export { SUPPORTED_LANGUAGES, LOCALE_OPTIONS, overlayEntityText, translationStat
 export type BannerPosition = "bottom" | "top" | "bottom-left" | "bottom-right" | "center";
 export type BannerLayout = "bar" | "box" | "dialog";
 export type ConsentDefault = "opt-in" | "opt-out" | "none";
+export type CookiePrefsLayout = "corner" | "center" | "sheet" | "drawer";
+export type CookiePrefsButtonStyle = "stack" | "row";
+export type CookiePrefsToggleStyle = "switch" | "checkbox";
+
+/** Shared Studio UI + API clamp for corner radius (px). */
+export const BANNER_BORDER_RADIUS_MAX = 24;
 
 export type BannerConfiguration = {
   title: string;
@@ -83,6 +89,23 @@ export type BannerConfiguration = {
 
   showPreferenceWidget: boolean;
   preferenceWidgetPosition: "bottom-left" | "bottom-right";
+
+  /** Post-consent floating Cookie Preferences panel (widget reopen). */
+  cookiePreferencesTitle: string;
+  cookiePrefsSaveLabel: string;
+  downloadReceiptLabel: string;
+  revokeConsentLabel: string;
+  activeCategoriesLabel: string;
+  cookiePrefsLegalNote: string;
+  showDownloadReceipt: boolean;
+  showRevokeConsent: boolean;
+  showConsentReceiptKey: boolean;
+  cookiePrefsLayout: CookiePrefsLayout;
+  cookiePrefsButtonStyle: CookiePrefsButtonStyle;
+  cookiePrefsToggleStyle: CookiePrefsToggleStyle;
+  cookiePrefsShowStatusMeta: boolean;
+  cookiePrefsShowLanguage: boolean;
+  cookiePrefsBorderRadius: number;
 };
 
 export function defaultBannerConfig(): BannerConfiguration {
@@ -142,6 +165,22 @@ export function defaultBannerConfig(): BannerConfiguration {
 
     showPreferenceWidget: true,
     preferenceWidgetPosition: "bottom-left",
+
+    cookiePreferencesTitle: "Cookie Preferences",
+    cookiePrefsSaveLabel: "Save changes",
+    downloadReceiptLabel: "Download Receipt",
+    revokeConsentLabel: "Revoke Consent (DPDP Section 6(4))",
+    activeCategoriesLabel: "Active categories:",
+    cookiePrefsLegalNote: "DPDP Act, 2023",
+    showDownloadReceipt: true,
+    showRevokeConsent: true,
+    showConsentReceiptKey: true,
+    cookiePrefsLayout: "corner",
+    cookiePrefsButtonStyle: "stack",
+    cookiePrefsToggleStyle: "switch",
+    cookiePrefsShowStatusMeta: true,
+    cookiePrefsShowLanguage: true,
+    cookiePrefsBorderRadius: 18,
   };
 }
 
@@ -166,11 +205,44 @@ export function parseBannerConfig(raw: Record<string, unknown>): BannerConfigura
   if (merged.layout === "dialog") merged.position = "center";
 
   const radius = Number(merged.borderRadius);
-  merged.borderRadius = Number.isFinite(radius) ? Math.max(0, Math.min(24, radius)) : 8;
+  merged.borderRadius = Number.isFinite(radius)
+    ? Math.max(0, Math.min(BANNER_BORDER_RADIUS_MAX, radius))
+    : 8;
 
   if (typeof merged.showPreferenceWidget !== "boolean") merged.showPreferenceWidget = true;
   merged.preferenceWidgetPosition =
     merged.preferenceWidgetPosition === "bottom-right" ? "bottom-right" : "bottom-left";
+  if (typeof merged.cookiePreferencesTitle !== "string" || !merged.cookiePreferencesTitle.trim()) {
+    merged.cookiePreferencesTitle = defaults.cookiePreferencesTitle;
+  }
+  if (typeof merged.cookiePrefsSaveLabel !== "string" || !merged.cookiePrefsSaveLabel.trim()) {
+    merged.cookiePrefsSaveLabel = defaults.cookiePrefsSaveLabel;
+  }
+  if (typeof merged.downloadReceiptLabel !== "string" || !merged.downloadReceiptLabel.trim()) {
+    merged.downloadReceiptLabel = defaults.downloadReceiptLabel;
+  }
+  if (typeof merged.revokeConsentLabel !== "string" || !merged.revokeConsentLabel.trim()) {
+    merged.revokeConsentLabel = defaults.revokeConsentLabel;
+  }
+  if (typeof merged.activeCategoriesLabel !== "string" || !merged.activeCategoriesLabel.trim()) {
+    merged.activeCategoriesLabel = defaults.activeCategoriesLabel;
+  }
+  if (typeof merged.cookiePrefsLegalNote !== "string" || !merged.cookiePrefsLegalNote.trim()) {
+    merged.cookiePrefsLegalNote = defaults.cookiePrefsLegalNote;
+  }
+  if (typeof merged.showDownloadReceipt !== "boolean") merged.showDownloadReceipt = true;
+  if (typeof merged.showRevokeConsent !== "boolean") merged.showRevokeConsent = true;
+  if (typeof merged.showConsentReceiptKey !== "boolean") merged.showConsentReceiptKey = true;
+  const prefsLayouts: CookiePrefsLayout[] = ["corner", "center", "sheet", "drawer"];
+  if (!prefsLayouts.includes(merged.cookiePrefsLayout)) merged.cookiePrefsLayout = "corner";
+  if (merged.cookiePrefsButtonStyle !== "row") merged.cookiePrefsButtonStyle = "stack";
+  if (merged.cookiePrefsToggleStyle !== "checkbox") merged.cookiePrefsToggleStyle = "switch";
+  if (typeof merged.cookiePrefsShowStatusMeta !== "boolean") merged.cookiePrefsShowStatusMeta = true;
+  if (typeof merged.cookiePrefsShowLanguage !== "boolean") merged.cookiePrefsShowLanguage = true;
+  const prefsRadius = Number(merged.cookiePrefsBorderRadius);
+  merged.cookiePrefsBorderRadius = Number.isFinite(prefsRadius)
+    ? Math.max(0, Math.min(BANNER_BORDER_RADIUS_MAX, prefsRadius))
+    : 18;
   merged.doNotSellEnabled = merged.doNotSellEnabled === true;
   merged.doNotShareEnabled = merged.doNotShareEnabled === true;
   merged.gpcHonored = merged.gpcHonored !== false;

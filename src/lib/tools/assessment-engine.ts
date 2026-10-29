@@ -1,3 +1,4 @@
+import { GAP_TOOL_ID } from "@/config/tools/gap";
 import { runNoticeAudit } from "./notice-audit-engine";
 import { runPenaltyRisk } from "./penalty-risk-engine";
 import { runReadiness } from "./readiness-engine";
@@ -17,6 +18,8 @@ export function runTool(tool: ToolId, answers: Answers): ToolRun {
       return runTimeline(answers);
     case "sdf-checker":
       return runSdf(answers);
+    case GAP_TOOL_ID:
+      return { ok: false, missing: [] };
     default:
       return { ok: false, missing: [] };
   }
