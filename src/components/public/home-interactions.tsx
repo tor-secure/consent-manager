@@ -118,13 +118,12 @@ export function HomeInteractions() {
       ),
     );
 
-    sections.forEach((item) => item.classList.add("is-inview"));
-    revealItems.forEach((item) => {
-      item.classList.add("is-visible");
-      item.classList.add("is-inview");
-    });
-
     if (reducedMotion.matches || !("IntersectionObserver" in window)) {
+      sections.forEach((item) => item.classList.add("is-inview"));
+      revealItems.forEach((item) => {
+        item.classList.add("is-visible");
+        item.classList.add("is-inview");
+      });
       return;
     }
 
@@ -136,7 +135,22 @@ export function HomeInteractions() {
       const parent = item.parentElement ?? document.body;
       const index = groupedParents.get(parent) ?? 0;
       groupedParents.set(parent, index + 1);
-      item.style.setProperty("--public-stagger", `${Math.min(index * 70, 360)}ms`);
+      item.style.setProperty("--public-stagger", `${Math.min(index * 35, 140)}ms`);
+    });
+
+    // Reveal above-the-fold items immediately so first paint is not blocked by stagger.
+    const viewportH = window.innerHeight || 800;
+    revealItems.forEach((item) => {
+      if (item.getBoundingClientRect().top < viewportH * 0.92) {
+        item.style.setProperty("--public-stagger", "0ms");
+        item.classList.add("is-visible");
+        item.classList.add("is-inview");
+      }
+    });
+    sections.forEach((item) => {
+      if (item.getBoundingClientRect().top < viewportH * 0.92) {
+        item.classList.add("is-inview");
+      }
     });
 
     const sectionObserver = new IntersectionObserver(
@@ -149,8 +163,8 @@ export function HomeInteractions() {
         });
       },
       {
-        rootMargin: "0px 0px -8% 0px",
-        threshold: 0.08,
+        rootMargin: "0px 0px -4% 0px",
+        threshold: 0.02,
       },
     );
 
@@ -165,8 +179,8 @@ export function HomeInteractions() {
         });
       },
       {
-        rootMargin: "0px 0px -8% 0px",
-        threshold: 0.08,
+        rootMargin: "0px 0px -4% 0px",
+        threshold: 0.02,
       },
     );
 

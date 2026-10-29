@@ -26,6 +26,9 @@ export const clerkAuthAppearance = {
     cardBox: "w-full shadow-none",
     card:
             "cmp-auth-form-card w-full max-w-full rounded-2xl border border-solid border-[#E5E7EB] bg-white px-4 py-6 shadow-[0_18px_50px_-28px_rgba(15,23,42,0.28)] min-[400px]:px-6 sm:px-8 sm:py-8",
+    main: "w-full flex flex-col items-center",
+    spinner: "cmp-auth-spinner mx-auto block",
+    spinnerBox: "cmp-auth-spinner mx-auto flex w-full items-center justify-center py-10",
     headerTitle: "!text-[#111827] text-[clamp(1.25rem,1rem+1.5vw,1.75rem)] font-bold tracking-tight",
     headerSubtitle: "!text-[#6B7280] text-sm",
     socialButtonsBlockButton:

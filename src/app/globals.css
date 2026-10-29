@@ -295,7 +295,7 @@ html, body {
 @keyframes cmp-auth-fade-up {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -304,23 +304,49 @@ html, body {
 }
 
 .cmp-auth-form-enter {
-  animation: cmp-auth-fade-up 0.45s ease-out both;
+  animation: cmp-auth-fade-up 0.18s ease-out both;
 }
 
 .cmp-auth-fade-item {
-  animation: cmp-auth-fade-up 0.5s ease-out both;
+  animation: cmp-auth-fade-up 0.2s ease-out both;
 }
 
-.cmp-auth-fade-item:nth-child(1) {
-  animation-delay: 0.05s;
-}
-
-.cmp-auth-fade-item:nth-child(2) {
-  animation-delay: 0.12s;
-}
-
+.cmp-auth-fade-item:nth-child(1),
+.cmp-auth-fade-item:nth-child(2),
 .cmp-auth-fade-item:nth-child(3) {
-  animation-delay: 0.19s;
+  animation-delay: 0s;
+}
+
+/* Center Clerk SSO / loading spinner inside the auth card */
+.cmp-auth-page .cl-spinner,
+.cmp-auth-page .cl-spinnerBox,
+.cmp-auth-page .cl-loading,
+.cmp-auth-page [class*="cl-internal"][class*="spinner"],
+.cmp-auth-page .cmp-auth-spinner {
+  display: block !important;
+  margin-inline: auto !important;
+}
+
+.cmp-auth-page .cl-main:has(.cl-spinner),
+.cmp-auth-page .cl-main:has(.cl-spinnerBox),
+.cmp-auth-page .cl-main:has(.cl-loading),
+.cmp-auth-page .cl-card:has(.cl-spinner),
+.cmp-auth-page .cl-card:has(.cl-spinnerBox),
+.cmp-auth-page .cl-card:has(.cl-loading) {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 12rem !important;
+  text-align: center !important;
+}
+
+.cmp-auth-page .cl-cardBox:has(.cl-spinner),
+.cmp-auth-page .cl-cardBox:has(.cl-spinnerBox),
+.cmp-auth-page .cl-cardBox:has(.cl-loading) {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 }
 
 .cmp-auth-page {
@@ -353,9 +379,9 @@ html, body {
   padding-block: clamp(1rem, 2.5vw, 2rem) !important;
 }
 
-.cmp-auth-page .cl-main,
+  .cmp-auth-page .cl-main,
 .cmp-auth-page .cl-form {
-  align-items: stretch !important;
+  align-items: center !important;
   padding-inline: 0 !important;
 }
 
@@ -2191,15 +2217,15 @@ html, body {
   }
 
   .public-io-ready .public-reveal.is-visible {
-    animation: io-fade-up 460ms var(--ease-out) var(--public-stagger, 0ms) both;
+    animation: io-fade-up 260ms var(--ease-out) var(--public-stagger, 0ms) both;
   }
 
   .public-io-ready .public-scale-reveal.is-visible {
-    animation: io-scale-in 500ms var(--ease-out) var(--public-stagger, 0ms) both;
+    animation: io-scale-in 280ms var(--ease-out) var(--public-stagger, 0ms) both;
   }
 
   .public-io-ready .public-float-card.is-visible {
-    animation: io-card-in 480ms var(--ease-out) var(--public-stagger, 0ms) both;
+    animation: io-card-in 280ms var(--ease-out) var(--public-stagger, 0ms) both;
   }
 
   @keyframes fade-in {
