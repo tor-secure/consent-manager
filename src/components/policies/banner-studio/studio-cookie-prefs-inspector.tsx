@@ -18,7 +18,8 @@ interface StudioCookiePrefsInspectorProps {
   saving: boolean;
   saveError: string | null;
   saveSuccess: boolean;
-  onSave: () => void;
+  onSave: () => void | Promise<boolean | void>;
+  onPublish: () => void | Promise<void>;
   onReset: () => void;
   hasVersion: boolean;
   policyId: string;
@@ -138,6 +139,7 @@ export function StudioCookiePrefsInspector({
   saveError,
   saveSuccess,
   onSave,
+  onPublish,
   onReset,
   hasVersion,
   policyId,
@@ -335,18 +337,22 @@ export function StudioCookiePrefsInspector({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={onSave}
-            disabled={saving || !hasVersion}
+            onClick={() => void onSave()}
+            disabled={saving || !hasVersion || !isDirty}
             className="btn btn-primary flex h-10 flex-1 items-center justify-center text-sm disabled:opacity-50"
+            title="Save draft (Ctrl+S)"
           >
             {saving ? "Saving…" : "Save draft"}
           </button>
-          <Link
-            href={`/dashboard/policies/${policyId}#policy-publish`}
-            className="btn btn-outline flex h-10 items-center px-3 text-sm"
+          <button
+            type="button"
+            onClick={() => void onPublish()}
+            disabled={saving || !hasVersion}
+            className="btn btn-outline flex h-10 items-center px-3 text-sm disabled:opacity-50"
+            title={isDirty ? "Save draft, then open publish" : "Open policy publish"}
           >
             Publish
-          </Link>
+          </button>
           {websiteId ? (
             <Link
               href={`/dashboard/websites/${websiteId}/installation`}

@@ -127,8 +127,8 @@ export function BannerStudio({
     setSaveSuccess(false);
   }, []);
 
-  const handleSave = useCallback(async () => {
-    if (!latestVersionId || saving) return;
+  const handleSave = useCallback(async (): Promise<boolean> => {
+    if (!latestVersionId || saving) return false;
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
@@ -144,24 +144,48 @@ export function BannerStudio({
         const message = data.message || "Unable to save banner. Please try again.";
         notify.error(message);
         setSaveError(message);
-      } else {
-        notify.success("Banner draft saved");
-        setSaveSuccess(true);
-        const nextSaved = data.configuration
-          ? parseBannerConfig(data.configuration as unknown as Record<string, unknown>)
-          : config;
-        setConfig(nextSaved);
-        setSavedSnapshot(JSON.stringify(nextSaved));
-        router.refresh();
-        setTimeout(() => setSaveSuccess(false), 4000);
+        return false;
       }
+      notify.success("Banner draft saved");
+      setSaveSuccess(true);
+      const nextSaved = data.configuration
+        ? parseBannerConfig(data.configuration as unknown as Record<string, unknown>)
+        : config;
+      setConfig(nextSaved);
+      setSavedSnapshot(JSON.stringify(nextSaved));
+      router.refresh();
+      setTimeout(() => setSaveSuccess(false), 4000);
+      return true;
     } catch {
       notify.error("Unable to connect. Please try again.");
       setSaveError("Unable to connect. Please try again.");
+      return false;
     } finally {
       setSaving(false);
     }
   }, [config, policyId, latestVersionId, router, saving]);
+
+  const handlePublish = useCallback(async () => {
+    if (!latestVersionId) {
+      notify.error("No policy version — cannot publish.");
+      return;
+    }
+    if (isDirty) {
+      const saved = await handleSave();
+      if (!saved) return;
+    }
+    router.push(`/dashboard/policies/${policyId}#policy-publish`);
+  }, [handleSave, isDirty, latestVersionId, policyId, router]);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== "s") return;
+      event.preventDefault();
+      void handleSave();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [handleSave]);
 
   const previewUrl = websiteDomain
     ? websiteDomain.startsWith("http")
@@ -205,37 +229,43 @@ export function BannerStudio({
           <span className="font-semibold text-[var(--foreground)]">Banner Studio</span>
         </div>
 
-        <div className="ml-auto flex items-center gap-2.5">
-          <div className="hidden items-center gap-1.5 rounded-full bg-[var(--info-soft)] px-3 py-1.5 text-xs font-medium text-[var(--primary)] ring-1 ring-[color-mix(in_srgb,var(--primary)_22%,transparent)] sm:flex">
-            <svg
-              className="h-3.5 w-3.5"
-              fill="none"
-              viewBox="0 0 16 16"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              aria-hidden
-            >
-              <path
-                strokeLinecap="round"
-                d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z"
-              />
-              <circle cx="8" cy="8" r="1.75" />
-            </svg>
-            Studio preview
-          </div>
+        <div className="ml-auto flex items-center gap-2">
+          {isDirty ? (
+            <span className="hidden rounded-full bg-[var(--warning-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)] sm:inline">
+              Unsaved
+            </span>
+          ) : null}
           {liveIsBehind ? (
-            <span className="rounded-full bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]">
+            <span className="hidden rounded-full bg-[var(--warning-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)] md:inline">
               Draft — not live yet
             </span>
           ) : latestVersionId ? (
-            <span className="rounded-full bg-[var(--success-soft)] px-3 py-1 text-xs font-medium text-[var(--success)] ring-1 ring-[color-mix(in_srgb,var(--success)_22%,transparent)]">
+            <span className="hidden rounded-full bg-[var(--success-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--success)] ring-1 ring-[color-mix(in_srgb,var(--success)_22%,transparent)] md:inline">
               Matches published
             </span>
           ) : (
-            <span className="rounded-full bg-[var(--warning-soft)] px-3 py-1 text-xs font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)]">
+            <span className="hidden rounded-full bg-[var(--warning-soft)] px-2.5 py-1 text-[11px] font-medium text-[var(--warning)] ring-1 ring-[color-mix(in_srgb,var(--warning)_22%,transparent)] md:inline">
               No version
             </span>
           )}
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={saving || !latestVersionId || !isDirty}
+            className="btn btn-primary h-8 px-3 text-xs disabled:opacity-50"
+            title="Save draft (Ctrl+S)"
+          >
+            {saving ? "Saving…" : "Save draft"}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handlePublish()}
+            disabled={saving || !latestVersionId}
+            className="btn btn-outline h-8 px-3 text-xs disabled:opacity-50"
+            title={isDirty ? "Save draft, then open publish" : "Open policy publish"}
+          >
+            Publish
+          </button>
         </div>
       </header>
 
@@ -406,6 +436,7 @@ export function BannerStudio({
               saveError={saveError}
               saveSuccess={saveSuccess}
               onSave={handleSave}
+              onPublish={handlePublish}
               onReset={handleReset}
               hasVersion={!!latestVersionId}
               policyId={policyId}
@@ -423,6 +454,7 @@ export function BannerStudio({
               saveError={saveError}
               saveSuccess={saveSuccess}
               onSave={handleSave}
+              onPublish={handlePublish}
               onReset={handleReset}
               hasVersion={!!latestVersionId}
               policyId={policyId}

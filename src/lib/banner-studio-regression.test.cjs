@@ -259,6 +259,17 @@ describe("Banner Studio regression — compliance controls in Studio UI", () => 
     assertIncludes(index, "isDirty", "dirty tracking");
     assertIncludes(index, "setSavedSnapshot", "snapshot after successful save");
   });
+
+  it("exposes header Save/Publish and saves before publish when dirty", () => {
+    const index = read("src/components/policies/banner-studio/index.tsx");
+    assertIncludes(index, "handlePublish", "publish handler");
+    assertIncludes(index, "Save draft, then open publish", "dirty publish tooltip");
+    assertIncludes(index, 'router.push(`/dashboard/policies/${policyId}#policy-publish`)', "publish navigates to policy");
+    assertIncludes(index, "event.key.toLowerCase() !== \"s\"", "Ctrl+S save shortcut");
+    const inspector = read("src/components/policies/banner-studio/studio-inspector.tsx");
+    assertIncludes(inspector, "onPublish", "inspector publish prop");
+    assertIncludes(inspector, "!hasVersion || !isDirty", "save disabled when clean");
+  });
 });
 
 describe("Banner Studio regression — editable field coverage", () => {

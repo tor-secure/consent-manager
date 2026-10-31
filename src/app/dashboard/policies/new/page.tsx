@@ -5,7 +5,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { organizations } from "@/db/schema/organizations";
 import { websites } from "@/db/schema/websites";
-import { CreatePageHeader, CreateFormShell } from "@/components/dashboard/create-page-header";
+import { CreatePageHeader } from "@/components/dashboard/create-page-header";
 import {
   CreatePolicyForm,
   type WebsiteOption,
@@ -36,9 +36,13 @@ export default async function NewPolicyPage({
     .orderBy(websites.name);
 
   return (
-    <div className="page-wrap space-y-8">
+    <div className="page-wrap space-y-5 sm:space-y-6 lg:space-y-8">
       <CreatePageHeader
-        backHref={defaultWebsiteId ? `/dashboard/policies?websiteId=${defaultWebsiteId}` : "/dashboard/policies"}
+        backHref={
+          defaultWebsiteId
+            ? `/dashboard/policies?websiteId=${defaultWebsiteId}`
+            : "/dashboard/policies"
+        }
         backLabel="Policies"
         current="New policy"
         title="Create consent policy"
@@ -46,32 +50,30 @@ export default async function NewPolicyPage({
       />
 
       {defaultWebsiteId ? (
-        <p className="text-sm text-[var(--muted-foreground)]">
+        <p className="text-sm text-[#6B7280]">
           Next: create a policy for this site.{" "}
-          <Link href={`/dashboard/websites/${defaultWebsiteId}/installation`} className="font-medium text-[var(--primary)] underline-offset-2 hover:underline">
+          <Link
+            href={`/dashboard/websites/${defaultWebsiteId}/installation`}
+            className="font-medium text-[#0B2C4A] underline-offset-2 hover:underline"
+          >
             Install later
           </Link>
         </p>
       ) : null}
 
-      <CreateFormShell>
-        {orgWebsites.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[var(--border)] bg-[var(--card)] px-6 py-12 text-center card-shadow">
-            <p className="text-base font-semibold text-[var(--foreground)]">No websites found</p>
-            <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-[var(--muted-foreground)]">
-              You need at least one website before creating a consent policy.
-            </p>
-            <Link href="/dashboard/websites/new" className="btn btn-primary mt-6">
-              Add a website
-            </Link>
-          </div>
-        ) : (
-          <CreatePolicyForm
-            websites={orgWebsites}
-            defaultWebsiteId={defaultWebsiteId}
-          />
-        )}
-      </CreateFormShell>
+      {orgWebsites.length === 0 ? (
+        <div className="mx-auto max-w-[72rem] rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+          <p className="text-base font-semibold text-[#111827]">No websites found</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-[#6B7280]">
+            You need at least one website before creating a consent policy.
+          </p>
+          <Link href="/dashboard/websites/new" className="btn btn-primary mt-6">
+            Add a website
+          </Link>
+        </div>
+      ) : (
+        <CreatePolicyForm websites={orgWebsites} defaultWebsiteId={defaultWebsiteId} />
+      )}
     </div>
   );
 }

@@ -3,13 +3,14 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { auth, clerkClient, currentUser } from "@clerk/nextjs/server";
-import { eq, and, getTableColumns } from "drizzle-orm";
+import { eq, and, ne, sql, desc, getTableColumns } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { organizations } from "@/db/schema/organizations";
 import { memberships } from "@/db/schema/memberships";
 import { roles } from "@/db/schema/roles";
+import { websites } from "@/db/schema/websites";
 import {
   organizationCoreSelect,
   toOrganizationRow,
@@ -90,6 +91,66 @@ function clerkRoleForOrg(
   return membership?.role ?? null;
 }
 
+const websiteCountExpr = sql<number>`coalesce((
+  select count(*)::int from ${websites}
+  where ${websites.organizationId} = ${organizations.id}
+    and ${websites.deletedAt} is null
+), 0)`;
+
+/**
+ * After switching Clerk Development → Production, the same human gets a new
+ * `org_…` id. Websites stay on the old local organization row. Prefer that
+ * row (especially if it already has websites) over inserting an empty org.
+ */
+async function findLegacyOrganizationForUser(localUserId: string, excludeOrgId?: string) {
+  const rows = await db
+    .select({
+      organization: organizationCoreSelect,
+      membership: getTableColumns(memberships),
+      websiteCount: websiteCountExpr,
+    })
+    .from(memberships)
+    .innerJoin(organizations, eq(memberships.organizationId, organizations.id))
+    .where(
+      excludeOrgId
+        ? and(eq(memberships.userId, localUserId), ne(organizations.id, excludeOrgId))
+        : eq(memberships.userId, localUserId),
+    )
+    .orderBy(desc(websiteCountExpr), desc(organizations.createdAt));
+
+  return rows[0] ?? null;
+}
+
+async function remountOrganizationToClerkId(
+  localOrgId: string,
+  newClerkOrganizationId: string,
+  vacateOrgId?: string,
+) {
+  return db.transaction(async (tx) => {
+    if (vacateOrgId && vacateOrgId !== localOrgId) {
+      // Free the unique clerk_organization_id on the empty production shell org.
+      await tx
+        .update(organizations)
+        .set({
+          clerkOrganizationId: `retired-${vacateOrgId}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(organizations.id, vacateOrgId));
+    }
+
+    const [updated] = await tx
+      .update(organizations)
+      .set({
+        clerkOrganizationId: newClerkOrganizationId,
+        updatedAt: new Date(),
+      })
+      .where(eq(organizations.id, localOrgId))
+      .returning(organizationCoreSelect);
+
+    return updated;
+  });
+}
+
 /**
  * Call once per /dashboard request (from the layout).
  * Cached per request. The hot path is a local user + org + membership read
@@ -120,6 +181,7 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
           organization: organizationCoreSelect,
           membership: getTableColumns(memberships),
           roleName: roles.name,
+          websiteCount: websiteCountExpr,
         })
         .from(users)
         .innerJoin(organizations, eq(organizations.clerkOrganizationId, orgId))
@@ -144,6 +206,25 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
     const [hot] = hotRows;
 
     if (hot) {
+      if (Number(hot.websiteCount) === 0) {
+        const legacy = await findLegacyOrganizationForUser(hot.user.id, hot.organization.id);
+        if (legacy && Number(legacy.websiteCount) > 0) {
+          const remounted = await remountOrganizationToClerkId(
+            legacy.organization.id,
+            orgId,
+            hot.organization.id,
+          );
+          if (remounted) {
+            return {
+              user: hot.user,
+              organization: toOrganizationRow(remounted),
+              membership: legacy.membership,
+              roleName: await roleNameFor(legacy.membership.roleId),
+            };
+          }
+        }
+      }
+
       return {
         user: hot.user,
         organization: toOrganizationRow(hot.organization),
@@ -265,18 +346,41 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
 
   if (resolvedOrgId) {
     const [existingOrg] = await db
-      .select(organizationCoreSelect)
+      .select({
+        organization: organizationCoreSelect,
+        websiteCount: websiteCountExpr,
+      })
       .from(organizations)
       .where(eq(organizations.clerkOrganizationId, resolvedOrgId))
       .limit(1);
 
     if (existingOrg) {
+      // Empty production shell org while an older membership still holds websites.
+      if (Number(existingOrg.websiteCount) === 0) {
+        const legacy = await findLegacyOrganizationForUser(localUser.id, existingOrg.organization.id);
+        if (legacy && Number(legacy.websiteCount) > 0) {
+          const remounted = await remountOrganizationToClerkId(
+            legacy.organization.id,
+            resolvedOrgId,
+            existingOrg.organization.id,
+          );
+          if (remounted) {
+            return {
+              user: localUser,
+              organization: toOrganizationRow(remounted),
+              membership: legacy.membership,
+              roleName: await roleNameFor(legacy.membership.roleId),
+            };
+          }
+        }
+      }
+
       const [existingMembership] = await db
         .select()
         .from(memberships)
         .where(
           and(
-            eq(memberships.organizationId, existingOrg.id),
+            eq(memberships.organizationId, existingOrg.organization.id),
             eq(memberships.userId, localUser.id),
           ),
         )
@@ -285,20 +389,20 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
       if (existingMembership) {
         return {
           user: localUser,
-          organization: toOrganizationRow(existingOrg),
+          organization: toOrganizationRow(existingOrg.organization),
           membership: existingMembership,
           roleName: await roleNameFor(existingMembership.roleId),
         };
       }
 
       const membership = await ensureMembershipForClerkRole({
-        organizationId: existingOrg.id,
+        organizationId: existingOrg.organization.id,
         userId: localUser.id,
         clerkRole: clerkRoleForOrg(clerkUser, resolvedOrgId),
       });
       return {
         user: localUser,
-        organization: toOrganizationRow(existingOrg),
+        organization: toOrganizationRow(existingOrg.organization),
         membership,
         roleName: await roleNameFor(membership.roleId),
       };
@@ -374,6 +478,21 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
       membership,
       roleName: await roleNameFor(membership.roleId),
     };
+  }
+
+  // Production Clerk org id is new — remount the user's existing local org
+  // (with websites) instead of creating a blank workspace.
+  const legacy = await findLegacyOrganizationForUser(localUser.id);
+  if (legacy) {
+    const remounted = await remountOrganizationToClerkId(legacy.organization.id, resolvedOrgId);
+    if (remounted) {
+      return {
+        user: localUser,
+        organization: toOrganizationRow(remounted),
+        membership: legacy.membership,
+        roleName: await roleNameFor(legacy.membership.roleId),
+      };
+    }
   }
 
   const client = await clerkClient();
