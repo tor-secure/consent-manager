@@ -2,7 +2,7 @@ import "server-only";
 
 import { createHash, timingSafeEqual } from "crypto";
 
-export const API_KEY_SCOPES = ["consent:evaluate", "data:redact"] as const;
+export const API_KEY_SCOPES = ["consent:evaluate", "consent:subject", "data:redact"] as const;
 export type ApiKeyScope = (typeof API_KEY_SCOPES)[number];
 
 const API_KEY_RE = /^cmp_(live|test)_[A-Za-z0-9_-]{43}$/;

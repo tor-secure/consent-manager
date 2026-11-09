@@ -126,29 +126,130 @@ async function remountOrganizationToClerkId(
   newClerkOrganizationId: string,
   vacateOrgId?: string,
 ) {
-  return db.transaction(async (tx) => {
-    if (vacateOrgId && vacateOrgId !== localOrgId) {
-      // Free the unique clerk_organization_id on the empty production shell org.
-      await tx
+  try {
+    return await db.transaction(async (tx) => {
+      if (vacateOrgId && vacateOrgId !== localOrgId) {
+        // Free the unique clerk_organization_id on the empty production shell org.
+        await tx
+          .update(organizations)
+          .set({
+            clerkOrganizationId: `retired-${vacateOrgId}-${Date.now()}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(organizations.id, vacateOrgId));
+      }
+
+      const [updated] = await tx
         .update(organizations)
         .set({
-          clerkOrganizationId: `retired-${vacateOrgId}`,
+          clerkOrganizationId: newClerkOrganizationId,
           updatedAt: new Date(),
         })
-        .where(eq(organizations.id, vacateOrgId));
-    }
+        .where(eq(organizations.id, localOrgId))
+        .returning(organizationCoreSelect);
 
-    const [updated] = await tx
-      .update(organizations)
+      return updated ?? null;
+    });
+  } catch {
+    // Never 500 the dashboard if remount races or hits a unique constraint.
+    return null;
+  }
+}
+
+/**
+ * Point a local user row at the active Clerk user id. If that Clerk id is
+ * already attached to a different local row (common after Dev→Prod Clerk
+ * switches), merge memberships onto the email-matched account first.
+ */
+async function attachClerkIdToUser(input: {
+  targetUserId: string;
+  clerkUserId: string;
+  name: string;
+  avatarUrl: string | null;
+  emailVerifiedAt: Date | null | undefined;
+}) {
+  try {
+    const [updated] = await db
+      .update(users)
       .set({
-        clerkOrganizationId: newClerkOrganizationId,
+        clerkUserId: input.clerkUserId,
+        name: input.name,
+        avatarUrl: input.avatarUrl,
+        lastLoginAt: new Date(),
+        emailVerifiedAt: input.emailVerifiedAt,
         updatedAt: new Date(),
       })
-      .where(eq(organizations.id, localOrgId))
-      .returning(organizationCoreSelect);
+      .where(eq(users.id, input.targetUserId))
+      .returning(userCoreSelect);
+    return updated ?? null;
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+  }
 
-    return updated;
-  });
+  const [conflict] = await db
+    .select(userCoreSelect)
+    .from(users)
+    .where(eq(users.clerkUserId, input.clerkUserId))
+    .limit(1);
+
+  if (!conflict || conflict.id === input.targetUserId) {
+    const [again] = await db
+      .select(userCoreSelect)
+      .from(users)
+      .where(eq(users.id, input.targetUserId))
+      .limit(1);
+    return again ?? null;
+  }
+
+  // Move memberships from the orphan Clerk-linked row onto the email account.
+  const orphanMemberships = await db
+    .select()
+    .from(memberships)
+    .where(eq(memberships.userId, conflict.id));
+
+  for (const row of orphanMemberships) {
+    const [already] = await db
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(
+        and(
+          eq(memberships.organizationId, row.organizationId),
+          eq(memberships.userId, input.targetUserId),
+        ),
+      )
+      .limit(1);
+    if (already) {
+      await db.delete(memberships).where(eq(memberships.id, row.id));
+    } else {
+      await db
+        .update(memberships)
+        .set({ userId: input.targetUserId, updatedAt: new Date() })
+        .where(eq(memberships.id, row.id));
+    }
+  }
+
+  await db
+    .update(users)
+    .set({
+      clerkUserId: `retired-${conflict.id}-${Date.now()}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, conflict.id));
+
+  const [updated] = await db
+    .update(users)
+    .set({
+      clerkUserId: input.clerkUserId,
+      name: input.name,
+      avatarUrl: input.avatarUrl,
+      lastLoginAt: new Date(),
+      emailVerifiedAt: input.emailVerifiedAt,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, input.targetUserId))
+    .returning(userCoreSelect);
+
+  return updated ?? null;
 }
 
 /**
@@ -265,20 +366,21 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
   let localUser = existingUserRows[0];
 
   if (!localUser) {
-    const [sameEmail] = await db.select(userCoreSelect).from(users).where(eq(users.email, email)).limit(1);
+    const [sameEmail] = await db
+      .select(userCoreSelect)
+      .from(users)
+      .where(sql`lower(${users.email}) = ${email.toLowerCase()}`)
+      .limit(1);
     if (sameEmail) {
-      [localUser] = await db
-        .update(users)
-        .set({
-          clerkUserId: userId,
-          name,
-          avatarUrl,
-          lastLoginAt: new Date(),
-          emailVerifiedAt: isEmailVerified ? (sameEmail.emailVerifiedAt ?? new Date()) : sameEmail.emailVerifiedAt,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.id, sameEmail.id))
-        .returning(userCoreSelect);
+      localUser = await attachClerkIdToUser({
+        targetUserId: sameEmail.id,
+        clerkUserId: userId,
+        name,
+        avatarUrl,
+        emailVerifiedAt: isEmailVerified
+          ? (sameEmail.emailVerifiedAt ?? new Date())
+          : sameEmail.emailVerifiedAt,
+      });
     } else {
       try {
         [localUser] = await db
@@ -298,18 +400,24 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
           .returning(userCoreSelect);
       } catch (error) {
         if (!isUniqueViolation(error)) throw error;
-        const [linked] = await db.select(userCoreSelect).from(users).where(eq(users.email, email)).limit(1);
+        const [linked] = await db
+          .select(userCoreSelect)
+          .from(users)
+          .where(sql`lower(${users.email}) = ${email.toLowerCase()}`)
+          .limit(1);
         if (!linked) throw error;
-        [localUser] = await db
-          .update(users)
-          .set({ clerkUserId: userId, name, avatarUrl, lastLoginAt: new Date(), updatedAt: new Date() })
-          .where(eq(users.id, linked.id))
-          .returning(userCoreSelect);
+        localUser = await attachClerkIdToUser({
+          targetUserId: linked.id,
+          clerkUserId: userId,
+          name,
+          avatarUrl,
+          emailVerifiedAt: isEmailVerified ? (linked.emailVerifiedAt ?? new Date()) : linked.emailVerifiedAt,
+        });
       }
     }
   } else {
     const profileChanged =
-      localUser.email !== email ||
+      localUser.email.toLowerCase() !== email.toLowerCase() ||
       localUser.name !== name ||
       localUser.avatarUrl !== avatarUrl ||
       (isEmailVerified && !localUser.emailVerifiedAt);
@@ -318,21 +426,30 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
       Date.now() - localUser.lastLoginAt.getTime() > LOGIN_TOUCH_MS;
 
     if (profileChanged || loginStale) {
-      [localUser] = await db
-        .update(users)
-        .set({
-          email,
-          name,
-          avatarUrl,
-          lastLoginAt: loginStale ? new Date() : localUser.lastLoginAt,
-          emailVerifiedAt: isEmailVerified
-            ? (localUser.emailVerifiedAt ?? new Date())
-            : localUser.emailVerifiedAt,
-          updatedAt: new Date(),
-        })
-        .where(eq(users.clerkUserId, userId))
-        .returning(userCoreSelect);
+      try {
+        [localUser] = await db
+          .update(users)
+          .set({
+            email,
+            name,
+            avatarUrl,
+            lastLoginAt: loginStale ? new Date() : localUser.lastLoginAt,
+            emailVerifiedAt: isEmailVerified
+              ? (localUser.emailVerifiedAt ?? new Date())
+              : localUser.emailVerifiedAt,
+            updatedAt: new Date(),
+          })
+          .where(eq(users.clerkUserId, userId))
+          .returning(userCoreSelect);
+      } catch (error) {
+        // Email unique clash after Clerk email change — keep the session usable.
+        if (!isUniqueViolation(error)) throw error;
+      }
     }
+  }
+
+  if (!localUser) {
+    throw new Error("Unable to resolve local user for this Clerk account");
   }
 
   const clerkMemberships =

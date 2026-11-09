@@ -1,5 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
+import { NextRequest, NextResponse, type NextFetchEvent } from "next/server";
 
 import { SEO_PUBLIC_MATCHERS } from "@/content/seo-landings";
 import { isClerkConfigured } from "@/lib/clerk-config";
@@ -124,7 +124,21 @@ const clerkProxy = clerkMiddleware(
       await auth.protect();
     }
 
-    return withBaselineHeaders(request, NextResponse.next());
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-cg-path", pathname);
+    if (
+      pathname.startsWith("/sign-in") ||
+      pathname.startsWith("/sign-up") ||
+      pathname.startsWith("/create-organization")
+    ) {
+      // Keep the marketing CMP / early-block off auth handshakes (SSO callback).
+      requestHeaders.set("x-cg-skip-cmp", "1");
+    }
+
+    return withBaselineHeaders(
+      request,
+      NextResponse.next({ request: { headers: requestHeaders } }),
+    );
   },
   {
     contentSecurityPolicy: {
@@ -226,6 +240,8 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
     return response;
   }
   const restored = takePlatformSession(request);
+  // Pass the original request through. Header injection for path/CMP skip
+  // happens inside clerkProxy via NextResponse.next({ request: { headers } }).
   const response = await platformProxy(request, event);
   if (response instanceof NextResponse) applyClerkCookies(response, restored);
   return response;

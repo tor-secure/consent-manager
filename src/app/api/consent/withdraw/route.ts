@@ -7,6 +7,11 @@ import { consentRecords } from "@/db/schema/consent-records";
 import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
+import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
+import {
+  loadDecisionSnapshots,
+  notifyConsentRevocations,
+} from "@/lib/consent/revocation-notification";
 import { logger } from "@/lib/logger";
 import {
   isValidConsentId,
@@ -94,6 +99,7 @@ export async function POST(request: Request) {
       .select({
         id: consentRecords.id,
         organizationId: consentRecords.organizationId,
+        websiteId: consentRecords.websiteId,
         consentId: consentRecords.consentId,
         status: consentRecords.status,
         stateVersion: consentRecords.stateVersion,
@@ -104,6 +110,7 @@ export async function POST(request: Request) {
         and(
           eq(consentRecords.consentId, consentId),
           eq(consentRecords.websiteId, website.id),
+          eq(consentRecords.organizationId, website.organizationId),
         ),
       )
       .limit(1);
@@ -145,6 +152,8 @@ export async function POST(request: Request) {
       .orderBy(desc(consentEvidenceSnapshots.consentedAt))
       .limit(1);
 
+    const priorDecisions = await loadDecisionSnapshots(record.id);
+
     let withdrawn: { stateVersion: number } | undefined;
     await db.transaction(async (tx) => {
       const [updated] = await tx
@@ -158,6 +167,8 @@ export async function POST(request: Request) {
         .where(
           and(
             eq(consentRecords.id, record.id),
+            eq(consentRecords.organizationId, website.organizationId),
+            eq(consentRecords.websiteId, website.id),
             eq(consentRecords.stateVersion, expectedStateVersion),
           ),
         )
@@ -213,6 +224,40 @@ export async function POST(request: Request) {
         consentRecordId: record.id,
         policyVersionId: record.policyVersionId,
         error: eventError,
+      });
+    }
+
+    await bindSubjectFromClerkSession({
+      organizationId: record.organizationId,
+      websiteId: record.websiteId,
+      consentId: record.consentId,
+    }).catch(() => null);
+
+    try {
+      after(() =>
+        notifyConsentRevocations({
+          organizationId: record.organizationId,
+          websiteId: record.websiteId,
+          consentRecordId: record.id,
+          consentId: record.consentId,
+          stateVersion: withdrawn!.stateVersion,
+          previous: priorDecisions,
+          next: priorDecisions.map((row) => ({ ...row, granted: false })),
+          revokedAt: now,
+          fullWithdrawal: true,
+        }).catch((mailError) => {
+          logger.error("Consent withdrawal notification failed", {
+            operation: "consent.revocation.email",
+            consentRecordId: record.id,
+            error: mailError,
+          });
+        }),
+      );
+    } catch (mailScheduleError) {
+      logger.error("Schedule consent withdrawal notification failed", {
+        operation: "consent.revocation.email",
+        consentRecordId: record.id,
+        error: mailScheduleError,
       });
     }
 

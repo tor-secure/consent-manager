@@ -10,11 +10,12 @@ export type SendEmailInput = {
   replyTo?: string;
 };
 
-function fromAddress(): string {
+function fromAddress(fallbackUser?: string): string {
   return (
+    process.env.CONSENT_SMTP_FROM?.trim() ||
     process.env.MAIL_FROM?.trim() ||
     process.env.EMAIL_FROM?.trim() ||
-    process.env.SMTP_FROM?.trim() ||
+    fallbackUser?.trim() ||
     DEFAULT_FROM
   );
 }
@@ -40,41 +41,52 @@ async function sendWithResend(input: SendEmailInput): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(`Resend rejected the pricing enquiry email (${response.status}).`);
+    throw new Error(`Resend rejected the email (${response.status}).`);
   }
 }
 
-const GMAIL_SMTP_HOST = "smtp.gmail.com";
-const GMAIL_SMTP_USER = "torsecure.dev@gmail.com";
+function consentSmtpPassword(): string {
+  return (
+    process.env.CONSENT_SMTP_PASS?.trim() ||
+    process.env.CONSENT_SMTP_PASSWORD?.trim() ||
+    ""
+  );
+}
 
-function smtpPassword(): string {
-  return process.env.SMTP_PASS?.trim() || process.env.SMTP_PASSWORD?.trim() || "";
+function consentSmtpUser(): string {
+  return process.env.CONSENT_SMTP_USER?.trim() || "";
+}
+
+function consentSmtpHost(): string {
+  return process.env.CONSENT_SMTP_HOST?.trim() || "";
 }
 
 export function isNodemailerConfigured(): boolean {
-  return Boolean(smtpPassword());
+  return Boolean(consentSmtpPassword() && consentSmtpHost() && consentSmtpUser());
 }
 
-/** Gmail SMTP via Nodemailer. Host and user default to the pricing inbox. */
+/** SMTP via Nodemailer. Credentials and sender come only from CONSENT_SMTP_* env vars. */
 export async function sendWithNodemailer(input: SendEmailInput): Promise<void> {
-  const pass = smtpPassword();
-  if (!pass) {
-    throw new Error("SMTP password is not configured.");
+  const pass = consentSmtpPassword();
+  const host = consentSmtpHost();
+  const user = consentSmtpUser();
+  if (!pass || !host || !user) {
+    throw new Error(
+      "Consent SMTP is not configured. Set CONSENT_SMTP_HOST, CONSENT_SMTP_USER, and CONSENT_SMTP_PASS.",
+    );
   }
 
-  const host = process.env.SMTP_HOST?.trim() || GMAIL_SMTP_HOST;
-  const user = process.env.SMTP_USER?.trim() || GMAIL_SMTP_USER;
-  const port = Number(process.env.SMTP_PORT ?? "587");
+  const port = Number(process.env.CONSENT_SMTP_PORT ?? "587");
   const nodemailer = await import("nodemailer");
   const transporter = nodemailer.createTransport({
     host,
     port: Number.isFinite(port) ? port : 587,
-    secure: process.env.SMTP_SECURE === "1" || port === 465,
+    secure: process.env.CONSENT_SMTP_SECURE === "1" || port === 465,
     auth: { user, pass },
   });
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM?.trim() || process.env.MAIL_FROM?.trim() || user,
+    from: fromAddress(user),
     to: input.to.join(", "),
     replyTo: input.replyTo,
     subject: input.subject,

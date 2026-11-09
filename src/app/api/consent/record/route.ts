@@ -64,6 +64,9 @@ import { denyRestrictedDecisions } from "@/lib/children/evaluate";
 import { loadLatestSession, rowToState } from "@/lib/children/service";
 import { publicAgeView } from "@/lib/children/state";
 import { evidenceProcessingInventory, isFrozenProcessingSnapshot } from "@/lib/processing/snapshot";
+import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
+import { notifyConsentRevocations } from "@/lib/consent/revocation-notification";
+import { preserveSubjectMetadata } from "@/lib/consent/revocation-notification-core";
 
 const CORS_HEADERS = publicCorsHeaders("GET, POST, OPTIONS");
 
@@ -540,7 +543,11 @@ export async function POST(request: Request) {
     const mappedVendorRows =
       purposeIds.length > 0
         ? await db
-            .select({ id: vendors.id, iabVendorId: vendors.iabVendorId })
+            .select({
+              id: vendors.id,
+              name: vendors.name,
+              iabVendorId: vendors.iabVendorId,
+            })
             .from(vendorPurposes)
             .innerJoin(vendors, eq(vendorPurposes.vendorId, vendors.id))
             .where(inArray(vendorPurposes.purposeId, purposeIds))
@@ -549,6 +556,12 @@ export async function POST(request: Request) {
       ...new Map(mappedVendorRows.map((vendor) => [vendor.id, vendor])).values(),
     ];
     const vendorIds = mappedVendors.map((vendor) => vendor.id);
+    const purposeNameMap = Object.fromEntries(
+      versionPurposes.map((purpose) => [purpose.id, purpose.name]),
+    );
+    const vendorNameMap = Object.fromEntries(
+      mappedVendors.map((vendor) => [vendor.id, vendor.name]),
+    );
 
     let decisionRows = buildDecisionRows(
       submission,
@@ -749,6 +762,11 @@ export async function POST(request: Request) {
 
     // ── Transaction: save record + decisions ─────────────────────────────
     let wasExpiredRecord = false;
+    let priorDecisions: Array<{
+      purposeId: string | null;
+      vendorId: string | null;
+      granted: boolean;
+    }> = [];
 
     // Initialise with a placeholder — guaranteed to be replaced inside the
     // transaction; the type-assertion below is safe because the transaction
@@ -826,6 +844,23 @@ export async function POST(request: Request) {
 
         wasExpiredRecord = isConsentExpired(existing);
 
+        priorDecisions = await tx
+          .select({
+            purposeId: consentDecisions.purposeId,
+            vendorId: consentDecisions.vendorId,
+            granted: consentDecisions.granted,
+          })
+          .from(consentDecisions)
+          .where(eq(consentDecisions.consentRecordId, existing.id));
+
+        const previousMetadata =
+          existing.metadata &&
+          typeof existing.metadata === "object" &&
+          !Array.isArray(existing.metadata)
+            ? (existing.metadata as Record<string, unknown>)
+            : {};
+        const metadataToStore = preserveSubjectMetadata(evidenceMetadata, previousMetadata);
+
         const [updated] = await tx
           .update(consentRecords)
           .set({
@@ -834,7 +869,7 @@ export async function POST(request: Request) {
             stateVersion: sql`${consentRecords.stateVersion} + 1`,
             consentedAt: now,
             expiresAt,
-            metadata: evidenceMetadata,
+            metadata: metadataToStore,
             updatedAt: now,
           })
           .where(
@@ -1006,6 +1041,41 @@ export async function POST(request: Request) {
       },
     );
 
+    // Bind while the Clerk request context is still alive (after() often loses it).
+    await bindSubjectFromClerkSession({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      consentId: savedRecord.consentId,
+    }).catch(() => null);
+
+    // Preference updates that change grants. Initial creates never notify.
+    // Email failures must not affect consent.
+    if (!isNew) {
+      scheduleConsentSideEffect(
+        () =>
+          notifyConsentRevocations({
+            organizationId: website.organizationId,
+            websiteId: website.id,
+            consentRecordId: savedRecord.id,
+            consentId: savedRecord.consentId,
+            stateVersion: savedRecord.stateVersion,
+            previous: priorDecisions,
+            next: decisionRows.map((row) => ({
+              purposeId: row.purposeId,
+              vendorId: row.vendorId,
+              granted: row.granted,
+            })),
+            purposeNames: purposeNameMap,
+            vendorNames: vendorNameMap,
+            revokedAt: now,
+          }),
+        {
+          operation: "consent.revocation.email",
+          consentRecordId: savedRecord.id,
+        },
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,
@@ -1079,8 +1149,16 @@ export async function POST(request: Request) {
       });
     }
 
+    const conflict =
+      error instanceof Error &&
+      error.message === "Consent state changed; refresh and retry";
+
     return NextResponse.json(
-      { success: false, message: msg },
+      {
+        success: false,
+        message: msg,
+        ...(conflict ? { code: "CONSENT_STATE_CONFLICT" } : {}),
+      },
       { status, headers: CORS_HEADERS },
     );
   }

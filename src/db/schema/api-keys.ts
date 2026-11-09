@@ -41,7 +41,7 @@ export const apiKeys = pgTable(
     scopes: text("scopes")
       .array()
       .notNull()
-      .default(["consent:evaluate", "data:redact"]),
+      .default(["consent:evaluate", "consent:subject", "data:redact"]),
 
     environment: varchar("environment", {
       length: 20,

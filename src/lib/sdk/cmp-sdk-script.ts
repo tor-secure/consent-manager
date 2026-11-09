@@ -2129,6 +2129,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         status: 'confirmed',
         serverConfirmed: true,
         consentId: consentId,
+        websiteId: (_config && _config.websiteId) || '',
         submissionId: submissionId || '',
         revision: revision,
         consentedAt: confirmedAt || new Date().toISOString(),
@@ -2153,6 +2154,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       publishExternalSignals();
       fireIabEvents('useractioncomplete');
       _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
+      try {
+        window.dispatchEvent(new CustomEvent('cmp:consent', {
+          detail: { consentId: _consentId, websiteId: _config && _config.websiteId }
+        }));
+      } catch (eConsentEvt) {}
       if (document.getElementById('__cmp_prefs__')) {
         _prefsDraft = null;
         renderCookiePreferencesPanel();
@@ -2274,6 +2280,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return fetch(API_BASE + '/api/consent/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(body),
         signal: controller ? controller.signal : undefined
       }).then(function(r) {
@@ -2394,22 +2401,79 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         !job.recordRetry &&
         result.status === 409 &&
         data &&
-        String(data.message || '').indexOf('Consent state changed') !== -1
+        (
+          data.code === 'CONSENT_STATE_CONFLICT' ||
+          String(data.message || '').indexOf('Consent state changed') !== -1
+        )
       ) {
-        _consentId = null;
-        _stateVersion = 0;
-        _replaceMissingConsent = true;
-        delete body.consentId;
-        body.expectedStateVersion = 0;
+        // Prefer refreshing the live stateVersion and retrying as an update so we
+        // keep the same consentId (needed for subject email binding continuity).
+        var conflictConsentId = body.consentId || _consentId;
+        job.recordRetry = true;
         body.submissionId = newSubmissionId();
         job.submissionId = body.submissionId;
-        job.recordRetry = true;
-        return postConsentRecord().then(function(retryResult) {
-          var retryData = retryResult.data;
-          if (!retryResult.ok || !confirmedResponse(retryData)) {
-            throw new Error(failedConsentMessage(retryData));
+        if (!conflictConsentId || !_config || !_config.websiteId) {
+          _consentId = null;
+          _stateVersion = 0;
+          _replaceMissingConsent = true;
+          delete body.consentId;
+          body.expectedStateVersion = 0;
+          return postConsentRecord().then(function(retryResult) {
+            var retryData = retryResult.data;
+            if (!retryResult.ok || !confirmedResponse(retryData)) {
+              throw new Error(failedConsentMessage(retryData));
+            }
+            applyConfirmedConsent(retryData);
+          });
+        }
+        return fetch(
+          API_BASE + '/api/consent/record?consentId=' +
+            encodeURIComponent(conflictConsentId) +
+            '&websiteId=' + encodeURIComponent(_config.websiteId) +
+            '&siteKey=' + encodeURIComponent(SITE_KEY),
+          { cache: 'no-store' }
+        ).then(function(r) {
+          return r.json().then(function(fresh) {
+            return { ok: r.ok, data: fresh };
+          }, function() {
+            return { ok: false, data: null };
+          });
+        }).then(function(freshResult) {
+          var fresh = freshResult.data;
+          if (
+            !freshResult.ok ||
+            !fresh ||
+            !fresh.success ||
+            !fresh.record ||
+            fresh.record.status === 'withdrawn' ||
+            !Number.isInteger(fresh.record.stateVersion) ||
+            fresh.record.stateVersion < 1
+          ) {
+            _consentId = null;
+            _stateVersion = 0;
+            _replaceMissingConsent = true;
+            delete body.consentId;
+            body.expectedStateVersion = 0;
+          } else {
+            _consentId = fresh.record.consentId;
+            _stateVersion = fresh.record.stateVersion;
+            body.consentId = _consentId;
+            body.expectedStateVersion = _stateVersion;
+            try {
+              var storedFresh = loadStoredConsent() || {};
+              storedFresh.consentId = _consentId;
+              storedFresh.stateVersion = _stateVersion;
+              storedFresh.status = storedFresh.status || 'confirmed';
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(storedFresh));
+            } catch (eStoreFresh) {}
           }
-          applyConfirmedConsent(retryData);
+          return postConsentRecord().then(function(retryResult) {
+            var retryData = retryResult.data;
+            if (!retryResult.ok || !confirmedResponse(retryData)) {
+              throw new Error(failedConsentMessage(retryData));
+            }
+            applyConfirmedConsent(retryData);
+          });
         });
       }
       throw new Error(failedConsentMessage(data));
@@ -4335,7 +4399,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         status: stored.status || (_consentId ? 'confirmed' : null),
         consentedAt: stored.consentedAt || null,
         expiresAt: stored.expiresAt || null,
-        websiteId: _config ? _config.websiteId : null,
+        websiteId:
+          (_config && _config.websiteId) ||
+          (typeof stored.websiteId === 'string' && stored.websiteId) ||
+          null,
         purposes: purposes
       };
     },
@@ -4553,6 +4620,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         fetch(API_BASE + '/api/consent/withdraw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify({
             consentId: withdrawingConsentId,
             websiteId: _config.websiteId,
@@ -4592,6 +4660,11 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           blockOptionalProcessing('DENIED', 'Consent withdrawn');
           fireIabEvents('useractioncomplete');
           _listeners.forEach(function(fn) { try { fn(getConsent()); } catch(e) {} });
+      try {
+        window.dispatchEvent(new CustomEvent('cmp:consent', {
+          detail: { consentId: _consentId, websiteId: _config && _config.websiteId }
+        }));
+      } catch (eConsentEvt) {}
           _prefsDraft = null;
           removeCookiePreferencesPanel();
           _choiceDismissed = false;

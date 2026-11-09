@@ -7,13 +7,33 @@ export const CONSENT_GURU_SITE_VERIFICATION = "b5b1db72c2d9b326d0c1221c8547fe1c"
 export const CONSENT_GURU_ORIGIN = "https://www.consentguru.com";
 export const CONSENT_GURU_SDK_SRC = "/api/sdk/script";
 
+/**
+ * In local/dev, keep CMP API calls on the same origin as the page so consent
+ * saves, subject binding, and mail all hit the same server. Production keeps
+ * the public Consent Guru origin.
+ */
+export function consentGuruInstallApiBase(): string {
+  // Optional override for preview deploys. Do not use NEXT_PUBLIC_APP_URL —
+  // that often points at production while `next dev` still runs locally.
+  const explicit = process.env.CMP_PUBLIC_ORIGIN?.trim() || "";
+  if (explicit) {
+    try {
+      return new URL(explicit).origin;
+    } catch {
+      // fall through
+    }
+  }
+  if (process.env.NODE_ENV !== "production") return "";
+  return CONSENT_GURU_ORIGIN;
+}
+
 function scriptBody(snippet: string): string {
   return snippet.replace(/^\s*<script>\s*/i, "").replace(/\s*<\/script>\s*$/i, "");
 }
 
-function configPrefetchSource(): string {
+function configPrefetchSource(apiBase: string): string {
   const key = JSON.stringify(CONSENT_GURU_SITE_KEY);
-  const base = JSON.stringify(CONSENT_GURU_ORIGIN);
+  const base = JSON.stringify(apiBase);
   return `(function(){
   var key = ${key};
   var base = ${base};
@@ -28,7 +48,11 @@ function configPrefetchSource(): string {
   try { if (!lang && window.__CMP_LANG) lang = window.__CMP_LANG; } catch (e) {}
   try { if (!lang && location.search) lang = new URLSearchParams(location.search).get("lang") || ""; } catch (e) {}
   try { if (!lang) lang = navigator.language || (navigator.languages && navigator.languages[0]) || ""; } catch (e) {}
-  var url = base + "/api/sdk/" + encodeURIComponent(key) + "/config";
+  var origin = String(base || "").replace(/[/]$/, "");
+  if (!origin) {
+    try { origin = window.location.origin; } catch (e) { origin = ""; }
+  }
+  var url = origin + "/api/sdk/" + encodeURIComponent(key) + "/config";
   var qs = [];
   if (lang) qs.push("lang=" + encodeURIComponent(String(lang).slice(0, 35)));
   try {
@@ -51,6 +75,7 @@ function configPrefetchSource(): string {
  * and React does not execute script tags rendered on the client.
  */
 export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
+  const apiBase = consentGuruInstallApiBase();
   return (
     <>
       <script
@@ -61,7 +86,7 @@ export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
       <script
         id="cmp-config-prefetch"
         nonce={nonce}
-        dangerouslySetInnerHTML={{ __html: configPrefetchSource() }}
+        dangerouslySetInnerHTML={{ __html: configPrefetchSource(apiBase) }}
       />
       <script
         id="cmp-sdk"
@@ -69,7 +94,7 @@ export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
         async
         nonce={nonce}
         data-site-key={CONSENT_GURU_SITE_KEY}
-        data-api-base={CONSENT_GURU_ORIGIN}
+        data-api-base={apiBase || undefined}
       />
     </>
   );

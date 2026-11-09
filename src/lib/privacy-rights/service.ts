@@ -1,5 +1,6 @@
 import "server-only";
 
+import { after } from "next/server";
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -25,6 +26,11 @@ import { californiaOptOutStates } from "@/db/schema/california-opt-out";
 import { minimizedAgeRecord } from "@/lib/children/service";
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
+import {
+  loadDecisionSnapshots,
+  notifyConsentRevocations,
+} from "@/lib/consent/revocation-notification";
+import { logger } from "@/lib/logger";
 import {
   resourceIsOnLegalHold,
   isLegalHoldActive,
@@ -841,6 +847,7 @@ export async function invokeExistingWithdrawal(input: {
   }
 
   const now = new Date();
+  const priorDecisions = await loadDecisionSnapshots(record.id);
   const [priorEvidence] = await db
     .select()
     .from(consentEvidenceSnapshots)
@@ -897,6 +904,26 @@ export async function invokeExistingWithdrawal(input: {
     description: "DSAR withdrawal invoked existing consent engine",
     metadata: { consentId: record.consentId, stateVersion: nextVersion },
   });
+
+  after(() =>
+    notifyConsentRevocations({
+      organizationId: input.organizationId,
+      websiteId: website.id,
+      consentRecordId: record.id,
+      consentId: record.consentId,
+      stateVersion: nextVersion,
+      previous: priorDecisions,
+      next: priorDecisions.map((row) => ({ ...row, granted: false })),
+      revokedAt: now,
+      fullWithdrawal: true,
+    }).catch((error) => {
+      logger.error("DSAR withdrawal revocation notification failed", {
+        operation: "consent.revocation.email",
+        consentRecordId: record.id,
+        error,
+      });
+    }),
+  );
 
   return { ok: true as const, alreadyWithdrawn: false, stateVersion: nextVersion };
 }

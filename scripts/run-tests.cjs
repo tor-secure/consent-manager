@@ -133,6 +133,7 @@ compile(
     "src/lib/tools/access.ts",
     "src/lib/tools/redact.ts",
     "src/lib/tools/parse-answers.ts",
+    "src/lib/consent/revocation-notification-core.ts",
   ],
   ["--rootDir", "."],
 );
@@ -155,6 +156,10 @@ copyCompiled("src/lib/policy-context.js", "policy-context/policy-context.js");
 copyCompiled("src/lib/portable-consent-proof.js", "portable-redaction/portable-consent-proof.js");
 copyCompiled("src/lib/portable-consent-core.js", "portable-redaction/portable-consent-core.js");
 copyCompiled("src/lib/redaction-core.js", "portable-redaction/redaction-core.js");
+copyCompiled(
+  "src/lib/consent/revocation-notification-core.js",
+  "revocation-notification/revocation-notification-core.js",
+);
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
 copyCompiled("src/lib/billing/stripe.js", "billing/stripe.js");
 copyCompiled("src/lib/intelligence/twin-restore.js", "twin-restore/twin-restore.js");

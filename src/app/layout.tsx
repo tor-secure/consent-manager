@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import { isClerkPublishableKeySet } from "@/lib/clerk-config";
+import { BindConsentSubjectOnLogin } from "@/components/consent/bind-consent-subject-on-login";
 import { LearningClerkProvider } from "@/components/learning/learning-clerk-provider";
 import {
   CONSENT_GURU_SITE_VERIFICATION,
@@ -79,16 +80,22 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const requestHeaders = await headers();
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
-  const learningPath = requestHeaders.get("x-cg-path") ?? "";
+  const requestPath = requestHeaders.get("x-cg-path") ?? "";
   const onLearning =
     requestHeaders.get("x-cg-auth") === "learning" ||
-    learningPath.startsWith("/e-learning") ||
-    learningPath.startsWith("/api/learning");
+    requestPath.startsWith("/e-learning") ||
+    requestPath.startsWith("/api/learning");
   const learningSignIn =
-    learningPath.startsWith("/e-learning/sign-in") || learningPath.startsWith("/e-learning/sign-up");
-  // Cookie banner must not cover the patient WhatsApp flow or the separate e-learning Clerk login.
+    requestPath.startsWith("/e-learning/sign-in") || requestPath.startsWith("/e-learning/sign-up");
+  // Cookie banner / early-block must not cover auth handshakes or WhatsApp / e-learning.
   const skipMarketingCmp =
-    learningPath.startsWith("/consent/whatsapp") || learningPath.startsWith("/e-learning") || onLearning;
+    requestPath.startsWith("/consent/whatsapp") ||
+    requestPath.startsWith("/e-learning") ||
+    onLearning ||
+    requestPath.startsWith("/sign-in") ||
+    requestPath.startsWith("/sign-up") ||
+    requestPath.startsWith("/create-organization") ||
+    requestHeaders.get("x-cg-skip-cmp") === "1";
 
   return (
     <html
@@ -129,6 +136,7 @@ function OptionalClerkProvider({ children }: { children: ReactNode }) {
 
   return (
     <ClerkProvider dynamic ui={ui}>
+      <BindConsentSubjectOnLogin />
       {children}
     </ClerkProvider>
   );

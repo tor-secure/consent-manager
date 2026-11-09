@@ -5,6 +5,8 @@ export default function CreateOrganizationPage() {
   return (
     <AuthPageShell mode="create-org">
       <CreateOrganization
+        path="/create-organization"
+        routing="path"
         afterCreateOrganizationUrl="/dashboard"
         appearance={clerkAuthAppearance}
       />

@@ -84,7 +84,7 @@ export async function POST(request: Request) {
         name,
         keyPrefix,
         keyHash,
-        scopes: ["consent:evaluate", "data:redact"],
+        scopes: ["consent:evaluate", "consent:subject", "data:redact"],
         environment,
         status: "active",
         expiresAt,
