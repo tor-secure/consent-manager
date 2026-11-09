@@ -408,12 +408,80 @@ export function buildPrivacyPreferencesUrl(input: {
   }
 }
 
+export function buildConsentEmailLogoUrl(appOrigin: string | null | undefined): string | null {
+  const origin = String(appOrigin ?? "")
+    .trim()
+    .replace(/\/$/, "");
+  if (!origin) return null;
+  try {
+    return new URL("/brand/consent-guru-logo.jpg", `${origin}/`).toString();
+  } catch {
+    return null;
+  }
+}
+
+function preferenceKindLabel(kind: PreferenceChangeItem["kind"]): string {
+  return kind === "purpose" ? "Purpose" : "Vendor";
+}
+
+function preferenceChangeLabel(change: PreferenceChangeItem["change"]): string {
+  return change === "granted" ? "Consent given" : "Consent withdrawn";
+}
+
+function renderPreferenceRowsHtml(items: PreferenceChangeItem[]): string {
+  return items
+    .map((item) => {
+      const isGranted = item.change === "granted";
+      const badgeBg = isGranted ? "#E6F9F5" : "#ffe4e6";
+      const badgeColor = isGranted ? "#00A88F" : "#be123c";
+      return `
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid #e7efed;font-size:14px;color:#0B2C4A;vertical-align:top;">
+            <div style="font-weight:700;line-height:1.35;">${escapeHtml(item.name)}</div>
+            <div style="margin-top:4px;font-size:12px;color:#4d6570;text-transform:uppercase;letter-spacing:0.04em;">${escapeHtml(preferenceKindLabel(item.kind))}</div>
+          </td>
+          <td style="padding:12px 16px;border-bottom:1px solid #e7efed;text-align:right;vertical-align:middle;white-space:nowrap;">
+            <span style="display:inline-block;padding:6px 10px;border-radius:999px;background:${badgeBg};color:${badgeColor};font-size:12px;font-weight:700;line-height:1;">${escapeHtml(preferenceChangeLabel(item.change))}</span>
+          </td>
+        </tr>`;
+    })
+    .join("");
+}
+
+function renderPreferenceSectionHtml(input: {
+  title: string;
+  subtitle: string;
+  items: PreferenceChangeItem[];
+  accent: string;
+}): string {
+  if (input.items.length === 0) return "";
+  return `
+    <tr>
+      <td style="padding:0 28px 20px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #d3e0de;border-radius:14px;overflow:hidden;background:#ffffff;">
+          <tr>
+            <td style="padding:14px 16px;background:#f3f7f6;border-bottom:1px solid #d3e0de;">
+              <div style="font-size:15px;font-weight:800;color:#0B2C4A;line-height:1.3;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${input.accent};margin-right:8px;vertical-align:middle;"></span>
+                ${escapeHtml(input.title)}
+              </div>
+              <div style="margin-top:4px;font-size:13px;color:#4d6570;line-height:1.4;">${escapeHtml(input.subtitle)}</div>
+            </td>
+          </tr>
+          ${renderPreferenceRowsHtml(input.items)}
+        </table>
+      </td>
+    </tr>`;
+}
+
 export function buildRevocationEmailContent(input: {
   websiteName: string;
   revokedAt: Date;
   timeZone?: string;
   items: RevokedItem[] | PreferenceChangeItem[];
   preferencesUrl?: string | null;
+  logoUrl?: string | null;
+  appOrigin?: string | null;
 }): { subject: string; text: string; html: string } {
   const when = formatRevocationTimestamp(input.revokedAt, input.timeZone ?? "UTC");
   const changes: PreferenceChangeItem[] = input.items.map((item) =>
@@ -423,74 +491,158 @@ export function buildRevocationEmailContent(input: {
   );
   const revoked = changes.filter((item) => item.change === "revoked");
   const granted = changes.filter((item) => item.change === "granted");
+  const logoUrl = input.logoUrl || buildConsentEmailLogoUrl(input.appOrigin);
+  const homeUrl = String(input.appOrigin ?? "")
+    .trim()
+    .replace(/\/$/, "");
 
-  const formatLine = (item: PreferenceChangeItem) => {
-    const label = item.kind === "purpose" ? "Purpose" : "Vendor";
-    return `- ${label}: ${item.name}`;
-  };
-  const formatHtml = (item: PreferenceChangeItem) => {
-    const label = item.kind === "purpose" ? "Purpose" : "Vendor";
-    return `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(item.name)}</li>`;
-  };
+  const formatLine = (item: PreferenceChangeItem) =>
+    `- ${preferenceKindLabel(item.kind)}: ${item.name} (${preferenceChangeLabel(item.change)})`;
 
-  const subject = "Your consent preferences have been updated";
+  const subject = `Your consent preferences were updated for ${input.websiteName}`;
   const prefsLine = input.preferencesUrl
-    ? `You can review your current choices in your privacy settings: ${input.preferencesUrl}`
-    : "You can review your current choices in your privacy settings.";
+    ? `Review or change your choices anytime: ${input.preferencesUrl}`
+    : "Review or change your choices anytime in your privacy settings.";
 
   const textSections: string[] = [
-    `Your consent preferences were updated for ${input.websiteName} on ${when}.`,
+    "Consent Guru",
+    "",
+    `Your consent preferences were updated for ${input.websiteName}.`,
+    `Updated on: ${when}`,
     "",
   ];
   if (revoked.length > 0) {
     textSections.push(
-      "Your consent for the following purposes or vendors was revoked:",
+      "Consent withdrawn",
+      "These preferences were turned off:",
       ...revoked.map(formatLine),
       "",
     );
   }
   if (granted.length > 0) {
     textSections.push(
-      "Your consent for the following purposes or vendors was granted:",
+      "Consent given",
+      "These preferences were turned on:",
       ...granted.map(formatLine),
       "",
     );
   }
   if (revoked.length > 0) {
     textSections.push(
-      "A revocation confirmation means your stored preference was updated to revoked. It does not by itself confirm that historical data was deleted or that every downstream processor has already stopped processing.",
+      "A withdrawal confirmation means your stored preference was updated to withdrawn. It does not by itself confirm that historical data was deleted or that every downstream processor has already stopped processing.",
       "",
     );
   }
-  textSections.push(prefsLine);
+  textSections.push(prefsLine, "", "— Consent Guru", "Privacy preferences confirmation");
 
-  const prefsHtml = input.preferencesUrl
-    ? `<p>You can review your current choices in your <a href="${escapeHtml(input.preferencesUrl)}">privacy settings</a>.</p>`
-    : `<p>You can review your current choices in your privacy settings.</p>`;
+  const ctaBlock = input.preferencesUrl
+    ? `<tr>
+        <td style="padding:8px 28px 28px;" align="center">
+          <a href="${escapeHtml(input.preferencesUrl)}" style="display:inline-block;background:#0B2C4A;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:14px 22px;border-radius:999px;">
+            Manage privacy preferences
+          </a>
+          <div style="margin-top:12px;font-size:12px;color:#4d6570;line-height:1.5;word-break:break-all;">
+            Or open: ${escapeHtml(input.preferencesUrl)}
+          </div>
+        </td>
+      </tr>`
+    : "";
 
-  const htmlSections: string[] = [
-    `<p>Your consent preferences were updated for <strong>${escapeHtml(input.websiteName)}</strong> on <strong>${escapeHtml(when)}</strong>.</p>`,
-  ];
-  if (revoked.length > 0) {
-    htmlSections.push(
-      `<p>Your consent for the following purposes or vendors was revoked:</p>`,
-      `<ul>${revoked.map(formatHtml).join("")}</ul>`,
-    );
-  }
-  if (granted.length > 0) {
-    htmlSections.push(
-      `<p>Your consent for the following purposes or vendors was granted:</p>`,
-      `<ul>${granted.map(formatHtml).join("")}</ul>`,
-    );
-  }
-  if (revoked.length > 0) {
-    htmlSections.push(
-      `<p>A revocation confirmation means your stored preference was updated to revoked. It does not by itself confirm that historical data was deleted or that every downstream processor has already stopped processing.</p>`,
-    );
-  }
-  htmlSections.push(prefsHtml);
+  const disclaimer =
+    revoked.length > 0
+      ? `<tr>
+          <td style="padding:0 28px 24px;">
+            <div style="padding:14px 16px;border-radius:12px;background:#f8fafb;border:1px solid #e7efed;font-size:12px;line-height:1.55;color:#4d6570;">
+              A withdrawal confirmation means your stored preference was updated to withdrawn. It does not by itself confirm that historical data was deleted or that every downstream processor has already stopped processing.
+            </div>
+          </td>
+        </tr>`
+      : "";
 
-  return { subject, text: textSections.join("\n"), html: htmlSections.join("\n") };
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#eef4f3;color:#0B2C4A;font-family:Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef4f3;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;border:1px solid #d3e0de;">
+          <tr>
+            <td style="padding:22px 28px;background:linear-gradient(135deg,#0B2C4A 0%,#123a58 100%);">
+              <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#9adfd3;font-weight:700;margin-bottom:10px;">Preference confirmation</div>
+              ${logoUrl
+                ? `<a href="${escapeHtml(homeUrl || "https://www.consentguru.com")}" style="text-decoration:none;">
+                    <img src="${escapeHtml(logoUrl)}" width="170" alt="Consent Guru" style="display:block;border:0;outline:none;text-decoration:none;height:auto;max-width:170px;background:#ffffff;padding:10px 12px;border-radius:10px;" />
+                  </a>`
+                : `<div style="display:inline-block;background:#ffffff;color:#0B2C4A;padding:10px 14px;border-radius:10px;font-size:18px;font-weight:800;">Consent Guru</div>`}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 8px;">
+              <h1 style="margin:0 0 10px;font-size:24px;line-height:1.25;color:#0B2C4A;font-weight:800;">Your consent preferences were updated</h1>
+              <p style="margin:0;font-size:15px;line-height:1.6;color:#4d6570;">
+                We recorded new choices for <strong style="color:#0B2C4A;">${escapeHtml(input.websiteName)}</strong>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px 22px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f7f6;border:1px solid #d3e0de;border-radius:14px;">
+                <tr>
+                  <td style="padding:14px 16px;width:50%;vertical-align:top;">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#4d6570;font-weight:700;">Website</div>
+                    <div style="margin-top:6px;font-size:14px;font-weight:700;color:#0B2C4A;line-height:1.4;">${escapeHtml(input.websiteName)}</div>
+                  </td>
+                  <td style="padding:14px 16px;width:50%;vertical-align:top;border-left:1px solid #d3e0de;">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:#4d6570;font-weight:700;">Updated on</div>
+                    <div style="margin-top:6px;font-size:14px;font-weight:700;color:#0B2C4A;line-height:1.4;">${escapeHtml(when)}</div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ${renderPreferenceSectionHtml({
+            title: "Consent withdrawn",
+            subtitle: "These preferences were turned off.",
+            items: revoked,
+            accent: "#be123c",
+          })}
+          ${renderPreferenceSectionHtml({
+            title: "Consent given",
+            subtitle: "These preferences were turned on.",
+            items: granted,
+            accent: "#00C4A7",
+          })}
+          ${disclaimer}
+          ${ctaBlock}
+          <tr>
+            <td style="padding:18px 28px 24px;border-top:1px solid #e7efed;background:#f8fbfa;">
+              <div style="font-size:12px;line-height:1.55;color:#4d6570;">
+                Sent by Consent Guru on behalf of ${escapeHtml(input.websiteName)}.
+                This message confirms preference changes you made in the cookie / privacy settings.
+              </div>
+              ${
+                homeUrl
+                  ? `<div style="margin-top:10px;"><a href="${escapeHtml(homeUrl)}" style="color:#00A88F;font-size:12px;font-weight:700;text-decoration:none;">consentguru.com</a></div>`
+                  : ""
+              }
+            </td>
+          </tr>
+        </table>
+        <div style="max-width:600px;margin:14px auto 0;font-size:11px;line-height:1.5;color:#7a8f97;text-align:center;">
+          You received this email because a trusted email address is linked to your consent record.
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, text: textSections.join("\n"), html };
 }
 
 export function emailDomainHint(email: string): string {

@@ -14,6 +14,8 @@ export async function sendConsentRevocationEmail(input: {
   timeZone?: string;
   items: Array<RevokedItem | PreferenceChangeItem>;
   preferencesUrl?: string | null;
+  appOrigin?: string | null;
+  logoUrl?: string | null;
 }): Promise<void> {
   const content = buildRevocationEmailContent({
     websiteName: input.websiteName,
@@ -21,6 +23,8 @@ export async function sendConsentRevocationEmail(input: {
     timeZone: input.timeZone,
     items: input.items,
     preferencesUrl: input.preferencesUrl,
+    appOrigin: input.appOrigin,
+    logoUrl: input.logoUrl,
   });
 
   await sendWithNodemailer({

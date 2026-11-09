@@ -372,11 +372,12 @@ export async function notifyConsentRevocations(input: RevocationNotifyInput): Pr
     return;
   }
 
-  const appOrigin = resolvePublicAppOrigin({
-    envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
-  });
+  const appOrigin =
+    resolvePublicAppOrigin({
+      envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
+    }) || "https://www.consentguru.com";
   const preferencesUrl = buildPrivacyPreferencesUrl({
-    appOrigin: appOrigin || "",
+    appOrigin,
     siteKey: website.siteKey,
   });
 
@@ -388,6 +389,7 @@ export async function notifyConsentRevocations(input: RevocationNotifyInput): Pr
       timeZone: input.timeZone ?? "UTC",
       items,
       preferencesUrl,
+      appOrigin,
     });
 
     const sentMeta = withPendingPreferenceMail(
@@ -570,11 +572,12 @@ export async function flushPendingPreferenceNotification(input: {
     return;
   }
 
-  const appOrigin = resolvePublicAppOrigin({
-    envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
-  });
+  const appOrigin =
+    resolvePublicAppOrigin({
+      envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
+    }) || "https://www.consentguru.com";
   const preferencesUrl = buildPrivacyPreferencesUrl({
-    appOrigin: appOrigin || "",
+    appOrigin,
     siteKey: website.siteKey,
   });
 
@@ -586,6 +589,7 @@ export async function flushPendingPreferenceNotification(input: {
       timeZone: "UTC",
       items: pending.items,
       preferencesUrl,
+      appOrigin,
     });
     await claimAndPersistOutcome({
       consentRecordId: record.id,

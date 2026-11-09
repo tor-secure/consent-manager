@@ -127,8 +127,8 @@ describe("consent revocation notification core", () => {
         { kind: "purpose", id: "p2", name: "Marketing", change: "granted" },
       ],
     });
-    assert.match(content.text, /was revoked/);
-    assert.match(content.text, /was granted/);
+    assert.match(content.text, /Consent withdrawn/);
+    assert.match(content.text, /Consent given/);
     assert.match(content.text, /Marketing/);
   });
 
@@ -170,17 +170,24 @@ describe("consent revocation notification core", () => {
         { kind: "vendor", id: "v1", name: "Vendor <X>" },
       ],
       preferencesUrl: "https://www.consentguru.com/privacy-center/consent-preferences?siteKey=sk_test",
+      appOrigin: "https://www.consentguru.com",
     });
 
-    assert.equal(content.subject, "Your consent preferences have been updated");
-    assert.match(content.text, /Your consent for the following purposes or vendors was revoked/);
-    assert.match(content.text, /Purpose: Analytics & Tracking/);
-    assert.match(content.text, /Vendor: Vendor <X>/);
+    assert.equal(
+      content.subject,
+      "Your consent preferences were updated for Acme <Shop>",
+    );
+    assert.match(content.text, /Consent withdrawn/);
+    assert.match(content.text, /Purpose: Analytics & Tracking \(Consent withdrawn\)/);
+    assert.match(content.text, /Vendor: Vendor <X> \(Consent withdrawn\)/);
     assert.match(content.text, /does not by itself confirm that historical data was deleted/);
-    assert.match(content.text, /privacy settings/);
+    assert.match(content.text, /Review or change your choices/);
     assert.match(content.html, /Analytics &amp; Tracking/);
     assert.match(content.html, /Vendor &lt;X&gt;/);
     assert.match(content.html, /Acme &lt;Shop&gt;/);
+    assert.match(content.html, /consent-guru-logo\.jpg/);
+    assert.match(content.html, /Manage privacy preferences/);
+    assert.match(content.html, /Consent withdrawn/);
     assert.equal(escapeHtml(`a<"b">`), "a&lt;&quot;b&quot;&gt;");
   });
 
