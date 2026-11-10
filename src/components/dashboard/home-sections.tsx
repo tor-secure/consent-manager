@@ -665,6 +665,7 @@ export async function HomeLiveAndChartsSection({
             ) : (
               <HorizontalBarChart
                 rows={topWebsites.map((row) => ({
+                  id: row.websiteId || row.websiteDomain || row.websiteName,
                   label: row.websiteDomain || row.websiteName,
                   value: row.total,
                   hint: `${row.accepted.toLocaleString()} accepted`,
@@ -684,6 +685,7 @@ export async function HomeLiveAndChartsSection({
             ) : (
               <HorizontalBarChart
                 rows={topPurposes.map((row) => ({
+                  id: row.purposeId || row.purposeName,
                   label: row.purposeName,
                   value: row.granted,
                   hint: `${pct(row.granted, row.total)}% granted`,

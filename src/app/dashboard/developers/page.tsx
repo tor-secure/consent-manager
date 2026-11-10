@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { desc, and, inArray, eq } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -7,29 +8,30 @@ import { apiKeys } from "@/db/schema/api-keys";
 import { websites } from "@/db/schema/websites";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
-import { ApiKeyManager, type ApiKeyRow } from "@/components/api-keys/api-key-manager";
-import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
-import { PageHeader } from "@/components/ui/page-header";
-import { StatusBanner } from "@/components/ui/status-banner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { webhookEndpoints } from "@/db/schema/webhook-endpoints";
+import {
+  DevelopersQuickLink,
+  DevelopersShell,
+  DevelopersStat,
+} from "@/components/developers/developers-shell";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeaderLink } from "@/components/ui/page-header";
+import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
 
 export default async function DevelopersPage() {
   const { organization: localOrg } = await requireDashboardContext();
+  const h = await headers();
+  const appOrigin = publicOriginFromRequestHeaders(h);
 
-  const [rows, siteRows] = await Promise.all([
+  const [rows, siteRows, webhookRows] = await Promise.all([
     db
       .select({
         id: apiKeys.id,
-        name: apiKeys.name,
-        keyPrefix: apiKeys.keyPrefix,
-        environment: apiKeys.environment,
         status: apiKeys.status,
+        environment: apiKeys.environment,
         lastUsedAt: apiKeys.lastUsedAt,
-        expiresAt: apiKeys.expiresAt,
-        revokedAt: apiKeys.revokedAt,
-        createdAt: apiKeys.createdAt,
       })
       .from(apiKeys)
       .where(eq(apiKeys.organizationId, localOrg.id))
@@ -46,6 +48,10 @@ export default async function DevelopersPage() {
       .from(websites)
       .where(eq(websites.organizationId, localOrg.id))
       .orderBy(websites.name),
+    db
+      .select({ id: webhookEndpoints.id, status: webhookEndpoints.status })
+      .from(webhookEndpoints)
+      .where(eq(webhookEndpoints.organizationId, localOrg.id)),
   ]);
 
   const siteIds = siteRows.map((site) => site.id);
@@ -65,29 +71,71 @@ export default async function DevelopersPage() {
           .where(inArray(consentPolicies.websiteId, siteIds));
 
   const publishedSites = new Set(publishedRows.map((row) => row.websiteId));
-  const keyList: ApiKeyRow[] = rows;
-  const activeCount = rows.filter((k) => k.status === "active").length;
+  const activeKeys = rows.filter((k) => k.status === "active").length;
+  const liveKeys = rows.filter((k) => k.status === "active" && k.environment === "live").length;
+  const activeWebhooks = webhookRows.filter((w) => w.status === "active").length;
+  const publishedCount = siteRows.filter((s) => publishedSites.has(s.id)).length;
 
   return (
-    <div className="page-wrap space-y-6">
-      <PageHeader
-        eyebrow={<SectionEyebrow href="/dashboard/developer">Developer</SectionEyebrow>}
-        title="SDK & API keys"
-        description="Install the visitor banner on each site, then manage programmatic API keys."
-      />
+    <DevelopersShell
+      pathname="/dashboard/developers"
+      title="Developer hub"
+      description="Install the CMP, create API keys, sync signed-in preferences, and deliver webhooks — without putting secrets in the browser."
+      action={<PageHeaderLink href="/dashboard/developers/api-keys">Create API key</PageHeaderLink>}
+    >
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <DevelopersStat label="Active API keys" value={activeKeys} hint={`${liveKeys} live`} />
+        <DevelopersStat
+          label="Websites"
+          value={siteRows.length}
+          hint={`${publishedCount} with published policy`}
+        />
+        <DevelopersStat label="Active webhooks" value={activeWebhooks} />
+        <DevelopersStat
+          label="API base"
+          value="v1"
+          hint={appOrigin.replace(/^https?:\/\//, "")}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <DevelopersQuickLink
+          href="/dashboard/developers/api-keys"
+          title="API keys"
+          description="Generate live or test secrets for server-side Consent Guru calls."
+          meta="Scopes: consent:subject · consent:evaluate · data:redact"
+        />
+        <DevelopersQuickLink
+          href="/dashboard/developers/api"
+          title="API reference"
+          description="Subject sessions, logout, evaluate, and redaction endpoints with copyable examples."
+          meta="Bearer authentication"
+        />
+        <DevelopersQuickLink
+          href="/dashboard/developers/webhooks"
+          title="Webhooks"
+          description="Push consent and rights events to your own HTTPS endpoints with signed payloads."
+          meta="X-CMP-Signature verification"
+        />
+      </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Website installation</CardTitle>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Publish a policy, then paste the snippet. Verify checks the published config for that site key.
-          </p>
+        <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+          <div>
+            <CardTitle>Website installation</CardTitle>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Publish a policy, then open Install for the embed snippet and optional signed-in bridge.
+            </p>
+          </div>
+          <Link href="/dashboard/websites/new" className="btn btn-outline btn-sm shrink-0">
+            Add website
+          </Link>
         </CardHeader>
         <CardContent>
           {siteRows.length === 0 ? (
             <EmptyState
-              title="No websites to install"
-              description="Add a website first, then return here for the published status and install snippet."
+              title="No websites yet"
+              description="Add a website first, publish a policy, then copy the SDK snippet."
               actionLabel="Add a website"
               actionHref="/dashboard/websites/new"
             />
@@ -96,7 +144,7 @@ export default async function DevelopersPage() {
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--muted)]/60">
-                    {["Website", "Published", "Last verify", "Site key", ""].map((heading) => (
+                    {["Website", "Policy", "Verification", "Site key", ""].map((heading) => (
                       <th
                         key={heading || "action"}
                         className="px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-[var(--muted-foreground)]"
@@ -108,16 +156,20 @@ export default async function DevelopersPage() {
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {siteRows.map((site) => (
-                    <tr key={site.id}>
+                    <tr key={site.id} className="hover:bg-[var(--muted)]/50">
                       <td className="px-4 py-3">
                         <p className="font-medium text-[var(--foreground)]">{site.name}</p>
                         <p className="text-xs text-[var(--muted-foreground)]">{site.domain}</p>
                       </td>
                       <td className="px-4 py-3">
                         {publishedSites.has(site.id) ? (
-                          <Badge variant="success" size="sm">Published</Badge>
+                          <Badge variant="success" size="sm">
+                            Published
+                          </Badge>
                         ) : (
-                          <Badge variant="warning" size="sm">Draft only</Badge>
+                          <Badge variant="warning" size="sm">
+                            Draft only
+                          </Badge>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs text-[var(--muted-foreground)]">
@@ -132,7 +184,7 @@ export default async function DevelopersPage() {
                             : "Not verified"}
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-[var(--muted-foreground)]">
-                        {site.siteKey.slice(0, 12)}…
+                        {site.siteKey.slice(0, 14)}…
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
@@ -151,84 +203,84 @@ export default async function DevelopersPage() {
         </CardContent>
       </Card>
 
-      <PageHeader
-        title="API keys"
-        description={
-          <>
-            Manage API keys for programmatic access to the CMP API.{" "}
-            {activeCount > 0 && (
-              <span className="font-medium text-[var(--foreground)]">
-                {activeCount} active key{activeCount !== 1 ? "s" : ""}.
-              </span>
-            )}
-          </>
-        }
-      />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recommended path</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ol className="space-y-3 text-sm text-[var(--muted-foreground)]">
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-xs font-semibold text-[var(--foreground)]">
+                  1
+                </span>
+                <span>
+                  Install the guest SDK from a website&apos;s{" "}
+                  <strong className="font-medium text-[var(--foreground)]">Installation</strong> page.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-xs font-semibold text-[var(--foreground)]">
+                  2
+                </span>
+                <span>
+                  Create an API key and store it as{" "}
+                  <code className="rounded bg-[var(--muted)] px-1 font-mono text-xs text-[var(--foreground)]">
+                    CONSENT_GURU_API_KEY
+                  </code>{" "}
+                  on your server.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-xs font-semibold text-[var(--foreground)]">
+                  3
+                </span>
+                <span>
+                  For logged-in apps, add the signed-in bridge route + script from Installation Step 4.
+                </span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--muted)] text-xs font-semibold text-[var(--foreground)]">
+                  4
+                </span>
+                <span>Optionally connect webhooks for consent and rights events.</span>
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
 
-      <StatusBanner variant="warning">
-        <p>
-          <strong className="font-semibold">Security reminder:</strong>{" "}
-          API keys grant access to your organisation&apos;s data. Keep them secret and never
-          commit them to source control. Revoke any key that may have been compromised.
-        </p>
-      </StatusBanner>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Signed-in consent (optional)</CardTitle>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Static sites can keep using the guest embed only. Apps with login should mint a
-            short-lived subject session from your backend — never put auth credentials in the browser.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
-          <ol className="list-decimal space-y-2 pl-5">
-            <li>
-              After login, call{" "}
-              <code className="rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--foreground)]">
-                POST /api/v1/consent/subject
+        <Card>
+          <CardHeader>
+            <CardTitle>Security defaults</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+            <p>
+              API keys never belong in the browser. Customer sites call your own{" "}
+              <code className="rounded bg-[var(--muted)] px-1 font-mono text-xs text-[var(--foreground)]">
+                /api/cmp/subject
               </code>{" "}
-              with your API key,{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">websiteId</code>, and a
-              stable{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">subjectKey</code>. Optional{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">email</code> is notification
-              metadata only.
-            </li>
-            <li>
-              Pass the returned{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">subjectSessionToken</code>{" "}
-              to{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">
-                CMP.setSubjectSession(&#123; token, websiteId &#125;)
+              route; that route calls Consent Guru with the secret.
+            </p>
+            <p>
+              Subject ownership is{" "}
+              <code className="rounded bg-[var(--muted)] px-1 font-mono text-xs text-[var(--foreground)]">
+                (websiteId, subjectKey)
               </code>
+              . Email is notification metadata only.
+            </p>
+            <p>
+              Revoke compromised keys immediately from{" "}
+              <Link
+                href="/dashboard/developers/api-keys"
+                className="font-medium text-[var(--foreground)] underline underline-offset-2"
+              >
+                API keys
+              </Link>
               .
-            </li>
-            <li>
-              On logout, call{" "}
-              <code className="rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--foreground)]">
-                POST /api/v1/consent/subject/logout
-              </code>{" "}
-              and{" "}
-              <code className="font-mono text-xs text-[var(--foreground)]">
-                CMP.clearSubjectSession()
-              </code>
-              .
-            </li>
-          </ol>
-          <p>
-            Account choices are scoped to{" "}
-            <code className="font-mono text-xs text-[var(--foreground)]">
-              (websiteId, subjectKey)
-            </code>
-            . Guest browser choices stay on{" "}
-            <code className="font-mono text-xs text-[var(--foreground)]">consentId</code> and are never
-            auto-converted from historical email metadata.
-          </p>
-        </CardContent>
-      </Card>
-
-      <ApiKeyManager initialKeys={keyList} />
-    </div>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </DevelopersShell>
   );
 }

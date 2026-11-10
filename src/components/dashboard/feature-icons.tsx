@@ -172,6 +172,17 @@ const ICONS: Record<string, ReactNode> = {
       <path d="m8 8-4 4 4 4M16 8l4 4-4 4" />
     </>
   ),
+  "/dashboard/developers/api-keys": (
+    <>
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </>
+  ),
+  "/dashboard/developers/api": (
+    <>
+      <path d="M4 7h16M4 12h10M4 17h13" />
+      <path d="M16 10l4 2-4 2" />
+    </>
+  ),
   "/dashboard/integrations": (
     <>
       <rect x="3" y="3" width="7" height="7" rx="1.5" />

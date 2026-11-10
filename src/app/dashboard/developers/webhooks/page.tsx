@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { auth } from "@clerk/nextjs/server";
 import { eq, desc, inArray } from "drizzle-orm";
 
@@ -10,12 +9,11 @@ import {
   WebhookEndpointManager,
   type WebhookEndpointRow,
 } from "@/components/webhooks/webhook-endpoint-manager";
-import { PageHeader } from "@/components/ui/page-header";
+import { DevelopersShell, DevelopersStat } from "@/components/developers/developers-shell";
 import { StatusBanner } from "@/components/ui/status-banner";
 
 const DELIVERIES_PER_ENDPOINT = 20;
 
-// Auth + bootstrap guaranteed by the dashboard layout.
 export default async function WebhooksPage() {
   const { orgId } = await auth();
   if (!orgId) return null;
@@ -28,7 +26,6 @@ export default async function WebhooksPage() {
 
   if (!localOrg) return null;
 
-  // Fetch all endpoints for this org, newest first.
   const endpointRows = await db
     .select({
       id: webhookEndpoints.id,
@@ -45,7 +42,6 @@ export default async function WebhooksPage() {
     .where(eq(webhookEndpoints.organizationId, localOrg.id))
     .orderBy(desc(webhookEndpoints.createdAt));
 
-  // Fetch recent deliveries for all endpoints in one query.
   const endpointIds = endpointRows.map((e) => e.id);
 
   const deliveryRows =
@@ -68,7 +64,6 @@ export default async function WebhooksPage() {
           .limit(endpointIds.length * DELIVERIES_PER_ENDPOINT)
       : [];
 
-  // Group deliveries by endpoint id.
   const deliveriesByEndpoint = new Map<string, typeof deliveryRows>();
   for (const d of deliveryRows) {
     const list = deliveriesByEndpoint.get(d.webhookEndpointId) ?? [];
@@ -78,7 +73,6 @@ export default async function WebhooksPage() {
     }
   }
 
-  // Build typed rows for the client component.
   const endpoints: WebhookEndpointRow[] = endpointRows.map((ep) => ({
     id: ep.id,
     name: ep.name,
@@ -102,41 +96,31 @@ export default async function WebhooksPage() {
   }));
 
   const activeCount = endpointRows.filter((e) => e.status === "active").length;
+  const verifiedCount = endpointRows.filter((e) => e.verified).length;
 
   return (
-    <div className="page-wrap space-y-6">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-        <Link href="/dashboard/developers" className="transition hover:text-[var(--foreground)]">
-          API Keys
-        </Link>
-        <span className="text-[var(--border)]" aria-hidden="true">/</span>
-        <span className="text-[var(--foreground)]">Webhooks</span>
-      </nav>
-
-      <PageHeader
-        title="Webhooks"
-        description={
-          <>
-            Receive real-time event notifications at your endpoints.
-            {endpointRows.length > 0 && (
-              <> {activeCount} active endpoint{activeCount !== 1 ? "s" : ""}.</>
-            )}
-          </>
-        }
-      />
+    <DevelopersShell
+      pathname="/dashboard/developers/webhooks"
+      title="Webhooks"
+      description="Receive signed consent and rights events at your HTTPS endpoints in real time."
+    >
+      <div className="grid gap-3 sm:grid-cols-3">
+        <DevelopersStat label="Endpoints" value={endpointRows.length} />
+        <DevelopersStat label="Active" value={activeCount} />
+        <DevelopersStat label="Verified" value={verifiedCount} />
+      </div>
 
       <StatusBanner variant="warning">
         <p>
-          <strong className="font-semibold">Verify signatures:</strong> Every delivery includes a{" "}
+          <strong className="font-semibold">Verify signatures.</strong> Every delivery includes{" "}
           <code className="rounded-md bg-[var(--warning-soft)] px-1.5 py-0.5 font-mono text-xs">
             X-CMP-Signature
-          </code>{" "}
-          header. Use your endpoint&apos;s signing secret to verify the payload has not been tampered with.
+          </code>
+          . Use the endpoint signing secret to confirm the payload was not modified.
         </p>
       </StatusBanner>
 
       <WebhookEndpointManager initialEndpoints={endpoints} />
-    </div>
+    </DevelopersShell>
   );
 }

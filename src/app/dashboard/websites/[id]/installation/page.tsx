@@ -12,6 +12,11 @@ import {
 } from "@/components/sdk/copy-snippet";
 import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
 import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
+import {
+  buildClerkSubjectBridgeRouteExample,
+  buildSubjectBridgeSnippet,
+} from "@/lib/sdk/subject-bridge-script";
+
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBanner } from "@/components/ui/status-banner";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,6 +75,17 @@ export default async function InstallationPage({
   const htmlSnippet = buildEmbedSnippet({
     siteKey: website.siteKey,
     cdnUrl: sdkScriptUrl,
+  });
+
+  const subjectBridgeSnippet = buildSubjectBridgeSnippet({
+    bridgeScriptUrl: `${appOrigin}/api/sdk/subject-bridge`,
+    bridgeUrl: "/api/cmp/subject",
+    websiteId: website.id,
+  });
+
+  const subjectBridgeRoute = buildClerkSubjectBridgeRouteExample({
+    consentGuruOrigin: appOrigin,
+    websiteId: website.id,
   });
 
   const nextjsSnippet = `// Use the HTML snippet above as the first child of <head> in app/layout.tsx.
@@ -286,9 +302,53 @@ export default async function InstallationPage({
           </ul>
         </section>
 
-        {/* Step 4 — Verify */}
+        {/* Step 4 — Signed-in sync (optional) */}
         <section>
-          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 4 — Verify installation</h2>
+          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">
+            Step 4 — Signed-in sync (optional)
+          </h2>
+          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
+            For sites with login (Clerk, Auth.js, etc.). Guests still work with Step 2 alone.
+            Your API key stays on your server — the browser only talks to a route on your own domain.
+          </p>
+          <ol className="mb-4 list-inside list-decimal space-y-2 text-sm text-[var(--muted-foreground)]">
+            <li>
+              Create an API key in{" "}
+              <Link
+                href="/dashboard/developers"
+                className="font-medium text-[var(--foreground)] underline underline-offset-2 hover:text-[var(--primary)]"
+              >
+                Developers
+              </Link>
+              .
+            </li>
+            <li>Add the server route below on your website (Next.js + Clerk example).</li>
+            <li>Paste the bridge script after the CMP snippet.</li>
+            <li>
+              On logout call{" "}
+              <code className="rounded-md bg-[var(--secondary)] px-1 font-mono text-xs">
+                window.CMPSubjectBridge?.logout()
+              </code>
+              .
+            </li>
+          </ol>
+          <div className="mb-4">
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
+              A — Server route on your site
+            </p>
+            <CodeBlock code={subjectBridgeRoute} language="tsx" />
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
+              B — Bridge script (browser)
+            </p>
+            <CodeBlock code={subjectBridgeSnippet} language="html" />
+          </div>
+        </section>
+
+        {/* Step 5 — Verify */}
+        <section>
+          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 5 — Verify installation</h2>
           <p className="mb-3 text-sm text-[var(--muted-foreground)]">
             Confirm that the SDK config endpoint resolves correctly for your site key.
           </p>

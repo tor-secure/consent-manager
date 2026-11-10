@@ -137,6 +137,8 @@ export function GroupedBarChart({
 }
 
 export type HorizontalBarRow = {
+  /** Stable unique id when labels can repeat (e.g. same purpose name on two websites). */
+  id?: string;
   label: string;
   value: number;
   hint?: string;
@@ -167,7 +169,7 @@ export function HorizontalBarChart({
       {visible.map((row, index) => {
         const pct = Math.max(4, (row.value / maxVal) * 100);
         return (
-          <div key={row.label} className="space-y-1.5">
+          <div key={row.id ?? `${row.label}-${index}`} className="space-y-1.5">
             <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-[var(--foreground)]">{row.label}</p>
