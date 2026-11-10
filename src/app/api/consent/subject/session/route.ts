@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
-import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
+import {
+  createSubjectSession,
+  upsertConsentSubject,
+} from "@/lib/consent/subject-session";
+import { normalizeEmail } from "@/lib/consent/revocation-notification-core";
 import { logger } from "@/lib/logger";
 import { consumeRateLimit, getClientIp } from "@/lib/rate-limit-store";
-import {
-  isValidConsentId,
-  isValidWebsiteId,
-  readPublicJsonObject,
-} from "@/lib/sdk/public-http";
+import { isValidWebsiteId, readPublicJsonObject } from "@/lib/sdk/public-http";
 
 /**
- * After the visitor logs into Consent Guru (Clerk), bind their verified
- * primary email to the consentId they hold in the browser.
+ * Consent Guru first-party: after Clerk login, mint a subject session for
+ * subjectKey = Clerk userId. Email is optional notification metadata.
+ * Does NOT convert guest consentId records into account ownership.
  */
 export async function POST(request: Request) {
   try {
@@ -42,14 +43,10 @@ export async function POST(request: Request) {
     }
 
     const websiteId = String(parsed.body.websiteId ?? "").trim();
-    const consentId = String(parsed.body.consentId ?? "").trim();
     const siteKey = String(parsed.body.siteKey ?? "").trim();
 
     if (!websiteId || !isValidWebsiteId(websiteId)) {
       return NextResponse.json({ success: false, message: "Invalid websiteId" }, { status: 400 });
-    }
-    if (!consentId || !isValidConsentId(consentId)) {
-      return NextResponse.json({ success: false, message: "Invalid consentId" }, { status: 400 });
     }
     if (!siteKey) {
       return NextResponse.json({ success: false, message: "siteKey is required" }, { status: 400 });
@@ -69,24 +66,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Website not found" }, { status: 404 });
     }
 
-    const result = await bindSubjectFromClerkSession({
+    const clerkUser = await currentUser();
+    const primary = clerkUser?.emailAddresses.find(
+      (row) => row.id === clerkUser.primaryEmailAddressId,
+    );
+    const email =
+      primary && primary.verification?.status === "verified"
+        ? normalizeEmail(primary.emailAddress)
+        : null;
+
+    const subject = await upsertConsentSubject({
       organizationId: website.organizationId,
       websiteId: website.id,
-      consentId,
+      subjectKey: userId,
+      authSource: "clerk",
+      email,
+    });
+
+    const session = await createSubjectSession({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      subjectId: subject.id,
+    });
+
+    logger.info("Consent subject session minted from Clerk", {
+      operation: "consent.subject.clerk_session",
+      websiteId: website.id,
+      hasEmail: Boolean(email),
     });
 
     return NextResponse.json({
       success: true,
-      bound: result.bound,
-      reason: result.reason ?? null,
+      subjectKey: userId,
+      websiteId: website.id,
+      subjectSessionToken: session.token,
+      expiresAt: session.expiresAt.toISOString(),
+      emailBound: Boolean(email),
     });
   } catch (error) {
-    logger.error("Consent subject session bind failed", {
-      operation: "consent.subject.session",
+    logger.error("Consent subject session mint failed", {
+      operation: "consent.subject.clerk_session",
       error,
     });
     return NextResponse.json(
-      { success: false, message: "Failed to bind consent subject" },
+      { success: false, message: "Failed to establish subject session" },
       { status: 500 },
     );
   }

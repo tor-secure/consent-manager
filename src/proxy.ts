@@ -49,6 +49,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/sdk(.*)",
   "/api/consent/record(.*)",
   "/api/consent/withdraw(.*)",
+  "/api/consent/account(.*)",
   "/api/consent/policy(.*)",
   "/api/consent/receipt(.*)",
   "/api/rights-request(.*)",

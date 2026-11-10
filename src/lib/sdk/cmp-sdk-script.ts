@@ -164,6 +164,8 @@ ${apiBaseLine}
   var EXPIRY_KEY  = 'cmp_expiry_'  + SITE_KEY;
   var POLICY_CONTEXT_KEY = 'cmp_policy_context_' + SITE_KEY;
   var CA_OPT_OUT_KEY = 'cmp_ca_optout_' + SITE_KEY;
+  var ACCOUNT_KEY = 'cmp_account_' + SITE_KEY;
+  var SUBJECT_SESSION_KEY = 'cmp_subject_session_' + SITE_KEY;
   function safeHttpUrl(value) {
     if (!value || typeof value !== 'string') return '';
     try {
@@ -235,6 +237,15 @@ ${apiBaseLine}
   var _stateVersion = 0;
   var _replaceMissingConsent = false;
   var _abVariantId = null;
+  var _subjectSessionToken = null;
+  var _subjectSessionExpiresAt = null;
+  var _subjectKey = null;
+  var _subjectGeneration = 0;
+  var _accountStateVersion = 0;
+  var _accountConfirmed = false;
+  var _accountMergePending = false;
+  var _accountConflictPending = false;
+  var _guestDenyEffective = false;
   var _listeners   = [];
   var _explicitLang = '';
   var _pcLastFocus = null;
@@ -329,6 +340,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function consentIsServerConfirmed() {
+    if (_subjectSessionToken && (_accountMergePending || _accountConflictPending)) {
+      // Signed-in transition/conflict: optional processing stays blocked unless
+      // an explicit guest rejection is already in force (deny-wins).
+      return _guestDenyEffective && _consentState === 'DENIED';
+    }
+    if (_subjectSessionToken) {
+      return _accountConfirmed && (_consentState === 'GRANTED' || _consentState === 'DENIED');
+    }
     return _consentState === 'GRANTED' || _consentState === 'DENIED';
   }
 
@@ -1463,6 +1482,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         node.removeAttribute('data-cmp-blocked');
         node.removeAttribute('data-cmp-block-reason');
       }
+      // A prior unlock attempt may have stamped activated without leaving a live src.
+      if (
+        node.getAttribute &&
+        node.getAttribute('data-cmp-activated') === '1' &&
+        !(node.getAttribute('src') || node.src)
+      ) {
+        node.removeAttribute('data-cmp-activated');
+      }
       if (kind === 'script' || kind === 'iframe' || kind === 'pixel') {
         activateFreshResource(node, originalSrc, kind);
       } else if (originalSrc && node.setAttribute) {
@@ -1800,7 +1827,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function activateFreshResource(node, url, kind) {
-    if (!node || !url || (node.getAttribute && node.getAttribute('data-cmp-activated') === '1')) return;
+    if (!node || !url) return;
+    if (node.getAttribute && node.getAttribute('data-cmp-activated') === '1') return;
     var parent = node.parentNode || document.head || document.documentElement;
     if (!parent) return;
     var previousMutating = _enforcementMutating;
@@ -1808,11 +1836,17 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     try {
       node.setAttribute('data-cmp-activated', '1');
       var fresh = null;
+      var purposeKey = node.getAttribute && node.getAttribute('data-cmp-purpose');
+      var trackerName = node.getAttribute && node.getAttribute('data-cmp-tracker');
       if (kind === 'script') {
         fresh = document.createElement('script');
         if (fresh.setAttribute) {
           fresh.setAttribute('type', 'text/javascript');
           fresh.setAttribute('src', url);
+          // Keep declared purpose tagging so re-inspection uses purpose grants,
+          // not only URL/vendor rule matching after a cross-tab restore.
+          if (purposeKey) fresh.setAttribute('data-cmp-purpose', purposeKey);
+          if (trackerName) fresh.setAttribute('data-cmp-tracker', trackerName);
         } else {
           fresh.type = 'text/javascript';
           fresh.src = url;
@@ -1821,12 +1855,14 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         fresh = document.createElement('iframe');
         fresh.src = url;
         fresh.title = node.getAttribute('title') || 'Embedded content';
+        if (purposeKey && fresh.setAttribute) fresh.setAttribute('data-cmp-purpose', purposeKey);
       } else if (kind === 'pixel') {
         fresh = document.createElement('img');
         fresh.src = url;
         fresh.alt = '';
         fresh.width = 1;
         fresh.height = 1;
+        if (purposeKey && fresh.setAttribute) fresh.setAttribute('data-cmp-purpose', purposeKey);
       }
       if (!fresh) return;
       fresh.setAttribute('data-cmp-activated', '1');
@@ -2232,8 +2268,65 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     // A cached notice token expires. Sending it always comes back as 409 and
     // reopens the banner. Wait for the live config, then submit that token once.
     if (!_livePolicyReady) return;
-    if (!_config.websiteId || !_policyContext || !_policyContext.token) return;
+    if (!_config.websiteId) return;
+    // Signed-in account path: write to account consent, not guest consentId records.
+    if (_subjectSessionToken) {
+      if (!_config.policyVersionId) return;
+      var accountJob = _queuedSubmit;
+      var accountGeneration = _subjectGeneration;
+      _queuedSubmit = null;
+      _submitBusy = true;
+      persistUnconfirmedState('PENDING', accountJob, 'Submitting… Optional processing remains blocked.');
+      var purposeMap = {};
+      var vendorMap = {};
+      (accountJob.purposeDecisions || []).forEach(function(row) {
+        if (row && row.purposeId) purposeMap[row.purposeId] = !!row.granted;
+      });
+      (accountJob.vendorDecisions || []).forEach(function(row) {
+        if (row && row.vendorId) vendorMap[row.vendorId] = !!row.granted;
+      });
+      if (accountJob.choice === 'accept-all' || accountJob.choice === 'reject-all') {
+        ((_config && _config.purposes) || []).forEach(function(p) {
+          if (p.isRequired) return;
+          purposeMap[p.id] = accountJob.choice === 'accept-all';
+        });
+        ((_config && _config.vendors) || []).forEach(function(v) {
+          vendorMap[v.id] = accountJob.choice === 'accept-all';
+        });
+      }
+      saveGuestMapsToAccount(purposeMap, vendorMap, accountJob.choice, accountGeneration)
+        .then(function(data) {
+          if (accountGeneration !== _subjectGeneration) return;
+          _retryJob = null;
+          _accountMergePending = false;
+          _accountConflictPending = false;
+          _choiceDismissed = true;
+          removeBanner();
+          syncPreferenceWidget();
+          renderSubmissionState('Consent confirmed');
+          if (accountJob.callback) {
+            accountJob.callback(null, data && data.subjectKey ? data.subjectKey : _subjectKey);
+          }
+        })
+        .catch(function(err) {
+          if (accountGeneration !== _subjectGeneration) return;
+          _retryJob = accountJob;
+          persistUnconfirmedState(
+            'FAILED',
+            accountJob,
+            err && err.message ? String(err.message) : 'Consent could not be confirmed. Optional processing remains blocked. Please retry.'
+          );
+          if (accountJob.callback) accountJob.callback(new Error('Consent could not be saved. Please retry.'));
+        })
+        .then(function() {
+          _submitBusy = false;
+          if (_queuedSubmit) flushConsentSubmit();
+        });
+      return;
+    }
+    if (!_policyContext || !_policyContext.token) return;
     var job = _queuedSubmit;
+    var submitGeneration = _subjectGeneration;
     _queuedSubmit = null;
     _submitBusy = true;
     persistUnconfirmedState('PENDING', job, 'Submitting… Optional processing remains blocked.');
@@ -2318,6 +2411,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
     postConsentRecord()
     .then(function(result) {
+      if (submitGeneration !== _subjectGeneration) return;
       var data = result.data;
       if (result.ok && confirmedResponse(data)) {
         applyConfirmedConsent(data);
@@ -2479,6 +2573,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       throw new Error(failedConsentMessage(data));
     })
     .catch(function(err) {
+      if (submitGeneration !== _subjectGeneration) return;
       if (timeoutId) window.clearTimeout(timeoutId);
       log('Submit consent failed: ' + err);
       _retryJob = job;
@@ -2507,6 +2602,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       if (job.callback) job.callback(new Error('Consent could not be saved. Please retry.'));
     })
     .then(function() {
+      if (submitGeneration !== _subjectGeneration) {
+        _submitBusy = false;
+        return;
+      }
       _submitBusy = false;
       if (_consentState === 'GRANTED' || _consentState === 'DENIED') {
         renderSubmissionState('Consent confirmed');
@@ -2601,14 +2700,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
     if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__') || document.getElementById('__cmp_prefs__')) return;
-    if (!_consentId && !_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed) return;
+    var hasConfirmedChoice = !!_consentId || (_subjectSessionToken && _accountConfirmed);
+    if (!hasConfirmedChoice && !_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed) return;
     if (!_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed && cfg.showPreferenceWidget === false) return;
 
     var btn = document.createElement('button');
     btn.id = '__cmp_reopen__';
     btn.type = 'button';
-    btn.setAttribute('aria-label', _consentId ? 'Cookie preferences' : 'Cookie consent');
-    btn.title = _consentId ? 'Cookie preferences' : 'Cookie consent';
+    btn.setAttribute('aria-label', hasConfirmedChoice ? 'Cookie preferences' : 'Cookie consent');
+    btn.title = hasConfirmedChoice ? 'Cookie preferences' : 'Cookie consent';
     var corner = cfg.preferenceWidgetPosition === 'bottom-right' ? 'right:16px;' : 'left:16px;';
     btn.setAttribute('style',
       'position:fixed;bottom:16px;' + corner + 'z-index:2147483645;'
@@ -4380,6 +4480,474 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     window.dispatchEvent(new CustomEvent('cmp:openPreferenceCenter'));
   }
 
+  function loadSubjectSession() {
+    try {
+      var raw = sessionStorage.getItem(SUBJECT_SESSION_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.token !== 'string' || !parsed.token) return null;
+      if (parsed.expiresAt && Date.parse(parsed.expiresAt) <= Date.now()) {
+        sessionStorage.removeItem(SUBJECT_SESSION_KEY);
+        return null;
+      }
+      return parsed;
+    } catch (eSs) {
+      return null;
+    }
+  }
+
+  function persistSubjectSession(token, expiresAt, subjectKey) {
+    _subjectSessionToken = token;
+    _subjectSessionExpiresAt = expiresAt || null;
+    _subjectKey = subjectKey || null;
+    try {
+      sessionStorage.setItem(SUBJECT_SESSION_KEY, JSON.stringify({
+        token: token,
+        expiresAt: expiresAt || null,
+        subjectKey: subjectKey || null,
+        websiteId: _config && _config.websiteId || null
+      }));
+    } catch (ePersistSs) {}
+  }
+
+  function clearSubjectSessionStorage() {
+    _subjectSessionToken = null;
+    _subjectSessionExpiresAt = null;
+    _subjectKey = null;
+    _accountStateVersion = 0;
+    _accountConfirmed = false;
+    _accountMergePending = false;
+    _accountConflictPending = false;
+    _guestDenyEffective = false;
+    try { sessionStorage.removeItem(SUBJECT_SESSION_KEY); } catch (eClearSs) {}
+    try { localStorage.removeItem(ACCOUNT_KEY); } catch (eClearAcc) {}
+  }
+
+  function clearGuestConsentStorage() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (eCg1) {}
+    try { localStorage.removeItem(EXPIRY_KEY); } catch (eCg2) {}
+    _consentId = null;
+    _stateVersion = 0;
+    _decisions = { purposes: {}, vendors: {} };
+    _confirmedRevision = 0;
+    _replaceMissingConsent = false;
+  }
+
+  function guestDecisionMapsFromStored() {
+    var stored = loadStoredConsent();
+    var purposes = {};
+    var vendors = {};
+    var has = !!(stored && stored.status === 'confirmed' && stored.serverConfirmed && Array.isArray(stored.decisions));
+    if (has) {
+      (stored.decisions || []).forEach(function(row) {
+        if (row.purposeId) purposes[row.purposeId] = !!row.granted;
+        if (row.vendorId) vendors[row.vendorId] = !!row.granted;
+      });
+    }
+    return { has: has, purposes: purposes, vendors: vendors, stored: stored };
+  }
+
+  function accountDecisionMapsFromSnapshot(account) {
+    var purposes = {};
+    var vendors = {};
+    var has = !!(account && account.exists && account.status === 'active' && Array.isArray(account.decisions));
+    if (has) {
+      (account.decisions || []).forEach(function(row) {
+        if (row.purposeId) purposes[row.purposeId] = !!row.granted;
+        if (row.vendorId) vendors[row.vendorId] = !!row.granted;
+      });
+    }
+    return { has: has, purposes: purposes, vendors: vendors };
+  }
+
+  function denyWinsGrant(guestGranted, accountGranted) {
+    if (guestGranted === false || accountGranted === false) return false;
+    if (guestGranted === true || accountGranted === true) return true;
+    return false;
+  }
+
+  function applyDecisionMaps(purposeMap, vendorMap) {
+    _decisions = { purposes: purposeMap || {}, vendors: vendorMap || {} };
+    var decisionsArray = [];
+    Object.keys(_decisions.purposes).forEach(function(id) {
+      decisionsArray.push({ purposeId: id, vendorId: null, granted: !!_decisions.purposes[id] });
+    });
+    Object.keys(_decisions.vendors).forEach(function(id) {
+      decisionsArray.push({ purposeId: null, vendorId: id, granted: !!_decisions.vendors[id] });
+    });
+    _consentState = stateForConfirmedDecisions(decisionsArray);
+    applyTrackerEnforcement();
+    publishExternalSignals();
+    fireIabEvents('useractioncomplete');
+    _listeners.forEach(function(fn) { try { fn(getConsent()); } catch (eL) {} });
+  }
+
+  function removeAccountPrompt() {
+    var el = document.getElementById('__cmp_account_prompt__');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  function showAccountPrompt(opts) {
+    removeAccountPrompt();
+    var overlay = document.createElement('div');
+    overlay.id = '__cmp_account_prompt__';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(11,44,74,0.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+    var card = document.createElement('div');
+    card.style.cssText = 'max-width:520px;width:100%;background:#fff;color:#0B2C4A;border-radius:16px;padding:22px;font-family:system-ui,sans-serif;box-sizing:border-box;';
+    var title = document.createElement('h2');
+    title.textContent = opts.title || 'Save your privacy choices?';
+    title.style.cssText = 'margin:0 0 8px;font-size:20px;';
+    var body = document.createElement('p');
+    body.textContent = opts.body || '';
+    body.style.cssText = 'margin:0 0 12px;font-size:14px;line-height:1.5;color:#4d6570;';
+    var list = document.createElement('ul');
+    list.style.cssText = 'margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.45;max-height:220px;overflow:auto;';
+    (opts.items || []).forEach(function(item) {
+      var li = document.createElement('li');
+      li.textContent = item.name + ' — ' + (item.granted ? 'Allowed' : 'Blocked');
+      list.appendChild(li);
+    });
+    var actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
+    var dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.textContent = opts.dismissLabel || 'Not now';
+    dismiss.style.cssText = 'border:1px solid #d3e0de;background:#fff;color:#0B2C4A;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer;';
+    var confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.textContent = opts.confirmLabel || 'Save to my account';
+    confirm.style.cssText = 'border:0;background:#0B2C4A;color:#fff;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer;';
+    dismiss.onclick = function() {
+      removeAccountPrompt();
+      if (opts.onDismiss) opts.onDismiss();
+    };
+    confirm.onclick = function() {
+      removeAccountPrompt();
+      if (opts.onConfirm) opts.onConfirm();
+    };
+    actions.appendChild(dismiss);
+    actions.appendChild(confirm);
+    card.appendChild(title);
+    card.appendChild(body);
+    if ((opts.items || []).length) card.appendChild(list);
+    card.appendChild(actions);
+    overlay.appendChild(card);
+    (document.body || document.documentElement).appendChild(overlay);
+  }
+
+  function postAccountConsent(payload, generation) {
+    return fetch(API_BASE + '/api/consent/account', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CMP-Subject-Session': _subjectSessionToken || ''
+      },
+      body: JSON.stringify(payload)
+    }).then(function(r) {
+      return r.json().then(function(data) {
+        return { ok: r.ok, status: r.status, data: data, generation: generation };
+      }, function() {
+        return { ok: false, status: r.status, data: null, generation: generation };
+      });
+    });
+  }
+
+  function fetchAccountConsent(generation) {
+    return fetch(API_BASE + '/api/consent/account?websiteId=' + encodeURIComponent((_config && _config.websiteId) || ''), {
+      method: 'GET',
+      credentials: 'include',
+      cache: 'no-store',
+      headers: { 'X-CMP-Subject-Session': _subjectSessionToken || '' }
+    }).then(function(r) {
+      return r.json().then(function(data) {
+        return { ok: r.ok, data: data, generation: generation };
+      }, function() {
+        return { ok: false, data: null, generation: generation };
+      });
+    });
+  }
+
+  function decisionsPayloadFromMaps(purposeMap, vendorMap) {
+    var purposeDecisions = Object.keys(purposeMap || {}).map(function(id) {
+      return { purposeId: id, granted: !!purposeMap[id] };
+    });
+    var vendorDecisions = Object.keys(vendorMap || {}).map(function(id) {
+      return { vendorId: id, granted: !!vendorMap[id] };
+    });
+    return { purposeDecisions: purposeDecisions, vendorDecisions: vendorDecisions };
+  }
+
+  function saveGuestMapsToAccount(purposeMap, vendorMap, choice, generation) {
+    if (!_config || !_config.policyVersionId) {
+      return Promise.reject(new Error('Missing policyVersionId'));
+    }
+    var payload = decisionsPayloadFromMaps(purposeMap, vendorMap);
+    payload.websiteId = _config.websiteId;
+    payload.policyVersionId = _config.policyVersionId;
+    payload.expectedStateVersion = _accountStateVersion || 0;
+    payload.choice = choice || 'granular';
+    return postAccountConsent(payload, generation).then(function(result) {
+      if (result.generation !== _subjectGeneration) return null;
+      if (!result.ok || !result.data || !result.data.success) {
+        throw new Error((result.data && result.data.message) || 'Failed to save account consent');
+      }
+      _accountStateVersion = result.data.stateVersion || (result.data.account && result.data.account.stateVersion) || 1;
+      _accountConfirmed = true;
+      _accountMergePending = false;
+      _accountConflictPending = false;
+      try {
+        localStorage.setItem(ACCOUNT_KEY, JSON.stringify(result.data.account || result.data));
+      } catch (eAcc) {}
+      applyDecisionMaps(purposeMap, vendorMap);
+      return result.data;
+    });
+  }
+
+  function handleSubjectAccountLoad(generation) {
+    return fetchAccountConsent(generation).then(function(result) {
+      if (result.generation !== _subjectGeneration) return;
+      if (!result.ok || !result.data || !result.data.success) {
+        blockOptionalProcessing('DENIED', 'Signed-in consent could not be verified');
+        _choiceDismissed = false;
+        showBannerWhenReady();
+        return;
+      }
+      var account = result.data.account || {};
+      var accountMaps = accountDecisionMapsFromSnapshot(account);
+      var guest = guestDecisionMapsFromStored();
+      _accountStateVersion = account.stateVersion || 0;
+      _subjectKey = result.data.subjectKey || _subjectKey;
+
+      if (accountMaps.has && account.status === 'active') {
+        var effectivePurposes = {};
+        var effectiveVendors = {};
+        var conflictItems = [];
+        ((_config && _config.purposes) || []).forEach(function(p) {
+          if (p.isRequired) return;
+          var g = guest.has ? Boolean(guest.purposes[p.id]) : null;
+          var a = Boolean(accountMaps.purposes[p.id]);
+          var effective = denyWinsGrant(g, a);
+          effectivePurposes[p.id] = effective;
+          if (g !== null && g !== a) {
+            conflictItems.push({ name: p.name, granted: effective });
+          }
+        });
+        ((_config && _config.vendors) || []).forEach(function(v) {
+          var g = guest.has ? Boolean(guest.vendors[v.id]) : null;
+          var a = Boolean(accountMaps.vendors[v.id]);
+          var effective = denyWinsGrant(g, a);
+          effectiveVendors[v.id] = effective;
+          if (g !== null && g !== a) {
+            conflictItems.push({ name: v.name, granted: effective });
+          }
+        });
+
+        if (conflictItems.length) {
+          _accountConflictPending = true;
+          _accountConfirmed = false;
+          blockOptionalProcessing('DENIED', 'Review privacy differences before continuing');
+          showAccountPrompt({
+            title: 'Privacy choices differ on this device',
+            body: 'Some browser choices conflict with your signed-in preferences. Optional processing stays off until you review. Denials remain blocked on this device.',
+            items: conflictItems,
+            confirmLabel: 'Use signed-in choices',
+            dismissLabel: 'Keep device denials',
+            onConfirm: function() {
+              if (generation !== _subjectGeneration) return;
+              _accountConflictPending = false;
+              saveGuestMapsToAccount(accountMaps.purposes, accountMaps.vendors, 'granular', generation).catch(function() {
+                blockOptionalProcessing('DENIED', 'Could not update account preferences');
+              });
+            },
+            onDismiss: function() {
+              if (generation !== _subjectGeneration) return;
+              _accountConflictPending = false;
+              _accountConfirmed = true;
+              applyDecisionMaps(effectivePurposes, effectiveVendors);
+            }
+          });
+          return;
+        }
+
+        _accountConfirmed = true;
+        _accountMergePending = false;
+        try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); } catch (eAcc2) {}
+        applyDecisionMaps(accountMaps.purposes, accountMaps.vendors);
+        _choiceDismissed = true;
+        removeBanner();
+        syncPreferenceWidget();
+        return;
+      }
+
+      // No account choices yet.
+      if (guest.has) {
+        var guestItems = [];
+        var allDenied = true;
+        var anyOptional = false;
+        ((_config && _config.purposes) || []).forEach(function(p) {
+          if (p.isRequired) return;
+          anyOptional = true;
+          var granted = Boolean(guest.purposes[p.id]);
+          if (granted) allDenied = false;
+          guestItems.push({ name: p.name, granted: granted });
+        });
+        ((_config && _config.vendors) || []).forEach(function(v) {
+          anyOptional = true;
+          var granted = Boolean(guest.vendors[v.id]);
+          if (granted) allDenied = false;
+          guestItems.push({ name: v.name, granted: granted });
+        });
+
+        _guestDenyEffective = anyOptional && allDenied;
+        _accountMergePending = true;
+        _accountConfirmed = false;
+        blockOptionalProcessing('DENIED', 'Confirm whether to save choices to your account');
+
+        if (_guestDenyEffective) {
+          // Guest rejection remains effective; account stays unset unless they save.
+          _accountMergePending = false;
+          _accountConfirmed = false;
+          applyDecisionMaps(guest.purposes, guest.vendors);
+          showAccountPrompt({
+            title: 'Keep these blocked choices on your account?',
+            body: 'You previously blocked optional processing in this browser. Optional processing stays off. Save these choices to apply them wherever you sign in to this website.',
+            items: guestItems,
+            confirmLabel: 'Save blocked choices to account',
+            dismissLabel: 'Keep account unset',
+            onConfirm: function() {
+              if (generation !== _subjectGeneration) return;
+              saveGuestMapsToAccount(guest.purposes, guest.vendors, 'reject-all', generation).catch(function() {
+                blockOptionalProcessing('DENIED', 'Could not save account preferences');
+              });
+            },
+            onDismiss: function() {
+              if (generation !== _subjectGeneration) return;
+              _accountConfirmed = false;
+              blockOptionalProcessing('DENIED', 'Account preferences not set');
+            }
+          });
+          return;
+        }
+
+        showAccountPrompt({
+          title: 'Save your privacy choices to this account?',
+          body: 'These browser choices are not yet linked to your signed-in account. Optional processing stays off until you confirm. Your choice will apply wherever you sign in to this website.',
+          items: guestItems,
+          confirmLabel: 'Save to my account',
+          dismissLabel: 'Not now',
+          onConfirm: function() {
+            if (generation !== _subjectGeneration) return;
+            saveGuestMapsToAccount(guest.purposes, guest.vendors, (guest.stored && guest.stored.choice) || 'granular', generation).catch(function() {
+              blockOptionalProcessing('DENIED', 'Could not save account preferences');
+            });
+          },
+          onDismiss: function() {
+            if (generation !== _subjectGeneration) return;
+            _accountMergePending = false;
+            _accountConfirmed = false;
+            blockOptionalProcessing('DENIED', 'Account preferences not set');
+            _choiceDismissed = false;
+            _reconsentNotice = 'Choose privacy preferences for your signed-in account on this website.';
+            showBannerWhenReady();
+          }
+        });
+        return;
+      }
+
+      _accountMergePending = false;
+      _accountConfirmed = false;
+      blockOptionalProcessing('DENIED', '');
+      _choiceDismissed = false;
+      _reconsentNotice = 'These choices will apply wherever you sign in to this website.';
+      showBannerWhenReady();
+    });
+  }
+
+  function setSubjectSession(input) {
+    var token = input && typeof input.token === 'string' ? input.token.trim() : '';
+    if (!token) return Promise.reject(new Error('subjectSessionToken is required'));
+    _subjectGeneration += 1;
+    var generation = _subjectGeneration;
+    removeAccountPrompt();
+    blockOptionalProcessing('DENIED', 'Verifying signed-in privacy preferences');
+    persistSubjectSession(token, input.expiresAt || null, input.subjectKey || null);
+    return handleSubjectAccountLoad(generation);
+  }
+
+  function clearSubjectSession() {
+    _subjectGeneration += 1;
+    removeAccountPrompt();
+    clearSubjectSessionStorage();
+    clearGuestConsentStorage();
+    blockOptionalProcessing('DENIED', '');
+    _choiceDismissed = false;
+    _reconsentNotice = '';
+    _bannerSoftClosed = false;
+    showBannerWhenReady();
+    applyTrackerEnforcement();
+    return true;
+  }
+
+  function getConsentContext() {
+    return {
+      mode: _subjectSessionToken ? 'account' : 'guest',
+      consentId: _consentId,
+      subjectKey: _subjectKey,
+      accountConfirmed: _accountConfirmed,
+      pendingMerge: _accountMergePending,
+      pendingConflict: _accountConflictPending,
+      stateVersion: _subjectSessionToken ? _accountStateVersion : _stateVersion,
+      decisions: {
+        purposes: Object.assign({}, _decisions.purposes || {}),
+        vendors: Object.assign({}, _decisions.vendors || {})
+      }
+    };
+  }
+
+  function refreshAccountConsentIfNeeded() {
+    if (!_subjectSessionToken || !_config) return;
+    var generation = _subjectGeneration;
+    fetchAccountConsent(generation).then(function(result) {
+      if (result.generation !== _subjectGeneration) return;
+      if (!result.ok || !result.data || !result.data.success) return;
+      var account = result.data.account || {};
+      if (account.status === 'withdrawn') {
+        _accountConfirmed = true;
+        _accountStateVersion = account.stateVersion || _accountStateVersion;
+        blockOptionalProcessing('DENIED', 'Consent withdrawn on another device');
+        applyDecisionMaps({}, {});
+        return;
+      }
+      if (!account.exists || account.status !== 'active') return;
+      if ((account.stateVersion || 0) === _accountStateVersion && _accountConfirmed) return;
+      var maps = accountDecisionMapsFromSnapshot(account);
+      _accountStateVersion = account.stateVersion || 0;
+      _accountConfirmed = true;
+      applyDecisionMaps(maps.purposes, maps.vendors);
+    }).catch(function() {});
+  }
+
+  try {
+    window.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') refreshAccountConsentIfNeeded();
+    });
+    window.addEventListener('focus', function() {
+      refreshAccountConsentIfNeeded();
+    });
+  } catch (eVis) {}
+
+  // Restore subject session from this tab if present (does not restore across browsers).
+  (function restoreSubjectSession() {
+    var existing = loadSubjectSession();
+    if (!existing || !existing.token) return;
+    _subjectSessionToken = existing.token;
+    _subjectSessionExpiresAt = existing.expiresAt || null;
+    _subjectKey = existing.subjectKey || null;
+  })();
+
   window.CMP = {
     getConsent: getConsent,
     getPreferenceSnapshot: function() {
@@ -4598,6 +5166,46 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     },
     withdrawConsent: function() {
       return new Promise(function(resolve, reject) {
+        if (_subjectSessionToken) {
+          if (!_config || !_accountConfirmed) {
+            reject(new Error('No confirmed account consent is available to withdraw'));
+            return;
+          }
+          if (_withdrawBusy) {
+            reject(new Error('A withdrawal request is already being submitted'));
+            return;
+          }
+          _withdrawBusy = true;
+          var generation = _subjectGeneration;
+          postAccountConsent({
+            websiteId: _config.websiteId,
+            policyVersionId: _config.policyVersionId,
+            expectedStateVersion: _accountStateVersion || 0,
+            fullWithdrawal: true,
+            choice: 'withdraw',
+            purposeDecisions: [],
+            vendorDecisions: []
+          }, generation).then(function(result) {
+            if (generation !== _subjectGeneration) return;
+            if (!result.ok || !result.data || !result.data.success) {
+              throw new Error((result.data && result.data.message) || 'Withdraw failed');
+            }
+            _accountConfirmed = true;
+            _accountStateVersion = result.data.stateVersion || _accountStateVersion;
+            try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(result.data.account || result.data)); } catch (eAccW) {}
+            applyDecisionMaps({}, {});
+            blockOptionalProcessing('DENIED', 'Consent withdrawn');
+            _choiceDismissed = false;
+            showBannerWhenReady();
+            _withdrawBusy = false;
+            resolve(result.data);
+          }).catch(function(err) {
+            if (generation !== _subjectGeneration) return;
+            _withdrawBusy = false;
+            reject(err instanceof Error ? err : new Error('Withdrawal could not be confirmed. Please retry.'));
+          });
+          return;
+        }
         if (!_consentId || !_config) {
           reject(new Error('No confirmed consent is available to withdraw'));
           return;
@@ -4683,6 +5291,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           reject(new Error('Withdrawal could not be confirmed. Please retry.'));
         });
       });
+    },
+    setSubjectSession: function(input) {
+      return setSubjectSession(input || {});
+    },
+    clearSubjectSession: function() {
+      return clearSubjectSession();
+    },
+    getConsentContext: function() {
+      return getConsentContext();
     }
   };
 
@@ -4803,14 +5420,10 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         var bannerOpen = !!document.getElementById('__cmp_banner__');
         var pcOpen = !!document.getElementById('__cmp_pc__');
         if ((bannerOpen || pcOpen) && _policyContext) {
+          // Keep the already-shown notice/policy context until the visitor finishes.
+          // A mid-choice publish must not rewrite the open banner or the in-flight record.
           var incomingContext = presentedPolicyContext(data);
-          if (incomingContext && !samePresentedPolicy(_policyContext, incomingContext)) {
-            _config = nextConfig;
-            _configRevision = nextRevision;
-            _reconsentNotice = 'This consent policy has changed. Please review your choices.';
-            rememberPolicyContext(incomingContext);
-            showBannerWhenReady();
-          } else if (incomingContext) {
+          if (incomingContext && samePresentedPolicy(_policyContext, incomingContext)) {
             rememberPolicyContext(incomingContext);
           }
           if (_queuedSubmit) flushConsentSubmit();
@@ -4963,6 +5576,21 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     scheduleConfigRefresh();
     initExternalSignals();
     _california = loadStoredCalifornia();
+
+    // Subject session (signed-in): account record wins over guest localStorage.
+    if (_subjectSessionToken && fromLiveNetwork) {
+      if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
+        flushConsentSubmit();
+        return;
+      }
+      blockOptionalProcessing('DENIED', 'Verifying signed-in privacy preferences');
+      handleSubjectAccountLoad(_subjectGeneration);
+      syncCaliforniaOptOut({}, function() {
+        applyTrackerEnforcement();
+        publishExternalSignals();
+      });
+      return;
+    }
 
     if (_choiceUiHeld || _submitBusy || _queuedSubmit) {
       flushConsentSubmit();

@@ -3,17 +3,17 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
-import { consentRecords } from "@/db/schema/consent-records";
 import { websites } from "@/db/schema/websites";
 import { authenticateApiKey } from "@/lib/api-key-auth";
 import {
-  emailDomainHint,
-  normalizeEmail,
-  withSubjectIdentity,
-} from "@/lib/consent/revocation-notification-core";
+  createSubjectSession,
+  isValidSubjectKey,
+  upsertConsentSubject,
+} from "@/lib/consent/subject-session";
+import { emailDomainHint, normalizeEmail } from "@/lib/consent/revocation-notification-core";
 import { logger } from "@/lib/logger";
 import { consumeRateLimit, getClientIp } from "@/lib/rate-limit-store";
-import { isValidConsentId, isValidWebsiteId, readPublicJsonObject } from "@/lib/sdk/public-http";
+import { isValidWebsiteId, readPublicJsonObject } from "@/lib/sdk/public-http";
 
 const RESPONSE_HEADERS = {
   "Cache-Control": "no-store",
@@ -21,8 +21,16 @@ const RESPONSE_HEADERS = {
 };
 
 /**
- * Trusted website integration: bind a verified end-user email to a consent record.
- * Authenticated with API key scope `consent:subject`. Never accept this from the browser SDK.
+ * Establish a website-isolated signed-in subject and mint a short-lived
+ * subjectSessionToken for the browser SDK.
+ *
+ * Authenticated with API key scope `consent:subject`.
+ * Body: { websiteId, subjectKey, email? }
+ * Email is optional notification metadata — never the ownership key.
+ *
+ * Customer integration:
+ *   After login → POST this endpoint from your backend → pass token to CMP.setSubjectSession
+ *   On logout  → POST /api/v1/consent/subject/logout → CMP.clearSubjectSession()
  */
 export async function POST(request: Request) {
   const requestId = resolveRequestId(request);
@@ -79,17 +87,26 @@ export async function POST(request: Request) {
     }
 
     const websiteId = String(json.body.websiteId ?? "").trim();
-    const consentId = String(json.body.consentId ?? "").trim();
-    const email = normalizeEmail(json.body.email);
+    const subjectKey = String(json.body.subjectKey ?? "").trim();
+    const rawEmail = json.body.email;
+    const email =
+      rawEmail === undefined || rawEmail === null || String(rawEmail).trim() === ""
+        ? null
+        : normalizeEmail(rawEmail);
 
     if (!websiteId || !isValidWebsiteId(websiteId)) {
       return errorResponse(requestId, 400, "INVALID_WEBSITE_ID", "websiteId is required");
     }
-    if (!consentId || !isValidConsentId(consentId)) {
-      return errorResponse(requestId, 400, "INVALID_CONSENT_ID", "consentId is required");
+    if (!subjectKey || !isValidSubjectKey(subjectKey)) {
+      return errorResponse(
+        requestId,
+        400,
+        "INVALID_SUBJECT_KEY",
+        "subjectKey is required (3-255 chars, stable user id from your auth)",
+      );
     }
-    if (!email) {
-      return errorResponse(requestId, 400, "INVALID_EMAIL", "A valid email is required");
+    if (rawEmail !== undefined && rawEmail !== null && String(rawEmail).trim() !== "" && !email) {
+      return errorResponse(requestId, 400, "INVALID_EMAIL", "email must be a valid address when provided");
     }
 
     const [website] = await db
@@ -110,73 +127,47 @@ export async function POST(request: Request) {
       return errorResponse(requestId, 404, "WEBSITE_NOT_FOUND", "Website not found for this API key");
     }
 
-    const [record] = await db
-      .select({
-        id: consentRecords.id,
-        metadata: consentRecords.metadata,
-        organizationId: consentRecords.organizationId,
-        websiteId: consentRecords.websiteId,
-      })
-      .from(consentRecords)
-      .where(
-        and(
-          eq(consentRecords.consentId, consentId),
-          eq(consentRecords.websiteId, website.id),
-          eq(consentRecords.organizationId, website.organizationId),
-        ),
-      )
-      .limit(1);
-
-    if (!record) {
-      return errorResponse(requestId, 404, "CONSENT_NOT_FOUND", "Consent record not found");
-    }
-
-    const previous =
-      record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata)
-        ? (record.metadata as Record<string, unknown>)
-        : {};
-    const nextMetadata = withSubjectIdentity(previous, {
+    const subject = await upsertConsentSubject({
+      organizationId: website.organizationId,
+      websiteId: website.id,
+      subjectKey,
+      authSource: "api_key",
       email,
-      verifiedAt: new Date().toISOString(),
-      source: "api_key",
     });
 
-    await db
-      .update(consentRecords)
-      .set({ metadata: nextMetadata, updatedAt: new Date() })
-      .where(
-        and(
-          eq(consentRecords.id, record.id),
-          eq(consentRecords.organizationId, website.organizationId),
-          eq(consentRecords.websiteId, website.id),
-        ),
-      );
-
-    logger.info("Consent subject email bound via API key", {
-      operation: "consent.subject.bind",
-      requestId,
-      consentRecordId: record.id,
+    const session = await createSubjectSession({
+      organizationId: website.organizationId,
       websiteId: website.id,
-      recipientHint: emailDomainHint(email),
+      subjectId: subject.id,
+    });
+
+    logger.info("Consent subject session established via API key", {
+      operation: "consent.subject.establish",
+      requestId,
+      websiteId: website.id,
+      subjectKey,
+      recipientHint: email ? emailDomainHint(email) : null,
     });
 
     return NextResponse.json(
       {
         success: true,
         requestId,
-        consentId,
         websiteId: website.id,
-        bound: true,
+        subjectKey,
+        subjectSessionToken: session.token,
+        expiresAt: session.expiresAt.toISOString(),
+        emailBound: Boolean(subject.email),
       },
       { headers: RESPONSE_HEADERS },
     );
   } catch (error) {
-    logger.error("Consent subject bind failed", {
-      operation: "consent.subject.bind",
+    logger.error("Consent subject establish failed", {
+      operation: "consent.subject.establish",
       requestId,
       error,
     });
-    return errorResponse(requestId, 500, "INTERNAL_ERROR", "Failed to bind subject email");
+    return errorResponse(requestId, 500, "INTERNAL_ERROR", "Failed to establish subject session");
   }
 }
 

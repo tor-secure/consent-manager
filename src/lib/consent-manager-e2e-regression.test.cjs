@@ -1633,10 +1633,16 @@ async function testConsentTimeoutRemainsBlocked() {
 async function testPendingReloadAndCrossTabWithdrawal() {
   const store = createStore();
   const sharedStorage = new Map();
-  let releaseConsent;
+  const consentWaiters = [];
+  function releaseAllConsentPosts() {
+    while (consentWaiters.length) {
+      const release = consentWaiters.shift();
+      release();
+    }
+  }
   store.consentPostInterceptor = (body, _init, api) =>
     new Promise((resolve) => {
-      releaseConsent = () => resolve(api.submitConsent(body));
+      consentWaiters.push(() => resolve(api.submitConsent(body)));
     });
   const tabA = createBrowser(store, sharedStorage);
   await loadSdk(tabA);
@@ -1648,29 +1654,44 @@ async function testPendingReloadAndCrossTabWithdrawal() {
   assert.equal(tabB.window.CMP.getConsent().state, "PENDING");
   assert.equal(tabB.analyticsScript.getAttribute("type"), "text/plain");
 
-  releaseConsent();
+  // Tab B may resume the same pending submission; release every held POST.
+  releaseAllConsentPosts();
   await flush();
+  await flush();
+  assert.equal(tabA.window.CMP.getConsent().state, "GRANTED");
+  assert.equal(tabA.window.CMP.getConsent().confirmed, true);
   tabB.dispatchStorage(`cmp_consent_${store.website.siteKey}`);
   await flush();
+  await flush();
   assert.equal(tabB.window.CMP.getConsent().state, "GRANTED");
-  assert.notEqual(
-    tabB.document.scripts
-      .find((script) => script.getAttribute("src") === "https://analytics.example/analytics.js")
-      .getAttribute("type"),
-    "text/plain",
+  assert.equal(tabB.window.CMP.getConsent().confirmed, true);
+  assert.equal(
+    tabB.window.CMP.getConsent().decisions.purposes[ids.analyticsPurpose],
+    true,
   );
+  assert.equal(
+    tabB.window.CMP.getConsent().decisions.vendors[ids.analyticsVendor],
+    true,
+  );
+  const unlockedAnalytics = tabB.document.scripts.find(
+    (script) => script.getAttribute("src") === "https://analytics.example/analytics.js",
+  );
+  assert.ok(unlockedAnalytics, "analytics script must be restored after cross-tab confirmation");
+  assert.notEqual(unlockedAnalytics.getAttribute("type"), "text/plain");
 
   // Start a stale update in A, then withdraw from B before A receives a response.
-  let releaseStaleUpdate;
+  const staleWaiters = [];
   store.consentPostInterceptor = (body, _init, api) =>
     new Promise((resolve) => {
-      releaseStaleUpdate = () => resolve(api.submitConsent(body));
+      staleWaiters.push(() => resolve(api.submitConsent(body)));
     });
   const stalePromise = tabA.window.CMP.acceptAll().catch(() => undefined);
   await flush();
+  await flush();
+  assert.ok(staleWaiters.length > 0, "stale accept must reach consent POST interceptor");
   await tabB.window.CMP.withdrawConsent();
   await flush();
-  releaseStaleUpdate();
+  while (staleWaiters.length) staleWaiters.shift()();
   await stalePromise;
   await flush();
   tabA.dispatchStorage(`cmp_consent_${store.website.siteKey}`);
@@ -2791,6 +2812,77 @@ async function testRejectAllGoogleConsentModeStaysDenied() {
   assert.equal(browser.document.getElementById("__cmp_banner__"), null);
 }
 
+function testAccountConsentOwnershipSurfaces() {
+  const sdk = buildCmpSdkScript({
+    siteKey: "sk_account_surface",
+    apiBase: "https://cmp.example",
+  });
+  assert.match(sdk, /setSubjectSession/);
+  assert.match(sdk, /clearSubjectSession/);
+  assert.match(sdk, /getConsentContext/);
+  assert.match(sdk, /cmp_account_/);
+  assert.match(sdk, /cmp_subject_session_/);
+  assert.match(sdk, /_subjectGeneration/);
+  assert.match(sdk, /\/api\/consent\/account/);
+  assert.match(sdk, /X-CMP-Subject-Session/);
+  assert.match(sdk, /visibilitychange/);
+  assert.match(sdk, /Save your privacy choices to this account/);
+  assert.match(sdk, /cmp_consent_/);
+
+  const fs = require("node:fs");
+  const clerkBind = fs.readFileSync(
+    path.join(root, "src/components/consent/bind-consent-subject-on-login.tsx"),
+    "utf8",
+  );
+  assert.match(clerkBind, /setSubjectSession/);
+  assert.match(clerkBind, /clearSubjectSession/);
+  assert.match(clerkBind, /\/api\/consent\/subject\/session/);
+  assert.doesNotMatch(clerkBind, /consentId/);
+
+  const subjectSession = fs.readFileSync(
+    path.join(root, "src/app/api/consent/subject/session/route.ts"),
+    "utf8",
+  );
+  assert.match(subjectSession, /subjectKey:\s*userId/);
+  assert.match(subjectSession, /Does NOT convert guest consentId/);
+}
+
+async function testGuestRejectStaysDeniedWithoutAccountPromote() {
+  const store = createStore();
+  const browser = createBrowser(store, {
+    [`cmp_consent_${store.website.siteKey}`]: JSON.stringify({
+      status: "confirmed",
+      serverConfirmed: true,
+      consentId: "cid_guest_reject",
+      websiteId: store.website.id,
+      revision: Date.now(),
+      stateVersion: 1,
+      choice: "reject-all",
+      decisions: [
+        { purposeId: ids.analyticsPurpose, vendorId: null, granted: false },
+        { purposeId: ids.adsPurpose, vendorId: null, granted: false },
+      ],
+      purposeIds: [ids.requiredPurpose, ids.analyticsPurpose, ids.adsPurpose],
+      vendorIds: [],
+      policyVersionId: ids.versionA,
+    }),
+  });
+  await loadSdk(browser);
+  await flush();
+  assert.equal(browser.window.CMP.getConsent().state, "DENIED");
+  assert.equal(typeof browser.window.CMP.setSubjectSession, "function");
+  assert.equal(typeof browser.window.CMP.clearSubjectSession, "function");
+  assert.equal(browser.window.CMP.getConsentContext().mode, "guest");
+
+  // Logout isolation: clearSubjectSession drops guest storage so a later account
+  // cannot inherit the prior browser grants/denies as an enablement path.
+  browser.window.CMP.clearSubjectSession();
+  assert.equal(browser.storage.get(`cmp_consent_${store.website.siteKey}`), undefined);
+  assert.equal(browser.storage.get(`cmp_account_${store.website.siteKey}`), undefined);
+  assert.equal(browser.window.CMP.getConsentContext().mode, "guest");
+  assert.equal(browser.window.CMP.getConsent().state, "DENIED");
+}
+
 async function main() {
   await testPublishedBannerIsFirstPaint();
   await testCachedPolicyDoesNotSubmitUntilLiveConfig();
@@ -2835,6 +2927,8 @@ async function main() {
   await testPurposeAndVendorScopeChangeRequiresReconsent();
   await testRejectAllGoogleConsentModeStaysDenied();
   await testSameOriginTrackerAndNetworkBlock();
+  testAccountConsentOwnershipSurfaces();
+  await testGuestRejectStaysDeniedWithoutAccountPromote();
 
   console.log("consent manager e2e regression tests passed");
 }

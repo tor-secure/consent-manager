@@ -4,113 +4,123 @@ import { useAuth } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
 
 type CmpApi = {
+  setSubjectSession?: (input: {
+    token: string;
+    websiteId?: string;
+    expiresAt?: string;
+    subjectKey?: string;
+  }) => Promise<unknown> | unknown;
+  clearSubjectSession?: () => unknown;
   getPreferenceSnapshot?: () => {
-    consentId?: string | null;
     websiteId?: string | null;
   };
-  onConsentChange?: (fn: () => void) => void;
+  getConsentContext?: () => {
+    mode?: string;
+    subjectKey?: string | null;
+  };
 };
 
 /**
- * After Clerk login (and whenever consentId changes), attach the verified
- * account email to the active consent record.
+ * Consent Guru first-party: after Clerk login, mint a subject session and hand
+ * it to the CMP SDK. Ownership is (websiteId, Clerk userId) — not email and not
+ * guest consentId. On sign-out / user switch, clear the subject session and
+ * start a fresh guest context so grants cannot leak across accounts.
  */
 export function BindConsentSubjectOnLogin() {
-  const { isLoaded, isSignedIn } = useAuth();
-  const lastKey = useRef("");
+  const { isLoaded, isSignedIn, userId } = useAuth();
+  const lastSessionKey = useRef("");
+  const wasSignedIn = useRef(false);
 
   useEffect(() => {
-    if (!isLoaded || !isSignedIn) return;
+    if (!isLoaded) return;
+
+    const cmp = () => (window as Window & { CMP?: CmpApi }).CMP;
+
+    if (!isSignedIn || !userId) {
+      if (wasSignedIn.current) {
+        wasSignedIn.current = false;
+        lastSessionKey.current = "";
+        try {
+          cmp()?.clearSubjectSession?.();
+        } catch {
+          // Best-effort isolation on logout.
+        }
+      }
+      return;
+    }
+
+    wasSignedIn.current = true;
 
     let cancelled = false;
     let attempts = 0;
     let timer: number | undefined;
-    let pollTimer: number | undefined;
-    let listenerAttached = false;
 
-    async function tryBind(force = false) {
+    async function establishSession() {
       if (cancelled) return;
       attempts += 1;
 
-      const cmp = (window as Window & { CMP?: CmpApi }).CMP;
-      const snap = cmp?.getPreferenceSnapshot?.();
-      const consentId = snap?.consentId?.trim() || "";
+      const snap = cmp()?.getPreferenceSnapshot?.();
       const websiteId = snap?.websiteId?.trim() || "";
       const siteKey =
         document.querySelector("script[data-site-key]")?.getAttribute("data-site-key")?.trim() ||
         "";
 
-      if (!consentId || !websiteId || !siteKey) {
-        if (attempts < 40) timer = window.setTimeout(() => void tryBind(force), 500);
+      if (!websiteId || !siteKey) {
+        if (attempts < 40) timer = window.setTimeout(() => void establishSession(), 500);
         return;
       }
 
-      const key = `${consentId}:${websiteId}`;
-      if (!force && lastKey.current === key) return;
+      const sessionKey = `${userId}:${websiteId}`;
+      if (lastSessionKey.current === sessionKey) {
+        const ctx = cmp()?.getConsentContext?.();
+        if (ctx?.mode === "account" && ctx.subjectKey === userId) return;
+      }
 
       try {
         const res = await fetch("/api/consent/subject/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
-          body: JSON.stringify({ consentId, websiteId, siteKey }),
+          body: JSON.stringify({ websiteId, siteKey }),
         });
-        const data = (await res.json().catch(() => null)) as
-          | { bound?: boolean; reason?: string | null; message?: string }
-          | null;
-        if (res.ok && data?.bound) {
-          lastKey.current = key;
-        } else if (
-          res.ok &&
-          (data?.reason === "consent_not_found" || data?.reason === "not_signed_in") &&
-          attempts < 40
-        ) {
-          timer = window.setTimeout(() => void tryBind(true), 500);
-        } else if (process.env.NODE_ENV !== "production") {
-          console.warn(
-            "[CMP] subject bind skipped",
-            !res.ok ? res.status : data?.reason || data?.message || "unknown",
-          );
+        const data = (await res.json().catch(() => null)) as {
+          success?: boolean;
+          subjectSessionToken?: string;
+          expiresAt?: string;
+          subjectKey?: string;
+          message?: string;
+        } | null;
+
+        if (!res.ok || !data?.success || !data.subjectSessionToken) {
+          if (attempts < 40) timer = window.setTimeout(() => void establishSession(), 500);
+          else if (process.env.NODE_ENV !== "production") {
+            console.warn(
+              "[CMP] subject session skipped",
+              !res.ok ? res.status : data?.message || "unknown",
+            );
+          }
+          return;
         }
+
+        lastSessionKey.current = sessionKey;
+        await cmp()?.setSubjectSession?.({
+          token: data.subjectSessionToken,
+          websiteId,
+          expiresAt: data.expiresAt || undefined,
+          subjectKey: data.subjectKey || userId || undefined,
+        });
       } catch {
-        // Binding is best-effort; record/withdraw also bind in-request.
+        if (attempts < 40) timer = window.setTimeout(() => void establishSession(), 500);
       }
     }
 
-    function onConsentChanged() {
-      attempts = 0;
-      void tryBind(true);
-    }
-
-    function attachCmpListener() {
-      if (cancelled || listenerAttached) return;
-      const cmp = (window as Window & { CMP?: CmpApi }).CMP;
-      if (!cmp?.onConsentChange) return false;
-      cmp.onConsentChange(onConsentChanged);
-      listenerAttached = true;
-      return true;
-    }
-
-    void tryBind(true);
-    if (!attachCmpListener()) {
-      let polls = 0;
-      pollTimer = window.setInterval(() => {
-        polls += 1;
-        if (attachCmpListener() || polls >= 40) {
-          if (pollTimer) window.clearInterval(pollTimer);
-        }
-      }, 500);
-    }
-
-    window.addEventListener("cmp:consent", onConsentChanged);
+    void establishSession();
 
     return () => {
       cancelled = true;
       if (timer) window.clearTimeout(timer);
-      if (pollTimer) window.clearInterval(pollTimer);
-      window.removeEventListener("cmp:consent", onConsentChanged);
     };
-  }, [isLoaded, isSignedIn]);
+  }, [isLoaded, isSignedIn, userId]);
 
   return null;
 }

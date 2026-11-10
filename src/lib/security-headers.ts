@@ -94,6 +94,7 @@ export function isPublicCrossOriginApiPath(pathname: string): boolean {
   if (pathname.startsWith("/api/sdk/")) return true;
   if (pathname === "/api/consent/record" || pathname.startsWith("/api/consent/record/")) return true;
   if (pathname === "/api/consent/withdraw" || pathname.startsWith("/api/consent/withdraw/")) return true;
+  if (pathname === "/api/consent/account" || pathname.startsWith("/api/consent/account/")) return true;
   if (pathname === "/api/consent/policy" || pathname.startsWith("/api/consent/policy/")) return true;
   if (pathname === "/api/consent/receipt" || pathname.startsWith("/api/consent/receipt/")) return true;
   return false;

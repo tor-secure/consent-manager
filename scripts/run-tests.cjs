@@ -134,6 +134,7 @@ compile(
     "src/lib/tools/redact.ts",
     "src/lib/tools/parse-answers.ts",
     "src/lib/consent/revocation-notification-core.ts",
+    "src/lib/consent/account-consent-merge-core.ts",
   ],
   ["--rootDir", "."],
 );
@@ -159,6 +160,10 @@ copyCompiled("src/lib/redaction-core.js", "portable-redaction/redaction-core.js"
 copyCompiled(
   "src/lib/consent/revocation-notification-core.js",
   "revocation-notification/revocation-notification-core.js",
+);
+copyCompiled(
+  "src/lib/consent/account-consent-merge-core.js",
+  "account-consent-merge/account-consent-merge-core.js",
 );
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
 copyCompiled("src/lib/billing/stripe.js", "billing/stripe.js");

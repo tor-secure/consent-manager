@@ -7,7 +7,6 @@ import { consentRecords } from "@/db/schema/consent-records";
 import { consentEvidenceSnapshots } from "@/db/schema/consent-evidence-snapshots";
 import { appendConsentEvent } from "@/lib/consent-engine";
 import { buildWithdrawalEvidenceSnapshot } from "@/lib/consent-evidence-write";
-import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
 import {
   loadDecisionSnapshots,
   notifyConsentRevocations,
@@ -226,12 +225,6 @@ export async function POST(request: Request) {
         error: eventError,
       });
     }
-
-    await bindSubjectFromClerkSession({
-      organizationId: record.organizationId,
-      websiteId: record.websiteId,
-      consentId: record.consentId,
-    }).catch(() => null);
 
     try {
       after(() =>

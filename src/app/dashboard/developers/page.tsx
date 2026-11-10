@@ -173,6 +173,61 @@ export default async function DevelopersPage() {
         </p>
       </StatusBanner>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Signed-in consent (optional)</CardTitle>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Static sites can keep using the guest embed only. Apps with login should mint a
+            short-lived subject session from your backend — never put auth credentials in the browser.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-[var(--muted-foreground)]">
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>
+              After login, call{" "}
+              <code className="rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--foreground)]">
+                POST /api/v1/consent/subject
+              </code>{" "}
+              with your API key,{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">websiteId</code>, and a
+              stable{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">subjectKey</code>. Optional{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">email</code> is notification
+              metadata only.
+            </li>
+            <li>
+              Pass the returned{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">subjectSessionToken</code>{" "}
+              to{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">
+                CMP.setSubjectSession(&#123; token, websiteId &#125;)
+              </code>
+              .
+            </li>
+            <li>
+              On logout, call{" "}
+              <code className="rounded bg-[var(--muted)] px-1.5 py-0.5 font-mono text-xs text-[var(--foreground)]">
+                POST /api/v1/consent/subject/logout
+              </code>{" "}
+              and{" "}
+              <code className="font-mono text-xs text-[var(--foreground)]">
+                CMP.clearSubjectSession()
+              </code>
+              .
+            </li>
+          </ol>
+          <p>
+            Account choices are scoped to{" "}
+            <code className="font-mono text-xs text-[var(--foreground)]">
+              (websiteId, subjectKey)
+            </code>
+            . Guest browser choices stay on{" "}
+            <code className="font-mono text-xs text-[var(--foreground)]">consentId</code> and are never
+            auto-converted from historical email metadata.
+          </p>
+        </CardContent>
+      </Card>
+
       <ApiKeyManager initialKeys={keyList} />
     </div>
   );

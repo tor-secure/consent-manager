@@ -290,9 +290,13 @@ describe("consent revocation route wiring", () => {
     assert.match(withdrawRoute, /loadDecisionSnapshots/);
   });
 
-  it("exposes a server-side subject binding API gated by API key scope", () => {
+  it("exposes a server-side subject session API gated by API key scope", () => {
     const subjectRoute = fs.readFileSync(
       path.join(root, "src/app/api/v1/consent/subject/route.ts"),
+      "utf8",
+    );
+    const logoutRoute = fs.readFileSync(
+      path.join(root, "src/app/api/v1/consent/subject/logout/route.ts"),
       "utf8",
     );
     const scopes = fs.readFileSync(
@@ -300,9 +304,31 @@ describe("consent revocation route wiring", () => {
       "utf8",
     );
     assert.match(subjectRoute, /authenticateApiKey\(request, "consent:subject"\)/);
+    assert.match(subjectRoute, /subjectKey/);
+    assert.match(subjectRoute, /subjectSessionToken/);
     assert.match(subjectRoute, /normalizeEmail/);
     assert.doesNotMatch(subjectRoute, /body\.userId/);
+    assert.match(logoutRoute, /revokeSubjectSessionToken|revokeSubjectSessionsForSubject/);
     assert.match(scopes, /consent:subject/);
+  });
+
+  it("routes account preference mail to consent_subjects email without rewriting guest ownership", () => {
+    const accountRoute = fs.readFileSync(
+      path.join(root, "src/app/api/consent/account/route.ts"),
+      "utf8",
+    );
+    const recordRoute = fs.readFileSync(
+      path.join(root, "src/app/api/consent/record/route.ts"),
+      "utf8",
+    );
+    const bindHelper = fs.readFileSync(
+      path.join(root, "src/lib/consent/bind-subject-from-session.ts"),
+      "utf8",
+    );
+    assert.match(accountRoute, /notifyAccountPreferenceChanges/);
+    assert.match(recordRoute, /do not rewrite guest metadata\.subject/);
+    assert.match(bindHelper, /ownership_moved_to_subject_session/);
+    assert.doesNotMatch(bindHelper, /consentRecords/);
   });
 
   it("uses Nodemailer with environment SMTP credentials only", () => {

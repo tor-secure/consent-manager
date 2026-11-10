@@ -1026,3 +1026,70 @@ CREATE TABLE IF NOT EXISTS "learning_events" (
 CREATE INDEX IF NOT EXISTS "learning_events_org_created_idx" ON "learning_events" ("organization_id", "created_at");
 CREATE INDEX IF NOT EXISTS "learning_events_learner_action_idx" ON "learning_events" ("organization_id", "user_id", "course_id", "action");
 
+-- Account-owned consent (websiteId + subjectKey). Guest consentId records stay unchanged.
+CREATE TABLE IF NOT EXISTS "consent_subjects" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "subject_key" varchar(255) NOT NULL,
+  "email" varchar(320),
+  "email_verified_at" timestamptz,
+  "auth_source" varchar(32) NOT NULL,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "consent_subjects_website_subject_unique" ON "consent_subjects" ("website_id", "subject_key");
+CREATE INDEX IF NOT EXISTS "consent_subjects_org_idx" ON "consent_subjects" ("organization_id");
+CREATE INDEX IF NOT EXISTS "consent_subjects_website_idx" ON "consent_subjects" ("website_id");
+CREATE INDEX IF NOT EXISTS "consent_subjects_email_idx" ON "consent_subjects" ("email");
+
+CREATE TABLE IF NOT EXISTS "account_consent_records" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "subject_id" uuid NOT NULL REFERENCES "consent_subjects"("id") ON DELETE CASCADE,
+  "policy_version_id" uuid NOT NULL REFERENCES "consent_policy_versions"("id") ON DELETE RESTRICT,
+  "status" varchar(50) NOT NULL DEFAULT 'active',
+  "state_version" integer NOT NULL DEFAULT 1,
+  "source" varchar(50) NOT NULL DEFAULT 'web',
+  "consented_at" timestamptz,
+  "expires_at" timestamptz,
+  "withdrawn_at" timestamptz,
+  "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "account_consent_records_subject_unique" ON "account_consent_records" ("subject_id");
+CREATE INDEX IF NOT EXISTS "account_consent_records_org_idx" ON "account_consent_records" ("organization_id");
+CREATE INDEX IF NOT EXISTS "account_consent_records_website_idx" ON "account_consent_records" ("website_id");
+CREATE INDEX IF NOT EXISTS "account_consent_records_subject_idx" ON "account_consent_records" ("subject_id");
+
+CREATE TABLE IF NOT EXISTS "account_consent_decisions" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "account_consent_record_id" uuid NOT NULL REFERENCES "account_consent_records"("id") ON DELETE CASCADE,
+  "purpose_id" uuid REFERENCES "purposes"("id") ON DELETE SET NULL,
+  "vendor_id" uuid REFERENCES "vendors"("id") ON DELETE SET NULL,
+  "decision" varchar(20) NOT NULL,
+  "granted" boolean NOT NULL,
+  "decided_at" timestamptz NOT NULL DEFAULT now(),
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS "account_consent_decisions_record_idx" ON "account_consent_decisions" ("account_consent_record_id");
+CREATE INDEX IF NOT EXISTS "account_consent_decisions_purpose_idx" ON "account_consent_decisions" ("purpose_id");
+CREATE INDEX IF NOT EXISTS "account_consent_decisions_vendor_idx" ON "account_consent_decisions" ("vendor_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "account_consent_decisions_record_purpose_vendor_unique" ON "account_consent_decisions" ("account_consent_record_id", "purpose_id", "vendor_id");
+
+CREATE TABLE IF NOT EXISTS "consent_subject_sessions" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "subject_id" uuid NOT NULL REFERENCES "consent_subjects"("id") ON DELETE CASCADE,
+  "token_hash" varchar(64) NOT NULL,
+  "expires_at" timestamptz NOT NULL,
+  "revoked_at" timestamptz,
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS "consent_subject_sessions_token_hash_idx" ON "consent_subject_sessions" ("token_hash");
+CREATE INDEX IF NOT EXISTS "consent_subject_sessions_subject_idx" ON "consent_subject_sessions" ("subject_id");
+CREATE INDEX IF NOT EXISTS "consent_subject_sessions_website_idx" ON "consent_subject_sessions" ("website_id");
+

@@ -64,7 +64,6 @@ import { denyRestrictedDecisions } from "@/lib/children/evaluate";
 import { loadLatestSession, rowToState } from "@/lib/children/service";
 import { publicAgeView } from "@/lib/children/state";
 import { evidenceProcessingInventory, isFrozenProcessingSnapshot } from "@/lib/processing/snapshot";
-import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
 import { notifyConsentRevocations } from "@/lib/consent/revocation-notification";
 import { preserveSubjectMetadata } from "@/lib/consent/revocation-notification-core";
 
@@ -1041,14 +1040,8 @@ export async function POST(request: Request) {
       },
     );
 
-    // Bind while the Clerk request context is still alive (after() often loses it).
-    await bindSubjectFromClerkSession({
-      organizationId: website.organizationId,
-      websiteId: website.id,
-      consentId: savedRecord.consentId,
-    }).catch(() => null);
-
     // Preference updates that change grants. Initial creates never notify.
+    // Account ownership uses /api/consent/account — do not rewrite guest metadata.subject here.
     // Email failures must not affect consent.
     if (!isNew) {
       scheduleConsentSideEffect(

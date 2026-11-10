@@ -3,6 +3,7 @@ import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
+import { accountConsentRecords } from "@/db/schema/account-consent-records";
 import { consentDecisions } from "@/db/schema/consent-decisions";
 import { consentRecords } from "@/db/schema/consent-records";
 import { dataPrincipalRequests } from "@/db/schema/data-principal-requests";
@@ -643,4 +644,274 @@ export async function loadDecisionSnapshots(
     vendorId: row.vendorId,
     granted: row.granted,
   }));
+}
+
+export type AccountPreferenceNotifyInput = {
+  organizationId: string;
+  websiteId: string;
+  accountConsentRecordId: string;
+  subjectKey: string;
+  subjectEmail: string | null;
+  stateVersion: number;
+  previous: DecisionSnapshot[];
+  next: DecisionSnapshot[];
+  fullWithdrawal?: boolean;
+  revokedAt?: Date;
+  timeZone?: string;
+};
+
+/**
+ * Preference emails for signed-in account subjects.
+ * Uses consent_subjects.email only — never rewrites guest consent_records.metadata.subject.
+ * Phone-only / email-less subjects skip send (missing_trusted_email).
+ */
+export async function notifyAccountPreferenceChanges(
+  input: AccountPreferenceNotifyInput,
+): Promise<void> {
+  const changeRaw = input.fullWithdrawal
+    ? diffRevokedDecisions(
+        input.previous,
+        input.previous.map((row) => ({ ...row, granted: false })),
+      ).map((item) => ({ ...item, change: "revoked" as const }))
+    : diffPreferenceChanges(input.previous, input.next);
+
+  if (changeRaw.length === 0) return;
+
+  const revokedRaw = changeRaw.filter((item) => item.change === "revoked");
+  const grantedRaw = changeRaw.filter((item) => item.change === "granted");
+  const dedupeKey = buildRevocationDedupeKey({
+    consentId: `account:${input.subjectKey}`,
+    stateVersion: input.stateVersion,
+    revoked: revokedRaw,
+    granted: grantedRaw,
+  });
+
+  const [record] = await db
+    .select({
+      id: accountConsentRecords.id,
+      metadata: accountConsentRecords.metadata,
+    })
+    .from(accountConsentRecords)
+    .where(
+      and(
+        eq(accountConsentRecords.id, input.accountConsentRecordId),
+        eq(accountConsentRecords.organizationId, input.organizationId),
+        eq(accountConsentRecords.websiteId, input.websiteId),
+      ),
+    )
+    .limit(1);
+
+  if (!record) return;
+
+  const metadata =
+    record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata)
+      ? (record.metadata as Record<string, unknown>)
+      : {};
+
+  if (hasRevocationMailKey(metadata, dedupeKey)) return;
+
+  const names = await loadNameMaps(input.organizationId, changeRaw);
+  const items: PreferenceChangeItem[] = namePreferenceChanges(changeRaw, names);
+  const revokedAt = input.revokedAt ?? new Date();
+  const email = input.subjectEmail ? normalizeEmail(input.subjectEmail) : null;
+
+  if (!email) {
+    await db
+      .update(accountConsentRecords)
+      .set({
+        metadata: withRevocationMailOutcome(
+          withPendingPreferenceMail(metadata, {
+            dedupeKey,
+            stateVersion: input.stateVersion,
+            revokedAt: revokedAt.toISOString(),
+            items,
+          }),
+          {
+            dedupeKey,
+            status: "skipped",
+            reason: "missing_trusted_email",
+            claimKey: false,
+          },
+        ),
+        updatedAt: new Date(),
+      })
+      .where(eq(accountConsentRecords.id, record.id));
+    logger.info("Account preference notification skipped; no trusted email", {
+      operation: "consent.account.email",
+      accountConsentRecordId: record.id,
+      reason: "missing_trusted_email",
+    });
+    return;
+  }
+
+  if (!isNodemailerConfigured()) {
+    await db
+      .update(accountConsentRecords)
+      .set({
+        metadata: withRevocationMailOutcome(metadata, {
+          dedupeKey,
+          status: "skipped",
+          reason: "smtp_not_configured",
+          claimKey: true,
+        }),
+        updatedAt: new Date(),
+      })
+      .where(eq(accountConsentRecords.id, record.id));
+    return;
+  }
+
+  const [website] = await db
+    .select({ name: websites.name, siteKey: websites.siteKey })
+    .from(websites)
+    .where(
+      and(
+        eq(websites.id, input.websiteId),
+        eq(websites.organizationId, input.organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!website) return;
+
+  const appOrigin =
+    resolvePublicAppOrigin({
+      envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
+    }) || "https://www.consentguru.com";
+  const preferencesUrl = buildPrivacyPreferencesUrl({
+    appOrigin,
+    siteKey: website.siteKey,
+  });
+
+  try {
+    await sendConsentRevocationEmail({
+      to: email,
+      websiteName: website.name,
+      revokedAt,
+      timeZone: input.timeZone ?? "UTC",
+      items,
+      preferencesUrl,
+      appOrigin,
+    });
+    await db
+      .update(accountConsentRecords)
+      .set({
+        metadata: withRevocationMailOutcome(withPendingPreferenceMail(metadata, null), {
+          dedupeKey,
+          status: "sent",
+          claimKey: true,
+        }),
+        updatedAt: new Date(),
+      })
+      .where(eq(accountConsentRecords.id, record.id));
+    logger.info("Account preference confirmation email sent", {
+      operation: "consent.account.email",
+      accountConsentRecordId: record.id,
+      itemCount: items.length,
+      recipientHint: emailDomainHint(email),
+    });
+  } catch (error) {
+    logger.error("Account preference confirmation email failed", {
+      operation: "consent.account.email",
+      accountConsentRecordId: record.id,
+      recipientHint: emailDomainHint(email),
+      error,
+    });
+  }
+}
+
+/**
+ * After an account subject gains a trusted email, flush any queued preference mail.
+ * Does not touch guest consent_records.
+ */
+export async function flushPendingAccountPreferenceNotification(input: {
+  organizationId: string;
+  websiteId: string;
+  subjectId: string;
+  subjectKey: string;
+  subjectEmail: string;
+}): Promise<void> {
+  const email = normalizeEmail(input.subjectEmail);
+  if (!email) return;
+
+  const [record] = await db
+    .select({
+      id: accountConsentRecords.id,
+      metadata: accountConsentRecords.metadata,
+      stateVersion: accountConsentRecords.stateVersion,
+    })
+    .from(accountConsentRecords)
+    .where(
+      and(
+        eq(accountConsentRecords.subjectId, input.subjectId),
+        eq(accountConsentRecords.organizationId, input.organizationId),
+        eq(accountConsentRecords.websiteId, input.websiteId),
+      ),
+    )
+    .limit(1);
+
+  if (!record) return;
+
+  const metadata =
+    record.metadata && typeof record.metadata === "object" && !Array.isArray(record.metadata)
+      ? (record.metadata as Record<string, unknown>)
+      : {};
+  const pending = readPendingPreferenceMail(metadata);
+  if (!pending) return;
+  if (hasRevocationMailKey(metadata, pending.dedupeKey)) {
+    await db
+      .update(accountConsentRecords)
+      .set({ metadata: withPendingPreferenceMail(metadata, null), updatedAt: new Date() })
+      .where(eq(accountConsentRecords.id, record.id));
+    return;
+  }
+  if (!isNodemailerConfigured()) return;
+
+  const [website] = await db
+    .select({ name: websites.name, siteKey: websites.siteKey })
+    .from(websites)
+    .where(
+      and(
+        eq(websites.id, input.websiteId),
+        eq(websites.organizationId, input.organizationId),
+      ),
+    )
+    .limit(1);
+  if (!website) return;
+
+  const appOrigin =
+    resolvePublicAppOrigin({
+      envOrigin: process.env.CMP_PUBLIC_ORIGIN || process.env.NEXT_PUBLIC_APP_URL || "",
+    }) || "https://www.consentguru.com";
+
+  try {
+    await sendConsentRevocationEmail({
+      to: email,
+      websiteName: website.name,
+      revokedAt: new Date(pending.revokedAt || Date.now()),
+      timeZone: "UTC",
+      items: pending.items || [],
+      preferencesUrl: buildPrivacyPreferencesUrl({
+        appOrigin,
+        siteKey: website.siteKey,
+      }),
+      appOrigin,
+    });
+    await db
+      .update(accountConsentRecords)
+      .set({
+        metadata: withRevocationMailOutcome(withPendingPreferenceMail(metadata, null), {
+          dedupeKey: pending.dedupeKey,
+          status: "sent",
+          claimKey: true,
+        }),
+        updatedAt: new Date(),
+      })
+      .where(eq(accountConsentRecords.id, record.id));
+  } catch (error) {
+    logger.error("Pending account preference notification failed", {
+      operation: "consent.account.email.flush",
+      accountConsentRecordId: record.id,
+      error,
+    });
+  }
 }
