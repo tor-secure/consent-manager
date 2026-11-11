@@ -32,9 +32,9 @@
 //  Consent Mode and GTM consent checks for those tags.
 //
 // NOTE: This file produces a TypeScript string literal, not a compiled bundle.
-// The actual browser script is embedded verbatim via the template literal
-// below. A future task will set up a Rollup/esbuild pipeline to compile a
-// proper optimised bundle.
+// Production GET /api/sdk/script serves a build-time Terser minify of
+// buildGenericCmpSdkScript() (scripts/build-cmp-sdk-script.mjs). Feature
+// splitting / a full Rollup pipeline is a separate change.
 // ---------------------------------------------------------------------------
 
 import { earlyBlockBootstrapSource } from "@/lib/sdk/early-block";
@@ -2373,7 +2373,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       return fetch(API_BASE + '/api/consent/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        credentials: 'omit',
         body: JSON.stringify(body),
         signal: controller ? controller.signal : undefined
       }).then(function(r) {
@@ -4640,7 +4640,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function postAccountConsent(payload, generation) {
     return fetch(API_BASE + '/api/consent/account', {
       method: 'POST',
-      credentials: 'include',
+      // Header token auth only — credentials:include is incompatible with ACAO *.
+      credentials: 'omit',
       headers: {
         'Content-Type': 'application/json',
         'X-CMP-Subject-Session': _subjectSessionToken || ''
@@ -4658,7 +4659,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function fetchAccountConsent(generation) {
     return fetch(API_BASE + '/api/consent/account?websiteId=' + encodeURIComponent((_config && _config.websiteId) || ''), {
       method: 'GET',
-      credentials: 'include',
+      credentials: 'omit',
       cache: 'no-store',
       headers: { 'X-CMP-Subject-Session': _subjectSessionToken || '' }
     }).then(function(r) {
@@ -5228,7 +5229,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         fetch(API_BASE + '/api/consent/withdraw', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          credentials: 'omit',
           body: JSON.stringify({
             consentId: withdrawingConsentId,
             websiteId: _config.websiteId,

@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Consent Guru
 
-## Getting Started
+Consent management platform (CMP) for privacy-regulated websites. Customers embed a **hosted browser SDK** — there is no separate npm CMP package.
 
-First, run the development server:
+## Getting started (operators)
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000), sign in, create an organization and website, publish a consent policy, then open **Developers → Install SDK**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Customer SDK quickstart (hosted embed)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Verify the website domain** in Website settings. Production Origin checks reject unverified hosts.
+2. **Publish a policy** so `GET /api/sdk/{siteKey}/config` returns live banner config.
+3. Copy the stack snippet from **Developers → Install SDK** (HTML, React, Next.js, PHP, or .NET).
+4. Paste it as the **first** thing in `<head>` (before GTM, gtag, Meta Pixel, ads). Do not add `async` or `defer` to the CMP script, and do not inject it from `useEffect`.
+5. Use **Check connection** on the Install page to confirm the published config.
 
-## Learn More
+The snippet loads:
 
-To learn more about Next.js, take a look at the following resources:
+- an inline early-block (Google Consent Mode defaults + tracker hold)
+- a config prefetch
+- `GET /api/sdk/script` with `data-site-key="…"`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Public API (browser)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+After load, customers use `window.CMP`:
 
-## Deploy on Vercel
+| Method | Notes |
+| --- | --- |
+| `getConsent()` | Includes `state`, `confirmed`, `decisions`, `consentId` |
+| `acceptAll()` / `rejectAll()` / `saveGranular(…)` | Persist guest choices |
+| `withdrawConsent()` | Guest or account withdrawal |
+| `openPreferenceCenter()` | Preference UI |
+| `onConsentChange(fn)` | Listener |
+| `setSubjectSession(…)` / `clearSubjectSession()` | Signed-in path (optional) |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+**Gate optional product features on grant, not merely confirmation:**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```js
+const c = window.CMP.getConsent();
+if (c.state === "GRANTED") {
+  // unlock optional analytics / marketing
+}
+```
+
+`confirmed` means the last decision was server-confirmed (including deny / withdraw). Prefer `state === "GRANTED"` before enabling optional processing.
+
+### What `siteKey` allows
+
+Public site keys can load published config and create/update/withdraw **guest** consent for that site (with Origin allowlist + signed policy context). They do not grant dashboard or admin access.
+
+## Scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Next.js development server |
+| `npm run build` / `npm start` | Production build / serve |
+| `npm test` | Unit and regression tests |
+| `npm run typecheck` | TypeScript check |
+
+## Learn more
+
+- In-product: **Developers → Install SDK**, **API reference**, **Webhooks**
+- Next.js docs: [https://nextjs.org/docs](https://nextjs.org/docs)

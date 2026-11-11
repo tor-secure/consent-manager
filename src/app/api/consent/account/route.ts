@@ -16,6 +16,7 @@ import {
   resolveSubjectSession,
 } from "@/lib/consent/subject-session";
 import { logger } from "@/lib/logger";
+import { enqueuePreferenceSync } from "@/lib/webhooks/preference-sync-delivery";
 import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-limit-store";
 import {
   isValidWebsiteId,
@@ -256,6 +257,18 @@ export async function POST(request: Request) {
     }
 
     if (saved.snapshot.recordId) {
+      const previousDecisions = previousSnapshot.decisions.map((row) => ({
+        purposeId: row.purposeId,
+        vendorId: row.vendorId,
+        granted: row.granted,
+      }));
+      const nextDecisions = saved.snapshot.decisions.map((row) => ({
+        purposeId: row.purposeId,
+        vendorId: row.vendorId,
+        granted: row.granted,
+      }));
+
+      // Confirmation email and preference sync are sibling side effects — never nest sync inside mail.
       void notifyAccountPreferenceChanges({
         organizationId: session.subject.organizationId,
         websiteId: session.subject.websiteId,
@@ -263,17 +276,20 @@ export async function POST(request: Request) {
         subjectKey: session.subject.subjectKey,
         subjectEmail: session.subject.email,
         stateVersion: saved.snapshot.stateVersion,
-        previous: previousSnapshot.decisions.map((row) => ({
-          purposeId: row.purposeId,
-          vendorId: row.vendorId,
-          granted: row.granted,
-        })),
-        next: saved.snapshot.decisions.map((row) => ({
-          purposeId: row.purposeId,
-          vendorId: row.vendorId,
-          granted: row.granted,
-        })),
+        previous: previousDecisions,
+        next: nextDecisions,
         fullWithdrawal,
+      }).catch(() => null);
+
+      void enqueuePreferenceSync({
+        organizationId: session.subject.organizationId,
+        websiteId: session.subject.websiteId,
+        subjectKey: session.subject.subjectKey,
+        preferenceRevision: saved.snapshot.stateVersion,
+        previous: previousDecisions,
+        next: nextDecisions,
+        fullWithdrawal,
+        hadPreviousRecord: previousSnapshot.exists,
       }).catch(() => null);
     }
 

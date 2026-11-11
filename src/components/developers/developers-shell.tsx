@@ -7,6 +7,7 @@ import { SectionEyebrow } from "@/components/dashboard/section-eyebrow";
 
 const TABS = [
   { href: "/dashboard/developers", label: "Overview", match: "exact" as const },
+  { href: "/dashboard/developers/install", label: "Install SDK", match: "prefix" as const },
   { href: "/dashboard/developers/api-keys", label: "API keys", match: "prefix" as const },
   { href: "/dashboard/developers/api", label: "API reference", match: "prefix" as const },
   { href: "/dashboard/developers/webhooks", label: "Webhooks", match: "prefix" as const },

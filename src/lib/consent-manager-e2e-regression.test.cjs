@@ -1966,9 +1966,13 @@ function testPublicSdkCorsAllowsExternalCachePreflight() {
   assert.equal(headers["Cross-Origin-Resource-Policy"], "cross-origin");
   assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /Cache-Control/);
   assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /If-None-Match/);
+  assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /X-CMP-Subject-Session/);
+  assert.match(PUBLIC_CORS_ALLOWED_HEADERS, /Authorization/);
   assert.match(headers["Access-Control-Allow-Headers"], /Cache-Control/);
   assert.match(headers["Access-Control-Allow-Headers"], /Pragma/);
   assert.match(headers["Access-Control-Allow-Headers"], /If-None-Match/);
+  assert.match(headers["Access-Control-Allow-Headers"], /X-CMP-Subject-Session/);
+  assert.match(headers["Access-Control-Allow-Headers"], /Authorization/);
   const sdk = buildCmpSdkScript({
     siteKey: "site_e2e_1234567890",
     apiBase: "https://cmp.example",
@@ -1977,6 +1981,10 @@ function testPublicSdkCorsAllowsExternalCachePreflight() {
   assert.match(sdk, /Draw the last published popup immediately/);
   assert.match(sdk, /applyLoadedConfig\(cachedCfg\)/);
   assert.doesNotMatch(sdk, /firstPaintFallbackBanner\(\)/);
+  // Account + guest writes must omit cookies so ACAO * stays valid with custom headers.
+  assert.match(sdk, /X-CMP-Subject-Session/);
+  assert.match(sdk, /credentials:\s*['"]omit['"]/);
+  assert.doesNotMatch(sdk, /credentials:\s*['"]include['"]/);
 }
 
 function testPublicAppOriginPrefersExplicitEnv() {

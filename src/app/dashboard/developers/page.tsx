@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import { desc, and, inArray, eq } from "drizzle-orm";
+import { desc, and, inArray, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { requireDashboardContext } from "@/lib/bootstrap-current-context";
@@ -46,7 +46,7 @@ export default async function DevelopersPage() {
         verifiedAt: websites.verifiedAt,
       })
       .from(websites)
-      .where(eq(websites.organizationId, localOrg.id))
+      .where(and(eq(websites.organizationId, localOrg.id), isNull(websites.deletedAt)))
       .orderBy(websites.name),
     db
       .select({ id: webhookEndpoints.id, status: webhookEndpoints.status })
@@ -98,7 +98,13 @@ export default async function DevelopersPage() {
         />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <DevelopersQuickLink
+          href="/dashboard/developers/install"
+          title="Install SDK"
+          description="Step-by-step embed snippet, signed-in bridge, and preference sync receiver guide."
+          meta="Guest banner · subject bridge · preference sync"
+        />
         <DevelopersQuickLink
           href="/dashboard/developers/api-keys"
           title="API keys"
@@ -124,12 +130,17 @@ export default async function DevelopersPage() {
           <div>
             <CardTitle>Website installation</CardTitle>
             <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-              Publish a policy, then open Install for the embed snippet and optional signed-in bridge.
+              Publish a policy, then open the install guide for snippets and optional signed-in sync.
             </p>
           </div>
-          <Link href="/dashboard/websites/new" className="btn btn-outline btn-sm shrink-0">
-            Add website
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            <Link href="/dashboard/developers/install" className="btn btn-outline btn-sm">
+              Install guide
+            </Link>
+            <Link href="/dashboard/websites/new" className="btn btn-outline btn-sm">
+              Add website
+            </Link>
+          </div>
         </CardHeader>
         <CardContent>
           {siteRows.length === 0 ? (
@@ -188,7 +199,7 @@ export default async function DevelopersPage() {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
-                          href={`/dashboard/websites/${site.id}/installation`}
+                          href={`/dashboard/developers/install?websiteId=${site.id}`}
                           className="text-sm font-medium text-[var(--primary)] underline-offset-2 hover:underline"
                         >
                           Install

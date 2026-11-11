@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { buildGenericCmpSdkScript } from "@/lib/sdk/cmp-sdk-script";
+import { getServedGenericCmpSdkScript } from "@/lib/sdk/served-cmp-sdk-script";
 import {
   isSafeApiBase,
   isValidSiteKey,
@@ -19,8 +19,8 @@ import { consumeRateLimit, getClientIp, rateLimitResponse } from "@/lib/rate-lim
 //   - apiBase resolved from <script data-api-base="..."> OR
 //     window.__CMP_API_BASE OR the script's own origin (protocol://host).
 //
-// This endpoint returns a raw JavaScript file with the proper Content-Type
-// so it can be used directly as a <script src="..."> from any website.
+// Body is the build-time minified generic script (npm run build:cmp-sdk).
+// Optional ?siteKey= / ?apiBase= only prepend a tiny injection IIFE.
 // ---------------------------------------------------------------------------
 
 export async function GET(request: Request) {
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     });
     if (!limit.allowed) return rateLimitResponse(limit, headers);
 
-    const js = buildGenericCmpSdkScript();
+    const js = getServedGenericCmpSdkScript();
 
     const { searchParams } = new URL(request.url);
     const siteKeyParam = searchParams.get("siteKey")?.trim() ?? "";

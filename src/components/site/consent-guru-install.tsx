@@ -91,7 +91,6 @@ export function ConsentGuruInstall({ nonce }: { nonce?: string }) {
       <script
         id="cmp-sdk"
         src={CONSENT_GURU_SDK_SRC}
-        async
         nonce={nonce}
         data-site-key={CONSENT_GURU_SITE_KEY}
         data-api-base={apiBase || undefined}

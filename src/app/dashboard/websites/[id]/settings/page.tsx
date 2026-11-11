@@ -6,6 +6,7 @@ import {
   type WebsiteSettingsData,
 } from "@/components/websites/website-settings-form";
 import { ScanSchedulePanel } from "@/components/scanner/scan-schedule-panel";
+import { PreferenceSyncPanel } from "@/components/websites/preference-sync-panel";
 import { db } from "@/db";
 import { websiteScanSchedules } from "@/db/schema/website-scan-schedules";
 import { and, eq } from "drizzle-orm";
@@ -65,6 +66,8 @@ export default async function WebsiteSettingsPage({
       />
 
       <WebsiteSettingsForm website={settingsData} />
+
+      <PreferenceSyncPanel websiteId={website.id} />
 
       <ScanSchedulePanel
         schedules={[

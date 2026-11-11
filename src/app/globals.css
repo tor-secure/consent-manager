@@ -530,6 +530,13 @@ html, body {
     background: color-mix(in srgb, var(--primary) 22%, transparent);
     color: var(--foreground);
   }
+
+  /* Dark code blocks: global selection uses navy-on-navy and becomes invisible. */
+  .cmp-code-block ::selection,
+  .cmp-code-block *::selection {
+    background: #264f78;
+    color: #ffffff;
+  }
 }
 
 @layer components {

@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+
+import { CODE_TOKEN_CLASS, highlightCode } from "@/lib/sdk/highlight-code";
 
 // ---------------------------------------------------------------------------
 // CopyButton — standalone copy-to-clipboard button
@@ -52,7 +54,7 @@ export function CopyButton({
 }
 
 // ---------------------------------------------------------------------------
-// CodeBlock — syntax-highlighted-ish code block with copy button
+// CodeBlock — VS Code Dark+ style highlighting + visible selection
 // ---------------------------------------------------------------------------
 
 export function CodeBlock({
@@ -64,16 +66,24 @@ export function CodeBlock({
   language?: string;
   label?: string;
 }) {
+  const tokens = useMemo(() => highlightCode(code, language), [code, language]);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
-      <div className="flex items-center justify-between border-b bg-[var(--muted)] px-4 py-2">
-        <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
+    <div className="cmp-code-block overflow-hidden rounded-2xl border border-[var(--border)]">
+      <div className="flex items-center justify-between border-b border-[color-mix(in_srgb,#ffffff_12%,transparent)] bg-[#16324a] px-4 py-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-[#9fb6c7]">
           {label ?? language}
         </span>
         <CopyButton text={code} />
       </div>
-      <pre className="overflow-x-auto bg-[var(--foreground)] p-4 text-sm text-[var(--background)]">
-        <code>{code}</code>
+      <pre className="max-h-[32rem] overflow-auto bg-[#0b2c4a] p-4 text-[13px] leading-6">
+        <code className="font-mono">
+          {tokens.map((token, index) => (
+            <span key={`${token.type}-${index}`} className={CODE_TOKEN_CLASS[token.type]}>
+              {token.value}
+            </span>
+          ))}
+        </code>
       </pre>
     </div>
   );

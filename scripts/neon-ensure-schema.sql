@@ -1093,3 +1093,39 @@ CREATE INDEX IF NOT EXISTS "consent_subject_sessions_token_hash_idx" ON "consent
 CREATE INDEX IF NOT EXISTS "consent_subject_sessions_subject_idx" ON "consent_subject_sessions" ("subject_id");
 CREATE INDEX IF NOT EXISTS "consent_subject_sessions_website_idx" ON "consent_subject_sessions" ("website_id");
 
+CREATE TABLE IF NOT EXISTS "website_preference_sync_endpoints" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "organization_id" uuid NOT NULL REFERENCES "organizations"("id") ON DELETE CASCADE,
+  "website_id" uuid NOT NULL REFERENCES "websites"("id") ON DELETE CASCADE,
+  "url" text NOT NULL,
+  "status" varchar(50) NOT NULL DEFAULT 'active',
+  "signing_secret_enc" text NOT NULL,
+  "last_delivery_at" timestamptz,
+  "created_at" timestamptz NOT NULL DEFAULT now(),
+  "updated_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "website_preference_sync_endpoints_website_unique" ON "website_preference_sync_endpoints" ("website_id");
+CREATE INDEX IF NOT EXISTS "website_preference_sync_endpoints_org_idx" ON "website_preference_sync_endpoints" ("organization_id");
+CREATE INDEX IF NOT EXISTS "website_preference_sync_endpoints_status_idx" ON "website_preference_sync_endpoints" ("status");
+
+CREATE TABLE IF NOT EXISTS "website_preference_sync_deliveries" (
+  "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+  "endpoint_id" uuid NOT NULL REFERENCES "website_preference_sync_endpoints"("id") ON DELETE CASCADE,
+  "event_id" uuid NOT NULL,
+  "event_type" varchar(100) NOT NULL,
+  "status" varchar(50) NOT NULL DEFAULT 'pending',
+  "attempt_number" integer NOT NULL DEFAULT 1,
+  "request_payload" jsonb NOT NULL DEFAULT '{}'::jsonb,
+  "response_status_code" integer,
+  "response_body" text,
+  "error_message" text,
+  "sent_at" timestamptz,
+  "completed_at" timestamptz,
+  "next_retry_at" timestamptz,
+  "created_at" timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS "website_preference_sync_deliveries_endpoint_idx" ON "website_preference_sync_deliveries" ("endpoint_id");
+CREATE INDEX IF NOT EXISTS "website_preference_sync_deliveries_status_idx" ON "website_preference_sync_deliveries" ("status");
+CREATE INDEX IF NOT EXISTS "website_preference_sync_deliveries_event_id_idx" ON "website_preference_sync_deliveries" ("event_id");
+CREATE INDEX IF NOT EXISTS "website_preference_sync_deliveries_next_retry_idx" ON "website_preference_sync_deliveries" ("next_retry_at");
+

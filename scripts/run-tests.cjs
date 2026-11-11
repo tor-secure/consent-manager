@@ -127,6 +127,8 @@ compile(
     "src/lib/website-domain-verify-constants.ts",
     "src/lib/webhooks/delivery.ts",
     "src/lib/webhooks/secret-crypto.ts",
+    "src/lib/webhooks/preference-sync-core.ts",
+    "src/lib/webhooks/preference-sync-delivery.ts",
     "src/lib/billing/stripe.ts",
     "src/lib/intelligence/twin-restore.ts",
     "src/lib/tools/assessment-engine.ts",
@@ -166,6 +168,11 @@ copyCompiled(
   "account-consent-merge/account-consent-merge-core.js",
 );
 copyCompiled("src/lib/webhooks/delivery.js", "webhook-delivery/delivery.js");
+copyCompiled("src/lib/webhooks/preference-sync-core.js", "preference-sync/preference-sync-core.js");
+copyCompiled(
+  "src/lib/webhooks/preference-sync-delivery.js",
+  "preference-sync/preference-sync-delivery.js",
+);
 copyCompiled("src/lib/billing/stripe.js", "billing/stripe.js");
 copyCompiled("src/lib/intelligence/twin-restore.js", "twin-restore/twin-restore.js");
 copyCompiled("src/lib/trackers/management.js", "tracker-management/trackers/management.js");

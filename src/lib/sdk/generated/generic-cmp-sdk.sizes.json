@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-11-11T12:08:35.316Z",
+  "before": {
+    "label": "unminified",
+    "bytes": 244818,
+    "gzip": 51810,
+    "brotli": 41796
+  },
+  "after": {
+    "label": "minified",
+    "bytes": 129578,
+    "gzip": 35974,
+    "brotli": 30081
+  },
+  "delta": {
+    "bytes": -115240,
+    "gzip": -15836,
+    "brotli": -11715,
+    "bytesPct": -47.1,
+    "gzipPct": -30.6,
+    "brotliPct": -28
+  }
+}

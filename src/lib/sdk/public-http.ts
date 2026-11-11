@@ -3,10 +3,11 @@ import { normalizeLocaleTag } from "@/lib/i18n/locale-registry";
 
 // Shared CORS + input guards for public SDK and consent endpoints.
 //
-// CORS is intentionally Access-Control-Allow-Origin: * with no credentials.
-// The browser SDK runs on customer sites (and localhost/demo), so Origin is
-// not used as an allowlist. siteKey is the capability token. Do not echo
-// secrets, Clerk data, API keys, or internal org/user fields in responses.
+// CORS uses Access-Control-Allow-Origin: * for non-credentialed browser calls
+// from customer sites. Authorization still uses sdkOriginGuard (Origin/Referer
+// allowlist) after siteKey resolves. Do not use credentials:include with *.
+// siteKey is the guest capability token. Do not echo secrets, Clerk data, API
+// keys, or internal org/user fields in responses.
 
 export const SITE_KEY_MAX_LENGTH = 255;
 export const CONSENT_ID_MAX_LENGTH = 255;
@@ -19,8 +20,9 @@ const UUID_RE =
 const CONSENT_ID_RE = /^[A-Za-z0-9_-]{8,255}$/;
 
 // fetch({ cache: "no-store" }) and explicit Cache-Control from the SDK trigger
-// a CORS preflight. Allow those headers or config/consent calls fail on
-// customer websites (same-origin /sdk-demo still works).
+// a CORS preflight. Subject-session account calls send X-CMP-Subject-Session
+// (or Authorization: Bearer css_…). Allow those headers or customer-site
+// preflights fail.
 export const PUBLIC_CORS_ALLOWED_HEADERS = [
   "Content-Type",
   "Accept",
@@ -28,6 +30,8 @@ export const PUBLIC_CORS_ALLOWED_HEADERS = [
   "Cache-Control",
   "Pragma",
   "If-None-Match",
+  "X-CMP-Subject-Session",
+  "Authorization",
 ].join(", ");
 
 export function publicCorsHeaders(methods: string): Record<string, string> {

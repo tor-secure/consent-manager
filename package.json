@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "predev": "npm run build:cmp-sdk",
+    "build:cmp-sdk": "node scripts/build-cmp-sdk-script.mjs",
+    "build": "npm run build:cmp-sdk && next build",
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -57,6 +59,7 @@
     "eslint-config-next": "16.3.4",
     "playwright": "^1.63.0",
     "tailwindcss": "^4",
+    "terser": "^5.51.2",
     "typescript": "^5"
   }
 }

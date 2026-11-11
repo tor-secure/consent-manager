@@ -61,6 +61,11 @@ export const governanceFeatures: DashboardNavigationItem[] = [
 ];
 
 export const developerFeatures: DashboardNavigationItem[] = [
+  {
+    title: "Install SDK",
+    href: "/dashboard/developers/install",
+    description: "Step-by-step embed snippet, signed-in bridge, and preference sync receiver guide.",
+  },
   { title: "Developer hub", href: "/dashboard/developers", description: "Install the SDK, manage credentials, and open API docs for your workspace." },
   { title: "API keys", href: "/dashboard/developers/api-keys", description: "Create and revoke live or test secrets for server-side Consent Guru calls." },
   { title: "API reference", href: "/dashboard/developers/api", description: "Subject sessions, evaluate, redact, and browser bridge endpoints." },

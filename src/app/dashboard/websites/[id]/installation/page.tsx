@@ -6,23 +6,10 @@ import { db } from "@/db";
 import { requireTenantWebsite } from "@/lib/tenant-website";
 import { consentPolicies } from "@/db/schema/consent-policies";
 import { consentPolicyVersions } from "@/db/schema/consent-policy-versions";
-import {
-  CodeBlock,
-  VerifyInstallation,
-} from "@/components/sdk/copy-snippet";
-import { buildEmbedSnippet } from "@/lib/sdk/cmp-sdk-script";
+import { SdkInstallationGuide } from "@/components/sdk/sdk-installation-guide";
 import { publicOriginFromRequestHeaders } from "@/lib/sdk/public-origin";
-import {
-  buildClerkSubjectBridgeRouteExample,
-  buildSubjectBridgeSnippet,
-} from "@/lib/sdk/subject-bridge-script";
-
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBanner } from "@/components/ui/status-banner";
-import { Card, CardContent } from "@/components/ui/card";
 
-// Auth + bootstrap guaranteed by dashboard layout.
-// Tenant isolation: website scoped to org+id.
 export default async function InstallationPage({
   params,
 }: {
@@ -35,10 +22,7 @@ export default async function InstallationPage({
     .select({ id: consentPolicies.id, name: consentPolicies.name })
     .from(consentPolicies)
     .where(
-      and(
-        eq(consentPolicies.websiteId, website.id),
-        eq(consentPolicies.status, "active"),
-      ),
+      and(eq(consentPolicies.websiteId, website.id), eq(consentPolicies.status, "active")),
     )
     .limit(1);
 
@@ -58,89 +42,27 @@ export default async function InstallationPage({
     )
     .limit(1);
 
-  // Absolute CMP origin so customer sites load the script from this app,
-  // not from their own hostname. Override with CMP_PUBLIC_ORIGIN when the
-  // dashboard is opened on localhost but the snippet will run in production.
   const h = await headers();
   const appOrigin = publicOriginFromRequestHeaders(h);
-  const originLooksLocal = /localhost|127\.0\.0\.1/.test(appOrigin);
-
-  const sdkScriptUrl = `${appOrigin}/api/sdk/script`;
-  const configUrlAbsolute = `${appOrigin}/api/sdk/${website.siteKey}/config`;
-
-  // ---------------------------------------------------------------------------
-  // Snippet templates
-  // ---------------------------------------------------------------------------
-
-  const htmlSnippet = buildEmbedSnippet({
-    siteKey: website.siteKey,
-    cdnUrl: sdkScriptUrl,
-  });
-
-  const subjectBridgeSnippet = buildSubjectBridgeSnippet({
-    bridgeScriptUrl: `${appOrigin}/api/sdk/subject-bridge`,
-    bridgeUrl: "/api/cmp/subject",
-    websiteId: website.id,
-  });
-
-  const subjectBridgeRoute = buildClerkSubjectBridgeRouteExample({
-    consentGuruOrigin: appOrigin,
-    websiteId: website.id,
-  });
-
-  const nextjsSnippet = `// Use the HTML snippet above as the first child of <head> in app/layout.tsx.
-// That snippet runs the blocking bootstrap, then loads the SDK synchronously.
-// A next/script tag by itself does not include the bootstrap.
-// Do not add async or defer, and do not inject the CMP from useEffect.`;
-
-  const reactSnippet = `<!-- public/index.html — paste the HTML snippet above as the first thing in <head>. -->
-<!-- Do not inject the CMP from useEffect; that runs after page scripts may execute. -->
-<!-- Optional scripts must stay inert until consent: -->
-<script type="text/plain" data-cmp-purpose="analytics" src="/analytics.js"></script>`;
-
-  const configEndpointNote = `GET ${configUrlAbsolute}
-# Returns: banner config, purposes, vendors, trackerRules for site key ${website.siteKey}
-# Public endpoint — no authentication required.
-# CORS: Access-Control-Allow-Origin: *
-# Cache-Control: public, max-age=300`;
-
-  const enforceSnippet = `<!-- Optional JavaScript stays inert until the matching purpose is confirmed -->
-<script type="text/plain" data-cmp-purpose="analytics" src="https://www.google-analytics.com/analytics.js"></script>
-
-<!-- Inert GTM loader. The CMP creates the real loader only after analytics consent. -->
-<script type="text/plain" data-cmp-purpose="analytics" data-cmp-src="https://www.googletagmanager.com/gtm.js?id=GTM-XXXX"></script>
-
-<!-- Optional iframe: do not set src until consent -->
-<iframe data-cmp-purpose="marketing" data-cmp-src="https://www.youtube.com/embed/example" title="Video"></iframe>
-
-<!-- Optional pixel: do not set src until consent -->
-<img data-cmp-purpose="marketing" data-cmp-src="https://ad.doubleclick.net/pixel" alt="" width="1" height="1">
-
-<!-- Pause an inline script until "marketing" consent is granted -->
-<script type="text/plain" data-cmp-purpose="marketing">
-  // Your marketing pixel code here
-</script>
-
-<!-- Same-origin application code stays available when it does not match a tracker rule -->
-<script src="/your-essential-app.js"></script>
-
-<!-- A same-origin file that matches a tracker rule is still optional -->
-<script type="text/plain" data-cmp-purpose="analytics" src="/analytics.js"></script>
-
-<!-- Third-party resources must be registered and reviewed before marking their tracker record essential. -->`;
-
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
 
   return (
     <div className="page-wrap space-y-6 sm:space-y-8">
-      {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
-        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">Websites</Link>
-        <span className="text-[var(--border)]" aria-hidden="true">/</span>
-        <Link href={`/dashboard/websites/${website.id}`} className="transition hover:text-[var(--foreground)]">{website.name}</Link>
-        <span className="text-[var(--border)]" aria-hidden="true">/</span>
+        <Link href="/dashboard/websites" className="transition hover:text-[var(--foreground)]">
+          Websites
+        </Link>
+        <span className="text-[var(--border)]" aria-hidden="true">
+          /
+        </span>
+        <Link
+          href={`/dashboard/websites/${website.id}`}
+          className="transition hover:text-[var(--foreground)]"
+        >
+          {website.name}
+        </Link>
+        <span className="text-[var(--border)]" aria-hidden="true">
+          /
+        </span>
         <span className="text-[var(--foreground)]">Installation</span>
       </nav>
 
@@ -149,240 +71,30 @@ export default async function InstallationPage({
         description={
           <>
             Add the CMP banner to{" "}
-            <span className="font-medium text-[var(--foreground)]">{website.domain}</span>{" "}
-            using the snippet below.
+            <span className="font-medium text-[var(--foreground)]">{website.domain}</span> using the
+            snippet below. Same guide also lives under{" "}
+            <Link
+              href={`/dashboard/developers/install?websiteId=${website.id}`}
+              className="font-medium text-[var(--primary)] underline underline-offset-2"
+            >
+              Developers → Install SDK
+            </Link>
+            .
           </>
         }
       />
 
-      {!publishedPolicy ? (
-        <StatusBanner variant="warning" role="alert">
-          <p>
-            <strong className="font-semibold">No published policy — the banner will not appear.</strong>{" "}
-            The SDK config endpoint returns 404 until a version is published.{" "}
-            {activePolicy ? (
-              <Link href={`/dashboard/policies/${activePolicy.id}`}
-                className="font-medium underline underline-offset-2 hover:text-[var(--warning)]">
-                Open “{activePolicy.name}” and publish →
-              </Link>
-            ) : (
-              <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
-                className="font-medium underline underline-offset-2 hover:text-[var(--warning)]">
-                Create a policy →
-              </Link>
-            )}
-          </p>
-        </StatusBanner>
-      ) : (
-        <StatusBanner variant="success">
-          <p>
-            <strong className="font-semibold">Published policy:</strong>{" "}
-            &ldquo;{publishedPolicy.name}&rdquo; v{publishedPolicy.version} is live for this site key.{" "}
-            <Link href={`/dashboard/policies/${publishedPolicy.id}`}
-              className="font-medium underline underline-offset-2 hover:text-[var(--success)]">
-              Open policy →
-            </Link>
-          </p>
-        </StatusBanner>
-      )}
-
-      {originLooksLocal ? (
-        <StatusBanner variant="warning" role="alert">
-          <p>
-            <strong className="font-semibold">This snippet points at {appOrigin}.</strong>{" "}
-            HTTPS websites cannot load a localhost script (mixed content). Set{" "}
-            <code className="rounded-lg bg-[var(--warning-soft)] px-1.5 py-0.5 font-mono text-xs">CMP_PUBLIC_ORIGIN</code>{" "}
-            to your deployed Consent Guru URL, then copy the snippet again.
-          </p>
-        </StatusBanner>
-      ) : null}
-
-      <Card className="max-w-3xl">
-      <CardContent className="space-y-8 pt-6">
-
-        {/* Step 1 — Site key */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 1 — Your site key</h2>
-          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            Unique identifier for <strong className="text-[var(--foreground)]">{website.domain}</strong>. Safe to include in client-side code.
-          </p>
-          <div className="flex items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-4 py-3">
-            <code className="min-w-0 flex-1 overflow-x-auto font-mono text-sm text-[var(--foreground)]">
-              {website.siteKey}
-            </code>
-            <span className="shrink-0 text-xs text-[var(--muted-foreground)]">site key</span>
-          </div>
-        </section>
-
-        {/* Step 2 — Add the snippet */}
-        <section>
-          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Step 2 — Add the snippet</h2>
-          <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-            Paste the HTML snippet as the first script in{" "}
-            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">&lt;head&gt;</code>
-            , before Google Tag Manager, gtag, Meta Pixel, analytics, and advertising tags.
-            The scanner reports technologies that appear before this snippet.
-          </p>
-
-          <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">HTML / static sites</p>
-            <CodeBlock code={htmlSnippet} language="html" />
-          </div>
-          <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">Next.js (App Router / Pages Router)</p>
-            <CodeBlock code={nextjsSnippet} language="tsx" />
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">React (CRA / Vite)</p>
-            <CodeBlock code={reactSnippet} language="tsx" />
-          </div>
-        </section>
-
-        {/* Step 3 — How it works */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 3 — How the SDK works</h2>
-          <ol className="list-inside list-decimal space-y-2 text-sm text-[var(--muted-foreground)]">
-            <li>Loads synchronously before optional trackers, establishes blocked state, then fetches configuration from <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">{configUrlAbsolute}</code>.</li>
-            <li>Shows the banner if no stored consent is found.</li>
-            <li>On visitor choice, calls <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">POST /api/consent/record</code> and stores the <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">consentId</code> in <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">localStorage</code>.</li>
-            <li>On subsequent visits, stored consent is respected until it expires.</li>
-            <li>Visitors can reopen the Preference Center at any time to update or withdraw consent.</li>
-          </ol>
-        </section>
-
-        {/* Config endpoint */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Config API endpoint</h2>
-          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            Public endpoint — call it directly to inspect the active configuration.
-          </p>
-          <CodeBlock code={configEndpointNote} language="text" label="endpoint" />
-        </section>
-
-        {/* Script enforcement */}
-        <section>
-          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Script enforcement</h2>
-          <p className="mb-4 text-sm text-[var(--muted-foreground)]">
-            Tag third-party scripts with{" "}
-            <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">data-cmp-purpose</code>{" "}
-            and <code className="rounded-lg bg-[var(--secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--muted-foreground)]">type=&quot;text/plain&quot;</code>.
-            The SDK pauses them until consent is granted.
-          </p>
-          <CodeBlock code={enforceSnippet} language="html" label="enforcement" />
-
-          <div className="mt-4 rounded-2xl border border-[var(--border)] bg-[var(--muted)] px-5 py-4">
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">How it works</p>
-            <ul className="list-inside list-disc space-y-1.5 text-xs text-[var(--muted-foreground)]">
-              <li>Scripts with <code className="rounded-md bg-[var(--secondary)] px-1 font-mono">type=&quot;text/plain&quot;</code> are ignored by the browser until the SDK restores them.</li>
-              <li>Tracker rules come from the config endpoint, including domain, identifier, and required purposeKey.</li>
-              <li>When consent changes, the SDK re-evaluates all tagged scripts via <code className="rounded-md bg-[var(--secondary)] px-1 font-mono">window.CMP.onConsentChange(fn)</code>.</li>
-              <li>Known registry domains and dynamically inserted third-party scripts/iframes are evaluated even without attributes. Add discovered resources to{" "}
-                <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-[var(--foreground)]">Trackers</Link>{" "}
-                and keep static parser-loaded optional scripts inert with CMP attributes.</li>
-              <li>JavaScript cannot undo requests that occurred before this SDK loaded or remove HttpOnly/third-party cookies. Use CSP, GTM consent checks, and server-side tagging for stronger coverage.</li>
-            </ul>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">Google Tag Manager</h2>
-          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            Allowing the GTM loader does not automatically grant consent to every tag inside the GTM container.
-            The CMP can hold the loader. Each tag inside the container still needs its own consent requirement in GTM:
-            analytics tags wait for analytics consent, advertising tags wait for marketing consent, and other tags wait for their matching purpose.
-          </p>
-          <ul className="list-inside list-disc space-y-1.5 text-sm text-[var(--muted-foreground)]">
-            <li>Load the CMP snippet in <code className="rounded-md bg-[var(--secondary)] px-1 font-mono text-xs">&lt;head&gt;</code> before GTM.</li>
-            <li>Enable Google Consent Mode on the website if you use gtag / GTM Consent Mode.</li>
-            <li>Add a consent check on each optional GTM tag (Analytics, Ads, pixels) so those tags do not fire until the matching purpose is granted.</li>
-            <li>Required or essential tags that must run before any choice should not depend on optional purposes.</li>
-            <li>Map discovered GTM / gtag trackers in{" "}
-              <Link href="/dashboard/trackers" className="font-medium underline underline-offset-2 hover:text-[var(--foreground)]">Trackers</Link>{" "}
-              to the correct purpose or vendor.</li>
-          </ul>
-        </section>
-
-        {/* Step 4 — Signed-in sync (optional) */}
-        <section>
-          <h2 className="mb-1 text-base font-semibold text-[var(--foreground)]">
-            Step 4 — Signed-in sync (optional)
-          </h2>
-          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            For sites with login (Clerk, Auth.js, etc.). Guests still work with Step 2 alone.
-            Your API key stays on your server — the browser only talks to a route on your own domain.
-          </p>
-          <ol className="mb-4 list-inside list-decimal space-y-2 text-sm text-[var(--muted-foreground)]">
-            <li>
-              Create an API key in{" "}
-              <Link
-                href="/dashboard/developers"
-                className="font-medium text-[var(--foreground)] underline underline-offset-2 hover:text-[var(--primary)]"
-              >
-                Developers
-              </Link>
-              .
-            </li>
-            <li>Add the server route below on your website (Next.js + Clerk example).</li>
-            <li>Paste the bridge script after the CMP snippet.</li>
-            <li>
-              On logout call{" "}
-              <code className="rounded-md bg-[var(--secondary)] px-1 font-mono text-xs">
-                window.CMPSubjectBridge?.logout()
-              </code>
-              .
-            </li>
-          </ol>
-          <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-              A — Server route on your site
-            </p>
-            <CodeBlock code={subjectBridgeRoute} language="tsx" />
-          </div>
-          <div>
-            <p className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-              B — Bridge script (browser)
-            </p>
-            <CodeBlock code={subjectBridgeSnippet} language="html" />
-          </div>
-        </section>
-
-        {/* Step 5 — Verify */}
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-[var(--foreground)]">Step 5 — Verify installation</h2>
-          <p className="mb-3 text-sm text-[var(--muted-foreground)]">
-            Confirm that the SDK config endpoint resolves correctly for your site key.
-          </p>
-          <VerifyInstallation siteKey={website.siteKey} />
-        </section>
-
-        {/* Next steps */}
-        <section className="rounded-2xl border border-[var(--border)] bg-[var(--muted)] p-5">
-          <h2 className="mb-3 text-sm font-semibold text-[var(--foreground)]">Next steps</h2>
-          <ul className="space-y-2 text-sm text-[var(--muted-foreground)]">
-            <li>
-              <Link href={`/dashboard/policies/new?websiteId=${website.id}`}
-                className="font-medium text-[var(--foreground)] underline underline-offset-2 transition hover:text-[var(--primary)]">
-                Create a consent policy
-              </Link>{" "}if you haven&apos;t already.
-            </li>
-            <li>
-              <Link
-                href={activePolicy ? `/dashboard/policies/${activePolicy.id}` : "#"}
-                className={`font-medium underline underline-offset-2 transition ${activePolicy ? "text-[var(--foreground)] hover:text-[var(--primary)]" : "pointer-events-none text-[var(--muted-foreground)]"}`}
-              >
-                Configure the banner appearance
-              </Link>{" "}in the Banner Studio on your policy page.
-            </li>
-            <li>
-              <Link href={`/dashboard/websites/${website.id}/settings`}
-                className="font-medium text-[var(--foreground)] underline underline-offset-2 transition hover:text-[var(--primary)]">
-                Update website settings
-              </Link>{" "}to set the default language and region.
-            </li>
-          </ul>
-        </section>
-      </CardContent>
-      </Card>
+      <SdkInstallationGuide
+        website={{
+          id: website.id,
+          name: website.name,
+          domain: website.domain,
+          siteKey: website.siteKey,
+        }}
+        appOrigin={appOrigin}
+        activePolicy={activePolicy ?? null}
+        publishedPolicy={publishedPolicy ?? null}
+      />
     </div>
   );
 }

@@ -148,6 +148,85 @@ export default async function DevelopersApiReferencePage() {
 
       <div className="space-y-4">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
+          Preference sync webhooks
+        </h2>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>consent.preferences.updated</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Per-website signed webhook after logged-in account preference saves (including
+              full withdrawal). Configure the URL and{" "}
+              <code className="font-mono text-xs">whsec_…</code> secret under Website settings →
+              Preference sync. Org-level consent webhooks for guests are unchanged.
+            </p>
+            <ul className="list-inside list-disc space-y-1.5 text-sm text-[var(--muted-foreground)]">
+              <li>
+                Headers:{" "}
+                <code className="font-mono text-xs">X-CMP-Signature</code>,{" "}
+                <code className="font-mono text-xs">X-CMP-Timestamp</code>,{" "}
+                <code className="font-mono text-xs">X-CMP-Event-Id</code>,{" "}
+                <code className="font-mono text-xs">X-CMP-Event-Type</code>
+              </li>
+              <li>
+                HMAC-SHA256 over{" "}
+                <code className="font-mono text-xs">{"${timestamp}.${rawBody}"}</code> using the
+                signing secret
+              </li>
+              <li>
+                Reject wrong{" "}
+                <code className="font-mono text-xs">data.siteId</code>; upsert by{" "}
+                <code className="font-mono text-xs">subjectKey</code> when{" "}
+                <code className="font-mono text-xs">preferenceRevision</code> ≥ stored revision
+              </li>
+              <li>
+                Dedupe owner alerts by{" "}
+                <code className="font-mono text-xs">eventId</code>;{" "}
+                <code className="font-mono text-xs">changeKind: established</code> is baseline only
+                (no change alert)
+              </li>
+            </ul>
+            <CodeBlock
+              language="json"
+              label="payload"
+              code={`{
+  "id": "<eventId>",
+  "type": "consent.preferences.updated",
+  "organizationId": "<uuid>",
+  "data": {
+    "siteId": "<websiteId>",
+    "subjectKey": "<client user id>",
+    "eventId": "<same as id>",
+    "occurredAt": "<ISO>",
+    "preferenceRevision": 3,
+    "changeKind": "updated",
+    "preferences": [
+      { "kind": "purpose", "id": "...", "name": "Analytics", "granted": true }
+    ],
+    "changes": [
+      {
+        "kind": "purpose",
+        "id": "...",
+        "name": "Marketing",
+        "previousGranted": true,
+        "currentGranted": false
+      }
+    ]
+  }
+}`}
+            />
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Copy-paste receiver stub and setup steps live on each website’s Installation page
+              (Step 5).
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--muted-foreground)]">
           Other v1 APIs
         </h2>
 

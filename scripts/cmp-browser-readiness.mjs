@@ -1336,10 +1336,37 @@ async function waitForHttp(url) {
   return false;
 }
 
+function loadServedMinifiedSdk() {
+  const generatedPath = path.join(
+    root,
+    "src/lib/sdk/generated/generic-cmp-sdk.min.ts",
+  );
+  if (!fs.existsSync(generatedPath)) {
+    throw new Error("Missing generic-cmp-sdk.min.ts — run npm run build:cmp-sdk");
+  }
+  const source = fs.readFileSync(generatedPath, "utf8");
+  const match = source.match(
+    /export const GENERIC_CMP_SDK_SCRIPT_MINIFIED = ("(?:\\.|[^"\\])*");/,
+  );
+  if (!match) {
+    throw new Error("GENERIC_CMP_SDK_SCRIPT_MINIFIED export not found");
+  }
+  return JSON.parse(match[1]);
+}
+
 async function main() {
   compileSdk();
-  const { buildGenericCmpSdkScript, buildCmpLocaleScript, buildEmbedSnippet } = loadSdkBuilders();
-  const sdkScript = buildGenericCmpSdkScript();
+  const buildCmpSdk = spawnSync(
+    process.execPath,
+    [path.join(root, "scripts/build-cmp-sdk-script.mjs")],
+    { cwd: root, encoding: "utf8" },
+  );
+  if (buildCmpSdk.status !== 0) {
+    throw new Error(buildCmpSdk.stdout + "\n" + buildCmpSdk.stderr);
+  }
+  const { buildCmpLocaleScript, buildEmbedSnippet } = loadSdkBuilders();
+  // Serve the same build-time minified body as GET /api/sdk/script production.
+  const sdkScript = loadServedMinifiedSdk();
   const localeScript = buildCmpLocaleScript();
   const { server, port } = await startServer(sdkScript, localeScript, buildEmbedSnippet);
   const origin = `http://127.0.0.1:${port}`;
@@ -1347,16 +1374,21 @@ async function main() {
   const report = {
     sdkBytes: Buffer.byteLength(sdkScript),
     localeBytes: Buffer.byteLength(localeScript),
+    sdkMinified: true,
     bundle: {
       sdk: {
         raw: Buffer.byteLength(sdkScript),
-        gzip: zlib.gzipSync(Buffer.from(sdkScript)).length,
-        brotli: zlib.brotliCompressSync(Buffer.from(sdkScript)).length,
+        gzip: zlib.gzipSync(Buffer.from(sdkScript), { level: 9 }).length,
+        brotli: zlib.brotliCompressSync(Buffer.from(sdkScript), {
+          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
+        }).length,
       },
       locale: {
         raw: Buffer.byteLength(localeScript),
-        gzip: zlib.gzipSync(Buffer.from(localeScript)).length,
-        brotli: zlib.brotliCompressSync(Buffer.from(localeScript)).length,
+        gzip: zlib.gzipSync(Buffer.from(localeScript), { level: 9 }).length,
+        brotli: zlib.brotliCompressSync(Buffer.from(localeScript), {
+          params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
+        }).length,
       },
     },
     tests: [],
