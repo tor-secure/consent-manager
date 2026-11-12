@@ -48,7 +48,9 @@ async function main() {
         'negotiation_configurations',
         'negotiation_outcomes',
         'rights_request_verifications',
-        'rights_request_exports'
+        'rights_request_exports',
+        'website_preference_sync_endpoints',
+        'website_preference_sync_deliveries'
       )
     ORDER BY table_name
   `;
@@ -108,29 +110,61 @@ async function main() {
   }
   console.log(`config_hash backfilled: ${hashed}`);
 
-  const journal = JSON.parse(
-    readFileSync(path.resolve("drizzle/meta/_journal.json"), "utf8"),
-  ) as { entries: Array<{ tag: string; when: number }> };
-  const applied = await sql`
-    SELECT created_at FROM drizzle.__drizzle_migrations
-  `;
-  const appliedWhen = new Set(applied.map((row) => String(row.created_at)));
-  let stamped = 0;
-  for (const entry of journal.entries) {
-    if (appliedWhen.has(String(entry.when))) continue;
-    const contents = readFileSync(
-      path.resolve("drizzle", `${entry.tag}.sql`),
-      "utf8",
-    );
-    const hash = createHash("sha256").update(contents).digest("hex");
+  try {
+    const journal = JSON.parse(
+      readFileSync(path.resolve("drizzle/meta/_journal.json"), "utf8"),
+    ) as { entries: Array<{ tag: string; when: number }> };
+    await sql`CREATE SCHEMA IF NOT EXISTS drizzle`;
     await sql`
-      INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at")
-      VALUES (${hash}, ${entry.when})
+      CREATE TABLE IF NOT EXISTS drizzle.__drizzle_migrations (
+        id SERIAL PRIMARY KEY,
+        hash text NOT NULL,
+        created_at bigint
+      )
     `;
-    stamped += 1;
-    console.log("stamped", entry.tag);
+    const applied = await sql`
+      SELECT created_at FROM drizzle.__drizzle_migrations
+    `;
+    const appliedWhen = new Set(applied.map((row) => String(row.created_at)));
+    let stamped = 0;
+    for (const entry of journal.entries) {
+      if (appliedWhen.has(String(entry.when))) continue;
+      const contents = readFileSync(
+        path.resolve("drizzle", `${entry.tag}.sql`),
+        "utf8",
+      );
+      const hash = createHash("sha256").update(contents).digest("hex");
+      await sql`
+        INSERT INTO drizzle.__drizzle_migrations ("hash", "created_at")
+        VALUES (${hash}, ${entry.when})
+      `;
+      stamped += 1;
+      console.log("stamped", entry.tag);
+    }
+    console.log(
+      `drizzle journal stamped: ${stamped} new, ${applied.length + stamped} total`,
+    );
+  } catch (error) {
+    console.warn(
+      "drizzle journal stamp skipped:",
+      error instanceof Error ? error.message : error,
+    );
   }
-  console.log(`drizzle journal stamped: ${stamped} new, ${applied.length + stamped} total`);
+
+  const preferenceSync = await sql`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name IN (
+        'website_preference_sync_endpoints',
+        'website_preference_sync_deliveries'
+      )
+    ORDER BY table_name
+  `;
+  console.log(
+    "preference sync tables:",
+    preferenceSync.map((row) => row.table_name).join(",") || "(missing)",
+  );
 
   await sql.end();
 }

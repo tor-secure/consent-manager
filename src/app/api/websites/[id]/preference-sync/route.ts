@@ -24,6 +24,45 @@ function generateSigningSecret(): string {
   return `whsec_${randomBytes(32).toString("base64url")}`;
 }
 
+function isMissingRelationError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  const code =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+  return (
+    code === "42P01" ||
+    (/website_preference_sync_/i.test(message) &&
+      /does not exist|relation/i.test(message))
+  );
+}
+
+function schemaMissingResponse() {
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Preference sync tables are missing. Run npm run db:ensure-schema (or apply scripts/neon-ensure-schema.sql) on this database, then retry.",
+    },
+    { status: 503 },
+  );
+}
+
+function encryptionConfigResponse(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (/WEBHOOK_SECRET_ENCRYPTION_KEY|POLICY_CONTEXT_SECRET/i.test(message)) {
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Server signing-secret encryption is not configured. Set WEBHOOK_SECRET_ENCRYPTION_KEY or POLICY_CONTEXT_SECRET.",
+      },
+      { status: 503 },
+    );
+  }
+  return null;
+}
+
 async function authorizeWebsite(websiteId: string) {
   const { isAuthenticated, userId, orgId } = await auth();
   if (!isAuthenticated || !userId) {
@@ -128,6 +167,7 @@ export async function GET(
     });
   } catch (error) {
     logger.error("Preference sync GET failed", { operation: "preference_sync.get", error });
+    if (isMissingRelationError(error)) return schemaMissingResponse();
     return NextResponse.json(
       { success: false, message: "Unable to load preference sync settings." },
       { status: 500 },
@@ -246,6 +286,9 @@ export async function PUT(
     });
   } catch (error) {
     logger.error("Preference sync PUT failed", { operation: "preference_sync.put", error });
+    if (isMissingRelationError(error)) return schemaMissingResponse();
+    const encryptionError = encryptionConfigResponse(error);
+    if (encryptionError) return encryptionError;
     return NextResponse.json(
       { success: false, message: "Failed to save preference sync settings" },
       { status: 500 },
@@ -284,6 +327,7 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (error) {
     logger.error("Preference sync DELETE failed", { operation: "preference_sync.delete", error });
+    if (isMissingRelationError(error)) return schemaMissingResponse();
     return NextResponse.json(
       { success: false, message: "Failed to remove preference sync endpoint" },
       { status: 500 },
