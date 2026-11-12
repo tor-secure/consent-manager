@@ -4587,56 +4587,6 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (el && el.parentNode) el.parentNode.removeChild(el);
   }
 
-  function showAccountPrompt(opts) {
-    removeAccountPrompt();
-    var overlay = document.createElement('div');
-    overlay.id = '__cmp_account_prompt__';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:rgba(11,44,74,0.45);display:flex;align-items:center;justify-content:center;padding:16px;';
-    var card = document.createElement('div');
-    card.style.cssText = 'max-width:520px;width:100%;background:#fff;color:#0B2C4A;border-radius:16px;padding:22px;font-family:system-ui,sans-serif;box-sizing:border-box;';
-    var title = document.createElement('h2');
-    title.textContent = opts.title || 'Save your privacy choices?';
-    title.style.cssText = 'margin:0 0 8px;font-size:20px;';
-    var body = document.createElement('p');
-    body.textContent = opts.body || '';
-    body.style.cssText = 'margin:0 0 12px;font-size:14px;line-height:1.5;color:#4d6570;';
-    var list = document.createElement('ul');
-    list.style.cssText = 'margin:0 0 16px;padding-left:18px;font-size:13px;line-height:1.45;max-height:220px;overflow:auto;';
-    (opts.items || []).forEach(function(item) {
-      var li = document.createElement('li');
-      li.textContent = item.name + ' — ' + (item.granted ? 'Allowed' : 'Blocked');
-      list.appendChild(li);
-    });
-    var actions = document.createElement('div');
-    actions.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;';
-    var dismiss = document.createElement('button');
-    dismiss.type = 'button';
-    dismiss.textContent = opts.dismissLabel || 'Not now';
-    dismiss.style.cssText = 'border:1px solid #d3e0de;background:#fff;color:#0B2C4A;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer;';
-    var confirm = document.createElement('button');
-    confirm.type = 'button';
-    confirm.textContent = opts.confirmLabel || 'Save to my account';
-    confirm.style.cssText = 'border:0;background:#0B2C4A;color:#fff;border-radius:999px;padding:10px 14px;font-weight:700;cursor:pointer;';
-    dismiss.onclick = function() {
-      removeAccountPrompt();
-      if (opts.onDismiss) opts.onDismiss();
-    };
-    confirm.onclick = function() {
-      removeAccountPrompt();
-      if (opts.onConfirm) opts.onConfirm();
-    };
-    actions.appendChild(dismiss);
-    actions.appendChild(confirm);
-    card.appendChild(title);
-    card.appendChild(body);
-    if ((opts.items || []).length) card.appendChild(list);
-    card.appendChild(actions);
-    overlay.appendChild(card);
-    (document.body || document.documentElement).appendChild(overlay);
-  }
-
   function postAccountConsent(payload, generation) {
     return fetch(API_BASE + '/api/consent/account', {
       method: 'POST',
@@ -4747,29 +4697,16 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         });
 
         if (conflictItems.length) {
-          _accountConflictPending = true;
-          _accountConfirmed = false;
-          blockOptionalProcessing('DENIED', 'Review privacy differences before continuing');
-          showAccountPrompt({
-            title: 'Privacy choices differ on this device',
-            body: 'Some browser choices conflict with your signed-in preferences. Optional processing stays off until you review. Denials remain blocked on this device.',
-            items: conflictItems,
-            confirmLabel: 'Use signed-in choices',
-            dismissLabel: 'Keep device denials',
-            onConfirm: function() {
-              if (generation !== _subjectGeneration) return;
-              _accountConflictPending = false;
-              saveGuestMapsToAccount(accountMaps.purposes, accountMaps.vendors, 'granular', generation).catch(function() {
-                blockOptionalProcessing('DENIED', 'Could not update account preferences');
-              });
-            },
-            onDismiss: function() {
-              if (generation !== _subjectGeneration) return;
-              _accountConflictPending = false;
-              _accountConfirmed = true;
-              applyDecisionMaps(effectivePurposes, effectiveVendors);
-            }
-          });
+          // Deny-wins on device without a second prompt; keep optional processing
+          // blocked where either guest or account denied.
+          _accountConflictPending = false;
+          _accountMergePending = false;
+          _accountConfirmed = true;
+          try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); } catch (eAccConflict) {}
+          applyDecisionMaps(effectivePurposes, effectiveVendors);
+          _choiceDismissed = true;
+          removeBanner();
+          syncPreferenceWidget();
           return;
         }
 
@@ -4783,79 +4720,42 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         return;
       }
 
-      // No account choices yet.
+      // No account choices yet — bind browser choices to the account on login.
       if (guest.has) {
-        var guestItems = [];
         var allDenied = true;
         var anyOptional = false;
         ((_config && _config.purposes) || []).forEach(function(p) {
           if (p.isRequired) return;
           anyOptional = true;
-          var granted = Boolean(guest.purposes[p.id]);
-          if (granted) allDenied = false;
-          guestItems.push({ name: p.name, granted: granted });
+          if (Boolean(guest.purposes[p.id])) allDenied = false;
         });
         ((_config && _config.vendors) || []).forEach(function(v) {
           anyOptional = true;
-          var granted = Boolean(guest.vendors[v.id]);
-          if (granted) allDenied = false;
-          guestItems.push({ name: v.name, granted: granted });
+          if (Boolean(guest.vendors[v.id])) allDenied = false;
         });
 
         _guestDenyEffective = anyOptional && allDenied;
         _accountMergePending = true;
         _accountConfirmed = false;
-        blockOptionalProcessing('DENIED', 'Confirm whether to save choices to your account');
+        blockOptionalProcessing('DENIED', 'Saving browser choices to your account');
 
-        if (_guestDenyEffective) {
-          // Guest rejection remains effective; account stays unset unless they save.
-          _accountMergePending = false;
-          _accountConfirmed = false;
-          applyDecisionMaps(guest.purposes, guest.vendors);
-          showAccountPrompt({
-            title: 'Keep these blocked choices on your account?',
-            body: 'You previously blocked optional processing in this browser. Optional processing stays off. Save these choices to apply them wherever you sign in to this website.',
-            items: guestItems,
-            confirmLabel: 'Save blocked choices to account',
-            dismissLabel: 'Keep account unset',
-            onConfirm: function() {
-              if (generation !== _subjectGeneration) return;
-              saveGuestMapsToAccount(guest.purposes, guest.vendors, 'reject-all', generation).catch(function() {
-                blockOptionalProcessing('DENIED', 'Could not save account preferences');
-              });
-            },
-            onDismiss: function() {
-              if (generation !== _subjectGeneration) return;
-              _accountConfirmed = false;
-              blockOptionalProcessing('DENIED', 'Account preferences not set');
-            }
-          });
-          return;
-        }
-
-        showAccountPrompt({
-          title: 'Save your privacy choices to this account?',
-          body: 'These browser choices are not yet linked to your signed-in account. Optional processing stays off until you confirm. Your choice will apply wherever you sign in to this website.',
-          items: guestItems,
-          confirmLabel: 'Save to my account',
-          dismissLabel: 'Not now',
-          onConfirm: function() {
+        var bindChoice = _guestDenyEffective
+          ? 'reject-all'
+          : ((guest.stored && guest.stored.choice) || 'granular');
+        return saveGuestMapsToAccount(guest.purposes, guest.vendors, bindChoice, generation)
+          .then(function() {
             if (generation !== _subjectGeneration) return;
-            saveGuestMapsToAccount(guest.purposes, guest.vendors, (guest.stored && guest.stored.choice) || 'granular', generation).catch(function() {
-              blockOptionalProcessing('DENIED', 'Could not save account preferences');
-            });
-          },
-          onDismiss: function() {
+            _choiceDismissed = true;
+            removeBanner();
+            syncPreferenceWidget();
+          })
+          .catch(function() {
             if (generation !== _subjectGeneration) return;
             _accountMergePending = false;
             _accountConfirmed = false;
-            blockOptionalProcessing('DENIED', 'Account preferences not set');
-            _choiceDismissed = false;
-            _reconsentNotice = 'Choose privacy preferences for your signed-in account on this website.';
-            showBannerWhenReady();
-          }
-        });
-        return;
+            applyDecisionMaps(guest.purposes, guest.vendors);
+            blockOptionalProcessing('DENIED', 'Could not save account preferences');
+          });
       }
 
       _accountMergePending = false;

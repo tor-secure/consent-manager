@@ -2,7 +2,7 @@ import { PROGRAMME_MODULES } from "./programme";
 import type { CatalogModule } from "./question";
 import { COURSE_SLUG, MODULE_COUNT } from "./engine";
 
-export const COURSE_CONTENT_VERSION = "2026-10-19-quiz";
+export const COURSE_CONTENT_VERSION = "2026-11-12-mcq-by-name";
 /** Questions stored for each module. A quiz attempt draws from this bank. */
 export const MODULE_QUIZ_BANK_COUNT = 15;
 /** Questions shown in one module quiz attempt. */

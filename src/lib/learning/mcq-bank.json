@@ -4057,155 +4057,155 @@
   },
   {
     "number": 27,
-    "title": "Appeals, Dispute Resolution and Judicial Review",
+    "title": "Data Retention, Erasure and Deletion",
     "questions": [
       {
-        "prompt": "What statutory provision governs appeals against orders or directions made by the Data Protection Board of India?",
+        "prompt": "A user of your subscription app opens the settings page and withdraws their consent for processing their personal data. When a Data Principal withdraws consent, the Data Fiduciary should:",
         "options": [
-          "Section 29 of the DPDP Act addresses appeals to the Appellate Tribunal.",
-          "Section 11 of the DPDP Act.",
-          "Section 18 of the DPDP Act.",
-          "Section 33 of the DPDP Act."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "Which body serves as the designated Appellate Tribunal under the framework to hear appeals against Data Protection Board orders?",
-        "options": [
-          "The Supreme Court of India directly as a first appellate court.",
-          "The Telecom Disputes Settlement and Appellate Tribunal (TDSAT).",
-          "The High Court having jurisdiction over New Delhi.",
-          "The National Company Law Appellate Tribunal (NCLAT)."
+          "Continue processing indefinitely",
+          "Stop processing and erase the data, unless a law requires retention",
+          "Delete the data only after 10 years",
+          "Pass the data to another company"
         ],
         "answer": "B"
       },
       {
-        "prompt": "Within what statutory timeframe must an aggrieved party file an appeal against an order of the Board before the Appellate Tribunal?",
+        "prompt": "Your organisation is reviewing why it still holds customer records from ten years ago that have no clear use. Which principle says personal data should be kept only as long as necessary for its purpose?",
         "options": [
-          "Within one year from the date of publication.",
-          "Exactly 14 business days from the date of the order.",
-          "Within a period of sixty days from the date of receipt of the order or direction.",
-          "Within six months from the date of the order."
+          "Accuracy",
+          "Transparency",
+          "Storage limitation",
+          "Data portability"
         ],
         "answer": "C"
       },
       {
-        "prompt": "Can the Appellate Tribunal entertain an appeal filed after the standard 60-day limitation period?",
+        "prompt": "A customer has withdrawn consent, but the team is unsure whether every record must be erased immediately. A Data Fiduciary may retain personal data even after consent is withdrawn when:",
         "options": [
-          "No, the 60-day limitation period is absolute with zero discretionary extension permitted.",
-          "Yes, automatically upon payment of a secondary administrative late fee.",
-          "No, any delay permanently forfeits the right to judicial review.",
-          "Yes, if it is satisfied that there was sufficient cause for not preferring the appeal within that period."
-        ],
-        "answer": "D"
-      },
-      {
-        "prompt": "What procedural mandate does the DPDP framework impose on the Appellate Tribunal regarding how it processes appeals?",
-        "options": [
-          "Appeals should be dealt with as expeditiously as possible, endeavouring to dispose of them within six months.",
-          "Proceedings must be conducted entirely through closed-door oral hearings without written records.",
-          "The Tribunal is legally prohibited from issuing interim relief orders.",
-          "Appeals must be handled with paper-based physical files submitted exclusively through postal mail."
+          "Retention is required to comply with a law",
+          "The marketing team wants to reuse it",
+          "Storage is cheap",
+          "The customer might return someday"
         ],
         "answer": "A"
       },
       {
-        "prompt": "How is the operational design of the Appellate Tribunal structured under the digital-first mandate of the Act?",
+        "prompt": "Your company stores customer data with a cloud vendor, and a customer's erasure request has just been approved. Who is responsible for making sure a Data Processor erases data when required?",
         "options": [
-          "Digital filings are prohibited to ensure maximum document security.",
-          "As far as practicable, it shall function as a digital office, with receipt, hearing, and pronouncement being digital by design.",
-          "It must operate exclusively via physical paper courtrooms located in New Delhi.",
-          "All hearings require mandatory physical attendance by corporate executive boards."
+          "The Data Processor alone",
+          "The Data Principal",
+          "The Data Protection Board",
+          "The Data Fiduciary"
         ],
-        "answer": "B"
+        "answer": "D"
       },
       {
-        "prompt": "What legal status and enforcement powers do orders passed by the Appellate Tribunal hold under Section 30?",
+        "prompt": "The security team is setting log retention periods so that incidents can be investigated later. What is the minimum period for which certain personal data, traffic data and logs must be retained for security and investigation purposes under the Rules?",
         "options": [
-          "They are purely advisory policy recommendations with zero binding legal force.",
-          "They must be re-litigated before local civil courts before becoming executable.",
-          "They are executable by the Tribunal as a decree of a civil court, possessing all powers of a civil court.",
-          "They apply exclusively to government agencies, exempting private fiduciaries."
+          "3 months",
+          "6 months",
+          "1 year",
+          "7 years"
         ],
         "answer": "C"
       },
       {
-        "prompt": "Where does a further appeal lie against an order or decision of the Appellate Tribunal under the framework?",
+        "prompt": "The compliance officer wants one table showing every data category the company holds and the time limit for keeping each. A document listing each data category, how long it is kept and when it is deleted is called a:",
         "options": [
-          "To the Central Government executive ministry cabinet.",
-          "No further appeal or judicial review is permitted under any circumstance.",
-          "Back to the Data Protection Board of India for internal administrative review.",
-          "Directly to the Supreme Court of India on substantial questions of law."
-        ],
-        "answer": "D"
-      },
-      {
-        "prompt": "What alternative dispute resolution (ADR) mechanism does Section 31 of the DPDP Act contemplate for resolving complaints?",
-        "options": [
-          "Mediation, if directed by the Board and mutually agreed upon or provided for under law.",
-          "Commercial debt collection agencies operating under municipal licenses.",
-          "Mandatory binding arbitration administered through foreign international chambers.",
-          "Public social media voting and community dispute resolution forums."
+          "Data retention schedule",
+          "Consent form",
+          "Privacy notice",
+          "Breach register"
         ],
         "answer": "A"
       },
       {
-        "prompt": "How does the appellate framework interact with the primary enforcement findings of the Data Protection Board?",
+        "prompt": "A user writes to a company saying they no longer want their personal data stored with it. Which right allows a Data Principal to ask for deletion of their data?",
         "options": [
-          "The Tribunal acts as a rubber-stamp body that must automatically confirm all Board fines.",
-          "The Tribunal may confirm, modify, or set aside the order appealed against after giving parties a hearing.",
-          "The Tribunal is legally barred from modifying penalty amounts imposed by the Board.",
-          "Board orders take immediate permanent effect without any right of appellate review."
+          "Right to data portability",
+          "Right to correction and erasure",
+          "Right to object to profiling",
+          "Right to compensation"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What procedural rules govern the Appellate Tribunal's handling of DPDP appeals?",
+        "prompt": "A large e-commerce platform has many accounts that nobody has used for years. For large e- commerce, online gaming and social media entities, data may be treated as no longer needed after how long of user inactivity (Third Schedule)?",
         "options": [
-          "International maritime trade arbitration conventions.",
-          "Internal corporate human resource employee handbook guidelines.",
-          "Rules prescribed under the framework, without prejudice to specific provisions of the TRAI Act, 1997.",
-          "Local municipal corporation by-laws and commercial zoning codes."
+          "6 months",
+          "1 year",
+          "2 years",
+          "3 years"
+        ],
+        "answer": "D"
+      },
+      {
+        "prompt": "The platform decides to erase inactive-user data but wants to give users a chance to log back in first. Before erasing such inactive-user data, the entity must warn the Data Principal at least:",
+        "options": [
+          "24 hours in advance",
+          "48 hours in advance",
+          "7 days in advance",
+          "30 days in advance"
+        ],
+        "answer": "B"
+      },
+      {
+        "prompt": "An employee deletes a customer's record from the main CRM but forgets that copies exist in other places. Which is good practice when deleting personal data?",
+        "options": [
+          "Delete it only from the main database",
+          "Simply hide it from the user's screen",
+          "Delete it from all systems, including backups and processors, as per policy",
+          "Rename the file"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What administrative duty does the Appellate Tribunal have upon issuing a final order on an appeal?",
+        "prompt": "A startup founder asks why the company should spend time deleting old data instead of just keeping everything. Why does deleting unnecessary data help an organisation?",
         "options": [
-          "It is legally prohibited from sharing its written judgments publicly.",
-          "It must publish the personal home addresses of all corporate executive board members.",
-          "It must forward all case files directly to international law enforcement agencies.",
-          "It must send a copy of every order made to the Board and to the parties to the appeal."
-        ],
-        "answer": "D"
-      },
-      {
-        "prompt": "What requirement must the Tribunal fulfill if an appeal is not disposed of within the targeted six-month window?",
-        "options": [
-          "The Tribunal must record its reasons in writing for not disposing of the appeal within that period.",
-          "The appeal is automatically dismissed without prejudice.",
-          "The presiding judicial officers face immediate administrative suspension.",
-          "The case files must be transferred permanently to local criminal courts."
+          "It reduces breach exposure and compliance burden",
+          "It increases the amount of data to protect",
+          "It removes the need for security controls",
+          "It avoids having to publish a privacy notice"
         ],
         "answer": "A"
       },
       {
-        "prompt": "How should an enterprise compliance programme view the appeals and alternative dispute resolution framework?",
+        "prompt": "An IT executive has been asked to clear old records from the server to free up space. Which check should come before deleting a record?",
         "options": [
-          "As a mechanism designed exclusively to shield technology startups from financial penalties.",
-          "As an essential structural safeguard ensuring administrative accountability, fairness, and due process.",
-          "As an informal corporate mediation process detached from statutory law.",
-          "As an optional public relations branding tool with zero legal significance."
+          "Whether the file is large",
+          "Whether the file is old",
+          "Whether the employee likes the data",
+          "Whether any legal or regulatory retention requirement applies"
+        ],
+        "answer": "D"
+      },
+      {
+        "prompt": "A company lets users sign up with one click but makes them call a helpline during office hours to cancel. Withdrawal of consent should be:",
+        "options": [
+          "Harder than giving consent",
+          "As easy as giving consent",
+          "Possible only by post",
+          "Possible only after one year"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What core legal principle governs the relationship between the Board's original adjudicatory role and the Appellate Tribunal's review powers?",
+        "prompt": "An auditor asks the privacy team to prove that a customer's data was actually erased. What is the best evidence that data was deleted?",
         "options": [
-          "Appeal mechanisms apply strictly to individual Data Principals, excluding Data Fiduciaries.",
-          "Regulatory enforcement decisions are final and absolute, immune from judicial oversight.",
-          "Independent judicial review ensures that regulatory penalty decisions are subject to objective scrutiny and legal correctness.",
-          "The Tribunal operates as an investigative branch subordinate to the Data Protection Board."
+          "A deletion log or certificate showing what was erased, when and by whom",
+          "A verbal assurance",
+          "An informal email saying \"done\"",
+          "No evidence is needed"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A company ignores several erasure requests, and the Data Protection Board finds that it has breached its obligations. Failure to meet obligations such as erasure, which fall under the general penalty slab, can attract a penalty of up to:",
+        "options": [
+          "₹1 crore",
+          "₹10 crore",
+          "₹50 crore",
+          "₹250 crore"
         ],
         "answer": "C"
       }
@@ -4213,469 +4213,469 @@
   },
   {
     "number": 28,
-    "title": "Voluntary Undertakings and Alternative Dispute Resolution",
+    "title": "Privacy Governance, Audit and Data Protection Impact Assessment",
     "questions": [
       {
-        "prompt": "What statutory provision of the DPDP Act allows a person facing inquiry proceedings to offer a voluntary undertaking to the Data Protection Board?",
+        "prompt": "A mid-sized company has privacy policies scattered across departments, and nobody is clearly in charge of personal data. Privacy governance refers to:",
         "options": [
-          "Section 32 of the DPDP Act provides for voluntary undertakings.",
-          "Section 18 of the DPDP Act.",
-          "Section 35 of the DPDP Act.",
-          "Section 11 of the DPDP Act."
+          "A framework of policies, roles, responsibilities and oversight for managing personal data",
+          "Only IT security tools",
+          "A one-'me legal filing",
+          "A marketing strategy"
         ],
         "answer": "A"
       },
       {
-        "prompt": "What is the primary operational objective of accepting a voluntary undertaking under Section 32?",
+        "prompt": "A large social media company processes huge volumes of personal data and wants to know whether it needs a DPO. Which type of organisation must appoint a Data Protection Officer (DPO) under the DPDP Act?",
         "options": [
-          "To provide a tax exemption for multinational enterprises operating in India.",
-          "To enable a cooperative mechanism to resolve potential breaches without full adversarial adjudication.",
-          "To allow absolute, unconditioned immunity from all future compliance obligations.",
-          "To permit the Board to delegate its statutory enforcement powers directly to commercial trade associations."
+          "Every small business",
+          "Significant Data Fiduciaries",
+          "Only government departments",
+          "Only Data Processors"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What specific procedural status must inquiry proceedings hold for the Board to accept a voluntary undertaking under Section 32?",
+        "prompt": "The board of a Significant Data Fiduciary is choosing who will serve as its DPO and what the role requires. The DPO must be:",
         "options": [
-          "Proceedings must have reached the final High Court appeal stage.",
-          "Criminal court jury trials must be underway against executive management.",
-          "Inquiry proceedings under Section 28 must be pending before the Board.",
-          "Proceedings must have concluded with maximum financial penalties already billed."
-        ],
-        "answer": "C"
-      },
-      {
-        "prompt": "What components must a compliant voluntary undertaking typically specify regarding corrective actions?",
-        "options": [
-          "A detailed commercial marketing plan to increase enterprise sales revenue.",
-          "The personal residential addresses and background histories of board members.",
-          "Unverified oral promises made by junior administrative interns during phone calls.",
-          "The specific actions the person will take to remedy the breach or prevent recurrence."
+          "Based outside India",
+          "A junior intern",
+          "Any employee, with no reporting line",
+          "Based in India and responsible to the Board of Directors or similar governing body"
         ],
         "answer": "D"
       },
       {
-        "prompt": "Can the Data Protection Board accept a voluntary undertaking unconditionally without formal terms?",
+        "prompt": "A large company wonders whether it can simply declare itself a Significant Data Fiduciary or whether it will be told. Who notifies an organisation as a Significant Data Fiduciary?",
         "options": [
-          "No, the Board may accept terms, including the payment of specified amounts or compliance timelines.",
-          "No, voluntary undertakings are legally restricted to non-profit charitable trusts.",
-          "Yes, oral executive assurances are fully sufficient under the statutory framework.",
-          "Yes, if approved internally by corporate marketing and sales divisions."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What happens to ongoing inquiry proceedings once the Board accepts a formal voluntary undertaking?",
-        "options": [
-          "Proceedings continue unchanged alongside mandatory criminal court litigation.",
-          "The inquiry proceedings in respect of that person may be closed by the Board.",
-          "The Board is legally required to double all statutory fine maximums automatically.",
-          "The case files must be transferred permanently to international arbitration boards."
-        ],
-        "answer": "B"
-      },
-      {
-        "prompt": "What legal consequence arises if a person breaches the terms of an accepted voluntary undertaking?",
-        "options": [
-          "The organization receives a verbal warning with no further regulatory tracking.",
-          "Statutory enforcement jurisdiction transfers completely to municipal tax authorities.",
-          "Breach of an undertaking's terms is treated as a breach of the Act, inviting penalties up to the applicable limit.",
-          "The undertaking becomes a permanent legal shield with zero enforcement consequences."
+          "The organisation itself",
+          "The Data Principals",
+          "The Central Government",
+          "The Data Processors"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What alternative dispute resolution (ADR) mechanism is explicitly contemplated under Section 31 of the DPDP Act?",
+        "prompt": "The authorities are deciding which organisations should face stricter obligations under the Act. Which is a factor for classifying a Significant Data Fiduciary?",
         "options": [
-          "Commercial debt collection agencies operating under municipal trade licenses.",
-          "Mandatory binding arbitration administered through foreign international chambers.",
-          "Public social media voting and community dispute resolution forums.",
-          "Mediation, if directed by the Board and mutually agreed upon or provided for under law."
+          "Size of the office",
+          "Volume and sensitivity of personal data processed",
+          "Colour of the logo",
+          "Number of branches"
+        ],
+        "answer": "B"
+      },
+      {
+        "prompt": "A product team plans to launch an app that uses personal data in a new way, and the privacy team asks for a formal risk review. A Data Protection Impact Assessment (DPIA) is:",
+        "options": [
+          "A financial audit",
+          "A marketing survey",
+          "A process to assess and manage risks to Data Principals' rights from processing",
+          "A software licence check"
+        ],
+        "answer": "C"
+      },
+      {
+        "prompt": "A Significant Data Fiduciary completed its first DPIA and audit last year and is now planning the next cycle. How often must it carry out a DPIA and audit under the Rules?",
+        "options": [
+          "Once every 12 months",
+          "Once every 5 years",
+          "Only once, ever",
+          "Every 3 years"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A Significant Data Fiduciary wants an outside expert to review how well it follows the law. It must appoint an independent data auditor to:",
+        "options": [
+          "Design its logo",
+          "Handle its payroll",
+          "Run its marketing campaigns",
+          "Evaluate its compliance with the Act"
         ],
         "answer": "D"
       },
       {
-        "prompt": "How does mediation function relative to the formal adjudicatory powers of the Data Protection Board under Section 31?",
+        "prompt": "A company is planning to introduce facial recognition for customer verification across its branches. When is a DPIA most useful?",
         "options": [
-          "Mediation serves as a cooperative dispute resolution path that can complement formal Board proceedings.",
-          "Mediation completely abolishes and repeals the Data Protection Board's statutory powers.",
-          "Mediation is restricted exclusively to criminal data theft investigations.",
-          "ADR mechanisms apply solely to government agencies, excluding private fiduciaries."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What operational outcome does a successful alternative dispute resolution process achieve for an enterprise?",
-        "options": [
-          "It guarantees a permanent tax exemption from corporate regulatory fees.",
-          "It provides a structured, consensual pathway to resolve grievances or disputes without prolonged litigation.",
-          "It transfers 100% of data fiduciary accountability to third-party cloud vendors.",
-          "It entirely bypasses enterprise data inventories and access controls."
+          "After a breach has been forgotten",
+          "Before launching a new, high-risk processing activity or technology",
+          "Only at year-end",
+          "Never, if the processing is legal"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What administrative record must an organization maintain when participating in voluntary undertakings or mediation?",
+        "prompt": "The privacy team is drafting a DPIA template and listing the sections it should contain. Which is NOT typically part of a DPIA?",
         "options": [
-          "Records are restricted strictly to commercial advertising marketing brochures.",
-          "Companies must rely exclusively on unrecorded verbal telephone discussions.",
-          "The organisation should document all settlement agreements, undertakings, and remedial actions taken.",
-          "Documentation of dispute resolutions is legally prohibited under privacy rules."
-        ],
-        "answer": "C"
-      },
-      {
-        "prompt": "How should an enterprise compliance team view voluntary undertakings within a mature risk-management strategy?",
-        "options": [
-          "As an informal corporate loophole designed to evade technical security safeguards permanently.",
-          "As a substitute for maintaining operational data inventories and access logs.",
-          "As an optional marketing branding exercise with zero legal weight.",
-          "As a flexible, risk-mitigating tool to address minor or correctable compliance gaps cooperatively."
+          "Describing the purpose of processing",
+          "Identifying risks to individuals",
+          "Listing mitigation measures",
+          "Calculating advertising revenue"
         ],
         "answer": "D"
       },
       {
-        "prompt": "What procedural safeguard governs the Board's acceptance of a voluntary undertaking?",
+        "prompt": "A new privacy manager wants to understand where all of the company's personal data actually lives. How does data mapping (a data inventory) help governance?",
         "options": [
-          "The Board must ensure terms are appropriate, transparent, and aligned with statutory objectives.",
-          "The Board is legally barred from reviewing the technical content of undertakings.",
-          "Acceptance requires unanimous approval from international trade associations.",
-          "The Board must automatically accept any proposal submitted by a commercial entity without review."
+          "It shows what personal data is collected, where it is stored and who it is shared with",
+          "It replaces the need for a privacy notice",
+          "It increases data storage",
+          "It removes the need for audits"
         ],
         "answer": "A"
       },
       {
-        "prompt": "How do voluntary undertakings and mediation mechanisms support the overall enforcement philosophy of the DPDP framework?",
+        "prompt": "A retailer hires an outside call centre to handle customer data on its behalf, and the call centre has a security lapse. Under accountability, the Data Fiduciary remains responsible for compliance:",
         "options": [
-          "They function as commercial venture capital funding mechanisms for tech startups.",
-          "They balance strict regulatory deterrence with pathways for corrective compliance and remediation.",
-          "They provide total immunity from data breach notification duties.",
-          "They eliminate the need for appointing a Data Protection Officer."
+          "Only for data it processes itself",
+          "Only if the Data Principal complains",
+          "Even when a Data Processor does the processing on its behalf",
+          "Only during working hours"
+        ],
+        "answer": "C"
+      },
+      {
+        "prompt": "A customer wants to ask the company a question about how their data is handled but cannot find whom to contact. Which information must a Data Fiduciary publish so people can ask questions about their data?",
+        "options": [
+          "The CEO's home address",
+          "Business contact details of the DPO or designated person",
+          "Its full employee list",
+          "Its financial statements"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What core legal principle governs the enforcement of an accepted voluntary undertaking?",
+        "prompt": "An independent audit has found several gaps in a company's consent and retention practices. What should happen after an audit finds gaps?",
         "options": [
-          "Voluntary undertakings are non-binding moral agreements with zero legal enforceability.",
-          "Defaulting on an undertaking results exclusively in informal public relations warnings.",
-          "Because an undertaking is formally accepted by the Board, defaulting on its terms carries direct statutory penalty exposure.",
-          "Enforcement jurisdiction over undertakings rests strictly with local municipal courts."
+          "A corrective action plan with owners and deadlines",
+          "The report should be archived and ignored",
+          "The auditor should be replaced",
+          "The gaps should be hidden from management"
         ],
-        "answer": "C"
+        "answer": "A"
+      },
+      {
+        "prompt": "A regulator may ask a company to show how it follows the law at very short notice. Which best keeps an organisation \"audit-ready\"?",
+        "options": [
+          "Relying on staff memory",
+          "Keeping informal notes",
+          "Deleting old records",
+          "Maintaining documented evidence such as policies, consent records, logs and training records"
+        ],
+        "answer": "D"
       }
     ]
   },
   {
     "number": 29,
-    "title": "Miscellaneous Provisions, Protection of Action Taken in Good Faith, and Power to Make Rules",
+    "title": "DPDP Compliance Programme for an Organisation",
     "questions": [
       {
-        "prompt": "What statutory protection does Section 35 of the DPDP Act provide to public officials and authorities?",
+        "prompt": "A foreign e-commerce company has no office in India but sells products to customers located in India through its website. The DPDP Act applies to:",
         "options": [
-          "Protection of action taken in good faith by the Central Government, the Board, and its officers.",
-          "Absolute legal immunity for intentional corporate fraud and gross negligence.",
-          "Complete commercial immunity from all corporate income taxes and import tariffs.",
-          "Total exemption from criminal prosecution for personal traffic violations."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What core legal condition is mandatory for Section 35 immunity to apply to official actions?",
-        "options": [
-          "Actions must be approved unanimously by external international trade associations.",
-          "Actions must be performed in \"good faith\" and pursuant to the Act or its rules.",
-          "Decisions must generate maximum commercial advertising revenue for state entities.",
-          "Direct personal sign-off from the chief executive officer of the enterprise."
-        ],
-        "answer": "B"
-      },
-      {
-        "prompt": "What statutory power does Section 36 of the DPDP Act grant to the Data Protection Board or Central Government?",
-        "options": [
-          "The authority to manage commercial employee payroll distributions.",
-          "The power to dissolve corporate boards of directors without judicial review.",
-          "The power to call for information, reports, or returns from Data Fiduciaries or intermediaries.",
-          "The power to seize physical real estate properties of private citizens."
+          "Only paper records",
+          "Only government bodies",
+          "Digital personal data processed in India, and outside India when offering goods or services to people in India",
+          "Only data of foreign citizens"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What regulatory mechanism does Section 37 of the DPDP Act authorize under specified conditions?",
+        "prompt": "A company has just decided to start a DPDP compliance programme, and the team is unsure where to begin. What is a sensible first step?",
         "options": [
-          "The public auction of enterprise server hardware assets.",
-          "The mandatory liquidation and bankruptcy filing of non-compliant startups.",
-          "The immediate revocation of municipal water and electricity supply to corporate offices.",
-          "The blocking of access to information by the public through any computer resource."
+          "Identify what personal data you hold and run a gap assessment",
+          "Buy the most expensive software",
+          "Wait for a complaint",
+          "Delete all customer data"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A website collects consent through a banner during sign-up, and the legal team is reviewing whether it is valid. Valid consent must be:",
+        "options": [
+          "Hidden in fine print",
+          "Assumed from silence",
+          "Collected through a pre-'cked box",
+          "Free, specific, informed, unconditional and unambiguous, given by a clear affirmative action"
         ],
         "answer": "D"
       },
       {
-        "prompt": "What must the Board record in writing before issuing a recommendation to block access under Section 37?",
+        "prompt": "A company is drafting the notice that users will see before they share their data. A privacy notice should tell the Data Principal:",
         "options": [
-          "Satisfaction that multiple penalties have been imposed and the fiduciary is unlikely to comply, after giving an opportunity of being heard.",
-          "That the data fiduciary has failed to sponsor public sports events.",
-          "That the company's daily stock market valuation has declined for three consecutive months.",
-          "A formal request submitted by competing industrial corporate entities."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "How does Section 38 address the consistency of the DPDP Act with other laws in force?",
-        "options": [
-          "Sectoral laws completely override and void all data protection rules.",
-          "In the event of any inconsistency, the provisions of the DPDP Act shall prevail in respect of personal data protection.",
-          "The DPDP Act applies exclusively to foreign entities, ignoring domestic statutes.",
-          "The DPDP Act automatically repeals all prior Indian civil and criminal legislation."
+          "The company's profit figures",
+          "What data is collected and why, how to exercise rights and how to complain to the Board",
+          "Only the company's address",
+          "Nothing, if consent is given"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What regulatory rulemaking power does Chapter IX confer upon the Central Government?",
+        "prompt": "A hospital needs to process the personal data of an unconscious patient brought in after an accident. Which is a \"legitimate use\" under the Act where consent is not needed?",
         "options": [
-          "The authority to manage municipal zoning codes and building permits.",
-          "The authority to set internal corporate executive remuneration packages.",
-          "The power to make rules to carry out the provisions of the DPDP Act.",
-          "The power to determine commercial retail pricing for consumer electronics."
+          "Sending promotional emails",
+          "Selling data to advertisers",
+          "Responding to a medical emergency",
+          "Building a customer profile for fun"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What parliamentary procedure applies to rules made under the DPDP Act?",
+        "prompt": "An ed-tech app is checking which of its users count as children under the law and need special protection. Under the DPDP Act, a \"child\" is a person below the age of:",
         "options": [
-          "Rules must be kept confidential until approved by every State Government.",
-          "Rules take effect only after approval by an international tribunal.",
-          "Rules require approval from every Data Fiduciary before publication.",
-          "Rules are laid before each House of Parliament in accordance with the statutory procedure; the Act also provides for a total 30-day laying period and possible modification or annulment by both Houses."
+          "18 years",
+          "16 years",
+          "14 years",
+          "21 years"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "An online game popular with teenagers wants to personalise ads using its young users' activity. Which is prohibited for children's data?",
+        "options": [
+          "Verifying parental consent",
+          "Storing data securely",
+          "Providing a privacy notice",
+          "Tracking, behavioural monitoring and targeted advertising"
         ],
         "answer": "D"
       },
       {
-        "prompt": "What power does Section 42 grant to the Central Government regarding the penalty amounts specified in the Schedule?",
+        "prompt": "A company discovers that a stolen laptop contained unencrypted customer data. In case of a personal data breach, the Data Fiduciary must inform:",
         "options": [
-          "The power to amend the Schedule, provided no penalty can be increased beyond twice the amount originally specified.",
-          "The authority to abolish all financial penalties permanently.",
-          "Zero power to alter penalty figures once the Act has commenced.",
-          "The power to increase penalty figures up to ten times their original statutory value."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What power does Section 43 of the DPDP Act grant to the Central Government?",
-        "options": [
-          "A power to suspend all rights of Data Principals during investigations.",
-          "A power to remove difficulties in giving effect to the provisions of the Act, subject to the statutory conditions.",
-          "A power to transfer Board proceedings automatically to local police stations.",
-          "A power to impose criminal imprisonment for every data breach."
+          "Only the press",
+          "The Data Protection Board and each affected Data Principal",
+          "Only the police",
+          "No one, if the breach is small"
         ],
         "answer": "B"
       },
       {
-        "prompt": "Why is Section 35 (good faith protection) essential for maintaining an effective regulatory enforcement architecture?",
+        "prompt": "The IT head is choosing safeguards to protect the customer database from unauthorised access. Which is an example of a reasonable security safeguard?",
         "options": [
-          "It provides a loophole for officials to bypass statutory procedural rules with impunity.",
-          "It eliminates the necessity of maintaining operational data inventories and access logs.",
-          "It ensures regulators and officers can perform their statutory duties without undue fear of personal vexatious lawsuits.",
-          "It guarantees financial bonuses for regulatory board members based on fine collections."
+          "Sharing passwords among staff",
+          "Keeping data on open drives",
+          "Encryption, access controls and activity logging",
+          "Printing all data"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What administrative standard must information calls under Section 36 maintain regarding data fiduciaries?",
+        "prompt": "A company wants to outsource payroll processing to an external vendor who will handle employee data. A Data Fiduciary engaging a Data Processor should do so:",
         "options": [
-          "Information calls can be unmonitored personal email requests with no response deadline.",
-          "Requests must focus exclusively on corporate marketing and advertising campaign budgets.",
-          "Fiduciaries are permitted to ignore information requests if data is encrypted.",
-          "Requests must be targeted, lawful, and supported by proper statutory authority."
+          "Under a valid contract with data protection terms",
+          "With a verbal agreement",
+          "Without any checks",
+          "Only after the processor deletes its security"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A training slide lists the rights individuals have over their personal data, but one item was included by mistake. Which of these is NOT a right given to Data Principals under the DPDP Act?",
+        "options": [
+          "Right to access information",
+          "Right to correction and erasure",
+          "Right to grievance redressal",
+          "Right to data portability"
         ],
         "answer": "D"
       },
       {
-        "prompt": "How should enterprise compliance programmes view the miscellaneous provisions in Chapter IX?",
+        "prompt": "A customer files a complaint about how their data was handled and is waiting for a reply. A Data Fiduciary must respond to a grievance within a period not exceeding:",
         "options": [
-          "As critical structural boundaries defining regulatory powers, legal consistency, and enforcement limits.",
-          "As an informal corporate mediation process detached from statutory law.",
-          "As an optional collection of decorative legal clauses with zero practical impact.",
-          "As a mechanism designed exclusively to shield technology startups from financial penalties."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What core legal principle governs the interaction between Section 38 (consistency with other laws) and sectoral data provisions?",
-        "options": [
-          "Sectoral laws override privacy duties entirely in all commercial sectors.",
-          "Harmonious construction applies where possible, but data protection specific mandates of the DPDP Act prevail over general inconsistencies.",
-          "The DPDP Act applies strictly to digital tech firms, ignoring all other industrial statutes.",
-          "Statutory consistency is determined entirely at the individual discretion of data fiduciaries."
+          "7 days",
+          "90 days",
+          "1 year",
+          "3 years"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What documentary standard must organizations maintain to address potential inquiries or information calls under Chapter IX?",
+        "prompt": "A customer is unhappy with how a company handled their complaint and wants to know where to go next. The Data Protection Board of India:",
         "options": [
-          "Documentation is restricted exclusively to commercial marketing brochures.",
-          "Organizations are prohibited from saving regulatory correspondence in databases.",
-          "Organisations should maintain reliable, organized compliance records and data inventories to respond lawfully to official demands.",
-          "Companies must rely on unverified oral assurances from executive management."
+          "Inquires into breaches and complaints and can impose penalties",
+          "Sells compliance software",
+          "Writes privacy notices for companies",
+          "Stores personal data"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A company wants to store customer data on a cloud server located in another country. Cross- border transfer of personal data under the Act is:",
+        "options": [
+          "Banned completely",
+          "Allowed only with court approval",
+          "Allowed, except to countries restricted by the Central Government",
+          "Allowed only for children's data"
         ],
         "answer": "C"
+      },
+      {
+        "prompt": "The HR head says training sessions are a waste of time because the policies are already written. Why is staff training part of a compliance programme?",
+        "options": [
+          "It is only a formality",
+          "So employees understand their duties in handling personal data and reporting incidents",
+          "To replace written policies",
+          "To reduce the need for security tools"
+        ],
+        "answer": "B"
       }
     ]
   },
   {
     "number": 30,
-    "title": "Statutory Harmonization, Legislative Modifications and Concluding Provisions",
+    "title": "Final DPDP Compliance Readiness Assessment",
     "questions": [
       {
-        "prompt": "What primary legal function does Section 44 of the DPDP Act fulfill within India's broader legislative ecosystem?",
+        "prompt": "A company's management wants to know how prepared it is before the DPDP obligations fully apply. The main purpose of a readiness assessment is to:",
         "options": [
-          "It amends existing legislation—such as the Right to Information Act—to ensure harmonization and consistency with the DPDP Act.",
-          "It establishes a venture capital investment fund for digital technology startups.",
-          "It sets out the criminal sentencing guidelines for data processing executives.",
-          "It outlines the licensing fee schedules for commercial Consent Managers."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "How does Section 44 modify Section 8 of the Right to Information Act, 2005 (RTI Act)?",
-        "options": [
-          "By granting public authorities unlimited rights to publish citizen tax records.",
-          "By replacing the exemption clause related to personal information to align with modern data protection standards.",
-          "By transferring RTI administration directly to the Data Protection Board of India.",
-          "By abolishing the RTI Act entirely and replacing it with privacy notice requirements."
-        ],
-        "answer": "B"
-      },
-      {
-        "prompt": "What specific provision of the Information Technology Act, 2000 is explicitly omitted by Section 44 of the DPDP Act?",
-        "options": [
-          "Section 79 governing intermediary safe harbour immunities.",
-          "Section 66A concerning offensive electronic messages.",
-          "Section 43A relating to compensation for failure to protect sensitive personal data or information.",
-          "Section 69 intercepting digital communications."
-        ],
-        "answer": "C"
-      },
-      {
-        "prompt": "Why are statutory amendments to older laws necessary when implementing a comprehensive privacy framework like the DPDP Act?",
-        "options": [
-          "To extend corporate income tax collection windows for multinational enterprises.",
-          "To permit unconditioned commercial data hoarding by private corporations.",
-          "To eliminate the requirement for maintaining technical database encryption keys.",
-          "To eliminate contradictory or overlapping legal obligations, preventing confusion across regulatory regimes."
+          "Impress customers",
+          "Replace legal advice",
+          "Delete old data",
+          "Measure current compliance against requirements and identify gaps"
         ],
         "answer": "D"
       },
       {
-        "prompt": "What schedule-related update power does Section 42 grant to the Central Government?",
+        "prompt": "A readiness assessment has produced a long list of gaps across consent, security and retention. After identifying gaps, the next step is to:",
         "options": [
-          "The power to amend the Schedule containing penalty figures, subject to statutory limits.",
-          "The power to alter parliamentary election dates across domestic constituencies.",
-          "Zero authority to modify statutory texts once enacted by Parliament.",
-          "The authority to rewrite corporate employment bylaws and human resource manuals."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "How does the DPDP Act handle potential conflicts or inconsistencies with other pre-existing Indian laws governing personal data?",
-        "options": [
-          "Statutory consistency is left entirely to the individual discretion of data fiduciaries.",
-          "In the event of any inconsistency, the provisions of the DPDP Act shall prevail in respect of personal data protection.",
-          "Sectoral laws completely override and void all data protection rules in every context.",
-          "Pre-existing laws automatically repeal the DPDP Act provisions."
+          "Ignore the low-risk ones forever",
+          "Prioritise by risk and build a remediation roadmap with owners and 'melines",
+          "Wait for the Board to notice",
+          "Shut down operations"
         ],
         "answer": "B"
       },
       {
-        "prompt": "What operational objective guides the transitional enforcement and commencement design of the DPDP Act and its Rules?",
+        "prompt": "A sign-up form on your website has the consent checkbox ticked by default, and users just press \"Continue\". Is this valid consent?",
         "options": [
-          "To enforce maximum financial penalties instantly without prior notice or transition windows.",
-          "To ban international data transfers permanently across all industrial sectors.",
-          "To introduce data protection obligations with minimum disruption while enabling innovation and compliance readiness.",
-          "To eliminate the necessity of conducting Data Protection Impact Assessments."
+          "No, consent needs a clear affirmative action",
+          "Yes, if the box is small",
+          "Yes, if users are adults",
+          "Yes, if the app is free"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A security engineer reports that an unauthorised person accessed a database of customer records last night. What is the right first move?",
+        "options": [
+          "Delete the logs",
+          "Wait a year to see the impact",
+          "Contain it, assess it, and prepare to notify the Board and affected individuals",
+          "Blame the vendor publicly"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What core compliance takeaway should an enterprise derive from the concluding statutory provisions?",
+        "prompt": "A 15-year-old wants to open an account on your learning app using their own email address. What do you need?",
         "options": [
-          "Organizations are exempt from complying with older IT regulations once the DPDP Act commences.",
-          "Statutory harmonization shifts 100% of legal liability away from fiduciaries onto third-party vendors.",
-          "Compliance is an isolated legal exercise restricted strictly to annual financial tax audits.",
-          "Harmonization across statutes means privacy controls must align with both data-specific mandates and broader information laws."
+          "Nothing, the teenager can consent",
+          "Verifiable consent from the parent or lawful guardian",
+          "A school ID only",
+          "A social media profile link"
+        ],
+        "answer": "B"
+      },
+      {
+        "prompt": "A customer asks for erasure, but the law requires you to keep invoices for a set period, and the customer expects a reply within a few days. You should:",
+        "options": [
+          "Delete everything immediately",
+          "Refuse to reply",
+          "Hide the invoices from yourself",
+          "Keep the legally required data for that period, erase the rest and tell the customer"
         ],
         "answer": "D"
       },
       {
-        "prompt": "How should compliance teams view the systematic progression from Chapter 1 through Chapter 30?",
+        "prompt": "During a vendor review, you find that your marketing agency has been handling customer contact lists for months. A vendor processes your customer data with no written contract. This is:",
         "options": [
-          "As a complete end-to-end master architecture for designing, operating, proving, and defending a professional-grade privacy programme.",
-          "As an informal corporate mediation framework detached from statutory enforcement.",
-          "As a collection of optional guidelines designed exclusively for non-profit charitable trusts.",
-          "As a temporary set of corporate marketing recommendations with zero legal binding effect."
+          "A compliance gap, because a valid contract is required",
+          "Fine for short projects",
+          "Fine if the vendor is well known",
+          "Fine if no data is lost"
         ],
         "answer": "A"
       },
       {
-        "prompt": "What documentary standard must mature enterprises maintain across their entire compliance lifecycle to satisfy the complete DPDP framework?",
+        "prompt": "Management asks the team to pick measurable signs that show the organisation is genuinely prepared. Which is a good readiness indicator?",
         "options": [
-          "Unverified oral executive assurances and unrecorded telephone transcripts.",
-          "Reliable, organized operational evidence, data inventories, technical logs, and governance records linking controls to legal duties.",
-          "Colorful promotional marketing brochures published on website homepages.",
-          "Private personal diaries and unverified employee social media chat logs."
-        ],
-        "answer": "B"
-      },
-      {
-        "prompt": "What does Section 40 of the DPDP Act empower the Central Government to do?",
-        "options": [
-          "Set the commercial prices charged by Consent Managers.",
-          "Replace the Data Protection Board with a private arbitration body.",
-          "Make rules, by notification and subject to the statutory conditions, to carry out the purposes of the Act.",
-          "Appoint every private-sector Data Protection Officer directly."
+          "A long privacy policy no one reads",
+          "Many software licences",
+          "A published contact point for privacy questions and a working grievance process",
+          "A large marketing team"
         ],
         "answer": "C"
       },
       {
-        "prompt": "What parliamentary oversight applies to rules made under Section 40 of the DPDP Act?",
+        "prompt": "The HR team needs to pay salaries and maintain employee records, and asks whether each employee must give separate consent. An employer processes employee payroll data without separate consent. Which basis may apply?",
         "options": [
-          "The rules can be enforced only after approval by an international tribunal.",
-          "The rules are kept confidential until approved by every State Government.",
-          "The rules require approval from every Data Fiduciary before publication.",
-          "The rules are laid before each House of Parliament as provided by the Act."
+          "Marketing consent",
+          "Advertising use",
+          "Public interest",
+          "Legitimate use for employment purposes"
         ],
         "answer": "D"
       },
       {
-        "prompt": "What is the purpose of Section 42 of the DPDP Act?",
+        "prompt": "The CISO plans a session where the team is given a simulated incident and must respond to it step by step. What is the purpose of a breach tabletop drill?",
         "options": [
-          "It allows the Central Government to amend the Schedule, subject to the statutory limit.",
-          "It gives Data Fiduciaries power to rewrite the Act through internal policies.",
-          "It establishes the first Appellate Tribunal for privacy disputes.",
-          "It removes all monetary penalties from the Schedule."
-        ],
-        "answer": "A"
-      },
-      {
-        "prompt": "What limitation applies to the Central Government's power under Section 43 to remove difficulties?",
-        "options": [
-          "The power can be exercised without any time limit.",
-          "An order under Section 43 may be made only within three years from the date of commencement of the Act.",
-          "The power is available only after approval by every Data Fiduciary.",
-          "The power authorises criminal imprisonment for every data breach."
+          "To entertain staff",
+          "To test whether the team can respond quickly and correctly to a breach",
+          "To reduce insurance costs",
+          "To avoid writing a policy"
         ],
         "answer": "B"
       },
       {
-        "prompt": "Why are the legislative modifications in Section 44 important to the DPDP framework?",
+        "prompt": "An auditor asks you to prove that users actually agreed to your data collection. Which record best proves you collected valid consent?",
         "options": [
-          "They make all existing sectoral laws irrelevant to personal data.",
-          "They abolish the entire Right to Information Act and all information-access rights.",
-          "They amend specified existing laws so that the broader legal framework is harmonised with the DPDP regime.",
-          "They transfer all privacy disputes to commercial arbitration bodies."
+          "A consent log with 'mestamp, notice version and the Data Principal's action",
+          "A staff member's recollection",
+          "A generic email footer",
+          "An unsigned template"
         ],
-        "answer": "C"
+        "answer": "A"
+      },
+      {
+        "prompt": "Your company serves customers across India who speak many different languages. Your notice should be written:",
+        "options": [
+          "In plain language, with an option to read it in English or any language listed in the Eighth Schedule",
+          "In legal jargon only",
+          "In English only",
+          "In very small print"
+        ],
+        "answer": "A"
+      },
+      {
+        "prompt": "A company has been notified as a Significant Data Fiduciary and is preparing its readiness checklist. A Significant Data Fiduciary's readiness checklist should include:",
+        "options": [
+          "A new office building",
+          "An India-based DPO, an independent data auditor and annual DPIA and audit",
+          "A new logo",
+          "More social media accounts"
+        ],
+        "answer": "B"
+      },
+      {
+        "prompt": "The compliance team is mapping penalty slabs to understand which failures are the most costly. What is the highest penalty slab under the Act, and for what?",
+        "options": [
+          "₹10,000 for a late email",
+          "₹1 crore for a missing signature",
+          "₹50 crore for a typo",
+          "₹250 crore for failing to take reasonable security safeguards"
+        ],
+        "answer": "D"
+      },
+      {
+        "prompt": "A manager believes the DPDP project can be closed once the policies are approved. Which statement about DPDP compliance is correct?",
+        "options": [
+          "It is a continuous effort of monitoring, review and updating",
+          "It is complete once a policy is written",
+          "It is needed only before an audit",
+          "It applies only to the IT team"
+        ],
+        "answer": "A"
       }
     ]
   }

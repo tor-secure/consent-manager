@@ -27,3 +27,26 @@ for (const courseModule of COURSE_CATALOG) {
 }
 
 assert.equal(keys.size, 450);
+
+// PDF MCQ chapters are wired by module title (not PDF module number).
+const byTitle = new Map(COURSE_CATALOG.map((courseModule) => [courseModule.title, courseModule]));
+assert.equal(
+  byTitle.get("Data Retention, Erasure and Deletion")?.quiz[0]?.prompt.includes("withdraws their consent"),
+  true,
+);
+assert.equal(
+  byTitle.get("Privacy Governance, Audit and Data Protection Impact Assessment")?.quiz[0]?.prompt.includes(
+    "Privacy governance",
+  ),
+  true,
+);
+assert.equal(
+  byTitle.get("DPDP Compliance Programme for an Organisation")?.quiz[0]?.prompt.includes("foreign e-commerce"),
+  true,
+);
+assert.equal(
+  byTitle.get("Final DPDP Compliance Readiness Assessment")?.quiz[0]?.prompt.includes("readiness assessment"),
+  true,
+);
+assert.equal(byTitle.get("Data Retention, Erasure and Deletion")?.number, 27);
+assert.equal(byTitle.get("Final DPDP Compliance Readiness Assessment")?.number, 30);

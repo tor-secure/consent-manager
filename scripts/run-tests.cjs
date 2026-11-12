@@ -81,6 +81,7 @@ compile(
     "src/lib/sdk/config-cache.ts",
     "src/lib/org-roles.ts",
     "src/lib/site-metadata.ts",
+    "src/lib/learning/course-parts.ts",
     "src/lib/learning/engine.ts",
     "src/lib/learning/catalog.ts",
     "src/lib/learning/operator-access.ts",

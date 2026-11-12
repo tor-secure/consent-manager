@@ -30,9 +30,30 @@ type McqChapter = {
 
 const ANSWER_LETTERS = ["A", "B", "C", "D"] as const;
 
+/** Match MCQ chapters by module title so PDF/bank numbering can diverge from the live course. */
+function normalizeModuleTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/\borganization\b/g, "organisation")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function chapterFor(module: ProgrammeModule): McqChapter {
+  const chapters = mcqBank as McqChapter[];
+  const key = normalizeModuleTitle(module.title);
+  const byTitle = chapters.filter((item) => normalizeModuleTitle(item.title) === key);
+  if (byTitle.length === 1) return byTitle[0];
+  if (byTitle.length > 1) {
+    throw new Error(`Module "${module.title}" matches ${byTitle.length} MCQ chapters by title`);
+  }
+  throw new Error(`Module ${module.number} ("${module.title}") has no MCQ chapter matched by title`);
+}
+
 function questionsFor(module: ProgrammeModule): { quiz: CatalogQuestion[]; exam: CatalogQuestion[] } {
-  const chapter = (mcqBank as McqChapter[]).find((item) => item.number === module.number);
-  if (!chapter || chapter.questions.length !== 15) {
+  const chapter = chapterFor(module);
+  if (chapter.questions.length !== 15) {
     throw new Error(`Module ${module.number} is missing its 15-question bank`);
   }
   const pad = String(module.number).padStart(2, "0");

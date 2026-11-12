@@ -7,6 +7,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/brand/brand-logo";
 import { StatusIcon, toModuleStatus } from "@/components/learning/status-icon";
 import { pad } from "@/components/learning/ui";
+import { displayModuleNumber, groupModulesByPart } from "@/lib/learning/course-parts";
 
 export type PortalModule = {
   number: number;
@@ -81,7 +82,7 @@ function MiniBars({ modules }: { modules: PortalModule[] }) {
               className={`w-full rounded-t-md ${done ? "bg-[#00C4A7]" : "bg-[#c5d6d2]"}`}
               style={{ height: `${height}%` }}
             />
-            <span className="text-[9px] font-semibold tabular-nums text-[#4d6570]">M{pad(item.number)}</span>
+            <span className="text-[9px] font-semibold tabular-nums text-[#4d6570]">M{pad(displayModuleNumber(item.number))}</span>
           </div>
         );
       })}
@@ -92,6 +93,7 @@ function MiniBars({ modules }: { modules: PortalModule[] }) {
 export function LearningPortal({ children, signedIn, enrolled, modules, progress, courseTitle }: Props) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const curriculumParts = useMemo(() => groupModulesByPart(modules), [modules]);
 
   if (pathname.startsWith("/e-learning/sign-in") || pathname.startsWith("/e-learning/sign-up")) {
     return children;
@@ -171,50 +173,69 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
 
         <div className="mt-4 flex flex-col">
           <p className="shrink-0 px-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">Curriculum</p>
-          <ol className="mt-2 space-y-0.5 pr-1">
-          {modules.map((item) => {
-            const status = toModuleStatus(item.status);
-            const href = item.unlocked === false ? "/e-learning" : `/e-learning/module/${item.slug}`;
-            const active = pathname.includes(`/module/${item.slug}`);
-            return (
-              <li key={item.slug}>
+          <div className="mt-2 space-y-3 pr-1">
+            {curriculumParts.map(({ part, modules: partModules }) => (
+              <div key={part.number || part.title}>
+                <p className="px-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#00A88F]">
+                  Part {part.number || "—"}
+                </p>
+                <p className="mt-0.5 line-clamp-2 px-2 text-[11px] font-semibold leading-4 text-[#4d6570]">{part.title}</p>
+                <ol className="mt-1.5 space-y-0.5">
+                  {partModules.map((item) => {
+                    const status = toModuleStatus(item.status);
+                    const href = item.unlocked === false ? "/e-learning" : `/e-learning/module/${item.slug}`;
+                    const active = pathname.includes(`/module/${item.slug}`);
+                    return (
+                      <li key={item.slug}>
+                        <Link
+                          href={href}
+                          onClick={() => setOpen(false)}
+                          title={item.title}
+                          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-left text-sm motion-safe:transition-colors ${
+                            active ? "bg-[#E6F9F5] font-semibold text-[#0B2C4A]" : "text-[#36505c] hover:bg-[#f3f8f7]"
+                          }`}
+                        >
+                          {enrolled ? (
+                            <StatusIcon status={status} size={16} />
+                          ) : (
+                            <span className="w-4 text-[10px] font-bold tabular-nums text-[#8aa0a8]">
+                              {pad(displayModuleNumber(item.number))}
+                            </span>
+                          )}
+                          <span className="min-w-0 flex-1 truncate">
+                            Module {pad(displayModuleNumber(item.number))}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+            ))}
+            <div className="pt-1">
+              {examUnlocked ? (
                 <Link
-                  href={href}
+                  href="/e-learning/final-exam"
                   onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 rounded-lg px-2 py-2 text-left text-sm motion-safe:transition-colors ${
-                    active ? "bg-[#E6F9F5] font-semibold text-[#0B2C4A]" : "text-[#36505c] hover:bg-[#f3f8f7]"
+                  className={`flex items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-semibold motion-safe:transition-colors ${
+                    examActive ? "bg-[#E6F9F5] text-[#0B2C4A]" : "text-[#0B2C4A] hover:bg-[#f3f8f7]"
                   }`}
                 >
-                  {enrolled ? <StatusIcon status={status} size={16} /> : <span className="w-4 text-[10px] font-bold tabular-nums text-[#8aa0a8]">{pad(item.number)}</span>}
-                  <span className="min-w-0 flex-1 truncate">Module {pad(item.number)}</span>
+                  {enrolled ? <StatusIcon status={examStatus} size={16} /> : null}
+                  <span className="min-w-0 flex-1">Final exam</span>
                 </Link>
-              </li>
-            );
-          })}
-          <li className="pt-1">
-            {examUnlocked ? (
-              <Link
-                href="/e-learning/final-exam"
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm font-semibold motion-safe:transition-colors ${
-                  examActive ? "bg-[#E6F9F5] text-[#0B2C4A]" : "text-[#0B2C4A] hover:bg-[#f3f8f7]"
-                }`}
-              >
-                {enrolled ? <StatusIcon status={examStatus} size={16} /> : null}
-                <span className="min-w-0 flex-1">Final exam</span>
-              </Link>
-            ) : (
-              <div
-                className="flex items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm text-[#8aa0a8]"
-                aria-disabled="true"
-                title="Complete all modules to unlock the final exam"
-              >
-                {enrolled ? <StatusIcon status="locked" size={16} /> : null}
-                <span className="min-w-0 flex-1 font-semibold">Final exam</span>
-              </div>
-            )}
-          </li>
-        </ol>
+              ) : (
+                <div
+                  className="flex items-center gap-2 rounded-lg px-2 py-2.5 text-left text-sm text-[#8aa0a8]"
+                  aria-disabled="true"
+                  title="Complete all modules to unlock the final exam"
+                >
+                  {enrolled ? <StatusIcon status="locked" size={16} /> : null}
+                  <span className="min-w-0 flex-1 font-semibold">Final exam</span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

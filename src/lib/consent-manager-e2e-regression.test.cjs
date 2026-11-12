@@ -2834,7 +2834,8 @@ function testAccountConsentOwnershipSurfaces() {
   assert.match(sdk, /\/api\/consent\/account/);
   assert.match(sdk, /X-CMP-Subject-Session/);
   assert.match(sdk, /visibilitychange/);
-  assert.match(sdk, /Save your privacy choices to this account/);
+  assert.match(sdk, /Saving browser choices to your account/);
+  assert.match(sdk, /saveGuestMapsToAccount/);
   assert.match(sdk, /cmp_consent_/);
 
   const fs = require("node:fs");
