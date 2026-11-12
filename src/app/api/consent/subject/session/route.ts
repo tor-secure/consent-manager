@@ -4,6 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
+import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
 import {
   createSubjectSession,
   upsertConsentSubject,
@@ -14,9 +15,9 @@ import { consumeRateLimit, getClientIp } from "@/lib/rate-limit-store";
 import { isValidWebsiteId, readPublicJsonObject } from "@/lib/sdk/public-http";
 
 /**
- * Consent Guru first-party: after Clerk login, mint a subject session for
- * subjectKey = Clerk userId. Email is optional notification metadata.
- * Does NOT convert guest consentId records into account ownership.
+ * Consent Guru first-party: after Clerk login/sign-up, mint a subject session for
+ * subjectKey = Clerk userId. Verified email is stored on the subject and, when a
+ * guest consentId is provided, bound onto that consent record for notifications.
  */
 export async function POST(request: Request) {
   try {
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
 
     const websiteId = String(parsed.body.websiteId ?? "").trim();
     const siteKey = String(parsed.body.siteKey ?? "").trim();
+    const consentId = String(parsed.body.consentId ?? "").trim();
 
     if (!websiteId || !isValidWebsiteId(websiteId)) {
       return NextResponse.json({ success: false, message: "Invalid websiteId" }, { status: 400 });
@@ -83,6 +85,18 @@ export async function POST(request: Request) {
       email,
     });
 
+    let consentEmailBound = false;
+    if (email && consentId) {
+      const bind = await bindSubjectFromClerkSession({
+        organizationId: website.organizationId,
+        websiteId: website.id,
+        consentId,
+        email,
+        source: "clerk_session",
+      });
+      consentEmailBound = bind.bound;
+    }
+
     const session = await createSubjectSession({
       organizationId: website.organizationId,
       websiteId: website.id,
@@ -93,6 +107,7 @@ export async function POST(request: Request) {
       operation: "consent.subject.clerk_session",
       websiteId: website.id,
       hasEmail: Boolean(email),
+      consentEmailBound,
     });
 
     return NextResponse.json({
@@ -102,6 +117,7 @@ export async function POST(request: Request) {
       subjectSessionToken: session.token,
       expiresAt: session.expiresAt.toISOString(),
       emailBound: Boolean(email),
+      consentEmailBound,
     });
   } catch (error) {
     logger.error("Consent subject session mint failed", {

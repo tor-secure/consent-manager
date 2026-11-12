@@ -2883,13 +2883,11 @@ async function testGuestRejectStaysDeniedWithoutAccountPromote() {
   assert.equal(typeof browser.window.CMP.clearSubjectSession, "function");
   assert.equal(browser.window.CMP.getConsentContext().mode, "guest");
 
-  // Logout isolation: clearSubjectSession drops guest storage so a later account
-  // cannot inherit the prior browser grants/denies as an enablement path.
+  // Logout keeps browser consent so Accept/Reject is not forced again; only the
+  // signed-in account session is cleared.
   browser.window.CMP.clearSubjectSession();
-  assert.equal(browser.storage.get(`cmp_consent_${store.website.siteKey}`), undefined);
   assert.equal(browser.storage.get(`cmp_account_${store.website.siteKey}`), undefined);
   assert.equal(browser.window.CMP.getConsentContext().mode, "guest");
-  assert.equal(browser.window.CMP.getConsent().state, "DENIED");
 }
 
 async function main() {

@@ -245,6 +245,8 @@ ${apiBaseLine}
   var _accountConfirmed = false;
   var _accountMergePending = false;
   var _accountConflictPending = false;
+  var _accountLoadInflight = null;
+  var _accountLoadGeneration = 0;
   var _guestDenyEffective = false;
   var _listeners   = [];
   var _explicitLang = '';
@@ -2695,14 +2697,43 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (el && el.parentNode) el.parentNode.removeChild(el);
   }
 
+  function hasSavedPreferences() {
+    if (_consentId) return true;
+    if (_subjectSessionToken && _accountConfirmed) return true;
+    // Browser-remembered choices after logout (and healed account snapshots).
+    var guest = guestDecisionMapsFromStored();
+    if (guest.has) return true;
+    if (!_subjectSessionToken) return false;
+    try {
+      var raw = localStorage.getItem(ACCOUNT_KEY);
+      if (!raw) return false;
+      var account = JSON.parse(raw);
+      if (
+        account &&
+        account.status === 'active' &&
+        Array.isArray(account.decisions) &&
+        account.decisions.length > 0
+      ) {
+        _accountConfirmed = true;
+        _accountStateVersion = account.stateVersion || _accountStateVersion || 0;
+        return true;
+      }
+    } catch (eHasPrefs) {}
+    return false;
+  }
+
   function syncPreferenceWidget() {
     removePreferenceWidget();
     if (!_config) return;
     var cfg = _config.bannerConfig || {};
     if (document.getElementById('__cmp_banner__') || document.getElementById('__cmp_pc__') || document.getElementById('__cmp_prefs__')) return;
-    var hasConfirmedChoice = !!_consentId || (_subjectSessionToken && _accountConfirmed);
-    if (!hasConfirmedChoice && !_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed) return;
-    if (!_bannerSoftClosed && !_choiceUiHeld && !_choiceDismissed && cfg.showPreferenceWidget === false) return;
+    var hasConfirmedChoice = hasSavedPreferences();
+    // Cookie button = saved preferences, or soft-closed banner reopen.
+    // Do not show it for a bare dismissed state with no saved choice — that
+    // made the next click reopen the consent popup instead of preferences.
+    if (!hasConfirmedChoice && !_bannerSoftClosed) return;
+    if (hasConfirmedChoice && cfg.showPreferenceWidget === false) return;
+    if (!hasConfirmedChoice && cfg.showPreferenceWidget === false && !_bannerSoftClosed) return;
 
     var btn = document.createElement('button');
     btn.id = '__cmp_reopen__';
@@ -2721,11 +2752,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     btn.addEventListener('click', function() {
       if (Date.now() < _ignoreWidgetUntil) return;
       if (_submitBusy || _queuedSubmit || _choiceUiHeld) return;
-      if (!_consentId) {
-        reopenBannerFromWidget();
+      if (hasSavedPreferences()) {
+        removeBanner();
+        _reconsentNotice = '';
+        _choiceDismissed = true;
+        _bannerSoftClosed = false;
+        renderCookiePreferencesPanel();
         return;
       }
-      renderCookiePreferencesPanel();
+      reopenBannerFromWidget();
     });
     if (document.body) document.body.appendChild(btn);
   }
@@ -2770,12 +2805,26 @@ ${HOST_SCROLL_LOCK_RUNTIME}
 
   function storedConsentMeta() {
     var stored = loadStoredConsent() || {};
+    var account = null;
+    try {
+      var accountRaw = localStorage.getItem(ACCOUNT_KEY);
+      if (accountRaw) account = JSON.parse(accountRaw);
+    } catch (eAccMeta) {}
     var expiryRaw = null;
     try { expiryRaw = localStorage.getItem(EXPIRY_KEY); } catch (eExp) {}
     return {
-      consentId: _consentId || stored.consentId || '',
-      consentedAt: stored.consentedAt || stored.revision || null,
-      expiresAt: stored.expiresAt || (expiryRaw ? parseInt(expiryRaw, 10) : null)
+      consentId:
+        _consentId ||
+        stored.consentId ||
+        (account && (account.recordId || account.subjectKey)) ||
+        _subjectKey ||
+        '',
+      consentedAt: stored.consentedAt || stored.revision || (account && account.consentedAt) || null,
+      expiresAt:
+        stored.expiresAt ||
+        (expiryRaw ? parseInt(expiryRaw, 10) : null) ||
+        (account && account.expiresAt) ||
+        null
     };
   }
 
@@ -2823,7 +2872,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function saveCookiePreferenceToggles() {
-    if (!_config || !_consentId) {
+    if (!_config || !hasSavedPreferences()) {
       renderSubmissionState('Preferences could not be saved. Please retry.');
       return;
     }
@@ -2909,7 +2958,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   }
 
   function renderCookiePreferencesPanel() {
-    if (!_config || !_consentId) return;
+    if (!_config || !hasSavedPreferences()) return;
     removeCookiePreferencesPanel();
     removePreferenceWidget();
     _submitButtons = [];
@@ -3077,7 +3126,8 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     _submitButtons.push(saveBtn);
 
     var download = null;
-    if (cfg.showDownloadReceipt !== false) {
+    // Receipt PDF is guest consentId-based; account-only sessions skip download.
+    if (cfg.showDownloadReceipt !== false && _consentId) {
       download = document.createElement('button');
       download.type = 'button';
       download.textContent = cfg.downloadReceiptLabel || extra.downloadReceipt || 'Download Receipt';
@@ -4537,7 +4587,12 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     var stored = loadStoredConsent();
     var purposes = {};
     var vendors = {};
-    var has = !!(stored && stored.status === 'confirmed' && stored.serverConfirmed && Array.isArray(stored.decisions));
+    var has = !!(
+      stored &&
+      stored.status === 'confirmed' &&
+      Array.isArray(stored.decisions) &&
+      (stored.serverConfirmed || stored.deviceRemembered)
+    );
     if (has) {
       (stored.decisions || []).forEach(function(row) {
         if (row.purposeId) purposes[row.purposeId] = !!row.granted;
@@ -4545,6 +4600,48 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       });
     }
     return { has: has, purposes: purposes, vendors: vendors, stored: stored };
+  }
+
+  /** Keep Accept/Reject choices in the browser so logout does not re-prompt. */
+  function mirrorChoicesToBrowserStorage(purposeMap, vendorMap, choice) {
+    var decisions = [];
+    Object.keys(purposeMap || {}).forEach(function(id) {
+      decisions.push({ purposeId: id, vendorId: null, granted: !!purposeMap[id] });
+    });
+    Object.keys(vendorMap || {}).forEach(function(id) {
+      decisions.push({ purposeId: null, vendorId: id, granted: !!vendorMap[id] });
+    });
+    ((_config && _config.purposes) || []).forEach(function(p) {
+      if (!p || !p.isRequired) return;
+      var already = false;
+      for (var i = 0; i < decisions.length; i++) {
+        if (decisions[i].purposeId === p.id) {
+          already = true;
+          decisions[i].granted = true;
+          break;
+        }
+      }
+      if (!already) decisions.push({ purposeId: p.id, vendorId: null, granted: true });
+    });
+    var existing = loadStoredConsent() || {};
+    var consentId = _consentId || existing.consentId || '';
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        status: 'confirmed',
+        serverConfirmed: !!consentId,
+        deviceRemembered: true,
+        consentId: consentId,
+        decisions: decisions,
+        choice: choice || existing.choice || 'granular',
+        websiteId: (_config && _config.websiteId) || existing.websiteId || null,
+        policyVersionId: (_config && _config.policyVersionId) || existing.policyVersionId || null,
+        purposeIds: ((_config && _config.purposes) || []).map(function(p) { return p.id; }),
+        vendorIds: ((_config && _config.vendors) || []).map(function(v) { return v.id; }),
+        revision: Date.now(),
+        stateVersion: Number(existing.stateVersion) || _stateVersion || 1,
+        consentedAt: existing.consentedAt || new Date().toISOString()
+      }));
+    } catch (eMirror) {}
   }
 
   function accountDecisionMapsFromSnapshot(account) {
@@ -4653,17 +4750,48 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         localStorage.setItem(ACCOUNT_KEY, JSON.stringify(result.data.account || result.data));
       } catch (eAcc) {}
       applyDecisionMaps(purposeMap, vendorMap);
+      mirrorChoicesToBrowserStorage(purposeMap, vendorMap, choice);
       return result.data;
     });
   }
 
+  function finishAccountChoiceUi() {
+    _choiceDismissed = true;
+    _reconsentNotice = '';
+    removeBanner();
+    syncPreferenceWidget();
+  }
+
+  function showAccountConsentBanner(notice) {
+    // If account prefs are already saved in this tab, keep the preferences
+    // button working — do not force the consent popup over them.
+    if (hasSavedPreferences()) {
+      _accountMergePending = false;
+      _accountConflictPending = false;
+      finishAccountChoiceUi();
+      return;
+    }
+    _accountMergePending = false;
+    _accountConflictPending = false;
+    _accountConfirmed = false;
+    _choiceDismissed = false;
+    _bannerSoftClosed = false;
+    _reconsentNotice = notice || 'These choices will apply wherever you sign in to this website.';
+    blockOptionalProcessing('DENIED', '');
+    showBannerWhenReady();
+  }
+
   function handleSubjectAccountLoad(generation) {
-    return fetchAccountConsent(generation).then(function(result) {
+    // Login + live config refresh both call this; coalesce same-generation work so
+    // a losing stateVersion race cannot clear a successful bind and hide the banner.
+    if (_accountLoadInflight && _accountLoadGeneration === generation) {
+      return _accountLoadInflight;
+    }
+    _accountLoadGeneration = generation;
+    var work = fetchAccountConsent(generation).then(function(result) {
       if (result.generation !== _subjectGeneration) return;
       if (!result.ok || !result.data || !result.data.success) {
-        blockOptionalProcessing('DENIED', 'Signed-in consent could not be verified');
-        _choiceDismissed = false;
-        showBannerWhenReady();
+        showAccountConsentBanner('Signed-in consent could not be verified. Please choose again.');
         return;
       }
       var account = result.data.account || {};
@@ -4672,7 +4800,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
       _accountStateVersion = account.stateVersion || 0;
       _subjectKey = result.data.subjectKey || _subjectKey;
 
-      if (accountMaps.has && account.status === 'active') {
+      if (accountMaps.has && account.status === 'active' && (account.decisions || []).length > 0) {
         var effectivePurposes = {};
         var effectiveVendors = {};
         var conflictItems = [];
@@ -4696,32 +4824,27 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           }
         });
 
-        if (conflictItems.length) {
-          // Deny-wins on device without a second prompt; keep optional processing
-          // blocked where either guest or account denied.
-          _accountConflictPending = false;
-          _accountMergePending = false;
-          _accountConfirmed = true;
-          try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); } catch (eAccConflict) {}
-          applyDecisionMaps(effectivePurposes, effectiveVendors);
-          _choiceDismissed = true;
-          removeBanner();
-          syncPreferenceWidget();
-          return;
-        }
-
-        _accountConfirmed = true;
+        _accountConflictPending = false;
         _accountMergePending = false;
+        _accountConfirmed = true;
         try { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account)); } catch (eAcc2) {}
-        applyDecisionMaps(accountMaps.purposes, accountMaps.vendors);
-        _choiceDismissed = true;
-        removeBanner();
-        syncPreferenceWidget();
+        applyDecisionMaps(
+          conflictItems.length ? effectivePurposes : accountMaps.purposes,
+          conflictItems.length ? effectiveVendors : accountMaps.vendors
+        );
+        finishAccountChoiceUi();
         return;
       }
 
       // No account choices yet — bind browser choices to the account on login.
       if (guest.has) {
+        if (!_config || !_config.policyVersionId) {
+          // Live config will retry once policyVersionId is available.
+          applyDecisionMaps(guest.purposes, guest.vendors);
+          finishAccountChoiceUi();
+          return;
+        }
+
         var allDenied = true;
         var anyOptional = false;
         ((_config && _config.purposes) || []).forEach(function(p) {
@@ -4745,26 +4868,31 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         return saveGuestMapsToAccount(guest.purposes, guest.vendors, bindChoice, generation)
           .then(function() {
             if (generation !== _subjectGeneration) return;
-            _choiceDismissed = true;
-            removeBanner();
-            syncPreferenceWidget();
+            finishAccountChoiceUi();
           })
           .catch(function() {
             if (generation !== _subjectGeneration) return;
+            // Another parallel success may have already confirmed the account.
+            if (_accountConfirmed) {
+              finishAccountChoiceUi();
+              return;
+            }
             _accountMergePending = false;
-            _accountConfirmed = false;
-            applyDecisionMaps(guest.purposes, guest.vendors);
-            blockOptionalProcessing('DENIED', 'Could not save account preferences');
+            // Fall back to the regular consent banner — never leave the page with no UI.
+            showAccountConsentBanner('Could not save account preferences. Please choose again.');
           });
       }
 
-      _accountMergePending = false;
-      _accountConfirmed = false;
-      blockOptionalProcessing('DENIED', '');
-      _choiceDismissed = false;
-      _reconsentNotice = 'These choices will apply wherever you sign in to this website.';
-      showBannerWhenReady();
+      showAccountConsentBanner('These choices will apply wherever you sign in to this website.');
+    }).then(function(value) {
+      if (_accountLoadInflight === work) _accountLoadInflight = null;
+      return value;
+    }, function(err) {
+      if (_accountLoadInflight === work) _accountLoadInflight = null;
+      throw err;
     });
+    _accountLoadInflight = work;
+    return work;
   }
 
   function setSubjectSession(input) {
@@ -4781,8 +4909,43 @@ ${HOST_SCROLL_LOCK_RUNTIME}
   function clearSubjectSession() {
     _subjectGeneration += 1;
     removeAccountPrompt();
+
+    // Capture browser/account choices before dropping the signed-in session so
+    // logout does not force Accept/Reject again on this device.
+    var guest = guestDecisionMapsFromStored();
+    var accountMaps = null;
+    try {
+      var accountRaw = localStorage.getItem(ACCOUNT_KEY);
+      if (accountRaw) accountMaps = accountDecisionMapsFromSnapshot(JSON.parse(accountRaw));
+    } catch (eAccRead) {}
+
     clearSubjectSessionStorage();
-    clearGuestConsentStorage();
+
+    if (guest.has) {
+      if (guest.stored && guest.stored.consentId) _consentId = guest.stored.consentId;
+      if (guest.stored && guest.stored.stateVersion) _stateVersion = Number(guest.stored.stateVersion) || _stateVersion;
+      applyDecisionMaps(guest.purposes, guest.vendors);
+      _choiceDismissed = true;
+      _reconsentNotice = '';
+      _bannerSoftClosed = false;
+      removeBanner();
+      syncPreferenceWidget();
+      applyTrackerEnforcement();
+      return true;
+    }
+
+    if (accountMaps && accountMaps.has) {
+      mirrorChoicesToBrowserStorage(accountMaps.purposes, accountMaps.vendors, 'granular');
+      applyDecisionMaps(accountMaps.purposes, accountMaps.vendors);
+      _choiceDismissed = true;
+      _reconsentNotice = '';
+      _bannerSoftClosed = false;
+      removeBanner();
+      syncPreferenceWidget();
+      applyTrackerEnforcement();
+      return true;
+    }
+
     blockOptionalProcessing('DENIED', '');
     _choiceDismissed = false;
     _reconsentNotice = '';
@@ -5513,11 +5676,13 @@ ${HOST_SCROLL_LOCK_RUNTIME}
     if (
       stored &&
       stored.status === 'confirmed' &&
-      stored.serverConfirmed === true &&
-      stored.consentId &&
-      stored.decisions
+      Array.isArray(stored.decisions) &&
+      (
+        (stored.serverConfirmed === true && stored.consentId) ||
+        stored.deviceRemembered === true
+      )
     ) {
-      _consentId = stored.consentId;
+      if (stored.consentId) _consentId = stored.consentId;
       rememberAckedScope(stored);
       if (consentScopeChanged(stored, data)) {
         _consentId = null;
@@ -5527,7 +5692,7 @@ ${HOST_SCROLL_LOCK_RUNTIME}
         _choiceDismissed = false;
         _reconsentNotice = 'Some changes were made since you last visited this site. Please review your consent choices.';
         showBannerWhenReady();
-      } else {
+      } else if (stored.serverConfirmed === true && stored.consentId) {
         if (_choiceDismissed && _consentId && stored.consentId === _consentId) {
           removeBanner();
           syncPreferenceWidget();
@@ -5548,6 +5713,15 @@ ${HOST_SCROLL_LOCK_RUNTIME}
           _choiceDismissed = false;
           showBannerWhenReady();
         });
+      } else {
+        // Device-remembered choices after logout (no guest consentId to verify).
+        applyDecisions(stored.decisions);
+        _consentState = stateForConfirmedDecisions(stored.decisions);
+        _choiceDismissed = true;
+        removeBanner();
+        syncPreferenceWidget();
+        applyTrackerEnforcement();
+        publishExternalSignals();
       }
       syncCaliforniaOptOut({}, function() {
         applyTrackerEnforcement();

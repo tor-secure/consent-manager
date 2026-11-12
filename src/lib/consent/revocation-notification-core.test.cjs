@@ -312,7 +312,7 @@ describe("consent revocation route wiring", () => {
     assert.match(scopes, /consent:subject/);
   });
 
-  it("routes account preference mail to consent_subjects email without rewriting guest ownership", () => {
+  it("routes account preference mail to consent_subjects and binds Clerk email to guest consentId", () => {
     const accountRoute = fs.readFileSync(
       path.join(root, "src/app/api/consent/account/route.ts"),
       "utf8",
@@ -325,10 +325,17 @@ describe("consent revocation route wiring", () => {
       path.join(root, "src/lib/consent/bind-subject-from-session.ts"),
       "utf8",
     );
+    const sessionRoute = fs.readFileSync(
+      path.join(root, "src/app/api/consent/subject/session/route.ts"),
+      "utf8",
+    );
     assert.match(accountRoute, /notifyAccountPreferenceChanges/);
     assert.match(recordRoute, /do not rewrite guest metadata\.subject/);
-    assert.match(bindHelper, /ownership_moved_to_subject_session/);
-    assert.doesNotMatch(bindHelper, /consentRecords/);
+    assert.match(bindHelper, /consentRecords/);
+    assert.match(bindHelper, /withSubjectIdentity/);
+    assert.match(bindHelper, /clerk_session/);
+    assert.match(sessionRoute, /bindSubjectFromClerkSession/);
+    assert.match(sessionRoute, /consentId/);
   });
 
   it("uses Nodemailer with environment SMTP credentials only", () => {

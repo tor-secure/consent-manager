@@ -1,23 +1,23 @@
 {
-  "generatedAt": "2026-11-12T09:17:27.700Z",
+  "generatedAt": "2026-11-12T09:57:09.796Z",
   "before": {
     "label": "unminified",
-    "bytes": 239522,
-    "gzip": 50855,
-    "brotli": 40983
+    "bytes": 246202,
+    "gzip": 52333,
+    "brotli": 42133
   },
   "after": {
     "label": "minified",
-    "bytes": 126143,
-    "gzip": 35214,
-    "brotli": 29435
+    "bytes": 128341,
+    "gzip": 35795,
+    "brotli": 29910
   },
   "delta": {
-    "bytes": -113379,
-    "gzip": -15641,
-    "brotli": -11548,
-    "bytesPct": -47.3,
-    "gzipPct": -30.8,
-    "brotliPct": -28.2
+    "bytes": -117861,
+    "gzip": -16538,
+    "brotli": -12223,
+    "bytesPct": -47.9,
+    "gzipPct": -31.6,
+    "brotliPct": -29
   }
 }

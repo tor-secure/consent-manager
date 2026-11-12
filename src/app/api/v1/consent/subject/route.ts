@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { websites } from "@/db/schema/websites";
 import { authenticateApiKey } from "@/lib/api-key-auth";
+import { bindSubjectFromClerkSession } from "@/lib/consent/bind-subject-from-session";
 import {
   createSubjectSession,
   isValidSubjectKey,
@@ -25,8 +26,9 @@ const RESPONSE_HEADERS = {
  * subjectSessionToken for the browser SDK.
  *
  * Authenticated with API key scope `consent:subject`.
- * Body: { websiteId, subjectKey, email? }
- * Email is optional notification metadata — never the ownership key.
+ * Body: { websiteId, subjectKey, email?, consentId? }
+ * Email is notification metadata — never the ownership key. When consentId is
+ * provided with email, the email is bound onto that guest consent record.
  *
  * Customer integration:
  *   After login → POST this endpoint from your backend → pass token to CMP.setSubjectSession
@@ -88,6 +90,7 @@ export async function POST(request: Request) {
 
     const websiteId = String(json.body.websiteId ?? "").trim();
     const subjectKey = String(json.body.subjectKey ?? "").trim();
+    const consentId = String(json.body.consentId ?? "").trim();
     const rawEmail = json.body.email;
     const email =
       rawEmail === undefined || rawEmail === null || String(rawEmail).trim() === ""
@@ -135,6 +138,18 @@ export async function POST(request: Request) {
       email,
     });
 
+    let consentEmailBound = false;
+    if (email && consentId) {
+      const bind = await bindSubjectFromClerkSession({
+        organizationId: website.organizationId,
+        websiteId: website.id,
+        consentId,
+        email,
+        source: "api_key",
+      });
+      consentEmailBound = bind.bound;
+    }
+
     const session = await createSubjectSession({
       organizationId: website.organizationId,
       websiteId: website.id,
@@ -147,6 +162,7 @@ export async function POST(request: Request) {
       websiteId: website.id,
       subjectKey,
       recipientHint: email ? emailDomainHint(email) : null,
+      consentEmailBound,
     });
 
     return NextResponse.json(
@@ -158,6 +174,7 @@ export async function POST(request: Request) {
         subjectSessionToken: session.token,
         expiresAt: session.expiresAt.toISOString(),
         emailBound: Boolean(subject.email),
+        consentEmailBound,
       },
       { headers: RESPONSE_HEADERS },
     );

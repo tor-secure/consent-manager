@@ -13,18 +13,21 @@ type CmpApi = {
   clearSubjectSession?: () => unknown;
   getPreferenceSnapshot?: () => {
     websiteId?: string | null;
+    consentId?: string | null;
   };
+  getConsent?: () => { consentId?: string | null };
   getConsentContext?: () => {
     mode?: string;
     subjectKey?: string | null;
+    consentId?: string | null;
   };
 };
 
 /**
- * Consent Guru first-party: after Clerk login, mint a subject session and hand
- * it to the CMP SDK. Ownership is (websiteId, Clerk userId) — not email and not
- * guest consentId. On sign-out / user switch, clear the subject session and
- * start a fresh guest context so grants cannot leak across accounts.
+ * Consent Guru first-party: after Clerk login/sign-up, mint a subject session and
+ * bind the verified email to the current guest consentId when present. Ownership
+ * remains (websiteId, Clerk userId). On sign-out, clear only the subject session —
+ * browser Accept/Reject choices stay remembered on this device.
  */
 export function BindConsentSubjectOnLogin() {
   const { isLoaded, isSignedIn, userId } = useAuth();
@@ -59,10 +62,16 @@ export function BindConsentSubjectOnLogin() {
       if (cancelled) return;
       attempts += 1;
 
-      const snap = cmp()?.getPreferenceSnapshot?.();
+      const api = cmp();
+      const snap = api?.getPreferenceSnapshot?.();
       const websiteId = snap?.websiteId?.trim() || "";
       const siteKey =
         document.querySelector("script[data-site-key]")?.getAttribute("data-site-key")?.trim() ||
+        "";
+      const consentId =
+        snap?.consentId?.trim() ||
+        api?.getConsent?.()?.consentId?.trim() ||
+        api?.getConsentContext?.()?.consentId?.trim() ||
         "";
 
       if (!websiteId || !siteKey) {
@@ -70,10 +79,16 @@ export function BindConsentSubjectOnLogin() {
         return;
       }
 
-      const sessionKey = `${userId}:${websiteId}`;
+      const sessionKey = `${userId}:${websiteId}:${consentId || "-"}`;
       if (lastSessionKey.current === sessionKey) {
-        const ctx = cmp()?.getConsentContext?.();
-        if (ctx?.mode === "account" && ctx.subjectKey === userId) return;
+        const ctx = api?.getConsentContext?.();
+        if (ctx?.mode === "account" && ctx.subjectKey === userId) {
+          // Session is live; keep polling briefly until a guest consentId exists to bind.
+          if (!consentId && attempts < 8) {
+            timer = window.setTimeout(() => void establishSession(), 1500);
+          }
+          return;
+        }
       }
 
       try {
@@ -81,13 +96,19 @@ export function BindConsentSubjectOnLogin() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "same-origin",
-          body: JSON.stringify({ websiteId, siteKey }),
+          body: JSON.stringify({
+            websiteId,
+            siteKey,
+            ...(consentId ? { consentId } : {}),
+          }),
         });
         const data = (await res.json().catch(() => null)) as {
           success?: boolean;
           subjectSessionToken?: string;
           expiresAt?: string;
           subjectKey?: string;
+          emailBound?: boolean;
+          consentEmailBound?: boolean;
           message?: string;
         } | null;
 
@@ -103,12 +124,16 @@ export function BindConsentSubjectOnLogin() {
         }
 
         lastSessionKey.current = sessionKey;
-        await cmp()?.setSubjectSession?.({
+        await api?.setSubjectSession?.({
           token: data.subjectSessionToken,
           websiteId,
           expiresAt: data.expiresAt || undefined,
           subjectKey: data.subjectKey || userId || undefined,
         });
+
+        if (!consentId && attempts < 8) {
+          timer = window.setTimeout(() => void establishSession(), 1500);
+        }
       } catch {
         if (attempts < 40) timer = window.setTimeout(() => void establishSession(), 500);
       }
