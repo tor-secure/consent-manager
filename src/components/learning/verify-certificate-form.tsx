@@ -26,10 +26,10 @@ export function VerifyCertificateForm() {
   }
 
   return (
-    <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+    <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row sm:items-end">
       <label className="block min-w-0 flex-1 text-sm font-semibold text-[#0B2C4A]">
         Certificate ID
-        <span className="mt-1.5 flex h-11 w-full items-center rounded-lg border border-[#d5e3e0] bg-white px-3 focus-within:ring-2 focus-within:ring-[#00C4A7]">
+        <span className="mt-1.5 flex h-11 w-full items-center rounded-xl border border-[#d5e3e0] bg-white px-3 focus-within:ring-2 focus-within:ring-[#00C4A7]">
           <span className="shrink-0 font-medium text-[#0B2C4A]" aria-hidden="true">
             {CERTIFICATE_PREFIX}
           </span>
@@ -42,11 +42,11 @@ export function VerifyCertificateForm() {
             spellCheck={false}
             aria-label="Certificate ID"
             placeholder="…"
-            className="h-full min-w-0 flex-1 bg-transparent text-base font-medium text-[#0B2C4A] outline-none"
+            className="h-full min-w-0 flex-1 bg-transparent text-base font-medium leading-none text-[#0B2C4A] outline-none"
           />
         </span>
       </label>
-      <button type="submit" className={primaryBtn}>
+      <button type="submit" className={`${primaryBtn} w-full sm:w-auto`}>
         Verify certificate
       </button>
     </form>

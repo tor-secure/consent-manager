@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { StatusIcon, toModuleStatus, type ModuleStatus } from "@/components/learning/status-icon";
-import { pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { pad, primaryBtn } from "@/components/learning/ui";
 import { displayModuleNumber, groupModulesByPart } from "@/lib/learning/course-parts";
 import { moduleCardImageUrl } from "@/lib/learning/module-videos";
 
@@ -27,13 +27,6 @@ const STATUS_FOOTER: Record<ModuleStatus, string> = {
   available: "Ready",
   locked: "Locked",
 };
-
-function accentFor(status: ModuleStatus) {
-  if (status === "completed") return "bg-[#00C4A7]";
-  if (status === "in_progress") return "bg-[#0B2C4A]";
-  if (status === "locked") return "bg-[#c5d6d2]";
-  return "bg-[#7eb8ad]";
-}
 
 function ModuleThumbnail({
   number,
@@ -59,7 +52,9 @@ function ModuleThumbnail({
         className={`flex aspect-video w-full items-center justify-center overflow-hidden bg-[linear-gradient(145deg,#E6F9F5_0%,#f3f7f6_55%,#dcecea_100%)] ${className}`}
       >
         <div className="px-4 text-center">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d6570]">Module {pad(number)}</p>
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d6570]">
+            Module {pad(displayModuleNumber(number))}
+          </p>
           <p className="mt-2 line-clamp-3 text-sm font-semibold leading-snug text-[#0B2C4A]">{title}</p>
         </div>
       </div>
@@ -67,7 +62,7 @@ function ModuleThumbnail({
   }
 
   return (
-    <div className={`relative w-full min-w-0 overflow-hidden bg-[#E6F9F5] ${className}`}>
+    <div className={`relative w-full min-w-0 overflow-hidden ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element -- local /public module art */}
       <img
         src={src}
@@ -99,6 +94,20 @@ function ModuleThumbnail({
   );
 }
 
+function PartChevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      className={`h-5 w-5 shrink-0 fill-none stroke-current stroke-2 text-[#0B2C4A] motion-safe:transition-transform motion-safe:duration-200 ${
+        open ? "rotate-180" : ""
+      }`}
+    >
+      <path d="M5 7.5 10 12.5 15 7.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; currentSlug?: string | null }) {
   const enrolled = modules.some((item) => item.status !== undefined);
   const [query, setQuery] = useState("");
@@ -124,22 +133,32 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
   }, [modules, query, filter]);
 
   const parts = useMemo(() => groupModulesByPart(filtered), [filtered]);
+  const [openParts, setOpenParts] = useState<Record<string, boolean>>({});
+
+  const partKey = (part: { number: number; title: string }) => String(part.number || part.title);
+  const isPartOpen = (part: { number: number; title: string }) => openParts[partKey(part)] !== false;
+
+  function togglePart(part: { number: number; title: string }) {
+    const key = partKey(part);
+    setOpenParts((prev) => ({ ...prev, [key]: !(prev[key] !== false) }));
+  }
 
   return (
     <section aria-labelledby="modules-heading" className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h2 id="modules-heading" className="text-xl font-semibold text-[#0B2C4A]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00A88F]">Curriculum</p>
+          <h2 id="modules-heading" className="mt-1 text-2xl font-semibold tracking-tight text-[#0B2C4A]">
             Modules
           </h2>
-          <p className="mt-1 text-sm text-[#4d6570]">
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-[#4d6570]">
             {enrolled
-              ? "Nine parts · pass each quiz to unlock the next module."
+              ? "Nine parts · open a lesson or jump straight to the quiz when the module is unlocked."
               : "Nine parts covering the DPDP Act and Rules. Sign in and enrol to start."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative min-w-[14rem] flex-1 sm:flex-none">
+          <label className="relative min-w-[14rem] flex-1 sm:flex-none sm:w-56">
             <span className="sr-only">Search modules</span>
             <input
               value={query}
@@ -160,7 +179,7 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
               type="button"
               onClick={() => setFilter(value)}
               aria-pressed={filter === value}
-              className={`h-10 rounded-xl px-3 text-sm font-semibold motion-safe:transition-colors ${
+              className={`inline-flex h-10 items-center justify-center rounded-xl px-3.5 text-sm font-semibold leading-none motion-safe:transition-colors ${
                 filter === value
                   ? "bg-[#0B2C4A] text-white"
                   : "border border-[#d5e3e0] bg-white text-[#0B2C4A] hover:border-[#0B2C4A]"
@@ -177,90 +196,116 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
           No modules match this search.
         </p>
       ) : (
-        <div className="space-y-8">
-          {parts.map(({ part, modules: partModules }) => (
-            <section key={part.number || part.title} aria-labelledby={`part-${part.number}-heading`} className="space-y-3">
-              <header className="border-b border-[#e4eeec] pb-3">
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00A88F]">
-                  Part {part.number || "—"}
-                </p>
-                <h3 id={`part-${part.number}-heading`} className="mt-1 text-base font-semibold leading-snug text-[#0B2C4A] sm:text-lg">
-                  {part.title}
-                </h3>
-                <p className="mt-1 text-xs text-[#4d6570]">
-                  {partModules.length} module{partModules.length === 1 ? "" : "s"}
-                </p>
-              </header>
-              <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                {partModules.map((item) => {
-                  const status = toModuleStatus(item.status);
-                  const locked = enrolled && item.unlocked === false;
-                  const current = item.slug === currentSlug;
-                  const href = locked ? undefined : `/e-learning/module/${item.slug}`;
-                  const action =
-                    status === "completed" ? "Review" : current ? "Continue" : status === "locked" ? "Locked" : "Start";
+        <div className="space-y-3">
+          {parts.map(({ part, modules: partModules }) => {
+            const open = isPartOpen(part);
+            const headingId = `part-${part.number}-heading`;
+            const panelId = `part-${part.number}-panel`;
+            return (
+              <section
+                key={part.number || part.title}
+                aria-labelledby={headingId}
+                className="overflow-hidden rounded-2xl bg-[#fbfdfc] ring-1 ring-[#e4eeec]"
+              >
+                <button
+                  type="button"
+                  onClick={() => togglePart(part)}
+                  aria-expanded={open}
+                  aria-controls={panelId}
+                  className="flex w-full items-start gap-3 px-4 py-3.5 text-left motion-safe:transition-colors hover:bg-[#f3f8f7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#00C4A7] sm:px-5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00A88F]">
+                      Part {part.number || "—"}
+                    </p>
+                    <h3 id={headingId} className="mt-1 text-base font-semibold leading-snug text-[#0B2C4A] sm:text-lg">
+                      {part.title}
+                    </h3>
+                    <p className="mt-1 text-xs text-[#4d6570]">
+                      {partModules.length} module{partModules.length === 1 ? "" : "s"}
+                    </p>
+                  </div>
+                  <PartChevron open={open} />
+                </button>
 
-                  const card = (
-                    <article
-                      className={`group relative flex h-full min-w-0 flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_10px_30px_-24px_rgba(11,44,74,0.45)] motion-safe:transition-transform motion-safe:duration-200 ${
-                        current ? "border-[#00C4A7]" : "border-[#e4eeec]"
-                      } ${locked ? "opacity-80" : "hover:-translate-y-0.5"}`}
-                    >
-                      <div className="relative w-full shrink-0">
-                        <ModuleThumbnail number={item.number} slug={item.slug} title={item.title} />
-                        <div className={`absolute inset-x-0 top-0 h-1 ${accentFor(status)}`} aria-hidden="true" />
-                        {enrolled ? (
-                          <span className="absolute right-2.5 top-2.5 z-10 rounded-full bg-white/95 p-1 shadow-sm">
-                            <StatusIcon status={status} size={18} />
-                          </span>
-                        ) : null}
-                      </div>
+                <div
+                  id={panelId}
+                  className={`grid motion-safe:transition-[grid-template-rows] motion-safe:duration-300 motion-safe:ease-out ${
+                    open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                  }`}
+                >
+                  <div className="overflow-hidden" inert={!open} aria-hidden={open ? undefined : true}>
+                    <ul className="grid items-stretch gap-5 border-t border-[#e4eeec] bg-white p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3 2xl:grid-cols-4">
+                      {partModules.map((item) => {
+                        const status = toModuleStatus(item.status);
+                        const locked = enrolled && item.unlocked === false;
+                        const current = item.slug === currentSlug;
+                        const lessonHref = locked ? undefined : `/e-learning/module/${item.slug}`;
+                        const quizHref = locked ? undefined : `/e-learning/module/${item.slug}/quiz`;
+                        const shown = displayModuleNumber(item.number);
+                        const label = `Module ${pad(shown)}: ${item.title}`;
+                        const ctaClass =
+                          "inline-flex h-9 w-full items-center justify-center rounded-xl px-2 text-center text-xs font-semibold leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]";
 
-                      <div className="flex min-w-0 flex-1 flex-col p-4">
-                        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#4d6570]">
-                          Module {pad(displayModuleNumber(item.number))}
-                        </p>
-                        <h4 className="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-[#0B2C4A]">{item.title}</h4>
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-[#4d6570]">{item.summary}</p>
-
-                        <div className="mt-auto flex items-center justify-between gap-2 border-t border-[#eef4f3] pt-3">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#0B2C4A]">
-                            {enrolled ? STATUS_FOOTER[status] : `${item.minutes} min`}
-                            {status === "completed" ? <StatusIcon status="completed" size={14} /> : null}
-                          </span>
-                          {!locked && href ? (
-                            <span className="text-xs font-semibold text-[#00C4A7] group-hover:underline">{action} →</span>
-                          ) : locked ? (
-                            <span className="text-xs font-semibold text-[#8aa0a8]">
-                              {item.prerequisiteNumber
-                                ? `Pass M${pad(displayModuleNumber(item.prerequisiteNumber))}`
-                                : "Locked"}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </article>
-                  );
-
-                  return (
-                    <li key={item.slug}>
-                      {href ? (
-                        <Link
-                          href={href}
-                          prefetch={current || status === "available" || status === "in_progress"}
-                          className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7] focus-visible:ring-offset-2"
-                        >
-                          {card}
-                        </Link>
-                      ) : (
-                        card
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </section>
-          ))}
+                        return (
+                          <li key={item.slug} className="flex h-full min-w-0 flex-col">
+                            <article
+                              title={label}
+                              className={`relative overflow-hidden ${locked ? "opacity-80" : ""} ${
+                                current ? "ring-2 ring-[#00C4A7] ring-offset-2" : ""
+                              }`}
+                            >
+                              <ModuleThumbnail number={item.number} slug={item.slug} title={item.title} />
+                              {enrolled ? (
+                                <span className="absolute right-2.5 top-2.5 z-10 rounded-full bg-white/95 p-1 shadow-sm">
+                                  <StatusIcon status={status} size={18} />
+                                </span>
+                              ) : null}
+                            </article>
+                            <div className="mt-2.5 flex min-h-0 flex-1 flex-col">
+                              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">
+                                Module {pad(shown)}
+                              </p>
+                              <h4 className="mt-1 text-sm font-semibold leading-snug text-[#0B2C4A]">{item.title}</h4>
+                              <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+                                {lessonHref ? (
+                                  <Link
+                                    href={lessonHref}
+                                    prefetch={current || status === "available" || status === "in_progress"}
+                                    className={`${ctaClass} bg-[#0B2C4A] text-white hover:bg-[#123a5c]`}
+                                  >
+                                    View module
+                                  </Link>
+                                ) : (
+                                  <span className={`${ctaClass} border border-[#d5e3e0] bg-white text-[#8aa0a8]`}>
+                                    Locked
+                                  </span>
+                                )}
+                                {quizHref ? (
+                                  <Link
+                                    href={quizHref}
+                                    className={`${ctaClass} border border-[#0B2C4A]/25 bg-white text-[#0B2C4A] hover:border-[#0B2C4A]`}
+                                  >
+                                    Take quiz
+                                  </Link>
+                                ) : (
+                                  <span className={`${ctaClass} border border-[#d5e3e0] bg-[#f7fbfa] text-[#8aa0a8]`}>
+                                    {item.prerequisiteNumber
+                                      ? `Pass M${pad(displayModuleNumber(item.prerequisiteNumber))}`
+                                      : "Quiz locked"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
 
@@ -284,30 +329,45 @@ export function FeaturedModuleCard({
 }) {
   const status = toModuleStatus(item.status);
   const locked = enrolled && item.unlocked === false;
+  const shown = displayModuleNumber(item.number);
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[#e4eeec] bg-white shadow-[0_18px_40px_-28px_rgba(11,44,74,0.5)]">
+    <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-[#0B2C4A] text-white">
       <div className="relative w-full">
         <ModuleThumbnail number={item.number} slug={item.slug} title={item.title} overlay showPlay />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5 text-white">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
-            Module {pad(displayModuleNumber(item.number))}
-          </p>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 p-5">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">Module {pad(shown)}</p>
           <p className="mt-2 line-clamp-2 text-lg font-semibold leading-snug">{item.title}</p>
-          <p className="mt-1 line-clamp-2 text-sm leading-6 text-white/85">{item.summary}</p>
         </div>
       </div>
-      <div className="flex items-center justify-between gap-3 p-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">{item.minutes} minutes</p>
-          <p className="mt-0.5 text-sm font-semibold text-[#0B2C4A]">{STATUS_FOOTER[status]}</p>
+      <div className="flex flex-1 flex-col gap-4 p-5">
+        <p className="line-clamp-2 min-h-[3rem] text-sm leading-6 text-white/80">{item.summary}</p>
+        <div className="mt-auto space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/65">{item.minutes} minutes</p>
+            <p className="text-sm font-semibold">{STATUS_FOOTER[status]}</p>
+          </div>
+          {locked ? (
+            <span className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/25 px-4 text-sm font-semibold leading-none text-white/55">
+              Locked
+            </span>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href={`/e-learning/module/${item.slug}`}
+                prefetch
+                className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#00C4A7] px-3 text-sm font-semibold leading-none text-[#0B2C4A] transition-colors hover:bg-[#7FE8D6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                View module
+              </Link>
+              <Link
+                href={`/e-learning/module/${item.slug}/quiz`}
+                className="inline-flex h-11 w-full items-center justify-center rounded-xl border border-white/40 bg-transparent px-3 text-sm font-semibold leading-none text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Take quiz
+              </Link>
+            </div>
+          )}
         </div>
-        {locked ? (
-          <span className={`${secondaryBtn} pointer-events-none opacity-60`}>Locked</span>
-        ) : (
-          <Link href={`/e-learning/module/${item.slug}`} prefetch className={primaryBtn}>
-            {status === "completed" ? "Review" : status === "in_progress" ? "Continue" : "Start"}
-          </Link>
-        )}
       </div>
     </div>
   );

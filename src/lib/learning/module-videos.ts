@@ -1,3 +1,5 @@
+import { displayModuleNumber } from "@/lib/learning/course-parts";
+
 /** YouTube lesson videos for the 30 DPDP modules (from consent_guru_modules.json). */
 const MODULE_YOUTUBE_IDS: Record<number, string> = {
   1: "OA6100k37YI",
@@ -97,9 +99,12 @@ export function moduleYoutubeThumbnailUrl(
   return youtubeThumbnailUrl(id, quality);
 }
 
-/** Local module card / poster art in /public (PNG for all modules). */
-export function moduleCardImageUrl(moduleNumber: number, slug: string): string {
-  return `/module-${String(moduleNumber).padStart(2, "0")}-${slug}.png`;
+/** Local module card / poster art in /public/cgl-thumnails (cgl-01.png … cgl-30.png).
+ * Uses learner-facing Part order (1…30), not catalog unlock numbers.
+ */
+export function moduleCardImageUrl(moduleNumber: number, _slug?: string): string {
+  const display = displayModuleNumber(moduleNumber);
+  return `/cgl-thumnails/cgl-${String(display).padStart(2, "0")}.png`;
 }
 
 /** Extract a YouTube video id from watch / embed / short URLs. */

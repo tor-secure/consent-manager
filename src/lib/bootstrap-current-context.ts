@@ -307,22 +307,25 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
     const [hot] = hotRows;
 
     if (hot) {
-      if (Number(hot.websiteCount) === 0) {
-        const legacy = await findLegacyOrganizationForUser(hot.user.id, hot.organization.id);
-        if (legacy && Number(legacy.websiteCount) > 0) {
-          const remounted = await remountOrganizationToClerkId(
-            legacy.organization.id,
-            orgId,
-            hot.organization.id,
-          );
-          if (remounted) {
-            return {
-              user: hot.user,
-              organization: toOrganizationRow(remounted),
-              membership: legacy.membership,
-              roleName: await roleNameFor(legacy.membership.roleId),
-            };
-          }
+      // After Clerk Dev→Prod (or duplicate org shells), websites often remain on
+      // a legacy local org while the active Clerk org only has 0–1 shell sites.
+      // Remount when another membership org clearly owns more websites.
+      const legacy = await findLegacyOrganizationForUser(hot.user.id, hot.organization.id);
+      const hotCount = Number(hot.websiteCount);
+      const legacyCount = legacy ? Number(legacy.websiteCount) : 0;
+      if (legacy && legacyCount > hotCount) {
+        const remounted = await remountOrganizationToClerkId(
+          legacy.organization.id,
+          orgId,
+          hot.organization.id,
+        );
+        if (remounted) {
+          return {
+            user: hot.user,
+            organization: toOrganizationRow(remounted),
+            membership: legacy.membership,
+            roleName: await roleNameFor(legacy.membership.roleId),
+          };
         }
       }
 
@@ -472,23 +475,27 @@ async function bootstrapCurrentContextUncached(): Promise<BootstrapResult> {
       .limit(1);
 
     if (existingOrg) {
-      // Empty production shell org while an older membership still holds websites.
-      if (Number(existingOrg.websiteCount) === 0) {
-        const legacy = await findLegacyOrganizationForUser(localUser.id, existingOrg.organization.id);
-        if (legacy && Number(legacy.websiteCount) > 0) {
-          const remounted = await remountOrganizationToClerkId(
-            legacy.organization.id,
-            resolvedOrgId,
-            existingOrg.organization.id,
-          );
-          if (remounted) {
-            return {
-              user: localUser,
-              organization: toOrganizationRow(remounted),
-              membership: legacy.membership,
-              roleName: await roleNameFor(legacy.membership.roleId),
-            };
-          }
+      // Prefer the membership org that actually owns the websites (legacy may
+      // still hold data after Clerk Dev→Prod while the active org is a shell).
+      const legacy = await findLegacyOrganizationForUser(
+        localUser.id,
+        existingOrg.organization.id,
+      );
+      const currentCount = Number(existingOrg.websiteCount);
+      const legacyCount = legacy ? Number(legacy.websiteCount) : 0;
+      if (legacy && legacyCount > currentCount) {
+        const remounted = await remountOrganizationToClerkId(
+          legacy.organization.id,
+          resolvedOrgId,
+          existingOrg.organization.id,
+        );
+        if (remounted) {
+          return {
+            user: localUser,
+            organization: toOrganizationRow(remounted),
+            membership: legacy.membership,
+            roleName: await roleNameFor(legacy.membership.roleId),
+          };
         }
       }
 
