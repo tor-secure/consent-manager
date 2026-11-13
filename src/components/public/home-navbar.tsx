@@ -167,40 +167,16 @@ function LearningAuthButtons({
   mobile?: boolean;
   onNavigate?: () => void;
 }) {
-  if (!signedIn) {
-    return (
-      <>
-        <ArrowButton href="/e-learning/sign-in" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
-          Log in
-        </ArrowButton>
-        <ArrowButton href="/e-learning/sign-up" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
-          Sign up
-        </ArrowButton>
-      </>
-    );
-  }
+  // Signed-in learners use sidebar course/logout — keep navbar free of duplicate CTAs.
+  if (signedIn) return null;
   return (
     <>
-      <Link
-        href="/e-learning"
-        onClick={onNavigate}
-        className={
-          mobile
-            ? "inline-flex h-10 items-center justify-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
-            : "inline-flex h-10 items-center rounded-lg bg-[#0B2C4A] px-4 text-sm font-semibold text-white"
-        }
-      >
-        Your course
-      </Link>
-      <form action="/api/learning/sign-out" method="post" className={mobile ? "inline-flex" : "inline-flex"}>
-        <button
-          type="submit"
-          onClick={onNavigate}
-          className={mobile ? "inline-flex h-10 items-center justify-center text-sm font-semibold text-[#0B2C4A]" : "text-sm font-semibold text-[#0B2C4A]"}
-        >
-          Log out
-        </button>
-      </form>
+      <ArrowButton href="/e-learning/sign-in" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+        Log in
+      </ArrowButton>
+      <ArrowButton href="/e-learning/sign-up" onClick={onNavigate} className={mobile ? "w-full" : undefined}>
+        Sign up
+      </ArrowButton>
     </>
   );
 }

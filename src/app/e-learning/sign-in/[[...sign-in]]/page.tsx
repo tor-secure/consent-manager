@@ -1,6 +1,5 @@
-import { SignIn } from "@clerk/nextjs";
-
-import { AuthPageShell, clerkAuthAppearance } from "@/components/auth/auth-page-shell";
+import { AuthPageShell } from "@/components/auth/auth-page-shell";
+import { LearningSignInForm } from "@/components/learning/learning-auth-form";
 import { learningClerkKeys, safeLearningPath } from "@/lib/learning/clerk";
 
 export default async function LearningSignInPage({
@@ -23,15 +22,7 @@ export default async function LearningSignInPage({
   }
   return (
     <AuthPageShell mode="sign-in" audience="learning" accountHref={signUpHref}>
-      <SignIn
-        path="/e-learning/sign-in"
-        routing="path"
-        forceRedirectUrl={sessionUrl}
-        fallbackRedirectUrl={sessionUrl}
-        signUpUrl={`/e-learning/sign-up?redirect_url=${encodeURIComponent(next)}`}
-        signUpForceRedirectUrl={sessionUrl}
-        appearance={clerkAuthAppearance}
-      />
+      <LearningSignInForm sessionUrl={sessionUrl} signUpUrl={signUpHref} />
     </AuthPageShell>
   );
 }

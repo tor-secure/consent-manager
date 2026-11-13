@@ -23,8 +23,8 @@ export function GuestModuleOutline({
   }, [openSlug]);
 
   return (
-    <section aria-labelledby="modules-heading" className="rounded-3xl border border-[#e4eeec] bg-white p-6 sm:p-8">
-      <h2 id="modules-heading" className="text-xl font-semibold text-[#0B2C4A]">
+    <section aria-labelledby="modules-heading" className="scroll-mt-28 rounded-3xl border border-[#e4eeec] bg-white p-6 sm:p-8">
+      <h2 id="modules-heading" className="scroll-mt-28 text-xl font-semibold text-[#0B2C4A]">
         Modules
       </h2>
       <p className="mt-1 text-sm text-[#4d6570]">Organised into nine parts for the DPDP programme.</p>

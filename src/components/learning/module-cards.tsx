@@ -144,11 +144,11 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
   }
 
   return (
-    <section aria-labelledby="modules-heading" className="space-y-6">
+    <section aria-labelledby="modules-heading" className="scroll-mt-28 space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#00A88F]">Curriculum</p>
-          <h2 id="modules-heading" className="mt-1 text-2xl font-semibold tracking-tight text-[#0B2C4A]">
+          <h2 id="modules-heading" className="mt-1 scroll-mt-28 text-2xl font-semibold tracking-tight text-[#0B2C4A]">
             Modules
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-[#4d6570]">
@@ -247,55 +247,110 @@ export function ModuleCards({ modules, currentSlug }: { modules: ModuleCard[]; c
                         const ctaClass =
                           "inline-flex h-9 w-full items-center justify-center rounded-xl px-2 text-center text-xs font-semibold leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]";
 
+                        const lockHint = item.prerequisiteNumber
+                          ? `Pass Module ${pad(displayModuleNumber(item.prerequisiteNumber))} to unlock`
+                          : "Complete earlier modules to unlock";
+
                         return (
-                          <li key={item.slug} className="flex h-full min-w-0 flex-col">
+                          <li
+                            key={item.slug}
+                            className={`flex h-full min-w-0 flex-col ${locked ? "grayscale" : ""}`}
+                          >
                             <article
-                              title={label}
-                              className={`relative overflow-hidden ${locked ? "opacity-80" : ""} ${
+                              title={locked ? `${label} · Locked` : label}
+                              className={`relative overflow-hidden ${locked ? "opacity-55" : ""} ${
                                 current ? "ring-2 ring-[#00C4A7] ring-offset-2" : ""
                               }`}
                             >
                               <ModuleThumbnail number={item.number} slug={item.slug} title={item.title} />
-                              {enrolled ? (
+                              {locked ? (
+                                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-[#0B2C4A]/35">
+                                  <span
+                                    className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white/95 text-[#4d6570] shadow-lg ring-1 ring-[#d5e3e0]"
+                                    title={lockHint}
+                                    aria-label={lockHint}
+                                  >
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      width="22"
+                                      height="22"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      aria-hidden="true"
+                                    >
+                                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                                      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                                    </svg>
+                                  </span>
+                                </div>
+                              ) : enrolled ? (
                                 <span className="absolute right-2.5 top-2.5 z-10 rounded-full bg-white/95 p-1 shadow-sm">
                                   <StatusIcon status={status} size={18} />
                                 </span>
                               ) : null}
                             </article>
-                            <div className="mt-2.5 flex min-h-0 flex-1 flex-col">
+                            <div
+                              className={`mt-2.5 flex min-h-0 flex-1 flex-col ${locked ? "opacity-60" : ""}`}
+                            >
                               <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#4d6570]">
                                 Module {pad(shown)}
                               </p>
                               <h4 className="mt-1 text-sm font-semibold leading-snug text-[#0B2C4A]">{item.title}</h4>
-                              <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
-                                {lessonHref ? (
-                                  <Link
-                                    href={lessonHref}
-                                    prefetch={current || status === "available" || status === "in_progress"}
-                                    className={`${ctaClass} bg-[#0B2C4A] text-white hover:bg-[#123a5c]`}
+                              {locked ? (
+                                <div className="mt-auto pt-3">
+                                  <span
+                                    className={`${ctaClass} gap-1.5 border border-[#d5e3e0] bg-[#eef3f2] text-[#8aa0a8]`}
+                                    title={lockHint}
                                   >
-                                    View module
-                                  </Link>
-                                ) : (
-                                  <span className={`${ctaClass} border border-[#d5e3e0] bg-white text-[#8aa0a8]`}>
+                                    <svg
+                                      viewBox="0 0 24 24"
+                                      width="14"
+                                      height="14"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      aria-hidden="true"
+                                      className="shrink-0"
+                                    >
+                                      <rect x="5" y="11" width="14" height="10" rx="2" />
+                                      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                                    </svg>
                                     Locked
-                                  </span>
-                                )}
-                                {quizHref ? (
-                                  <Link
-                                    href={quizHref}
-                                    className={`${ctaClass} border border-[#0B2C4A]/25 bg-white text-[#0B2C4A] hover:border-[#0B2C4A]`}
-                                  >
-                                    Take quiz
-                                  </Link>
-                                ) : (
-                                  <span className={`${ctaClass} border border-[#d5e3e0] bg-[#f7fbfa] text-[#8aa0a8]`}>
                                     {item.prerequisiteNumber
-                                      ? `Pass M${pad(displayModuleNumber(item.prerequisiteNumber))}`
-                                      : "Quiz locked"}
+                                      ? ` · Pass M${pad(displayModuleNumber(item.prerequisiteNumber))}`
+                                      : ""}
                                   </span>
-                                )}
-                              </div>
+                                </div>
+                              ) : (
+                                <div className="mt-auto grid grid-cols-2 gap-2 pt-3">
+                                  {lessonHref ? (
+                                    <Link
+                                      href={lessonHref}
+                                      prefetch={current || status === "available" || status === "in_progress"}
+                                      className={`${ctaClass} bg-[#0B2C4A] text-white hover:bg-[#123a5c]`}
+                                    >
+                                      View module
+                                    </Link>
+                                  ) : (
+                                    <span className={`${ctaClass} border border-[#d5e3e0] bg-white text-[#8aa0a8]`}>
+                                      Locked
+                                    </span>
+                                  )}
+                                  {quizHref ? (
+                                    <Link
+                                      href={quizHref}
+                                      className={`${ctaClass} border border-[#0B2C4A]/25 bg-white text-[#0B2C4A] hover:border-[#0B2C4A]`}
+                                    >
+                                      Take quiz
+                                    </Link>
+                                  ) : (
+                                    <span className={`${ctaClass} border border-[#d5e3e0] bg-[#f7fbfa] text-[#8aa0a8]`}>
+                                      Quiz locked
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </li>
                         );

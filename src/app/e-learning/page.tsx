@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { EnrollButton } from "@/components/learning/enroll-button";
 import { GuestModuleOutline } from "@/components/learning/guest-module-outline";
 import { FeaturedModuleCard, ModuleCards } from "@/components/learning/module-cards";
+import { SmoothHashLink } from "@/components/learning/smooth-hash-link";
 import { VerifyCertificateForm } from "@/components/learning/verify-certificate-form";
 import { primaryBtn, secondaryBtn } from "@/components/learning/ui";
 import { JsonLd } from "@/components/seo/json-ld";
@@ -476,14 +477,14 @@ export default async function DpdpCoursePage({
   const { intent } = await searchParams;
   const learnerSession = await getLearningSession();
 
-  // After Learning Clerk sign-in, finish enrollment then drop the intent query.
-  if (learnerSession && intent === "enroll") {
-    const current = await getCourseHome(learnerSession);
-    if (!current.enrolled) await enrollInCourse(learnerSession);
-    redirect("/e-learning");
+  // Signed-in learners are enrolled automatically (first visit or after re-login).
+  // Guests still use Enroll / Learning dashboard CTAs — only first-timers see Enroll.
+  let home = learnerSession ? await getCourseHome(learnerSession) : await getPublicCourseCatalog();
+  if (learnerSession && !home.enrolled) {
+    await enrollInCourse(learnerSession);
+    home = await getCourseHome(learnerSession);
   }
-
-  const home = learnerSession ? await getCourseHome(learnerSession) : await getPublicCourseCatalog();
+  if (learnerSession && intent === "enroll") redirect("/e-learning");
   await catalogReady;
 
   const courseLd = graphSchema([
@@ -506,12 +507,12 @@ export default async function DpdpCoursePage({
           body="Learn the Digital Personal Data Protection Act, 2023 and the DPDP Rules, 2025 through 30 structured modules, quizzes, and a final exam, with a certificate when you pass."
           primary={<EnrollButton moduleCount={home.course.moduleCount} signedIn={Boolean(learnerSession)} />}
           secondary={
-            <Link
+            <SmoothHashLink
               href="#modules-heading"
               className="inline-flex h-11 items-center justify-center rounded-xl border border-white/35 bg-transparent px-5 text-sm font-semibold leading-none text-white hover:bg-white/10"
             >
               Browse modules
-            </Link>
+            </SmoothHashLink>
           }
         />
         <LearningHighlights
@@ -575,9 +576,9 @@ export default async function DpdpCoursePage({
         }
         secondary={
           allModulesDone && !progress.certificateEligible ? undefined : (
-            <Link href="#modules-heading" className={secondaryBtn}>
+            <SmoothHashLink href="#modules-heading" className={secondaryBtn}>
               Browse modules
-            </Link>
+            </SmoothHashLink>
           )
         }
         feature={
@@ -636,39 +637,53 @@ export default async function DpdpCoursePage({
             <section aria-label="Quick actions" className="grid gap-3 sm:grid-cols-3">
               {[
                 {
-                  href: allModulesDone ? "/e-learning/final-exam" : `#modules-heading`,
+                  href: allModulesDone ? "/e-learning/final-exam" : ("#modules-heading" as const),
                   label: allModulesDone ? "Open final exam" : "Jump to modules",
                   hint: allModulesDone ? "Sit the timed paper" : "Continue where you left off",
                   tone: "bg-[#0B2C4A] text-white",
+                  hash: !allModulesDone,
                 },
                 {
                   href: "/e-learning/certificate",
                   label: progress.certificateEligible ? "View certificate" : "Certificate status",
                   hint: progress.certificateEligible ? "Download your seal" : "Unlocks after the exam",
                   tone: "bg-white text-[#0B2C4A] ring-1 ring-[#e4eeec]",
+                  hash: false,
                 },
                 {
                   href: "/dpdp-act",
                   label: "Explore DPDP Act",
                   hint: "Site guide · leave the desk anytime",
                   tone: "bg-[#E6F9F5] text-[#0B2C4A] ring-1 ring-[#cfe8e2]",
+                  hash: false,
                 },
-              ].map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={`rounded-2xl px-4 py-4 motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 ${item.tone}`}
-                >
-                  <p className="text-sm font-semibold">{item.label}</p>
-                  <p
-                    className={`mt-1 text-xs leading-5 ${
-                      item.tone.includes("text-white") ? "text-white/75" : "text-[#4d6570]"
-                    }`}
-                  >
-                    {item.hint}
-                  </p>
-                </Link>
-              ))}
+              ].map((item) => {
+                const className = `rounded-2xl px-4 py-4 motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 ${item.tone}`;
+                const body = (
+                  <>
+                    <p className="text-sm font-semibold">{item.label}</p>
+                    <p
+                      className={`mt-1 text-xs leading-5 ${
+                        item.tone.includes("text-white") ? "text-white/75" : "text-[#4d6570]"
+                      }`}
+                    >
+                      {item.hint}
+                    </p>
+                  </>
+                );
+                if (item.hash) {
+                  return (
+                    <SmoothHashLink key={item.label} href="#modules-heading" className={className}>
+                      {body}
+                    </SmoothHashLink>
+                  );
+                }
+                return (
+                  <Link key={item.label} href={item.href} className={className}>
+                    {body}
+                  </Link>
+                );
+              })}
             </section>
             <ModuleCards modules={home.modules} currentSlug={allModulesDone ? null : current?.slug} />
           </div>

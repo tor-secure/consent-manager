@@ -86,7 +86,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     requestPath.startsWith("/e-learning") ||
     requestPath.startsWith("/api/learning");
   const learningSignIn =
-    requestPath.startsWith("/e-learning/sign-in") || requestPath.startsWith("/e-learning/sign-up");
+    requestPath.startsWith("/e-learning/sign-in") ||
+    requestPath.startsWith("/e-learning/sign-up") ||
+    requestPath.startsWith("/e-learning/sign-out");
   // Cookie banner / early-block must not cover auth handshakes or WhatsApp / e-learning.
   const skipMarketingCmp =
     requestPath.startsWith("/consent/whatsapp") ||

@@ -10,10 +10,14 @@ import { learningDb } from "@/db/learning/client";
 import { learningLearners } from "@/db/learning/schema";
 import { learningClerkKeys, safeLearningPath } from "@/lib/learning/clerk";
 import { parseOperatorEmailAllowlist, resolveLearningRole } from "@/lib/learning/operator-access";
-import { applyClerkCookies, clearLearningClerkCookies, takePlatformSession } from "@/lib/learning/platform-session";
+import { forceClearClerkBrowserCookies } from "@/lib/learning/platform-session";
 import type { LearnerContext } from "@/lib/learning/service";
+import { LEARNING_UI_COOKIE } from "@/lib/learning/ui-cookie";
 
 export const LEARNING_SESSION_COOKIE = "cg_learning";
+/** Short-lived flag so the client session bridge does not immediately sign the learner back in. */
+export const LEARNING_SIGNED_OUT_COOKIE = "cg_learning_signed_out";
+export { LEARNING_UI_COOKIE };
 const SESSION_SECONDS = 60 * 60 * 24 * 14;
 /** Skip learner upsert when profile is unchanged and recently synced. */
 const LEARNER_SYNC_MS = 15 * 60 * 1000;
@@ -67,7 +71,21 @@ export async function establishLearningSession(request: NextRequest): Promise<Ne
   const email = primary?.emailAddress ?? "";
   const emailVerified = primary?.verification?.status === "verified";
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || email || "Learner";
-  const response = NextResponse.redirect(new URL(next, request.url));
+
+  // Hard navigation (not Next soft-nav): after logout the guest /e-learning RSC tree is
+  // cached without a sidebar; a normal 302 can reuse that cache until a full refresh.
+  const target = new URL(next, request.url);
+  const destination = `${target.pathname}${target.search}`;
+  const response = new NextResponse(
+    `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="robots" content="noindex"/><title>Opening course</title></head><body style="font-family:system-ui,sans-serif;display:flex;min-height:50vh;align-items:center;justify-content:center;color:#4d6570"><p>Opening your course...</p><script>window.location.replace(${JSON.stringify(destination)});</script></body></html>`,
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store, max-age=0",
+      },
+    },
+  );
   response.cookies.set(
     LEARNING_SESSION_COOKIE,
     signSession({
@@ -85,20 +103,67 @@ export async function establishLearningSession(request: NextRequest): Promise<Ne
       maxAge: SESSION_SECONDS,
     },
   );
-  separateFromWorkspaceLogin(request, response);
+  // Client-readable twin so the UI can refresh if a soft navigation still serves guest chrome.
+  response.cookies.set(LEARNING_UI_COOKIE, "1", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: SESSION_SECONDS,
+  });
+  // Clear any prior "just logged out" flag so the portal session is active again.
+  response.cookies.set(LEARNING_SIGNED_OUT_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+  // Keep Learning Clerk cookies for this redirect so the session sticks.
+  // Platform stash is restored only when leaving e-learning (see proxy), not here.
   return response;
 }
 
 export function clearLearningSession(response: NextResponse) {
-  response.cookies.set(LEARNING_SESSION_COOKIE, "", { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 });
+  response.cookies.set(LEARNING_SESSION_COOKIE, "", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
+  response.cookies.set(LEARNING_UI_COOKIE, "", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 0,
+  });
 }
 
 export async function endLearningSession(request: NextRequest): Promise<NextResponse> {
-  const response = NextResponse.redirect(new URL("/e-learning", request.url));
+  // fetch() + redirect: "manual" can drop Set-Cookie; JSON lets the client apply cookies.
+  const wantsJson = request.headers.get("accept")?.includes("application/json");
+  const response = wantsJson
+    ? NextResponse.json({ ok: true })
+    : NextResponse.redirect(new URL("/e-learning", request.url));
+  response.headers.set("Cache-Control", "no-store, max-age=0");
   clearLearningSession(response);
-  // Clear Learning Clerk browser cookies before restoring any stashed workspace session.
-  clearLearningClerkCookies(request, response);
-  separateFromWorkspaceLogin(request, response);
+
+  // Drop Learning Clerk browser cookies so the session bridge cannot remint cg_learning.
+  // Do NOT restore the stashed workspace Clerk session here — putting dashboard
+  // `__session` on /e-learning made the curriculum sidebar vanish until a second login.
+  // Platform stash is restored only when leaving e-learning (see proxy).
+  forceClearClerkBrowserCookies(response);
+
+  // Block auto re-login via LearningSessionBridge until Clerk sign-out has settled.
+  response.cookies.set(LEARNING_SIGNED_OUT_COOKIE, "1", {
+    httpOnly: false,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 300,
+  });
   return response;
 }
 
@@ -184,8 +249,3 @@ function verifySession(token: string | undefined): SessionPayload | null {
   }
 }
 
-function separateFromWorkspaceLogin(request: NextRequest, response: NextResponse) {
-  const restored = takePlatformSession(request);
-  applyClerkCookies(response, restored);
-  if (restored.length === 0) clearLearningClerkCookies(request, response);
-}

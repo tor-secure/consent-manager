@@ -192,7 +192,14 @@ function isLearningPath(pathname: string) {
 }
 
 function isLearningSignPage(pathname: string) {
-  return pathname === "/e-learning/sign-in" || pathname.startsWith("/e-learning/sign-in/") || pathname === "/e-learning/sign-up" || pathname.startsWith("/e-learning/sign-up/");
+  return (
+    pathname === "/e-learning/sign-in" ||
+    pathname.startsWith("/e-learning/sign-in/") ||
+    pathname === "/e-learning/sign-up" ||
+    pathname.startsWith("/e-learning/sign-up/") ||
+    pathname === "/e-learning/sign-out" ||
+    pathname.startsWith("/e-learning/sign-out/")
+  );
 }
 
 function learningPass(request: NextRequest) {
@@ -235,10 +242,11 @@ export default async function proxy(request: NextRequest, event: NextFetchEvent)
   }
   if (pathname === "/e-learning/session") return learningPass(request);
   if (isLearningPath(pathname)) {
-    const restored = takePlatformSession(request);
-    const response = await learningPass(request);
-    applyClerkCookies(response, restored);
-    return response;
+    // Never restore workspace Clerk cookies onto e-learning routes. Swapping
+    // dashboard `__session` in (especially after logout / before re-login)
+    // made the curriculum sidebar vanish until a second login. Platform stash
+    // is restored only when leaving e-learning (below).
+    return learningPass(request);
   }
   const restored = takePlatformSession(request);
   // Pass the original request through. Header injection for path/CMP skip

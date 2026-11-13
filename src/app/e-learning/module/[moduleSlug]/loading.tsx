@@ -6,9 +6,9 @@ function Bar({ className }: { className: string }) {
 
 export function ModulePagerSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2" aria-hidden="true">
-      <Bar className="h-16 w-full rounded-xl" />
-      <Bar className="h-16 w-full rounded-xl" />
+    <div className="grid gap-3 sm:grid-cols-2 sm:gap-4" aria-hidden="true">
+      <Bar className="h-[6.25rem] w-full rounded-2xl" />
+      <Bar className="h-[6.25rem] w-full rounded-2xl" />
     </div>
   );
 }

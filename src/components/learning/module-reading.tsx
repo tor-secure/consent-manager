@@ -466,8 +466,8 @@ export function ModuleReading({
           <div ref={contentStartRef} className="scroll-mt-16 lg:scroll-mt-4">
             {selected.id === "video" ? (
               <div>
-                <div className="flex items-center justify-center bg-[#0f172a] p-3 sm:p-5">
-                  <div className="relative aspect-video w-full max-w-4xl overflow-hidden rounded-xl">
+                <div className="bg-[#0f172a]">
+                  <div className="relative aspect-video w-full overflow-hidden">
                     <div className="absolute inset-0">
                       <VideoPlayer video={video} moduleNumber={moduleNumber} moduleSlug={slug} />
                     </div>

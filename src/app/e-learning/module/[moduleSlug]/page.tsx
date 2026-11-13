@@ -7,6 +7,7 @@ import { ModuleReading } from "@/components/learning/module-reading";
 import { ProgressBar } from "@/components/learning/progress-bar";
 import { StatusChip, StatusIcon } from "@/components/learning/status-icon";
 import { card, eyebrow, pad, primaryBtn, secondaryBtn } from "@/components/learning/ui";
+import { displayModuleNumber } from "@/lib/learning/course-parts";
 import { learnerPageContext } from "@/lib/learning/page-context";
 import { getCourseHome, getModuleForLearner, warmLearningCatalog, warmModuleLesson } from "@/lib/learning/service";
 import { ModulePagerSkeleton } from "./loading";
@@ -121,6 +122,117 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleS
   );
 }
 
+function PagerChevron({ direction }: { direction: "prev" | "next" }) {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {direction === "prev" ? <path d="M15 6 9 12l6 6" /> : <path d="m9 6 6 6-6 6" />}
+    </svg>
+  );
+}
+
+function ModulePagerCard({
+  direction,
+  href,
+  label,
+  numberLabel,
+  title,
+  locked = false,
+  emphasis = false,
+}: {
+  direction: "prev" | "next";
+  href?: string;
+  label: string;
+  numberLabel: string;
+  title: string;
+  locked?: boolean;
+  /** Next / exam gets the stronger CTA treatment. */
+  emphasis?: boolean;
+}) {
+  const isNext = direction === "next";
+  const shell = isNext ? "sm:flex-row-reverse sm:text-right" : "";
+
+  const content = (
+    <>
+      <span
+        className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl motion-safe:transition-colors ${
+          locked
+            ? "bg-[#eef3f2] text-[#8aa0a8]"
+            : emphasis
+              ? "bg-white/15 text-white group-hover:bg-white/25"
+              : "bg-[#E6F9F5] text-[#0B2C4A] group-hover:bg-[#d7f3ee]"
+        }`}
+      >
+        {locked ? <StatusIcon status="locked" size={20} /> : <PagerChevron direction={direction} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span
+          className={`block text-[11px] font-bold uppercase tracking-[0.16em] ${
+            locked ? "text-[#8aa0a8]" : emphasis ? "text-white/75" : "text-[#4d6570]"
+          }`}
+        >
+          {label}
+          {locked ? " · Locked" : null}
+        </span>
+        <span
+          className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold tabular-nums ${
+            locked
+              ? "bg-[#eef3f2] text-[#8aa0a8]"
+              : emphasis
+                ? "bg-white/15 text-white"
+                : "bg-[#f3f7f6] text-[#0B2C4A]"
+          }`}
+        >
+          {numberLabel}
+        </span>
+        <span
+          className={`mt-2 line-clamp-2 block text-[15px] font-semibold leading-snug ${
+            locked ? "text-[#8aa0a8]" : emphasis ? "text-white" : "text-[#0B2C4A]"
+          }`}
+        >
+          {title}
+        </span>
+      </span>
+    </>
+  );
+
+  if (locked || !href) {
+    return (
+      <div
+        className={`flex min-h-[6.25rem] items-center gap-4 rounded-2xl border border-dashed border-[#d5e3e0] bg-[linear-gradient(180deg,#fbfdfc_0%,#f3f7f6_100%)] px-4 py-4 ${shell}`}
+        aria-label={`${label}: ${title} is locked`}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  if (emphasis) {
+    return (
+      <Link
+        href={href}
+        prefetch
+        className={`group relative flex min-h-[6.25rem] items-center gap-4 overflow-hidden rounded-2xl bg-[#0B2C4A] px-4 py-4 text-white shadow-[0_18px_40px_-28px_rgba(11,44,74,0.85)] motion-safe:transition-[transform,box-shadow] motion-safe:duration-200 hover:-translate-y-0.5 hover:shadow-[0_22px_44px_-24px_rgba(11,44,74,0.9)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7] focus-visible:ring-offset-2 ${shell}`}
+      >
+        <span
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,196,167,0.35),transparent_55%)]"
+          aria-hidden="true"
+        />
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      prefetch
+      className={`group flex min-h-[6.25rem] items-center gap-4 rounded-2xl border border-[#d5e3e0] bg-white px-4 py-4 shadow-[0_14px_32px_-28px_rgba(11,44,74,0.45)] motion-safe:transition-[border-color,box-shadow,transform] motion-safe:duration-200 hover:-translate-y-0.5 hover:border-[#0B2C4A]/40 hover:shadow-[0_20px_40px_-28px_rgba(11,44,74,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7] focus-visible:ring-offset-2 ${shell}`}
+    >
+      {content}
+    </Link>
+  );
+}
+
 async function ModulePager({
   homePromise,
   currentSlug,
@@ -133,42 +245,51 @@ async function ModulePager({
   const index = modules.findIndex((item) => item.slug === currentSlug);
   const previous = index > 0 ? modules[index - 1] : null;
   const next = index >= 0 && index < modules.length - 1 ? modules[index + 1] : null;
+
   return (
-    <nav aria-label="Module navigation" className="grid gap-3 sm:grid-cols-2">
+    <nav aria-label="Module navigation" className="grid gap-3 sm:grid-cols-2 sm:gap-4">
       {previous ? (
-        <Link href={`/e-learning/module/${previous.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
-          <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Previous</span>
-          <span className="mt-0.5 text-sm font-semibold">
-            {pad(previous.number)} · {previous.title}
+        <ModulePagerCard
+          direction="prev"
+          href={`/e-learning/module/${previous.slug}`}
+          label="Previous"
+          numberLabel={`Module ${pad(displayModuleNumber(previous.number))}`}
+          title={previous.title}
+        />
+      ) : (
+        <div
+          className="flex min-h-[6.25rem] items-center gap-4 rounded-2xl border border-[#e4eeec] bg-[linear-gradient(180deg,#fbfdfc_0%,#f3f7f6_100%)] px-4 py-4 text-[#8aa0a8]"
+          aria-hidden="true"
+        >
+          <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#eef3f2] text-[#8aa0a8]">
+            <PagerChevron direction="prev" />
           </span>
-        </Link>
-      ) : (
-        <span className="hidden sm:block" />
+          <span className="min-w-0">
+            <span className="block text-[11px] font-bold uppercase tracking-[0.16em]">Previous</span>
+            <span className="mt-2 block text-sm font-medium leading-snug">Start of the course</span>
+          </span>
+        </div>
       )}
+
       {next ? (
-        next.unlocked ? (
-          <Link href={`/e-learning/module/${next.slug}`} prefetch className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right motion-safe:transition-colors hover:border-[#0B2C4A] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]`}>
-            <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
-            <span className="mt-0.5 text-sm font-semibold">
-              {pad(next.number)} · {next.title}
-            </span>
-          </Link>
-        ) : (
-          <div className="flex min-h-16 items-center justify-end gap-3 rounded-xl border border-dashed border-[#d5e3e0] bg-[#fbfdfc] px-4 py-3 text-right text-[#4d6570]" aria-label={`Next module ${next.number} is locked`}>
-            <span className="flex flex-col">
-              <span className="text-xs font-semibold uppercase tracking-wide">Next · locked</span>
-              <span className="mt-0.5 text-sm font-semibold">
-                {pad(next.number)} · {next.title}
-              </span>
-            </span>
-            <StatusIcon status="locked" size={20} />
-          </div>
-        )
+        <ModulePagerCard
+          direction="next"
+          href={next.unlocked ? `/e-learning/module/${next.slug}` : undefined}
+          label="Next"
+          numberLabel={`Module ${pad(displayModuleNumber(next.number))}`}
+          title={next.title}
+          locked={!next.unlocked}
+          emphasis={next.unlocked}
+        />
       ) : (
-        <Link href="/e-learning/final-exam" className={`${card} flex min-h-16 flex-col justify-center px-4 py-3 text-right hover:border-[#0B2C4A]`}>
-          <span className="text-xs font-semibold uppercase tracking-wide text-[#4d6570]">Next</span>
-          <span className="mt-0.5 text-sm font-semibold">Final examination</span>
-        </Link>
+        <ModulePagerCard
+          direction="next"
+          href="/e-learning/final-exam"
+          label="Up next"
+          numberLabel="Final exam"
+          title="Final examination"
+          emphasis
+        />
       )}
     </nav>
   );

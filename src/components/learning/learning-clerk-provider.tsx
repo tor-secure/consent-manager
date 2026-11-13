@@ -19,7 +19,7 @@ export function LearningClerkProvider({ children }: { children: ReactNode }) {
       signInForceRedirectUrl="/e-learning/session"
       signUpForceRedirectUrl="/e-learning/session"
       afterSignOutUrl="/e-learning"
-      dynamic
+      // Prefer a visible auth shell quickly; sign-in/up show their own skeleton until loaded.
       ui={ui}
     >
       {children}

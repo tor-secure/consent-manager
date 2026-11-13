@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { LearningSignOutButton } from "@/components/learning/learning-sign-out-button";
 import { StatusIcon, toModuleStatus } from "@/components/learning/status-icon";
 import { pad } from "@/components/learning/ui";
 import { displayModuleNumber, groupModulesByPart } from "@/lib/learning/course-parts";
@@ -441,7 +442,11 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
 
   useMobileDrawer(mobileOpen, closeMobile, mobilePanelRef);
 
-  if (pathname.startsWith("/e-learning/sign-in") || pathname.startsWith("/e-learning/sign-up")) {
+  if (
+    pathname.startsWith("/e-learning/sign-in") ||
+    pathname.startsWith("/e-learning/sign-up") ||
+    pathname.startsWith("/e-learning/sign-out")
+  ) {
     return children;
   }
 
@@ -540,15 +545,12 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
             <span id={collapseLabelId} className="sr-only">
               Expand sidebar
             </span>
-            <form action="/api/learning/sign-out" method="post">
-              <button
-                type="submit"
-                title="Log out"
-                className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[11px] font-bold text-[#c62828] hover:bg-[#fdecea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]"
-              >
-                Out
-              </button>
-            </form>
+            <LearningSignOutButton
+              title="Log out"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-[11px] font-bold text-[#c62828] hover:bg-[#fdecea] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828] disabled:opacity-60"
+            >
+              Out
+            </LearningSignOutButton>
           </div>
         </div>
       );
@@ -669,32 +671,29 @@ export function LearningPortal({ children, signedIn, enrolled, modules, progress
           <p className="truncate text-xs font-medium text-[#4d6570]" title={courseTitle}>
             {courseTitle}
           </p>
-          <form action="/api/learning/sign-out" method="post" className="w-full">
-            <button
-              type="submit"
-              onClick={onNavigate}
-              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#fdecea] text-sm font-semibold leading-none text-[#c62828] transition-colors hover:bg-[#f8d7d4] hover:text-[#b71c1c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828]"
-            >
-              Log out
-            </button>
-          </form>
+          <LearningSignOutButton
+            className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[#fdecea] text-sm font-semibold leading-none text-[#c62828] transition-colors hover:bg-[#f8d7d4] hover:text-[#b71c1c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c62828] disabled:opacity-60"
+          >
+            Log out
+          </LearningSignOutButton>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-[#f3f7f6] text-[#0B2C4A]">
-      <div className="flex w-full">
+    <div className="flex min-h-[calc(100dvh-72px)] flex-1 flex-col bg-[#f3f7f6] text-[#0B2C4A]">
+      <div className="flex min-h-[calc(100dvh-72px)] w-full flex-1">
         <aside
-          className={`sticky top-[72px] hidden h-[calc(100dvh-72px)] shrink-0 overflow-hidden border-r border-[#e4eeec] bg-white motion-safe:transition-[width] motion-safe:duration-200 lg:flex lg:flex-col ${
+          className={`sticky top-[72px] z-20 hidden h-[calc(100dvh-72px)] shrink-0 self-start overflow-hidden border-r border-[#e4eeec] bg-white motion-safe:transition-[width] motion-safe:duration-200 lg:flex lg:flex-col ${
             railCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH
           }`}
+          aria-label="Learning curriculum"
         >
           {renderSidebar("desktop")}
         </aside>
 
-        <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-[72px] z-30 flex items-center justify-between gap-3 border-b border-[#e4eeec] bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
             <button
               type="button"

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { ShieldLoader } from "@/components/ui/shield-loader";
-import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
 import { primaryBtn } from "@/components/learning/ui";
+import { enrollInDpdpCourse } from "@/lib/learning/enroll-action";
+import { isReturningLearner, markReturningLearner } from "@/lib/learning/returning-learner";
 
 const GUEST_ENROLL_HREF = `/e-learning/sign-in?redirect_url=${encodeURIComponent("/e-learning?intent=enroll")}`;
+const GUEST_DASHBOARD_HREF = `/e-learning/sign-in?redirect_url=${encodeURIComponent("/e-learning")}`;
 
 export function EnrollButton({
   moduleCount,
@@ -17,8 +19,24 @@ export function EnrollButton({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [returning, setReturning] = useState(false);
+
+  useEffect(() => {
+    setReturning(isReturningLearner());
+  }, []);
 
   if (!signedIn) {
+    if (returning) {
+      return (
+        <a
+          href={GUEST_DASHBOARD_HREF}
+          aria-label="Log in to open your learning dashboard"
+          className={`${primaryBtn} h-12 min-w-40 px-8 text-base`}
+        >
+          Learning dashboard
+        </a>
+      );
+    }
     return (
       <a
         href={GUEST_ENROLL_HREF}
@@ -35,7 +53,11 @@ export function EnrollButton({
     setError("");
     startTransition(async () => {
       const result = await enrollInDpdpCourse();
-      if (result.error) setError(result.error);
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      markReturningLearner();
     });
   }
 

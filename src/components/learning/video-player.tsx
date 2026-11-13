@@ -2,14 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import {
-  moduleCardImageUrl,
-  moduleYoutubeId,
-  youtubeIdFromUrl,
-  youtubeThumbnailUrl,
-  type YoutubeThumbQuality,
-} from "@/lib/learning/module-videos";
-
 type VideoLesson = {
   provider: string;
   url: string | null;
@@ -32,22 +24,10 @@ function fileSrc(video: VideoLesson) {
   return video.url;
 }
 
-/** Start playback when the learner clicks the overlay on an embed. */
-function embedSrc(url: string | null) {
-  if (!url) return undefined;
-  try {
-    const parsed = new URL(url);
-    if (!parsed.searchParams.has("autoplay")) parsed.searchParams.set("autoplay", "1");
-    return parsed.toString();
-  } catch {
-    return url;
-  }
-}
-
 export function VideoPlayer({
   video,
-  moduleNumber,
-  moduleSlug,
+  moduleNumber: _moduleNumber,
+  moduleSlug: _moduleSlug,
 }: {
   video: VideoLesson;
   moduleNumber?: number;
@@ -55,58 +35,7 @@ export function VideoPlayer({
 }) {
   const src = fileSrc(video);
   if (src) return <FilePlayer src={src} title={video.title} />;
-  return <EmbedPlayer video={video} moduleNumber={moduleNumber} moduleSlug={moduleSlug} />;
-}
-
-function ModulePoster({
-  moduleNumber,
-  moduleSlug,
-  youtubeId,
-}: {
-  moduleNumber?: number;
-  moduleSlug?: string;
-  youtubeId: string | null;
-}) {
-  const localSrc = moduleNumber != null && moduleSlug ? moduleCardImageUrl(moduleNumber, moduleSlug) : null;
-  const [useYoutube, setUseYoutube] = useState(!localSrc);
-  const [quality, setQuality] = useState<YoutubeThumbQuality>("maxres");
-  const [failed, setFailed] = useState(false);
-  const youtubeSrc = youtubeId ? youtubeThumbnailUrl(youtubeId, quality) : null;
-  const src = !useYoutube && localSrc ? localSrc : youtubeSrc;
-
-  if (!src || failed) return null;
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element -- local /public art or YouTube CDN poster
-    <img
-      src={src}
-      alt=""
-      decoding="async"
-      className="absolute inset-0 h-full w-full object-contain object-center"
-      onLoad={(event) => {
-        if (!useYoutube) return;
-        const img = event.currentTarget;
-        if (img.naturalWidth > 0 && img.naturalWidth <= 120 && quality !== "hq") {
-          setQuality(quality === "maxres" ? "sd" : "hq");
-        }
-      }}
-      onError={() => {
-        if (!useYoutube && youtubeSrc) {
-          setUseYoutube(true);
-          return;
-        }
-        if (quality === "maxres") {
-          setQuality("sd");
-          return;
-        }
-        if (quality === "sd") {
-          setQuality("hq");
-          return;
-        }
-        setFailed(true);
-      }}
-    />
-  );
+  return <EmbedPlayer video={video} />;
 }
 
 function FilePlayer({ src, title }: { src: string; title: string }) {
@@ -248,26 +177,11 @@ function FilePlayer({ src, title }: { src: string; title: string }) {
   );
 }
 
-function EmbedPlayer({
-  video,
-  moduleNumber,
-  moduleSlug,
-}: {
-  video: VideoLesson;
-  moduleNumber?: number;
-  moduleSlug?: string;
-}) {
+function EmbedPlayer({ video }: { video: VideoLesson }) {
   const frameRef = useRef<HTMLElement>(null);
-  const [started, setStarted] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const playable = Boolean(video.url) && video.provider !== "placeholder";
   const embedded = playable && (video.provider === "youtube" || video.provider === "vimeo" || video.provider === "embed");
-  const youtubeId =
-    video.provider === "youtube"
-      ? youtubeIdFromUrl(video.url) ?? (moduleNumber != null ? moduleYoutubeId(moduleNumber) : null)
-      : moduleNumber != null
-        ? moduleYoutubeId(moduleNumber)
-        : null;
 
   useEffect(() => {
     const onChange = () => setFullscreen(document.fullscreenElement === frameRef.current);
@@ -278,7 +192,6 @@ function EmbedPlayer({
   async function toggleFullscreen() {
     const frame = frameRef.current;
     if (!frame) return;
-    if (!started) setStarted(true);
     if (document.fullscreenElement === frame) {
       await document.exitFullscreen();
       return;
@@ -292,25 +205,10 @@ function EmbedPlayer({
       className={`relative h-full w-full overflow-hidden bg-black text-white ${fullscreen ? "flex items-center justify-center" : ""}`}
       aria-label="Module video"
     >
-      {playable && !started ? (
-        <button
-          type="button"
-          className="relative flex h-full w-full cursor-pointer flex-col items-center justify-center gap-3 overflow-hidden px-6 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00C4A7]"
-          onClick={() => setStarted(true)}
-        >
-          <ModulePoster moduleNumber={moduleNumber} moduleSlug={moduleSlug} youtubeId={youtubeId} />
-          <span className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/20" aria-hidden="true" />
-          <span className="relative z-10 flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white shadow-lg ring-2 ring-white/35" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
-              <path d="M8 5.5v13l11-6.5-11-6.5Z" />
-            </svg>
-          </span>
-          <span className="relative z-10 max-w-lg text-sm font-semibold drop-shadow-sm sm:text-base">{video.title}</span>
-        </button>
-      ) : embedded && started ? (
+      {embedded && video.url ? (
         <iframe
           className="h-full w-full bg-black"
-          src={embedSrc(video.url)}
+          src={video.url}
           title={video.title}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
           allowFullScreen

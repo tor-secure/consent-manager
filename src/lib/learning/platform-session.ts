@@ -77,6 +77,17 @@ export function rememberPlatformSession(request: NextRequest, response: NextResp
   }
 }
 
+function platformStashWrites(request: NextRequest): ClerkCookieWrite[] {
+  const stashed = request.cookies.get(STASH_SESSION)?.value;
+  if (!stashed || sessionOwner(stashed) !== "platform") return [];
+  const writes: ClerkCookieWrite[] = [{ name: CLERK_SESSION, value: stashed, httpOnly: true }];
+  const uat = request.cookies.get(STASH_UAT)?.value;
+  if (uat) writes.push({ name: CLERK_UAT, value: uat, httpOnly: false });
+  const dev = request.cookies.get(STASH_DEV)?.value;
+  if (dev) writes.push({ name: CLERK_DEV, value: dev, httpOnly: true });
+  return [...writes, ...clearStashWrites()];
+}
+
 /** Put the workspace Clerk session back when the course login replaced it. */
 export function takePlatformSession(request: NextRequest): ClerkCookieWrite[] {
   const stashed = request.cookies.get(STASH_SESSION)?.value;
@@ -85,19 +96,19 @@ export function takePlatformSession(request: NextRequest): ClerkCookieWrite[] {
   if (owner === "platform") return [];
   if (owner !== "learning") return clearStashWrites();
 
-  request.cookies.set(CLERK_SESSION, stashed);
-  const writes: ClerkCookieWrite[] = [{ name: CLERK_SESSION, value: stashed, httpOnly: true }];
-  const uat = request.cookies.get(STASH_UAT)?.value;
-  if (uat) {
-    request.cookies.set(CLERK_UAT, uat);
-    writes.push({ name: CLERK_UAT, value: uat, httpOnly: false });
+  const writes = platformStashWrites(request);
+  for (const cookie of writes) {
+    if (cookie.maxAge === 0) continue;
+    request.cookies.set(cookie.name, cookie.value);
   }
-  const dev = request.cookies.get(STASH_DEV)?.value;
-  if (dev) {
-    request.cookies.set(CLERK_DEV, dev);
-    writes.push({ name: CLERK_DEV, value: dev, httpOnly: true });
-  }
-  return [...writes, ...clearStashWrites()];
+  return writes;
+}
+
+/** Restore stashed workspace session after learning logout (no owner check). */
+export function restorePlatformSessionFromStash(request: NextRequest): ClerkCookieWrite[] {
+  const stashed = request.cookies.get(STASH_SESSION)?.value;
+  if (!stashed || sessionOwner(stashed) !== "platform") return clearStashWrites();
+  return platformStashWrites(request);
 }
 
 export function applyClerkCookies(response: NextResponse, writes: ClerkCookieWrite[]) {
@@ -117,6 +128,15 @@ function clearClerkBrowserCookies(response: NextResponse) {
 export function clearLearningClerkCookies(request: NextRequest, response: NextResponse) {
   if (sessionOwner(request.cookies.get(CLERK_SESSION)?.value) !== "learning") return;
   clearClerkBrowserCookies(response);
+}
+
+/** Clear host Clerk browser cookies regardless of which app owns `__session`. */
+export function forceClearClerkBrowserCookies(response: NextResponse) {
+  clearClerkBrowserCookies(response);
+}
+
+export function hasLearningAppSession(request: NextRequest): boolean {
+  return Boolean(request.cookies.get("cg_learning")?.value);
 }
 
 /**
