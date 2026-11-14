@@ -93,6 +93,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const skipMarketingCmp =
     requestPath.startsWith("/consent/whatsapp") ||
     requestPath.startsWith("/e-learning") ||
+    requestPath.startsWith("/elearning-admin") ||
     onLearning ||
     requestPath.startsWith("/sign-in") ||
     requestPath.startsWith("/sign-up") ||

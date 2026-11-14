@@ -269,9 +269,10 @@ export const learningCertificates = pgTable(
     courseId: uuid("course_id")
       .notNull()
       .references(() => learningCourses.id, { onDelete: "cascade" }),
-    examAttemptId: uuid("exam_attempt_id")
-      .notNull()
-      .references(() => learningExamAttempts.id, { onDelete: "cascade" }),
+    /** Null when an admin issues the certificate without a final-exam attempt. */
+    examAttemptId: uuid("exam_attempt_id").references(() => learningExamAttempts.id, {
+      onDelete: "set null",
+    }),
     certificateCode: varchar("certificate_code", { length: 40 }).notNull(),
     learnerName: varchar("learner_name", { length: 255 }).notNull(),
     courseTitle: varchar("course_title", { length: 240 }).notNull(),
@@ -282,6 +283,48 @@ export const learningCertificates = pgTable(
   (table) => [
     uniqueIndex("learning_certificates_code_unique").on(table.certificateCode),
     uniqueIndex("learning_certificates_enrollment_unique").on(table.enrollmentId),
+  ],
+);
+
+/** E-learning admin panel accounts (password is scrypt-hashed). */
+export const learningAdmins = pgTable(
+  "learning_admins",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    username: varchar("username", { length: 80 }).notNull(),
+    passwordHash: text("password_hash").notNull(),
+    active: boolean("active").notNull().default(true),
+    /** SHA-256 hex of one-time password-reset token; null when unused. */
+    passwordResetTokenHash: text("password_reset_token_hash"),
+    passwordResetExpiresAt: timestamp("password_reset_expires_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [uniqueIndex("learning_admins_username_unique").on(table.username)],
+);
+
+/** Promo codes: vouchers (CGLV-…) and coupons (CGLC-…). */
+export const learningPromoCodes = pgTable(
+  "learning_promo_codes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    kind: varchar("kind", { length: 16 }).notNull(),
+    code: varchar("code", { length: 40 }).notNull(),
+    label: varchar("label", { length: 160 }).notNull().default(""),
+    /** 100 = full voucher / free access; coupons typically 5–90. */
+    discountPercent: integer("discount_percent").notNull().default(100),
+    maxRedemptions: integer("max_redemptions"),
+    redemptionCount: integer("redemption_count").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    note: text("note"),
+    createdBy: varchar("created_by", { length: 80 }).notNull().default("admin"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("learning_promo_codes_code_unique").on(table.code),
+    index("learning_promo_codes_kind_idx").on(table.kind),
   ],
 );
 

@@ -36,6 +36,8 @@ const isPublicRoute = createRouteMatcher([
   "/news(.*)",
   "/learning/verify(.*)",
   "/learning/certificate(.*)",
+  "/elearning-admin(.*)",
+  "/api/elearning-admin(.*)",
   "/dpdp-act(.*)",
   "/tools(.*)",
   "/blog(.*)",
